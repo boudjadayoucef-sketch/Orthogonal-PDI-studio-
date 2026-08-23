@@ -984,24 +984,12 @@ function IsometrieModule() {
   const [autocadSuggestions, setAutocadSuggestions] = useState<CadCommandItem[]>([]);
   const [autocadActiveIdx, setAutocadActiveIdx] = useState(0);
   const [autocadPrompt, setAutocadPrompt] = useState("Tapez une commande (ex: LIGNE, RECT, TRIANGLE, COPIER, COLLER...)");
-  const [commandPromptHidden, setCommandPromptHidden] = useState<boolean>(() => {
-    try { return window.localStorage.getItem("pdi.commandPromptHidden.v1") === "1"; } catch { return false; }
-  });
-  const [keyboardShortcutsEnabled, setKeyboardShortcutsEnabled] = useState<boolean>(() => {
-    try { return window.localStorage.getItem("pdi.keyboardShortcutsEnabled.v1") === "1"; } catch { return false; }
-  });
-  const [workspaceVisualStyle, setWorkspaceVisualStyle] = useState(() => {
+  const [pipeStrokeScale, setPipeStrokeScale] = useState<number>(() => {
     try {
-      const saved = JSON.parse(window.localStorage.getItem("pdi.workspaceVisualStyle.v1") || "{}");
-      return {
-        pipeStrokeScale: Number.isFinite(Number(saved.pipeStrokeScale)) ? Math.min(3, Math.max(0.35, Number(saved.pipeStrokeScale))) : 1,
-        cad2dStrokeScale: Number.isFinite(Number(saved.cad2dStrokeScale)) ? Math.min(3, Math.max(0.35, Number(saved.cad2dStrokeScale))) : 1,
-        defaultPipeColor: typeof saved.defaultPipeColor === "string" ? saved.defaultPipeColor : "#0EA5E9",
-        defaultCadColor: typeof saved.defaultCadColor === "string" ? saved.defaultCadColor : "#E5E7EB",
-      };
-    } catch { return { pipeStrokeScale: 1, cad2dStrokeScale: 1, defaultPipeColor: "#0EA5E9", defaultCadColor: "#E5E7EB" }; }
+      const saved = Number(window.localStorage.getItem("pdi.pipeStrokeScale.v1") || "1");
+      return Number.isFinite(saved) ? Math.min(3, Math.max(0.35, saved)) : 1;
+    } catch { return 1; }
   });
-  const pipeStrokeScale = workspaceVisualStyle.pipeStrokeScale;
   const [triangleMenuOpen, setTriangleMenuOpen] = useState(false);
   const [arcMenuOpen, setArcMenuOpen] = useState(false);
   const [polygonSidesCount, setPolygonSidesCount] = useState(6);
@@ -1009,20 +997,6 @@ function IsometrieModule() {
   useEffect(() => {
     try { window.localStorage.setItem("pdi.pipeStrokeScale.v1", String(pipeStrokeScale)); } catch {}
   }, [pipeStrokeScale]);
-  useEffect(() => {
-    try { window.localStorage.setItem("pdi.commandPromptHidden.v1", commandPromptHidden ? "1" : "0"); } catch {}
-  }, [commandPromptHidden]);
-  useEffect(() => {
-    try { window.localStorage.setItem("pdi.keyboardShortcutsEnabled.v1", keyboardShortcutsEnabled ? "1" : "0"); } catch {}
-  }, [keyboardShortcutsEnabled]);
-  useEffect(() => {
-    try { window.localStorage.setItem("pdi.workspaceVisualStyle.v1", JSON.stringify(workspaceVisualStyle)); } catch {}
-  }, [workspaceVisualStyle]);
-  const setPipeStrokeScale = (value: number) => setWorkspaceVisualStyle((prev) => ({ ...prev, pipeStrokeScale: Math.min(3, Math.max(0.35, Number(value) || 1)) }));
-  const setCad2dStrokeScale = (value: number) => setWorkspaceVisualStyle((prev) => ({ ...prev, cad2dStrokeScale: Math.min(3, Math.max(0.35, Number(value) || 1)) }));
-  const setDefaultPipeColor = (value: string) => setWorkspaceVisualStyle((prev) => ({ ...prev, defaultPipeColor: value || prev.defaultPipeColor }));
-  const setDefaultCadColor = (value: string) => setWorkspaceVisualStyle((prev) => ({ ...prev, defaultCadColor: value || prev.defaultCadColor }));
-
   const autocadCmdInputRef = useRef<HTMLInputElement>(null);
   const longPressTimeoutRef = useRef<any>(null);
 
@@ -2439,51 +2413,6 @@ function IsometrieModule() {
   };
 
   const executeCadCommand = (cmdInput: CadCommandItem | string) => {
-
-    // PATCH 016A style commands : LW/EPAISSEUR/COLOR/STYLE + raccourcis ON/OFF.
-    const rawCommandText = typeof cmdInput === "string" ? cmdInput.trim() : cmdInput.name;
-    const rawParts = rawCommandText.split(/\s+/).filter(Boolean);
-    const rawVerb = (rawParts[0] || "").toLowerCase();
-    const rawArg = rawParts[1];
-    const colorMap: Record<string, string> = { cyan: "#0EA5E9", bleu: "#0EA5E9", blue: "#0EA5E9", rouge: "#EF4444", red: "#EF4444", vert: "#22C55E", green: "#22C55E", jaune: "#FACC15", yellow: "#FACC15", blanc: "#E5E7EB", white: "#E5E7EB", gris: "#9CA3AF", gray: "#9CA3AF", grey: "#9CA3AF" };
-    if (["lw", "lineweight", "epaisseur", "épaisseur"].includes(rawVerb)) {
-      const value = Math.min(3, Math.max(0.35, Number(rawArg || "1")));
-      setPipeStrokeScale(value);
-      setCad2dStrokeScale(value);
-      setAutocadPrompt(`COMMANDE [${rawVerb.toUpperCase()}] : épaisseur globale réglée à ${value.toFixed(2)}×.`);
-      setStatusMessage(`Épaisseur globale ${value.toFixed(2)}×`);
-      return;
-    }
-    if (["color", "couleur"].includes(rawVerb)) {
-      const color = colorMap[(rawArg || "").toLowerCase()] || rawArg;
-      if (color && /^#?[0-9a-f]{6}$/i.test(color)) {
-        const normalized = color.startsWith("#") ? color : `#${color}`;
-        setDefaultPipeColor(normalized);
-        setDefaultCadColor(normalized);
-        setAutocadPrompt(`COMMANDE [COULEUR] : couleur active ${normalized}.`);
-        setStatusMessage(`Couleur active ${normalized}`);
-        return;
-      }
-      if (color && color.startsWith("#")) {
-        setDefaultPipeColor(color);
-        setDefaultCadColor(color);
-        setAutocadPrompt(`COMMANDE [COULEUR] : couleur active ${color}.`);
-        return;
-      }
-      setAutocadPrompt("COMMANDE [COULEUR] : indiquez cyan, rouge, vert, jaune, blanc, gris ou #RRGGBB.");
-      return;
-    }
-    if (["style"].includes(rawVerb)) {
-      setAutocadPrompt(`STYLE ACTIF : tube ${workspaceVisualStyle.pipeStrokeScale.toFixed(2)}× ${workspaceVisualStyle.defaultPipeColor}, 2D ${workspaceVisualStyle.cad2dStrokeScale.toFixed(2)}× ${workspaceVisualStyle.defaultCadColor}.`);
-      return;
-    }
-    if (["shortcuts", "raccourcis", "raccourci"].includes(rawVerb)) {
-      const next = ["on", "1", "oui", "true"].includes((rawArg || "").toLowerCase());
-      const off = ["off", "0", "non", "false"].includes((rawArg || "").toLowerCase());
-      setKeyboardShortcutsEnabled(off ? false : next ? true : !keyboardShortcutsEnabled);
-      setAutocadPrompt(`RACCOURCIS CLAVIER : ${off ? "OFF" : next ? "ON" : !keyboardShortcutsEnabled ? "ON" : "OFF"}.`);
-      return;
-    }
     let cmdId = typeof cmdInput === "string" ? cmdInput.trim().toLowerCase() : cmdInput.id;
     if (typeof cmdInput === "string") {
       const match = AUTOCAD_COMMANDS.find(
@@ -5008,7 +4937,15 @@ function IsometrieModule() {
               ))}
             </nav>
           <div className="flex items-center gap-2">
-            {/* PATCH 016A: bouton BOM & Métré topbar supprimé */}
+            <button
+              type="button"
+              onClick={() => { setRightPanelOpen(true); setRightPanelTab("bom"); }}
+              className="h-8 px-2.5 rounded-lg border border-amber-500/40 bg-amber-950/40 hover:bg-amber-900/60 text-amber-200 text-xs font-bold flex items-center gap-1.5 transition-all"
+              title="Afficher la nomenclature et métré dans le panneau droit"
+            >
+              <FileText className="w-3.5 h-3.5 text-amber-300" />
+              <span className="hidden sm:inline">BOM & Métré</span>
+            </button>
             <div className="hidden xl:flex items-center gap-3 text-[10px] text-slate-400"><span>{nodes.length} nœuds</span><span>{segments.length} tronçons</span><span className={graphErrorCount?"text-red-400":"text-emerald-400"}>{graphErrorCount?`${graphErrorCount} erreur(s)`:"Graphe valide"}</span></div>
             <button onClick={()=>setCommandPaletteOpen(true)} className="h-8 px-2 rounded-md border border-slate-700 bg-slate-800 text-[10px] font-black" title="Palette commandes">⌘K</button>
             <div className="relative">
@@ -6089,7 +6026,7 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                     {(() => { const pts=isoPolylineV4(s,a,b,viewport.zoom,viewport.panX,viewport.panY); const path=isoPathV4(pts); return <>
                       {sel&&<path d={path} stroke="#38bdf8" strokeWidth={width+8} strokeOpacity=".35" strokeLinecap="round" strokeLinejoin="round" fill="none"/>}
                       {hoveredEntity?.type==="segment"&&hoveredEntity.id===s.id&&!sel&&<path d={path} stroke="#67e8f9" strokeWidth={width+4} strokeOpacity=".3" strokeLinecap="round" strokeLinejoin="round" fill="none"/>}
-                      <path d={path} stroke={s.color||workspaceVisualStyle.defaultPipeColor} strokeWidth={width} strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                      <path d={path} stroke={s.color||"#9CA3AF"} strokeWidth={width} strokeLinecap="round" strokeLinejoin="round" fill="none"/>
                     </>; })()}
                     {false&&showDimensions&&showPipeLabels&&s.length>=.5&&<g />}
                     {isoDrawMode==="coude"&&<g data-iso-object="true" transform={`translate(${mx} ${my})`} onClick={e=>{e.stopPropagation();insertGraphicFitting(s.id,fitType.startsWith("coude")?fitType:"coude_90",.5)}} style={{cursor:"crosshair"}}><circle r="14" fill="#f59e0b" fillOpacity=".18" stroke="#fbbf24" strokeDasharray="3 2"/><path d="M-7 7 Q-7 -7 7 -7" stroke="#fbbf24" strokeWidth="2.5" fill="none"/></g>}
@@ -6203,7 +6140,7 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                     const strokeDash = entity.lineType === "dashed" ? "6 3" : entity.lineType === "center" ? "10 3 2 3" : entity.lineType === "hidden" ? "3 3" : undefined;
                     const common = {
                       stroke,
-                      strokeWidth: selected ? 2.5 * workspaceVisualStyle.cad2dStrokeScale : ((entity.lineWeight || 1.5) * workspaceVisualStyle.cad2dStrokeScale),
+                      strokeWidth: selected ? 2.5 : (entity.lineWeight || 1.5),
                       strokeDasharray: strokeDash,
                       opacity: entity.opacity ?? 1,
                       fill: "none",
@@ -7838,8 +7775,8 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
 
 
 
-    {/* PATCH 016A — Ligne de commande masquable, non affichée derrière modal */}
-    {!propertiesModalOpen && !commandPromptHidden && <div className="fixed left-[92px] right-3 bottom-3 z-[10030] rounded-2xl border border-cyan-500/35 bg-slate-950/96 shadow-2xl backdrop-blur-xl p-2 flex items-center gap-2 pdi-command-dock-015">
+    {/* PATCH 015 — Ligne de commande AutoCAD visible en permanence + réglage épaisseur tuyauterie */}
+    <div className="fixed left-[92px] right-3 bottom-3 z-[10030] rounded-2xl border border-cyan-500/35 bg-slate-950/96 shadow-2xl backdrop-blur-xl p-2 flex items-center gap-2 pdi-command-dock-015">
       <div className="min-w-[150px] hidden md:flex flex-col gap-1 px-2 border-r border-slate-800">
         <span className="text-[9px] font-black uppercase tracking-wider text-cyan-300">Commande</span>
         <span className="text-[9px] text-slate-500">Tapez LIGNE, COPIE, COUDE, BOM…</span>
@@ -7855,8 +7792,6 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
           onApplyNumericInput={applyNumericDraftInput}
         />
       </div>
-      <button type="button" onClick={() => setKeyboardShortcutsEnabled(v => !v)} className={`h-9 px-2 rounded-xl border text-[10px] font-black ${keyboardShortcutsEnabled ? "border-amber-500/60 bg-amber-950/40 text-amber-200" : "border-slate-700 bg-slate-900 text-slate-300"}`} title="Activer/désactiver les raccourcis clavier">⌨ {keyboardShortcutsEnabled ? "ON" : "OFF"}</button>
-      <button type="button" onClick={() => setCommandPromptHidden(true)} className="h-9 px-2 rounded-xl border border-slate-700 bg-slate-900 text-[10px] font-black text-slate-300" title="Masquer prompt">Hide</button>
       <label className="hidden lg:flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-2 py-1 text-[10px] font-black text-slate-200" title="Épaisseur graphique des lignes de tuyauterie">
         <span className="text-slate-400">Ép.</span>
         <input
@@ -7870,8 +7805,7 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
         />
         <span className="w-9 text-right text-cyan-300">{pipeStrokeScale.toFixed(2)}×</span>
       </label>
-    </div>}
-    {!propertiesModalOpen && commandPromptHidden && <button type="button" onClick={() => setCommandPromptHidden(false)} className="fixed left-[92px] bottom-3 z-[10030] rounded-xl border border-cyan-500/40 bg-slate-950 px-3 py-2 text-xs font-black text-cyan-200 shadow-xl">⌨ Commande</button>}
+    </div>
 
     <div className={`hidden pdi-status-docked ${workspaceFullscreen?"fixed bottom-0 left-[92px] right-0 z-[10008] rounded-none":"sticky bottom-2 z-40 rounded-xl"} bg-slate-950 text-slate-200 border border-slate-800 px-3 py-2 flex flex-wrap items-center justify-between gap-2 text-[10px] shadow-lg`}><div className="flex gap-4"><b className="text-emerald-400">● {statusMessage}</b><span className={saveState==="error"?"text-red-400":saveState==="modified"?"text-amber-300":"text-cyan-300"}>{saveState==="modified"?"Modifications non sauvegardées":saveState==="autosaved"?`Autosauvegardé${lastSavedAt?` à ${lastSavedAt}`:""}`:saveState==="error"?"Erreur de sauvegarde":""}</span><span>{nodes.length} nœuds</span><span>{segments.length} tronçons</span><span>{selectedCount} sélectionné(s)</span><span>{selectedCad2dIds.length} objet(s) 2D</span><span className={graphErrorCount?"text-red-400":"text-emerald-400"}>{graphErrorCount?`${graphErrorCount} erreur(s) réseau`:"Graphe valide"}</span><span>{projectJoints.length} joints</span></div><div className="flex gap-3"><span>Outil: <b>{interactionMode==="main"?"MAIN":isoDrawMode.toUpperCase()}</b></span><span>Snap {isoSnapStep} m</span><span>Zoom {Math.round(viewport.zoom*100)}%</span><span>Ctrl+K commandes · ? aide</span></div></div>
   </div>;
