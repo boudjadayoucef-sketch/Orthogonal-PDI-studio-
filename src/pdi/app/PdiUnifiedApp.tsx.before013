@@ -111,9 +111,7 @@ function ComingSoonPanel({ title, children }: { title: string; children: React.R
 }
 
 export default function PdiUnifiedApp() {
-  const [activeModule, setActiveModule] = useState<PdiModule>(() => {
-    try { return (window.localStorage.getItem("pdi.activeModule.v1") as PdiModule) || "home"; } catch { return "home"; }
-  });
+  const [activeModule, setActiveModule] = useState<PdiModule>("home");
   const [authMode, setAuthMode] = useState<"guest" | "demo" | "pending_email" | "client" | "admin" | "super_admin">(() => { try { return (window.localStorage.getItem(PDI_AUTH_KEY) as any) || "demo"; } catch { return "demo"; } });
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [authPanelMode, setAuthPanelMode] = useState<"login" | "register" | "activation">("login");
@@ -171,13 +169,7 @@ export default function PdiUnifiedApp() {
 
   // PATCH 004c : etape "landing" par defaut a chaque ouverture/rechargement,
   // puis "app" (coquille + modules) lorsque l'utilisateur clique pour entrer.
-  const [stage, setStage] = useState<"landing" | "app">(() => {
-    try {
-      const auth = window.localStorage.getItem(PDI_AUTH_KEY);
-      const forced = window.localStorage.getItem("pdi.force.app.v1") === "1" || window.sessionStorage.getItem(PDI_STAGE_KEY) === "app";
-      return forced && auth && auth !== "guest" && auth !== "pending_email" ? "app" : "landing";
-    } catch { return "landing"; }
-  });
+  const [stage, setStage] = useState<"landing" | "app">("landing");
   const [landingScreen, setLandingScreen] = useState<"landing" | "home" | "launcher">("landing");
 
   const enterApp = React.useCallback((target?: string) => {
@@ -215,7 +207,6 @@ export default function PdiUnifiedApp() {
       window.sessionStorage.removeItem(PDI_STAGE_KEY);
       window.localStorage.removeItem("pdi.force.app.v1");
       window.localStorage.setItem(PDI_AUTH_KEY, "guest");
-      window.localStorage.removeItem("pdi.activeModule.v1");
     } catch {}
     setAuthMode("guest");
     setLandingScreen("home");
@@ -270,7 +261,6 @@ export default function PdiUnifiedApp() {
   }, [handleLogoutToHome]);
 
   useEffect(() => { try { window.localStorage.setItem(PDI_AUTH_KEY, authMode); } catch {} }, [authMode]);
-  useEffect(() => { try { window.localStorage.setItem("pdi.activeModule.v1", activeModule); } catch {} }, [activeModule]);
   useEffect(() => { const tab = workspaceTabs.find(t=>t.id===activeTabId); if(tab && activeModule === "home") setActiveModule(tab.module); }, []);
 
   const moduleTitle = useMemo(() => navItems.find((x) => x.id === activeModule)?.title || "PD&I", [activeModule]);

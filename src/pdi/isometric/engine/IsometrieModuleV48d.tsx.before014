@@ -34,7 +34,6 @@ import {
   CadCommandItem,
   AUTOCAD_COMMANDS,
   searchCadCommands,
-  PDI_PLANT3D_COMMAND_TABLE,
   buildEquilateralTriangle,
   buildRightTriangle,
   buildIsoscelesTriangle,
@@ -2529,30 +2528,7 @@ function IsometrieModule() {
       setRightPanelTab("properties");
       setAutocadPrompt("COMMANDE [PROPRIETES] : Inspecteur de propriétés ouvert.");
     } else {
-      const plant3dCommand = PDI_PLANT3D_COMMAND_TABLE?.find((item) =>
-        item.id.toLowerCase() === cmdId ||
-        item.command.toLowerCase() === cmdId ||
-        item.aliases.some((alias) => alias.toLowerCase() === cmdId),
-      );
-      if (plant3dCommand) {
-        if (plant3dCommand.id === "datamanager" || plant3dCommand.id === "bom") {
-          setRightPanelOpen(true);
-          setRightPanelTab("bom");
-        }
-        if (plant3dCommand.id === "plantisoview" || plant3dCommand.id === "plantisoquick") {
-          setIsoMode("planche");
-        }
-        if (plant3dCommand.id === "pan") {
-          setInteractionMode("main");
-        }
-        if (plant3dCommand.id === "zoom" || plant3dCommand.id === "regen") {
-          resetView();
-        }
-        setAutocadPrompt(`COMMANDE [${plant3dCommand.command}] : ${plant3dCommand.pdiAction}. Statut: ${plant3dCommand.readiness}.`);
-        setStatusMessage(`${plant3dCommand.command} — ${plant3dCommand.description}`);
-      } else {
-        setAutocadPrompt(`Commande inconnue : "${cmdId}". Essayez COPIE, MOVE, COUDE, BOM, PLANTPIPEADD, DATAMANAGER...`);
-      }
+      setAutocadPrompt(`Commande : "${cmdId}". Tapez REC, TRI, L, C, COPIER, COLLER...`);
     }
   };
 

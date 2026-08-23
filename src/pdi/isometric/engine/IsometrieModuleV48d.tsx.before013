@@ -34,7 +34,6 @@ import {
   CadCommandItem,
   AUTOCAD_COMMANDS,
   searchCadCommands,
-  PDI_PLANT3D_COMMAND_TABLE,
   buildEquilateralTriangle,
   buildRightTriangle,
   buildIsoscelesTriangle,
@@ -2529,30 +2528,7 @@ function IsometrieModule() {
       setRightPanelTab("properties");
       setAutocadPrompt("COMMANDE [PROPRIETES] : Inspecteur de propriétés ouvert.");
     } else {
-      const plant3dCommand = PDI_PLANT3D_COMMAND_TABLE?.find((item) =>
-        item.id.toLowerCase() === cmdId ||
-        item.command.toLowerCase() === cmdId ||
-        item.aliases.some((alias) => alias.toLowerCase() === cmdId),
-      );
-      if (plant3dCommand) {
-        if (plant3dCommand.id === "datamanager" || plant3dCommand.id === "bom") {
-          setRightPanelOpen(true);
-          setRightPanelTab("bom");
-        }
-        if (plant3dCommand.id === "plantisoview" || plant3dCommand.id === "plantisoquick") {
-          setIsoMode("planche");
-        }
-        if (plant3dCommand.id === "pan") {
-          setInteractionMode("main");
-        }
-        if (plant3dCommand.id === "zoom" || plant3dCommand.id === "regen") {
-          resetView();
-        }
-        setAutocadPrompt(`COMMANDE [${plant3dCommand.command}] : ${plant3dCommand.pdiAction}. Statut: ${plant3dCommand.readiness}.`);
-        setStatusMessage(`${plant3dCommand.command} — ${plant3dCommand.description}`);
-      } else {
-        setAutocadPrompt(`Commande inconnue : "${cmdId}". Essayez COPIE, MOVE, COUDE, BOM, PLANTPIPEADD, DATAMANAGER...`);
-      }
+      setAutocadPrompt(`Commande : "${cmdId}". Tapez REC, TRI, L, C, COPIER, COLLER...`);
     }
   };
 
@@ -4005,20 +3981,13 @@ function IsometrieModule() {
     const referenceId = selectedNodeIds[selectedNodeIds.length - 1];
     const reference = nodes.find((n) => n.id === referenceId);
     if (!reference) return;
-
-    // PATCH 013 — alignement sans décalage visuel :
-    // on applique uniquement le delta nécessaire sur l’axe choisi et on ne re-snap jamais
-    // les autres coordonnées. Cela évite le glissement des points observé après alignement.
-    const selected = new Set(selectedNodeIds);
-    const refValue = Number(reference[axis] || 0);
-    const nextNodes = nodes.map((node) => {
-      if (!selected.has(node.id) || node.id === referenceId) return node;
-      const delta = Number((refValue - Number(node[axis] || 0)).toFixed(6));
-      if (Math.abs(delta) < 1e-9) return node;
-      return { ...node, [axis]: Number((Number(node[axis] || 0) + delta).toFixed(3)) };
-    });
+    const nextNodes = nodes.map((node) =>
+      selectedNodeIds.includes(node.id) && node.id !== referenceId
+        ? { ...node, [axis]: reference[axis] }
+        : node,
+    );
     commitGraph(nextNodes, recalcSegmentLengths(nextNodes, segments));
-    setStatusMessage(`Alignement ${axis.toUpperCase()} appliqué sans re-snap — référence : ${reference.name}`);
+    setStatusMessage(`Alignement ${axis.toUpperCase()} appliqué — référence : ${reference.name}`);
   };
 
   const alignSelectedEquipmentOnTube = () => {
@@ -4189,31 +4158,17 @@ function IsometrieModule() {
     return n.id;
   };
 
-
-  const elbowOrientationFromSegment = (segmentId: string | null, fallback = 0) => {
-    if (!segmentId) return fallback;
-    const segment = segments.find((item) => item.id === segmentId);
-    if (!segment) return fallback;
-    const a = nodes.find((node) => node.id === segment.fromNodeId);
-    const b = nodes.find((node) => node.id === segment.toNodeId);
-    if (!a || !b) return fallback;
-    const angle = (Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI;
-    return Number((((angle % 360) + 360) % 360).toFixed(1));
-  };
-
   const createElbowFromPointer=(e:React.PointerEvent<SVGSVGElement>)=>{
     const { sx, sy } = getSvgCoordinates(e.clientX, e.clientY, svgRef.current || (e.currentTarget as unknown as SVGSVGElement));
     const hit = findSegmentAtScreen(sx, sy);
     if (hit) {
       const seg = segments.find(s => s.id === hit.id);
       const id = insertEquipmentNode(hit.id, "coude_90", hit.t, "Coude 90° DN" + (seg?.dn || newDN));
-      const orient = elbowOrientationFromSegment(hit.id, 0);
-      setNodes(prev => prev.map(n => n.id === id ? { ...n, rotation: orient } : n));
-      setStatusMessage(`Coude 90° inséré sur le tronçon — orientation ${Math.round(orient)}°`);
+      setStatusMessage("Coude 90° inséré sur le tronçon");
       return id;
     }
     const w = screenToIsoWorld(e, nodeZ || 0);
-    const node = makeEquipmentNode("coude_90", `Coude 90° N${nodes.length + 1}`, snapIsoV4(w.x, isoSnapStep), snapIsoV4(w.y, isoSnapStep), nodeZ || 0, newDN, elbowOrientationFromSegment(selectedSegmentId, 0));
+    const node = makeEquipmentNode("coude_90", `Coude 90° N${nodes.length + 1}`, snapIsoV4(w.x, isoSnapStep), snapIsoV4(w.y, isoSnapStep), nodeZ || 0, newDN, 0);
     setNodes(prev => [...prev, node]);
     setSelectedNodeId(node.id);
     setSelectedNodeIds([node.id]);
@@ -5175,7 +5130,13 @@ function IsometrieModule() {
               <SlidersHorizontal className="w-4 h-4" />
             </button>
 
-
+            <button
+              title="Nomenclature BOM & Métré"
+              onClick={() => { setRightPanelOpen(true); setRightPanelTab("bom"); }}
+              className={`pdi-rail-button hover:text-emerald-300 ${rightPanelOpen && rightPanelTab === "bom" ? "active" : ""}`}
+            >
+              <FileText className="w-4 h-4" />
+            </button>
             <button
               title="Mode Planche ISO"
               onClick={() => setIsoMode(v => v === "editor" ? "planche" : "editor")}
@@ -5443,9 +5404,17 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
     </div>
 
     <div className={`${workspaceFullscreen?"hidden":"sticky"} top-2 z-40 bg-white/95 backdrop-blur border border-slate-200 rounded-xl shadow-sm px-2 py-2 flex-wrap items-center justify-between gap-2 ${workspaceFullscreen?"":"flex"}`}>
-      <div className="flex items-center gap-1"><button onClick={()=>setLeftPanelOpen(v=>!v)} className="h-9 px-3 rounded-lg bg-slate-100 text-xs font-black">☰ Bibliothèque</button><button onClick={()=>{setInteractionMode("select");setIsoDrawMode("select")}} className={`h-9 px-3 rounded-lg text-xs font-black ${interactionMode==="select"&&isoDrawMode==="select"?"bg-blue-600 text-white":"bg-slate-100"}`}>V Sélection</button><button onClick={()=>setInteractionMode("main")} className={`h-9 px-3 rounded-lg text-xs font-black ${interactionMode==="main"?"bg-cyan-600 text-white":"bg-slate-100"}`}>H Main</button><button onClick={()=>setIsoDrawMode("segment")} className="h-9 px-3 rounded-lg bg-slate-100 text-xs font-black">T Tube</button><button onClick={()=>setIsoDrawMode("node")} className="h-9 px-3 rounded-lg bg-slate-100 text-xs font-black">N Nœud</button><button onClick={()=>setIsoDrawMode("te")} className="h-9 px-3 rounded-lg bg-slate-100 text-xs font-black">E Té</button>{/* PATCH 013: Coude présent dans la colonne gauche, doublon supprimé */}
-          {/* PATCH 013: Cotation présente dans la colonne gauche, doublon supprimé */}
-</div>
+      <div className="flex items-center gap-1"><button onClick={()=>setLeftPanelOpen(v=>!v)} className="h-9 px-3 rounded-lg bg-slate-100 text-xs font-black">☰ Bibliothèque</button><button onClick={()=>{setInteractionMode("select");setIsoDrawMode("select")}} className={`h-9 px-3 rounded-lg text-xs font-black ${interactionMode==="select"&&isoDrawMode==="select"?"bg-blue-600 text-white":"bg-slate-100"}`}>V Sélection</button><button onClick={()=>setInteractionMode("main")} className={`h-9 px-3 rounded-lg text-xs font-black ${interactionMode==="main"?"bg-cyan-600 text-white":"bg-slate-100"}`}>H Main</button><button onClick={()=>setIsoDrawMode("segment")} className="h-9 px-3 rounded-lg bg-slate-100 text-xs font-black">T Tube</button><button onClick={()=>setIsoDrawMode("node")} className="h-9 px-3 rounded-lg bg-slate-100 text-xs font-black">N Nœud</button><button onClick={()=>setIsoDrawMode("te")} className="h-9 px-3 rounded-lg bg-slate-100 text-xs font-black">E Té</button><button onClick={()=>setIsoDrawMode("coude")} className="h-9 px-3 rounded-lg bg-slate-100 text-xs font-black">C Coude</button>
+          <button
+            onClick={() => {
+              setIsoDrawMode("dimension");
+              setInteractionMode("select");
+              setDimensionPick(null);
+            }}
+            className={`h-9 px-3 rounded-lg text-xs font-black ${isoDrawMode === "dimension" ? "bg-cyan-600 text-white" : "bg-slate-100"}`}
+          >
+            M Cotation
+          </button></div>
       <div className="flex items-center gap-1"><button onClick={undoGraph} className="h-9 px-3 rounded-lg bg-slate-100 text-xs font-black">↶ Ctrl+Z</button><button onClick={exportProjectJson} className="h-9 px-3 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-black">Sauver JSON</button><input ref={importProjectRef} type="file" accept="application/json,.json" className="hidden" onChange={e=>{importProjectJson(e.target.files?.[0]);e.currentTarget.value=""}}/><button onClick={()=>importProjectRef.current?.click()} className="h-9 px-3 rounded-lg bg-blue-50 text-blue-700 text-xs font-black">Ouvrir JSON</button><button onClick={()=>setCommandPaletteOpen(true)} className="h-9 px-3 rounded-lg bg-slate-900 text-white text-xs font-black">Ctrl+K</button><button onClick={()=>setShortcutsOpen(true)} className="h-9 w-9 rounded-lg bg-slate-100 font-black">?</button><button onClick={()=>setWorkspaceFullscreen(v=>!v)} className="h-9 px-3 rounded-lg bg-blue-50 text-blue-700 text-xs font-black">{workspaceFullscreen?"Retour accueil":"Mode focus"}</button></div>
     </div>
 
@@ -7773,6 +7742,25 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
         <div className="flex justify-end gap-2"><button type="button" onClick={()=>setEdit(null)} className="px-4 py-2 bg-slate-100 rounded-lg text-sm font-bold">Annuler</button><button type="button" onClick={saveEdit} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold"><Save className="inline w-4 h-4 mr-1"/>Enregistrer</button></div>
       </div>
     </div>}
+
+    <div className="bg-slate-50 rounded-2xl border border-slate-200 p-4 text-xs text-slate-600">
+      <div className="font-black text-slate-700 uppercase flex gap-2 mb-2"><Info className="w-4 h-4 text-blue-600"/>Principe</div>
+      Le modèle est un graphe libre : plusieurs tronçons peuvent partir d&apos;un même nœud.
+      Cela permet les dérivations, piquages, postes de coupure/sectionnement et gares racleurs.
+      La position d&apos;un équipement est calculée depuis l&apos;origine de sa chaîne en mètres.
+    </div>
+    {/* Floating trigger button when right panel is closed */}
+    {!rightPanelOpen && (
+      <button
+        type="button"
+        onClick={() => setRightPanelOpen(true)}
+        className="fixed right-3 top-20 z-[10005] bg-slate-900/90 hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-white p-2 rounded-xl shadow-xl backdrop-blur-md flex items-center gap-1.5 transition-all group"
+        title="Ouvrir le panneau latéral (BOM, Cotations, Propriétés)"
+      >
+        <PanelRightOpen className="w-4 h-4 text-cyan-400 group-hover:scale-110 transition-transform" />
+        <span className="text-[10px] font-bold pr-1">BOM & Cotations</span>
+      </button>
+    )}
 
     <div className={`hidden pdi-status-docked ${workspaceFullscreen?"fixed bottom-0 left-[92px] right-0 z-[10008] rounded-none":"sticky bottom-2 z-40 rounded-xl"} bg-slate-950 text-slate-200 border border-slate-800 px-3 py-2 flex flex-wrap items-center justify-between gap-2 text-[10px] shadow-lg`}><div className="flex gap-4"><b className="text-emerald-400">● {statusMessage}</b><span className={saveState==="error"?"text-red-400":saveState==="modified"?"text-amber-300":"text-cyan-300"}>{saveState==="modified"?"Modifications non sauvegardées":saveState==="autosaved"?`Autosauvegardé${lastSavedAt?` à ${lastSavedAt}`:""}`:saveState==="error"?"Erreur de sauvegarde":""}</span><span>{nodes.length} nœuds</span><span>{segments.length} tronçons</span><span>{selectedCount} sélectionné(s)</span><span>{selectedCad2dIds.length} objet(s) 2D</span><span className={graphErrorCount?"text-red-400":"text-emerald-400"}>{graphErrorCount?`${graphErrorCount} erreur(s) réseau`:"Graphe valide"}</span><span>{projectJoints.length} joints</span></div><div className="flex gap-3"><span>Outil: <b>{interactionMode==="main"?"MAIN":isoDrawMode.toUpperCase()}</b></span><span>Snap {isoSnapStep} m</span><span>Zoom {Math.round(viewport.zoom*100)}%</span><span>Ctrl+K commandes · ? aide</span></div></div>
   </div>;
