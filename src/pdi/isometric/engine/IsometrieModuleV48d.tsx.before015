@@ -984,19 +984,10 @@ function IsometrieModule() {
   const [autocadSuggestions, setAutocadSuggestions] = useState<CadCommandItem[]>([]);
   const [autocadActiveIdx, setAutocadActiveIdx] = useState(0);
   const [autocadPrompt, setAutocadPrompt] = useState("Tapez une commande (ex: LIGNE, RECT, TRIANGLE, COPIER, COLLER...)");
-  const [pipeStrokeScale, setPipeStrokeScale] = useState<number>(() => {
-    try {
-      const saved = Number(window.localStorage.getItem("pdi.pipeStrokeScale.v1") || "1");
-      return Number.isFinite(saved) ? Math.min(3, Math.max(0.35, saved)) : 1;
-    } catch { return 1; }
-  });
   const [triangleMenuOpen, setTriangleMenuOpen] = useState(false);
   const [arcMenuOpen, setArcMenuOpen] = useState(false);
   const [polygonSidesCount, setPolygonSidesCount] = useState(6);
   const [polygonSidesModalOpen, setPolygonSidesModalOpen] = useState(false);
-  useEffect(() => {
-    try { window.localStorage.setItem("pdi.pipeStrokeScale.v1", String(pipeStrokeScale)); } catch {}
-  }, [pipeStrokeScale]);
   const autocadCmdInputRef = useRef<HTMLInputElement>(null);
   const longPressTimeoutRef = useRef<any>(null);
 
@@ -4872,9 +4863,6 @@ function IsometrieModule() {
         [data-pdi-studio] [class*="metric"],
         [data-pdi-studio] [class*="meter"]{display:none!important}
         [data-pdi-studio] .pdi-status-docked{display:none!important}
-        [data-pdi-studio] .pdi-command-dock-015{font-family:Inter,ui-sans-serif,system-ui,sans-serif}
-        [data-pdi-studio] .pdi-v48d-primary-workspace{padding-bottom:74px!important}
-        @media(max-width:900px){[data-pdi-studio] .pdi-command-dock-015{left:8px!important;right:8px!important;bottom:8px!important}.pdi-command-dock-015 label{display:none!important}}
         [data-pdi-studio] svg{background-color:#0b0f14!important;background-image:radial-gradient(circle at center,rgba(148,163,184,.09) 0,transparent 55%)!important}
       `}</style>
       {workspaceFullscreen&&<>
@@ -6011,7 +5999,7 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                   const endpoints=segmentEndpoints(s,nodes);
                   const p1=endpoints?isoProjectV4(endpoints.from.x,endpoints.from.y,endpoints.from.z,viewport.zoom,viewport.panX,viewport.panY):iso(a);
                   const p2=endpoints?isoProjectV4(endpoints.to.x,endpoints.to.y,endpoints.to.z,viewport.zoom,viewport.panX,viewport.panY):iso(b),sel=s.id===selectedSegmentId||selectedSegmentIds.includes(s.id);
-                  const width=clamp((s.dn/25)*pipeStrokeScale,2,24),mx=(p1.x+p2.x)/2,my=(p1.y+p2.y)/2;
+                  const width=clamp(s.dn/25,3,12),mx=(p1.x+p2.x)/2,my=(p1.y+p2.y)/2;
                   const dimensionAnnotation=editorAnnotationMap.get(`segment:${s.id}`);
                   return <g key={s.id} data-iso-object="true" data-iso-segment="true" data-segment-id={s.id} style={{isolation:"isolate"}}
                     onPointerDown={e=>{e.stopPropagation();selectSegmentV44(s.id,e.ctrlKey||e.metaKey||e.shiftKey)}}
@@ -6920,7 +6908,20 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                 )}
               </div>
             )}
-</div>
+
+            {/* AutoCAD Command Line Bar */}
+            <div className="p-2 bg-slate-950/95 border-t border-slate-800/80">
+              <CadCommandLineBar
+                input={autocadCmdInput}
+                setInput={setAutocadCmdInput}
+                prompt={autocadPrompt}
+                onExecuteCommand={(cmd) => executeCadCommand(cmd)}
+                cadDraftSession={cadDraftSession}
+                onCancelDraft={cancelCadDraft}
+                onApplyNumericInput={applyNumericDraftInput}
+              />
+            </div>
+          </div>
 
           {/* PROPERTIES & LIST TABLE MODAL */}
           {propertiesModalOpen && (
@@ -7772,40 +7773,6 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
         <div className="flex justify-end gap-2"><button type="button" onClick={()=>setEdit(null)} className="px-4 py-2 bg-slate-100 rounded-lg text-sm font-bold">Annuler</button><button type="button" onClick={saveEdit} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold"><Save className="inline w-4 h-4 mr-1"/>Enregistrer</button></div>
       </div>
     </div>}
-
-
-
-    {/* PATCH 015 — Ligne de commande AutoCAD visible en permanence + réglage épaisseur tuyauterie */}
-    <div className="fixed left-[92px] right-3 bottom-3 z-[10030] rounded-2xl border border-cyan-500/35 bg-slate-950/96 shadow-2xl backdrop-blur-xl p-2 flex items-center gap-2 pdi-command-dock-015">
-      <div className="min-w-[150px] hidden md:flex flex-col gap-1 px-2 border-r border-slate-800">
-        <span className="text-[9px] font-black uppercase tracking-wider text-cyan-300">Commande</span>
-        <span className="text-[9px] text-slate-500">Tapez LIGNE, COPIE, COUDE, BOM…</span>
-      </div>
-      <div className="flex-1 min-w-0">
-        <CadCommandLineBar
-          input={autocadCmdInput}
-          setInput={setAutocadCmdInput}
-          prompt={autocadPrompt}
-          onExecuteCommand={(cmd) => executeCadCommand(cmd)}
-          cadDraftSession={cadDraftSession}
-          onCancelDraft={cancelCadDraft}
-          onApplyNumericInput={applyNumericDraftInput}
-        />
-      </div>
-      <label className="hidden lg:flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-2 py-1 text-[10px] font-black text-slate-200" title="Épaisseur graphique des lignes de tuyauterie">
-        <span className="text-slate-400">Ép.</span>
-        <input
-          type="range"
-          min="0.35"
-          max="3"
-          step="0.05"
-          value={pipeStrokeScale}
-          onChange={(e) => setPipeStrokeScale(Number(e.target.value))}
-          className="w-24 accent-cyan-400"
-        />
-        <span className="w-9 text-right text-cyan-300">{pipeStrokeScale.toFixed(2)}×</span>
-      </label>
-    </div>
 
     <div className={`hidden pdi-status-docked ${workspaceFullscreen?"fixed bottom-0 left-[92px] right-0 z-[10008] rounded-none":"sticky bottom-2 z-40 rounded-xl"} bg-slate-950 text-slate-200 border border-slate-800 px-3 py-2 flex flex-wrap items-center justify-between gap-2 text-[10px] shadow-lg`}><div className="flex gap-4"><b className="text-emerald-400">● {statusMessage}</b><span className={saveState==="error"?"text-red-400":saveState==="modified"?"text-amber-300":"text-cyan-300"}>{saveState==="modified"?"Modifications non sauvegardées":saveState==="autosaved"?`Autosauvegardé${lastSavedAt?` à ${lastSavedAt}`:""}`:saveState==="error"?"Erreur de sauvegarde":""}</span><span>{nodes.length} nœuds</span><span>{segments.length} tronçons</span><span>{selectedCount} sélectionné(s)</span><span>{selectedCad2dIds.length} objet(s) 2D</span><span className={graphErrorCount?"text-red-400":"text-emerald-400"}>{graphErrorCount?`${graphErrorCount} erreur(s) réseau`:"Graphe valide"}</span><span>{projectJoints.length} joints</span></div><div className="flex gap-3"><span>Outil: <b>{interactionMode==="main"?"MAIN":isoDrawMode.toUpperCase()}</b></span><span>Snap {isoSnapStep} m</span><span>Zoom {Math.round(viewport.zoom*100)}%</span><span>Ctrl+K commandes · ? aide</span></div></div>
   </div>;
