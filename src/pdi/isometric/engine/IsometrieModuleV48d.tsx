@@ -24,8 +24,27 @@ import {
   X, GitBranch, Settings2, CircleDot, Flame, Waypoints, Info, Hand, MousePointer2, Undo2, Redo2,
   ChevronLeft, ChevronRight, SlidersHorizontal, Disc, CornerDownRight, GitFork, ArrowRightLeft,
   Eye, EyeOff, Crosshair, Check, Copy, Scissors, RotateCw, RotateCcw, PanelRightClose, PanelRightOpen,
-  Circle, Spline, FolderOpen, Download, LayoutGrid, Magnet
+  Circle, Spline, FolderOpen, Download, LayoutGrid, Magnet, Type, Square, Hexagon, Slash, Disc3,
+  Minimize2, Triangle, Clipboard, CopyPlus, Terminal, CornerDownLeft, ChevronDown
 } from "lucide-react";
+
+import {
+  TriangleType,
+  ArcCreationMode,
+  CadCommandItem,
+  AUTOCAD_COMMANDS,
+  searchCadCommands,
+  buildEquilateralTriangle,
+  buildRightTriangle,
+  buildIsoscelesTriangle,
+  buildRegularPolygon,
+  buildAutocadRectangle,
+  calculate3PointArc,
+  cadDist,
+  cadAngleDeg,
+} from "./CadAutocadEngine";
+import { CadCommandLineBar } from "../components/CadCommandLineBar";
+import { CadShapeToolbar } from "../components/CadShapeToolbar";
 
 export type IsoNodeType =
   | "normal" | "entree_poste" | "sortie_poste"
@@ -111,16 +130,24 @@ export interface PipingLine {
   color: string;
 }
 
-// PATCH 007 — real 2D geometry foundation.
+// PATCH 007 — real 2D geometry foundation & AutoCAD tools.
 // Couche CAD 2D persistante : objets dessin universels avec IDs réels.
 // Cette couche ne remplace pas le graphe piping V4.8d ; elle prépare le mapping 2D -> piping.
-export type Cad2dEntityType = "line" | "polyline" | "circle" | "arc" | "text";
+export type Cad2dEntityType = "line" | "polyline" | "circle" | "arc" | "triangle" | "polygon" | "rectangle" | "text";
 export type Cad2dPoint = { x: number; y: number };
 export type Cad2dEntity = {
   id: string;
   type: Cad2dEntityType;
   layerId: string;
   color: string;
+  subType?: string;
+  sides?: number;
+  length?: number;
+  width?: number;
+  height?: number;
+  closed?: boolean;
+  fill?: string;
+  fillOpacity?: number;
   lineWeight?: number;
   lineType?: "continuous" | "dashed" | "center" | "hidden";
   opacity?: number;
@@ -143,8 +170,33 @@ export type Cad2dEntity = {
     elevationZ?: number;
     catalogRef?: string;
     source?: string;
+    length?: number;
+    width?: number;
+    sides?: number;
+    radius?: number;
+    subType?: string;
+    [key: string]: any;
   };
 };
+
+export interface CadDraftSession {
+  tool: Cad2dEntityType | "paste_target" | "move_target";
+  subType?: TriangleType | ArcCreationMode;
+  sides?: number;
+  length?: number;
+  width?: number;
+  height?: number;
+  radius?: number;
+  angle?: number;
+  step: number;
+  points: Cad2dPoint[];
+  center?: Cad2dPoint;
+  currentLengthInput: string;
+  currentWidthInput: string;
+  currentAngleInput: string;
+  currentRadiusInput: string;
+  mouseWorld: Cad2dPoint;
+}
 
 export type Cad2dLayer = {
   id: string;
@@ -923,6 +975,21 @@ function IsometrieModule() {
   const [selectedCad2dIds, setSelectedCad2dIds] = useState<string[]>([]);
   const [cad2dDraftTool, setCad2dDraftTool] = useState<Cad2dEntityType | null>(null);
 
+  // AutoCAD Interactive Draft Session & State
+  const [cadDraftSession, setCadDraftSession] = useState<CadDraftSession | null>(null);
+  const [autocadCmdInput, setAutocadCmdInput] = useState("");
+  const [autocadCmdHistory, setAutocadCmdHistory] = useState<string[]>([]);
+  const [autocadHistoryIdx, setAutocadHistoryIdx] = useState(-1);
+  const [autocadSuggestions, setAutocadSuggestions] = useState<CadCommandItem[]>([]);
+  const [autocadActiveIdx, setAutocadActiveIdx] = useState(0);
+  const [autocadPrompt, setAutocadPrompt] = useState("Tapez une commande (ex: LIGNE, RECT, TRIANGLE, COPIER, COLLER...)");
+  const [triangleMenuOpen, setTriangleMenuOpen] = useState(false);
+  const [arcMenuOpen, setArcMenuOpen] = useState(false);
+  const [polygonSidesCount, setPolygonSidesCount] = useState(6);
+  const [polygonSidesModalOpen, setPolygonSidesModalOpen] = useState(false);
+  const autocadCmdInputRef = useRef<HTMLInputElement>(null);
+  const longPressTimeoutRef = useRef<any>(null);
+
   const makeCad2dId = (type: Cad2dEntityType) => `${type}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
   const addCad2dEntity = (entity: Omit<Cad2dEntity, "id">) => {
     const next: Cad2dEntity = { id: makeCad2dId(entity.type), visible: true, locked: false, ...entity };
@@ -931,33 +998,220 @@ function IsometrieModule() {
     setStatusMessage(`Objet 2D ${entity.type} créé · ID réel ${next.id}`);
     return next;
   };
-  const prepareCad2dTool = (tool: Cad2dEntityType) => {
+  const prepareCad2dTool = (tool: Cad2dEntityType, subType?: TriangleType | ArcCreationMode, sides?: number) => {
+    startCadDraft(tool, subType, sides);
+  };
+
+  const startCadDraft = (
+    tool: CadDraftSession["tool"],
+    subType?: TriangleType | ArcCreationMode,
+    sides: number = 6
+  ) => {
     setInteractionMode("select");
     setIsoDrawMode("select");
-    setCad2dDraftTool(tool);
-    setStatusMessage(`${tool.toUpperCase()} 2D prêt · cliquez dans le plan pour poser un objet de base`);
+    setCad2dDraftTool(null);
+    setCadDraftSession({
+      tool,
+      subType,
+      sides: tool === "polygon" ? sides : (tool === "triangle" ? 3 : undefined),
+      step: 0,
+      points: [],
+      currentLengthInput: "",
+      currentWidthInput: "",
+      currentAngleInput: "",
+      currentRadiusInput: "",
+      mouseWorld: { x: 0, y: 0 },
+    });
+    if (tool === "rectangle") {
+      setAutocadPrompt("RECTANGLE [Étape 1/2] : Cliquez le 1er point (ou orientez et tapez la longueur)");
+      setStatusMessage("RECTANGLE : Cliquez le 1er point");
+    } else if (tool === "triangle") {
+      const sub = subType || "equilateral";
+      setAutocadPrompt(`TRIANGLE [${sub.toUpperCase()}] : Spécifiez le 1er point`);
+      setStatusMessage(`TRIANGLE (${sub}) : Spécifiez le 1er point`);
+    } else if (tool === "polygon") {
+      setAutocadPrompt(`POLYGONE [${sides} côtés] : Cliquez le centre du polygone`);
+      setStatusMessage(`POLYGONE (${sides} côtés) : Cliquez le centre`);
+    } else if (tool === "arc") {
+      const sub = subType || "3points";
+      setAutocadPrompt(sub === "3points" ? "ARC [3 Points] : Cliquez le Point 1 (Début)" : "ARC [Centre-Rayon] : Cliquez le Centre");
+      setStatusMessage(`ARC (${sub}) : Spécifiez le 1er point`);
+    } else if (tool === "paste_target") {
+      setAutocadPrompt("COLLER : Cliquez à l'écran sur le point d'insertion souhaité");
+      setStatusMessage("COLLER : Cliquez où positionner");
+    } else if (tool === "move_target") {
+      setAutocadPrompt("DEPLACER : Cliquez le point de destination");
+      setStatusMessage("DEPLACER : Cliquez la destination");
+    } else {
+      setAutocadPrompt(`${tool.toUpperCase()} : Cliquez dans le plan pour tracer`);
+      setStatusMessage(`${tool.toUpperCase()} prêt · cliquez dans le plan`);
+    }
+  };
+
+  const cancelCadDraft = () => {
+    setCadDraftSession(null);
+    setCad2dDraftTool(null);
+    setAutocadPrompt("Prêt. Tapez une commande (ex: LIGNE, RECT, TRIANGLE, COPIER, COLLER...)");
+    setStatusMessage("Action CAO réinitialisée");
+  };
+
+  const applyNumericDraftInput = (val1: number, val2?: number) => {
+    if (!cadDraftSession) return;
+    const sess = cadDraftSession;
+    if (sess.tool === "rectangle") {
+      if (sess.step === 1 && sess.points.length >= 1) {
+        const p1 = sess.points[0];
+        const angle = sess.mouseWorld ? Math.atan2(sess.mouseWorld.y - p1.y, sess.mouseWorld.x - p1.x) : 0;
+        const p2 = { x: Number((p1.x + Math.cos(angle) * val1).toFixed(3)), y: Number((p1.y + Math.sin(angle) * val1).toFixed(3)) };
+        if (val2 !== undefined && val2 > 0) {
+          const rect = buildAutocadRectangle(p1, p2, val1, undefined, val2);
+          addCad2dEntity({
+            type: "polygon",
+            layerId: "axes_tuyauterie",
+            color: "#9CA3AF",
+            points: rect.points,
+            closed: true,
+            lineWeight: 1.5,
+            metadata: { intent: "draft", source: "autocad_rect", length: rect.length, width: rect.width },
+          });
+          setCadDraftSession(null);
+          setAutocadPrompt(`Rectangle créé (${val1}m × ${val2}m)`);
+          setStatusMessage(`Rectangle créé (${val1}m × ${val2}m)`);
+          return;
+        }
+        setCadDraftSession({
+          ...sess,
+          step: 2,
+          points: [p1, p2],
+          length: val1,
+        });
+        setAutocadPrompt(`RECTANGLE [Étape 2/2] : Longueur = ${val1}m fixée. Spécifiez la largeur par souris ou tapez la largeur.`);
+        setStatusMessage(`Longueur fixée (${val1}m) · Spécifiez la largeur`);
+      } else if (sess.step === 2 && sess.points.length >= 2) {
+        const p1 = sess.points[0];
+        const p2 = sess.points[1];
+        const rect = buildAutocadRectangle(p1, p2, sess.length || cadDist(p1, p2), sess.mouseWorld, val1);
+        addCad2dEntity({
+          type: "polygon",
+          layerId: "axes_tuyauterie",
+          color: "#9CA3AF",
+          points: rect.points,
+          closed: true,
+          lineWeight: 1.5,
+          metadata: { intent: "draft", source: "autocad_rect", length: rect.length, width: rect.width },
+        });
+        setCadDraftSession(null);
+        setAutocadPrompt(`Rectangle créé (${rect.length}m × ${rect.width}m)`);
+        setStatusMessage(`Rectangle créé (${rect.length}m × ${rect.width}m)`);
+      }
+    } else if (sess.tool === "polygon") {
+      const center = sess.points[0] || sess.center || { x: 0, y: 0 };
+      const radius = val1;
+      const pts = buildRegularPolygon(center, { x: center.x + radius, y: center.y }, sess.sides || 6);
+      addCad2dEntity({
+        type: "polygon",
+        layerId: "axes_tuyauterie",
+        color: "#9CA3AF",
+        points: pts,
+        closed: true,
+        lineWeight: 1.5,
+        metadata: { intent: "draft", source: "polygon", sides: sess.sides || 6, radius },
+      });
+      setCadDraftSession(null);
+      setAutocadPrompt(`Polygone régulier (${sess.sides || 6} côtés, Rayon = ${radius}m) créé`);
+      setStatusMessage(`Polygone régulier (${sess.sides || 6} côtés) créé`);
+    } else if (sess.tool === "triangle") {
+      const p1 = sess.points[0] || { x: 0, y: 0 };
+      const sub = sess.subType || "equilateral";
+      let pts: Cad2dPoint[] = [];
+      if (sub === "equilateral") {
+        pts = buildEquilateralTriangle(p1, { x: p1.x + val1, y: p1.y });
+      } else if (sub === "rectangle") {
+        pts = buildRightTriangle(p1, { x: p1.x + val1, y: p1.y }, val2 || val1 * 0.75);
+      } else if (sub === "isocele") {
+        pts = buildIsoscelesTriangle(p1, { x: p1.x + val1, y: p1.y }, val2 || val1 * 0.86);
+      }
+      addCad2dEntity({
+        type: "polygon",
+        layerId: "axes_tuyauterie",
+        color: "#9CA3AF",
+        points: pts,
+        closed: true,
+        lineWeight: 1.5,
+        metadata: { intent: "draft", source: "triangle", subType: sub },
+      });
+      setCadDraftSession(null);
+      setAutocadPrompt(`Triangle ${sub} créé`);
+      setStatusMessage(`Triangle ${sub} créé`);
+    } else if (sess.tool === "arc") {
+      const center = sess.points[0] || { x: 0, y: 0 };
+      const radius = val1;
+      const angle = val2 || 90;
+      addCad2dEntity({
+        type: "arc",
+        layerId: "import_cad",
+        color: "#9CA3AF",
+        center,
+        radius,
+        startAngle: 0,
+        endAngle: angle,
+        lineWeight: 1.5,
+      });
+      setCadDraftSession(null);
+      setAutocadPrompt(`Arc (Rayon = ${radius}m, Angle = ${angle}°) créé`);
+      setStatusMessage(`Arc créé`);
+    }
   };
 
   // PATCH 007b — 2D manipulation and properties.
   const selectedCad2dEntity = cad2dEntities.find((entity) => selectedCad2dIds.includes(entity.id)) || null;
 
-  // PATCH 007e — palette propriétés CAD flottante compacte.
+  // PATCH 007e — palette propriétés CAD / ISO flottante et déplaçable.
   const [cadPropsOpen, setCadPropsOpen] = useState(true);
-  const [cadPropsPos, setCadPropsPos] = useState({ x: 92, y: 132 });
-  const cadPropsDragRef = useRef<{ dx: number; dy: number } | null>(null);
-  const startCadPropsDrag = (event: React.MouseEvent) => {
-    event.preventDefault();
-    cadPropsDragRef.current = { dx: event.clientX - cadPropsPos.x, dy: event.clientY - cadPropsPos.y };
-  };
-  const moveCadPropsDrag = (event: React.MouseEvent) => {
-    if (!cadPropsDragRef.current) return;
-    setCadPropsPos({
-      x: Math.max(8, Math.min(event.clientX - cadPropsDragRef.current.dx, (typeof window !== "undefined" ? window.innerWidth : 900) - 238)),
-      y: Math.max(84, Math.min(event.clientY - cadPropsDragRef.current.dy, (typeof window !== "undefined" ? window.innerHeight : 700) - 260)),
-    });
-  };
-  const endCadPropsDrag = () => { cadPropsDragRef.current = null; };
+  const [cadPropsPos, setCadPropsPos] = useState({ x: 96, y: 120 });
+  const [railFlyout, setRailFlyout] = useState<"polygon" | "triangle" | "arc" | "shapes" | null>(null);
+  const [inlineEditTextId, setInlineEditTextId] = useState<string | null>(null);
 
+  const startCadPropsPointerDrag = (event: React.PointerEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const startClientX = event.clientX;
+    const startClientY = event.clientY;
+    const initialPos = { ...cadPropsPos };
+
+    const onPointerMove = (e: PointerEvent) => {
+      const dx = e.clientX - startClientX;
+      const dy = e.clientY - startClientY;
+      setCadPropsPos({
+        x: Math.max(8, Math.min(initialPos.x + dx, (typeof window !== "undefined" ? window.innerWidth : 1000) - 260)),
+        y: Math.max(54, Math.min(initialPos.y + dy, (typeof window !== "undefined" ? window.innerHeight : 800) - 280)),
+      });
+    };
+
+    const onPointerUp = () => {
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+    };
+
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+  };
+
+  const finishPolylineDraft = () => {
+    if (cadDraftSession?.tool === "polyline" && cadDraftSession.points && cadDraftSession.points.length >= 2) {
+      const newEntity = addCad2dEntity({
+        type: "polyline",
+        layerId: "axes_tuyauterie",
+        color: "#9CA3AF",
+        points: cadDraftSession.points,
+        metadata: { intent: "draft", source: "polyline" },
+      });
+      setCadDraftSession(null);
+      if (newEntity) setSelectedCad2dIds([newEntity.id]);
+      setAutocadPrompt(`Polyligne validée (${cadDraftSession.points.length} sommets).`);
+      setStatusMessage(`Polyligne créée · ${cadDraftSession.points.length} points`);
+    }
+  };
 
   // PATCH 007d — 2D mouse resize modular properties.
   const cad2dPointerRef = useRef<{
@@ -984,7 +1238,7 @@ function IsometrieModule() {
       if (grip === "end") points[1] = { x: points[1].x + dx, y: points[1].y + dy };
       return { ...entity, points };
     }
-    if (entity.type === "polyline" && entity.points && entity.points.length && grip.startsWith("v:")) {
+    if ((entity.type === "polyline" || entity.type === "polygon" || entity.type === "triangle" || entity.type === "rectangle") && entity.points && entity.points.length && grip.startsWith("v:")) {
       const idx = Number(grip.slice(2));
       const points = entity.points.map((p, i) => (i === idx ? { x: p.x + dx, y: p.y + dy } : { ...p }));
       return { ...entity, points };
@@ -1306,7 +1560,7 @@ function IsometrieModule() {
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
-    type: "node" | "segment" | "fitting" | "canvas";
+    type: "node" | "segment" | "fitting" | "canvas" | "cad2d";
     id?: string;
     data?: any;
   } | null>(null);
@@ -1387,6 +1641,8 @@ function IsometrieModule() {
   const [snapMidpoints, setSnapMidpoints] = useState(true);
   const [snapGrid, setSnapGrid] = useState(true);
   const [rightPanelOpen, setRightPanelOpen] = useState(true);
+  const [autoHideRightPanel, setAutoHideRightPanel] = useState(false);
+  const [rightPanelHovered, setRightPanelHovered] = useState(false);
   const [rightPanelTab, setRightPanelTab] = useState<"properties" | "bom" | "dimensions" | "snap" | "layers">("properties");
   const [selectedDimensionId, setSelectedDimensionId] = useState<string | null>(null);
   // PATCH 004b : selection multiple de cotations. selectedDimensionId reste la
@@ -1414,6 +1670,7 @@ function IsometrieModule() {
     baselineSegIds: string[];
     // PATCH 004b : base de reference des cotations pour le Shift+rectangle.
     baselineDimIds: string[];
+    baselineCad2dIds: string[];
     active: boolean;
   } | null>(null);
   const [propertiesModalOpen, setPropertiesModalOpen] = useState(false);
@@ -1546,9 +1803,22 @@ function IsometrieModule() {
         dragSelectionRef.current=null;
         clearSelection();
         setIsoDrawMode("select");
+        setInteractionMode("select");
         setContextMenu(null);
+        setCtxMenu(null);
         setMarquee(null);
-        setStatusMessage("Sélection et outil réinitialisés");
+        setPropertiesModalOpen(false);
+        setCommandPaletteOpen(false);
+        setShortcutsOpen(false);
+        setCadPropsOpen(false);
+        setRailFlyout(null);
+        setRightPanelOpen(false);
+        setLeftPanelOpen(false);
+        setInlineEditTextId(null);
+        setCadDraftSession(null);
+        setCad2dDraftTool(null);
+        setSelectedCad2dIds([]);
+        setStatusMessage("Panneaux fermés · Outils et sélections réinitialisés");
       }
     };
     window.addEventListener("keydown",onKeyDown);
@@ -2060,6 +2330,208 @@ function IsometrieModule() {
     setStatusMessage(`${sub.nodes.length} élément(s) coupé(s)`);
   };
 
+  const cad2dClipboardRef = useRef<Cad2dEntity[]>([]);
+
+  const copyCad2dSelection = () => {
+    const selected = cad2dEntities.filter((e) => selectedCad2dIds.includes(e.id));
+    if (!selected.length) return false;
+    cad2dClipboardRef.current = selected.map((e) => ({
+      ...e,
+      points: e.points?.map((p) => ({ ...p })),
+      center: e.center ? { ...e.center } : undefined,
+    }));
+    setStatusMessage(`${selected.length} objet(s) 2D copié(s) dans le presse-papiers`);
+    return true;
+  };
+
+  const pasteClipboardAtWorldPoint = (targetPoint: Cad2dPoint) => {
+    let pastedCount = 0;
+    // 1. Coller les objets 2D si présents dans le tampon
+    if (cad2dClipboardRef.current && cad2dClipboardRef.current.length > 0) {
+      const buffer = cad2dClipboardRef.current;
+      let origX = 0, origY = 0;
+      const first = buffer[0];
+      if (first.center) {
+        origX = first.center.x;
+        origY = first.center.y;
+      } else if (first.points && first.points.length > 0) {
+        origX = first.points[0].x;
+        origY = first.points[0].y;
+      }
+      const dx = targetPoint.x - origX;
+      const dy = targetPoint.y - origY;
+      const newEntities = buffer.map((item) => {
+        const nextId = makeCad2dId(item.type);
+        return {
+          ...item,
+          id: nextId,
+          points: item.points?.map((p) => ({ x: Number((p.x + dx).toFixed(3)), y: Number((p.y + dy).toFixed(3)) })),
+          center: item.center ? { x: Number((item.center.x + dx).toFixed(3)), y: Number((item.center.y + dy).toFixed(3)) } : undefined,
+        };
+      });
+      setCad2dEntities((prev) => [...prev, ...newEntities]);
+      setSelectedCad2dIds(newEntities.map((e) => e.id));
+      pastedCount += newEntities.length;
+    }
+
+    // 2. Coller les nœuds & tronçons tuyauterie 3D
+    const buffer3d = clipboardRef.current;
+    if (buffer3d && buffer3d.nodes && buffer3d.nodes.length > 0) {
+      const firstNode = buffer3d.nodes[0];
+      const dx = targetPoint.x - firstNode.x;
+      const dy = targetPoint.y - firstNode.y;
+      const cloned = cloneSubGraphWithNewIds(buffer3d, { x: dx, y: dy, z: 0 });
+      const normalized = normalizedGraphPorts([...nodes, ...cloned.nodes], [...segments, ...cloned.segments]);
+      const nextNodes = normalized.nodes;
+      const nextSegments = normalized.segments;
+      const pastedDimensions = cloned.dimensions || [];
+      commitGraph(nextNodes, recalcSegmentLengths(nextNodes, nextSegments), lines, [...dimensions, ...pastedDimensions]);
+      setSelectedNodeIds(cloned.nodes.map((n) => n.id));
+      setSelectedSegmentIds([]);
+      setSelectedFittingIds([]);
+      setSelectedNodeId(cloned.nodes[0]?.id || null);
+      pastedCount += cloned.nodes.length;
+    }
+
+    if (pastedCount > 0) {
+      setStatusMessage(`${pastedCount} élément(s) collé(s) au point (${targetPoint.x.toFixed(2)}, ${targetPoint.y.toFixed(2)})`);
+      setAutocadPrompt(`Éléments collés au point (${targetPoint.x.toFixed(2)}, ${targetPoint.y.toFixed(2)})`);
+    } else {
+      setStatusMessage("Presse-papiers vide. Rien à coller.");
+      setAutocadPrompt("Presse-papiers vide. Sélectionnez des éléments et tapez COPIER.");
+    }
+  };
+
+  const executeCadCommand = (cmdInput: CadCommandItem | string) => {
+    let cmdId = typeof cmdInput === "string" ? cmdInput.trim().toLowerCase() : cmdInput.id;
+    if (typeof cmdInput === "string") {
+      const match = AUTOCAD_COMMANDS.find(
+        (c) =>
+          c.id.toLowerCase() === cmdId ||
+          c.name.toLowerCase() === cmdId ||
+          c.aliases.some((a) => a.toLowerCase() === cmdId),
+      );
+      if (match) cmdId = match.id;
+    }
+
+    const cmdName = typeof cmdInput === "string" ? cmdInput : cmdInput.name;
+    setAutocadCmdHistory((prev) => [cmdName, ...prev.filter((h) => h !== cmdName)].slice(0, 30));
+    setAutocadCmdInput("");
+    setAutocadSuggestions([]);
+
+    if (cmdId === "copy") {
+      const hasCad = copyCad2dSelection();
+      const sub = selectionSubGraph();
+      if (sub.nodes.length) {
+        copySelection();
+      }
+      if (hasCad || sub.nodes.length) {
+        setAutocadPrompt("COMMANDE [COPIER] : Sélection copiée. Tapez COLLER pour insérer au clic souris.");
+        setStatusMessage("Sélection copiée · Prêt pour COLLER");
+      } else {
+        setAutocadPrompt("COMMANDE [COPIER] : Aucun élément sélectionné. Sélectionnez d'abord des objets.");
+        setStatusMessage("Sélectionnez des éléments avant de copier");
+      }
+    } else if (cmdId === "paste") {
+      startCadDraft("paste_target");
+    } else if (cmdId === "move") {
+      startCadDraft("move_target");
+    } else if (cmdId === "rectangle") {
+      startCadDraft("rectangle");
+    } else if (cmdId === "triangle") {
+      startCadDraft("triangle", "equilateral");
+    } else if (cmdId === "polygon") {
+      startCadDraft("polygon", undefined, polygonSidesCount);
+    } else if (cmdId === "arc") {
+      startCadDraft("arc", "3points");
+    } else if (cmdId === "circle") {
+      startCadDraft("circle");
+    } else if (cmdId === "line") {
+      startCadDraft("line");
+    } else if (cmdId === "polyline") {
+      startCadDraft("polyline");
+    } else if (cmdId === "text") {
+      startCadDraft("text");
+    } else if (cmdId === "dimension") {
+      setIsoDrawMode("dimension");
+      setInteractionMode("select");
+      setDimensionPick(null);
+      setAutocadPrompt("COMMANDE [COTATION] : Cliquez sur le premier ancrage puis le deuxième.");
+      setStatusMessage("Outil Cotation actif");
+    } else if (cmdId === "delete") {
+      if (selectedCad2dIds.length) deleteSelectedCad2d();
+      else deleteSelection();
+      setAutocadPrompt("COMMANDE [EFFACER] : Éléments sélectionnés supprimés.");
+    } else if (cmdId === "rotate") {
+      if (selectedCad2dIds.length) rotateSelectedCad2d(15);
+      else rotateSelectedEquipment(15);
+      setAutocadPrompt("COMMANDE [ROTATION] : Rotation de 15° appliquée.");
+    } else if (cmdId === "duplicate") {
+      if (selectedCad2dIds.length) duplicateSelectedCad2d();
+      else duplicateSelection();
+      setAutocadPrompt("COMMANDE [DUPLIQUER] : Éléments dupliqués avec succès.");
+    } else if (cmdId === "mirror") {
+      if (selectedCad2dIds.length) mirrorSelectedCad2dX();
+      else {
+        if (selectedNodeIds.length) {
+          const ids = new Set(selectedNodeIds);
+          const selNodes = nodes.filter((n) => ids.has(n.id));
+          const minX = Math.min(...selNodes.map((n) => n.x)), maxX = Math.max(...selNodes.map((n) => n.x));
+          const cx = (minX + maxX) / 2;
+          const nextNodes = nodes.map((n) => (ids.has(n.id) ? { ...n, x: snapIsoV4(2 * cx - n.x, isoSnapStep) } : n));
+          commitGraph(nextNodes, recalcSegmentLengths(nextNodes, segments));
+        }
+      }
+      setAutocadPrompt("COMMANDE [MIROIR] : Symétrie miroir appliquée.");
+      setStatusMessage("Symétrie miroir appliquée");
+    } else if (cmdId === "undo") {
+      undoGraph();
+      setAutocadPrompt("COMMANDE [ANNULER] : Action annulée.");
+    } else if (cmdId === "redo") {
+      redoGraph();
+      setAutocadPrompt("COMMANDE [RETABLIR] : Action rétablie.");
+    } else if (cmdId === "zoom_all") {
+      resetView();
+      setAutocadPrompt("COMMANDE [ZOOM] : Vue recentrée sur l'étendue du projet.");
+    } else if (cmdId === "grid") {
+      setShowGrid((v) => !v);
+      setAutocadPrompt("COMMANDE [GRILLE] : Visibilité de la grille inversée.");
+    } else if (cmdId === "pipe") {
+      setIsoDrawMode("segment");
+      setInteractionMode("select");
+      setAutocadPrompt("COMMANDE [TUBE] : Cliquez pour débuter un tronçon de tuyauterie.");
+      setStatusMessage("Création de tube");
+    } else if (cmdId === "node") {
+      setIsoDrawMode("node");
+      setInteractionMode("select");
+      setAutocadPrompt("COMMANDE [NOEUD] : Cliquez dans le plan pour créer un nœud.");
+      setStatusMessage("Création de nœud");
+    } else if (cmdId === "tee") {
+      setIsoDrawMode("te");
+      setInteractionMode("select");
+      setAutocadPrompt("COMMANDE [TE] : Cliquez sur un tube ou dans le plan pour insérer un Té.");
+      setStatusMessage("Insertion de Té");
+    } else if (cmdId === "elbow") {
+      setIsoDrawMode("coude");
+      setInteractionMode("select");
+      setAutocadPrompt("COMMANDE [COUDE] : Cliquez pour insérer un coude.");
+      setStatusMessage("Insertion de coude");
+    } else if (cmdId === "valve") {
+      setIsoDrawMode("coude");
+      setAutocadPrompt("COMMANDE [VANNE] : Sélectionner l'équipement vanne.");
+    } else if (cmdId === "bom") {
+      setRightPanelOpen(true);
+      setRightPanelTab("bom");
+      setAutocadPrompt("COMMANDE [BOM] : Nomenclature et métré des tuyauteries affichés.");
+    } else if (cmdId === "properties") {
+      setRightPanelOpen(true);
+      setRightPanelTab("properties");
+      setAutocadPrompt("COMMANDE [PROPRIETES] : Inspecteur de propriétés ouvert.");
+    } else {
+      setAutocadPrompt(`Commande : "${cmdId}". Tapez REC, TRI, L, C, COPIER, COLLER...`);
+    }
+  };
+
   const pasteClipboard=()=>{
     const buffer=clipboardRef.current;
     if(!buffer||!buffer.nodes.length){setStatusMessage("Presse-papiers vide");return;}
@@ -2188,19 +2660,139 @@ function IsometrieModule() {
 
   useEffect(()=>{
     const onKey=(e:KeyboardEvent)=>{
-      if(e.key.toLowerCase()==="r" && selectedNodeIds.some(id=>nodes.find(n=>n.id===id)?.equipmentType)){
+      // Ignore if user is currently inside an input or textarea
+      const target = e.target as HTMLElement;
+      const isInput = target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT" || target.isContentEditable);
+
+      // ESC: Global Escape closes all panels, modals, context menus, and resets active operations
+      if (e.key === "Escape") {
         e.preventDefault();
-        rotateSelectedEquipment(e.shiftKey?-15:15);
-        setStatusMessage(e.shiftKey?"Rotation -15°":"Rotation +15°");
+        setPropertiesModalOpen(false);
+        setRightPanelOpen(false);
+        setLeftPanelOpen(false);
+        setCadPropsOpen(false);
+        setRailFlyout(null);
+        setContextMenu(null);
+        setCtxMenu(null);
+        setInlineEditTextId(null);
+        setEdit(null);
+        setBranchDrawing(null);
+        if (cadDraftSession) {
+          cancelCadDraft();
+        }
+        setCad2dDraftTool(null);
+        setIsoDrawMode("select");
+        setInteractionMode("select");
+        setSelectedNodeIds([]);
+        setSelectedNodeId(null);
+        setSelectedSegmentIds([]);
+        setSelectedSegmentId(null);
+        setSelectedCad2dIds([]);
+        setSelectedFitting(null);
+        setSelectedFittingIds([]);
+        setSelectedDimensionIds([]);
+        setSelectedDimensionId(null);
+        setStatusMessage("Prêt");
         return;
       }
-      if(e.key.toLowerCase()==="f"&&selectedNodeIds.some(id=>nodes.find(n=>n.id===id)?.equipmentType)){
-        e.preventDefault();flipSelectedEquipment();
+
+      // If already in an input, let default typing happen
+      if (isInput) return;
+
+      // Delete / Suppr / Backspace: Delete all selected elements
+      if (e.key === "Delete" || e.key === "Backspace" || e.key === "Suppr") {
+        e.preventDefault();
+        if (selectedCad2dIds.length > 0) {
+          deleteSelectedCad2d();
+          return;
+        }
+        if (selectedNodeIds.length > 0 || selectedSegmentIds.length > 0 || selectedFittingIds.length > 0 || selectedFitting) {
+          deleteSelection();
+          return;
+        }
+        if (selectedDimensionIds.length > 0) {
+          setDimensions(prev => prev.filter(d => !selectedDimensionIds.includes(d.id)));
+          setSelectedDimensionIds([]);
+          setSelectedDimensionId(null);
+          setStatusMessage("Cotation supprimée");
+          return;
+        }
+      }
+
+      // Enter / Space during polyline drafting validates the polyline
+      if ((e.key === "Enter" || e.key === " ") && cadDraftSession?.tool === "polyline") {
+        e.preventDefault();
+        finishPolylineDraft();
+        return;
+      }
+
+      // Shortcut: Focus command line on ':' or '/'
+      if (e.key === ":" || e.key === "/") {
+        e.preventDefault();
+        const cmdInput = document.getElementById("cad-command-input") as HTMLInputElement;
+        if (cmdInput) {
+          cmdInput.focus();
+          cmdInput.select();
+        }
+        return;
+      }
+
+      // Shortcut: Ctrl+C / Cmd+C for Copy
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "c") {
+        e.preventDefault();
+        const hasCad = copyCad2dSelection();
+        const sub = selectionSubGraph();
+        if (sub.nodes.length) copySelection();
+        if (hasCad || sub.nodes.length) {
+          setStatusMessage("Éléments copiés dans le presse-papiers · Tapez COLLER pour insérer au clic");
+          setAutocadPrompt("COMMANDE [COPIER] : Sélection copiée. Cliquez sur Coller ou tapez COLLER.");
+        }
+        return;
+      }
+
+      // Shortcut: Ctrl+V / Cmd+V for Paste
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "v") {
+        e.preventDefault();
+        startCadDraft("paste_target");
+        return;
+      }
+
+      // Shortcut: Ctrl+D / Cmd+D for Duplicate
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "d") {
+        e.preventDefault();
+        if (selectedCad2dIds.length > 0) {
+          duplicateSelectedCad2d();
+        } else if (selectedNodeIds.length > 0) {
+          duplicateSelection();
+        }
+        return;
+      }
+
+      // Rotation CAD 2D ou Équipements (R / Maj+R)
+      if (e.key.toLowerCase() === "r") {
+        if (selectedCad2dIds.length > 0) {
+          e.preventDefault();
+          rotateSelectedCad2d(e.shiftKey ? -15 : 15);
+          return;
+        }
+        if (selectedNodeIds.some(id => nodes.find(n => n.id === id)?.equipmentType)) {
+          e.preventDefault();
+          rotateSelectedEquipment(e.shiftKey ? -15 : 15);
+          setStatusMessage(e.shiftKey ? "Rotation -15°" : "Rotation +15°");
+          return;
+        }
+      }
+
+      // Equipment flip (F)
+      if (e.key.toLowerCase() === "f" && selectedNodeIds.some(id => nodes.find(n => n.id === id)?.equipmentType)) {
+        e.preventDefault();
+        flipSelectedEquipment();
+        return;
       }
     };
     window.addEventListener("keydown",onKey);
     return()=>window.removeEventListener("keydown",onKey);
-  },[selectedNodeIds,nodes,segments]);
+  },[selectedNodeIds, nodes, segments, cadDraftSession, selectedCad2dIds, selectedDimensionIds, selectedSegmentIds, selectedFittingIds, selectedFitting]);
 
   const wheel = (e: React.WheelEvent<SVGSVGElement>) => {
     e.preventDefault();
@@ -2387,6 +2979,379 @@ function IsometrieModule() {
       }
     }
 
+    if (cadDraftSession) {
+      const w = screenToIsoWorld(e);
+      const pt: Cad2dPoint = { x: snapIsoV4(w.x, isoSnapStep), y: snapIsoV4(w.y, isoSnapStep) };
+      const sess = cadDraftSession;
+
+      if (sess.tool === "paste_target") {
+        pasteClipboardAtWorldPoint(pt);
+        setCadDraftSession(null);
+        e.stopPropagation();
+        return;
+      }
+
+      if (sess.tool === "move_target") {
+        if (sess.step === 0) {
+          setCadDraftSession({ ...sess, step: 1, points: [pt] });
+          setAutocadPrompt("DEPLACER [Étape 2/2] : Cliquez le point de destination");
+          setStatusMessage("DEPLACER : Cliquez la destination");
+        } else {
+          const fromPt = sess.points[0];
+          const dx = pt.x - fromPt.x;
+          const dy = pt.y - fromPt.y;
+          if (selectedCad2dIds.length) {
+            setCad2dEntities((prev) =>
+              prev.map((ent) => (selectedCad2dIds.includes(ent.id) ? cad2dApplyDelta(ent, dx, dy, "body") : ent)),
+            );
+          }
+          if (selectedNodeIds.length) {
+            moveSelection(dx, dy, 0);
+          }
+          setCadDraftSession(null);
+          setAutocadPrompt(`Déplacement terminé (dx: ${dx.toFixed(2)}, dy: ${dy.toFixed(2)})`);
+          setStatusMessage("Déplacement validé");
+        }
+        e.stopPropagation();
+        return;
+      }
+
+      if (sess.tool === "rectangle") {
+        if (sess.step === 0) {
+          setCadDraftSession({ ...sess, step: 1, points: [pt], mouseWorld: pt });
+          setAutocadPrompt("RECTANGLE [Étape 1/2] : Déplacez la souris pour orienter le côté 1 et cliquez (ou saisissez la longueur)");
+          setStatusMessage("RECTANGLE : Cliquez le point 2 du 1er côté");
+        } else if (sess.step === 1) {
+          const p1 = sess.points[0];
+          const length = cadDist(p1, pt);
+          if (length <= 0.001) return;
+          setCadDraftSession({ ...sess, step: 2, points: [p1, pt], mouseWorld: pt });
+          setAutocadPrompt("RECTANGLE [Étape 2/2] : Déplacez la souris pour la largeur et cliquez pour valider");
+          setStatusMessage("RECTANGLE : Cliquez pour valider la largeur");
+        } else if (sess.step === 2) {
+          const p1 = sess.points[0];
+          const p2 = sess.points[1];
+          const rect = buildAutocadRectangle(p1, p2, sess.length || cadDist(p1, p2), pt);
+          addCad2dEntity({
+            type: "polygon",
+            layerId: "axes_tuyauterie",
+            color: "#9CA3AF",
+            points: rect.points,
+            length: rect.length,
+            width: rect.width,
+            closed: true,
+            metadata: { intent: "draft", source: "rectangle", length: rect.length, width: rect.width },
+          });
+          setCadDraftSession(null);
+          setAutocadPrompt(`Rectangle créé (${rect.length.toFixed(2)} m × ${rect.width.toFixed(2)} m). Prêt.`);
+          setStatusMessage(`Rectangle créé · L: ${rect.length.toFixed(2)}m · l: ${rect.width.toFixed(2)}m`);
+        }
+        e.stopPropagation();
+        return;
+      }
+
+      if (sess.tool === "triangle") {
+        const sub = sess.subType || "equilateral";
+        if (sub === "equilateral") {
+          if (sess.step === 0) {
+            setCadDraftSession({ ...sess, step: 1, points: [pt], mouseWorld: pt });
+            setAutocadPrompt("TRIANGLE ÉQUILATÉRAL : Cliquez le 2e point (définit la base et la taille)");
+          } else {
+            const p1 = sess.points[0];
+            const triPts = buildEquilateralTriangle(p1, pt);
+            const sideLen = cadDist(p1, pt);
+            addCad2dEntity({
+              type: "polygon",
+              layerId: "axes_tuyauterie",
+              color: "#9CA3AF",
+              points: triPts,
+              subType: "equilateral",
+              length: sideLen,
+              closed: true,
+              metadata: { intent: "draft", source: "triangle_equilateral", sideLength: sideLen },
+            });
+            setCadDraftSession(null);
+            setAutocadPrompt(`Triangle équilatéral créé (côté: ${sideLen.toFixed(2)} m).`);
+            setStatusMessage(`Triangle équilatéral créé · Côté: ${sideLen.toFixed(2)}m`);
+          }
+        } else if (sub === "rectangle") {
+          if (sess.step === 0) {
+            setCadDraftSession({ ...sess, step: 1, points: [pt], mouseWorld: pt });
+            setAutocadPrompt("TRIANGLE RECTANGLE [Étape 1/2] : Cliquez le 2e point (Base)");
+          } else if (sess.step === 1) {
+            setCadDraftSession({ ...sess, step: 2, points: [sess.points[0], pt], mouseWorld: pt });
+            setAutocadPrompt("TRIANGLE RECTANGLE [Étape 2/2] : Cliquez le 3e point pour la hauteur");
+          } else {
+            const p1 = sess.points[0];
+            const p2 = sess.points[1];
+            const triPts = buildRightTriangle(p1, p2, 0, pt);
+            const baseLen = cadDist(p1, p2);
+            const h = cadDist(p2, pt);
+            addCad2dEntity({
+              type: "polygon",
+              layerId: "axes_tuyauterie",
+              color: "#9CA3AF",
+              points: triPts,
+              subType: "rectangle",
+              length: baseLen,
+              height: h,
+              closed: true,
+              metadata: { intent: "draft", source: "triangle_rectangle", baseLength: baseLen, height: h },
+            });
+            setCadDraftSession(null);
+            setAutocadPrompt(`Triangle rectangle créé (base: ${baseLen.toFixed(2)} m, hauteur: ${h.toFixed(2)} m).`);
+            setStatusMessage(`Triangle rectangle créé · Base: ${baseLen.toFixed(2)}m · H: ${h.toFixed(2)}m`);
+          }
+        } else if (sub === "isocele") {
+          if (sess.step === 0) {
+            setCadDraftSession({ ...sess, step: 1, points: [pt], mouseWorld: pt });
+            setAutocadPrompt("TRIANGLE ISOCÈLE [Étape 1/2] : Cliquez le 2e point de base");
+          } else if (sess.step === 1) {
+            setCadDraftSession({ ...sess, step: 2, points: [sess.points[0], pt], mouseWorld: pt });
+            setAutocadPrompt("TRIANGLE ISOCÈLE [Étape 2/2] : Cliquez le sommet pour la hauteur");
+          } else {
+            const p1 = sess.points[0];
+            const p2 = sess.points[1];
+            const triPts = buildIsoscelesTriangle(p1, p2, 0, pt);
+            const baseLen = cadDist(p1, p2);
+            const h = cadDist(p2, pt);
+            addCad2dEntity({
+              type: "polygon",
+              layerId: "axes_tuyauterie",
+              color: "#9CA3AF",
+              points: triPts,
+              subType: "isocele",
+              length: baseLen,
+              height: h,
+              closed: true,
+              metadata: { intent: "draft", source: "triangle_isocele", baseLength: baseLen, height: h },
+            });
+            setCadDraftSession(null);
+            setAutocadPrompt(`Triangle isocèle créé (base: ${baseLen.toFixed(2)} m, hauteur: ${h.toFixed(2)} m).`);
+            setStatusMessage(`Triangle isocèle créé · Base: ${baseLen.toFixed(2)}m · H: ${h.toFixed(2)}m`);
+          }
+        } else {
+          if (sess.step === 0) {
+            setCadDraftSession({ ...sess, step: 1, points: [pt], mouseWorld: pt });
+            setAutocadPrompt("TRIANGLE 3 POINTS [Étape 1/3] : Cliquez le 2e point");
+          } else if (sess.step === 1) {
+            setCadDraftSession({ ...sess, step: 2, points: [sess.points[0], pt], mouseWorld: pt });
+            setAutocadPrompt("TRIANGLE 3 POINTS [Étape 2/3] : Cliquez le 3e point");
+          } else {
+            const p1 = sess.points[0];
+            const p2 = sess.points[1];
+            const p3 = pt;
+            addCad2dEntity({
+              type: "polygon",
+              layerId: "axes_tuyauterie",
+              color: "#9CA3AF",
+              points: [p1, p2, p3, p1],
+              subType: "3points",
+              closed: true,
+              metadata: { intent: "draft", source: "triangle_3points" },
+            });
+            setCadDraftSession(null);
+            setAutocadPrompt("Triangle 3 points créé.");
+            setStatusMessage("Triangle 3 points créé");
+          }
+        }
+        e.stopPropagation();
+        return;
+      }
+
+      if (sess.tool === "polygon") {
+        const sides = sess.sides || 6;
+        if (sess.step === 0) {
+          setCadDraftSession({ ...sess, step: 1, center: pt, mouseWorld: pt });
+          setAutocadPrompt(`POLYGONE [${sides} côtés] : Cliquez le rayon / premier sommet`);
+        } else {
+          const center = sess.center || sess.points[0] || pt;
+          const polyPts = buildRegularPolygon(center, pt, sides);
+          const r = cadDist(center, pt);
+          addCad2dEntity({
+            type: "polygon",
+            layerId: "axes_tuyauterie",
+            color: "#9CA3AF",
+            points: polyPts,
+            sides,
+            radius: r,
+            closed: true,
+            metadata: { intent: "draft", source: "polygon", sides, radius: r },
+          });
+          setCadDraftSession(null);
+          setAutocadPrompt(`Polygone ${sides} côtés créé (rayon: ${r.toFixed(2)} m).`);
+          setStatusMessage(`Polygone régulier ${sides} côtés créé · R: ${r.toFixed(2)}m`);
+        }
+        e.stopPropagation();
+        return;
+      }
+
+      if (sess.tool === "arc") {
+        const sub = sess.subType || "3points";
+        if (sub === "3points") {
+          if (sess.step === 0) {
+            setCadDraftSession({ ...sess, step: 1, points: [pt], mouseWorld: pt });
+            setAutocadPrompt("ARC [3 Points] : Cliquez le Point 2 (point de passage)");
+          } else if (sess.step === 1) {
+            setCadDraftSession({ ...sess, step: 2, points: [sess.points[0], pt], mouseWorld: pt });
+            setAutocadPrompt("ARC [3 Points] : Cliquez le Point 3 (fin de l'arc)");
+          } else {
+            const p1 = sess.points[0];
+            const p2 = sess.points[1];
+            const p3 = pt;
+            const arcData = calculate3PointArc(p1, p2, p3);
+            if (arcData) {
+              addCad2dEntity({
+                type: "arc",
+                layerId: "axes_tuyauterie",
+                color: "#9CA3AF",
+                center: arcData.center,
+                radius: arcData.radius,
+                startAngle: arcData.startAngle,
+                endAngle: arcData.endAngle,
+                subType: "3points",
+                metadata: { intent: "draft", source: "arc_3points" },
+              });
+              setAutocadPrompt(`Arc 3 points créé (rayon: ${arcData.radius.toFixed(2)} m).`);
+              setStatusMessage(`Arc 3 points créé · R: ${arcData.radius.toFixed(2)}m`);
+            } else {
+              setAutocadPrompt("Points alignés : impossible de former un arc.");
+            }
+            setCadDraftSession(null);
+          }
+        } else {
+          if (sess.step === 0) {
+            setCadDraftSession({ ...sess, step: 1, center: pt, mouseWorld: pt });
+            setAutocadPrompt("ARC [Centre-Rayon-Angle] : Cliquez le point de départ de l'arc");
+          } else if (sess.step === 1) {
+            const center = sess.center!;
+            const sa = cadAngleDeg(center, pt);
+            setCadDraftSession({ ...sess, step: 2, points: [pt], currentAngleInput: String(sa), mouseWorld: pt });
+            setAutocadPrompt("ARC [Centre-Rayon-Angle] : Cliquez le point final pour l'angle d'ouverture");
+          } else {
+            const center = sess.center!;
+            const startPt = sess.points[0];
+            const r = cadDist(center, startPt);
+            const sa = cadAngleDeg(center, startPt);
+            const ea = cadAngleDeg(center, pt);
+            addCad2dEntity({
+              type: "arc",
+              layerId: "axes_tuyauterie",
+              color: "#9CA3AF",
+              center,
+              radius: r,
+              startAngle: sa,
+              endAngle: ea,
+              subType: "center_radius_angle",
+              metadata: { intent: "draft", source: "arc_center_radius_angle" },
+            });
+            setCadDraftSession(null);
+            setAutocadPrompt(`Arc créé (Rayon: ${r.toFixed(2)} m, ${sa.toFixed(0)}° à ${ea.toFixed(0)}°).`);
+            setStatusMessage(`Arc créé · R: ${r.toFixed(2)}m`);
+          }
+        }
+        e.stopPropagation();
+        return;
+      }
+
+      if (sess.tool === "line") {
+        if (sess.step === 0) {
+          setCadDraftSession({ ...sess, step: 1, points: [pt], mouseWorld: pt });
+          setAutocadPrompt("LIGNE : Cliquez le point d'arrivée");
+        } else {
+          addCad2dEntity({
+            type: "line",
+            layerId: "axes_tuyauterie",
+            color: "#9CA3AF",
+            points: [sess.points[0], pt],
+            metadata: { intent: "draft", source: "line" },
+          });
+          setCadDraftSession(null);
+          setAutocadPrompt("Ligne créée.");
+          setStatusMessage("Ligne créée");
+        }
+        e.stopPropagation();
+        return;
+      }
+
+      if (sess.tool === "circle") {
+        if (sess.step === 0) {
+          setCadDraftSession({ ...sess, step: 1, center: pt, mouseWorld: pt });
+          setAutocadPrompt("CERCLE : Cliquez pour fixer le rayon");
+        } else {
+          const center = sess.center!;
+          const r = Math.max(0.1, cadDist(center, pt));
+          addCad2dEntity({
+            type: "circle",
+            layerId: "axes_tuyauterie",
+            color: "#9CA3AF",
+            center,
+            radius: r,
+            metadata: { intent: "draft", source: "circle" },
+          });
+          setCadDraftSession(null);
+          setAutocadPrompt(`Cercle créé (rayon: ${r.toFixed(2)} m).`);
+          setStatusMessage(`Cercle créé · R: ${r.toFixed(2)}m`);
+        }
+        e.stopPropagation();
+        return;
+      }
+
+      if (sess.tool === "polyline") {
+        if (sess.step === 0) {
+          setCadDraftSession({ ...sess, step: 1, points: [pt], mouseWorld: pt });
+          setAutocadPrompt("POLYLIGNE : Cliquez pour ajouter des sommets. Entrée, Double-clic ou clic sur le 1er point pour terminer.");
+          setStatusMessage("Polyligne : 1er point placé");
+        } else {
+          const firstPt = sess.points[0];
+          const isCloseToStart = sess.points.length >= 3 && cadDist(pt, firstPt) < (0.35 / viewport.zoom);
+          if (isCloseToStart) {
+            const finalPts = [...sess.points];
+            const newEntity = addCad2dEntity({
+              type: "polyline",
+              layerId: "axes_tuyauterie",
+              color: "#9CA3AF",
+              points: finalPts,
+              metadata: { intent: "draft", source: "polyline", closed: true },
+            });
+            setCadDraftSession(null);
+            if (newEntity) setSelectedCad2dIds([newEntity.id]);
+            setAutocadPrompt(`Polyligne fermée créée (${finalPts.length} sommets).`);
+            setStatusMessage(`Polyligne fermée · ${finalPts.length} points`);
+          } else {
+            const newPts = [...sess.points, pt];
+            setCadDraftSession({ ...sess, points: newPts, mouseWorld: pt });
+            setAutocadPrompt(`POLYLIGNE : ${newPts.length} sommets. Cliquez le point suivant (Entrée / Double-clic pour valider)`);
+            setStatusMessage(`Polyligne : ${newPts.length} points`);
+          }
+        }
+        e.stopPropagation();
+        return;
+      }
+
+      if (sess.tool === "text") {
+        const newEntity = addCad2dEntity({
+          type: "text",
+          layerId: "annotations",
+          color: "#f43f5e",
+          points: [pt],
+          text: "Texte CAD",
+          fontSize: 16,
+          metadata: { intent: "annotation", source: "text" },
+        });
+        setCadDraftSession(null);
+        if (newEntity) {
+          setSelectedCad2dIds([newEntity.id]);
+          setInlineEditTextId(newEntity.id);
+          setCadPropsOpen(true);
+        }
+        setAutocadPrompt("Texte créé. Saisissez votre texte directement ou dans PROPS.");
+        setStatusMessage("Texte CAD créé");
+        e.stopPropagation();
+        return;
+      }
+    }
+
     if (cad2dDraftTool) {
       const w = screenToIsoWorld(e);
       const point = { x: snapIsoV4(w.x, isoSnapStep), y: snapIsoV4(w.y, isoSnapStep) };
@@ -2424,6 +3389,7 @@ function IsometrieModule() {
         baselineNodeIds: additive ? [...selectedNodeIds] : [],
         baselineSegIds: additive ? [...selectedSegmentIds] : [],
         baselineDimIds: additive ? [...selectedDimensionIds] : [],
+        baselineCad2dIds: additive ? [...selectedCad2dIds] : [],
         active: false,
       };
       e.currentTarget.setPointerCapture(e.pointerId);
@@ -2465,6 +3431,11 @@ function IsometrieModule() {
     }
 
     if (updateCad2dPointer(e)) return;
+    if (cadDraftSession) {
+      const w = screenToIsoWorld(e);
+      const pt = { x: snapIsoV4(w.x, isoSnapStep), y: snapIsoV4(w.y, isoSnapStep) };
+      setCadDraftSession((prev) => (prev ? { ...prev, mouseWorld: pt } : null));
+    }
     const { sx, sy } = getSvgCoordinates(e.clientX, e.clientY, svgRef.current || (e.currentTarget as unknown as SVGSVGElement));
 
     if(marqueeRef.current){
@@ -2529,11 +3500,54 @@ function IsometrieModule() {
         );
       }).map((d) => d.id);
 
+      // Capture aussi les éléments CAO 2D (lignes, polylignes, cercles, arcs, textes)
+      const boxedCad2dIds = cad2dEntities.filter((entity) => {
+        if (entity.locked) return false;
+        const elev = entity.metadata?.elevationZ || 0;
+        if (entity.type === "line" && entity.points && entity.points.length >= 2) {
+          const p1 = isoProjectV4(entity.points[0].x, entity.points[0].y, elev, viewport.zoom, viewport.panX, viewport.panY);
+          const p2 = isoProjectV4(entity.points[1].x, entity.points[1].y, elev, viewport.zoom, viewport.panX, viewport.panY);
+          if (isCrossing) return lineSegmentIntersectsBox(p1, p2, minX, minY, maxX, maxY);
+          return p1.x >= minX && p1.x <= maxX && p1.y >= minY && p1.y <= maxY &&
+                 p2.x >= minX && p2.x <= maxX && p2.y >= minY && p2.y <= maxY;
+        }
+        if ((entity.type === "polyline" || entity.type === "polygon" || entity.type === "triangle" || entity.type === "rectangle") && entity.points && entity.points.length >= 2) {
+          const projPts = entity.points.map(pt => isoProjectV4(pt.x, pt.y, elev, viewport.zoom, viewport.panX, viewport.panY));
+          if (isCrossing) {
+            for (let i = 0; i < projPts.length - 1; i++) {
+              if (lineSegmentIntersectsBox(projPts[i], projPts[i + 1], minX, minY, maxX, maxY)) return true;
+            }
+            return projPts.some(pt => pt.x >= minX && pt.x <= maxX && pt.y >= minY && pt.y <= maxY);
+          } else {
+            return projPts.every(pt => pt.x >= minX && pt.x <= maxX && pt.y >= minY && pt.y <= maxY);
+          }
+        }
+        if ((entity.type === "circle" || entity.type === "arc") && entity.center) {
+          const c = isoProjectV4(entity.center.x, entity.center.y, elev, viewport.zoom, viewport.panX, viewport.panY);
+          const r = (entity.radius || 1) * 18 * viewport.zoom;
+          if (isCrossing) {
+            return c.x + r >= minX && c.x - r <= maxX && c.y + r >= minY && c.y - r <= maxY;
+          } else {
+            return c.x - r >= minX && c.x + r <= maxX && c.y - r >= minY && c.y + r <= maxY;
+          }
+        }
+        if (entity.type === "text" && entity.points && entity.points[0]) {
+          const pt = isoProjectV4(entity.points[0].x, entity.points[0].y, elev, viewport.zoom, viewport.panX, viewport.panY);
+          return pt.x >= minX && pt.x <= maxX && pt.y >= minY && pt.y <= maxY;
+        }
+        return false;
+      }).map((entity) => entity.id);
+
       const finalDimIds = m.additive
         ? Array.from(new Set([...m.baselineDimIds, ...boxedDimIds]))
         : boxedDimIds;
       setSelectedDimensionIds(finalDimIds);
       setSelectedDimensionId(finalDimIds.length ? finalDimIds[finalDimIds.length - 1] : null);
+
+      const finalCad2dIds = m.additive
+        ? Array.from(new Set([...(m.baselineCad2dIds || []), ...boxedCad2dIds]))
+        : boxedCad2dIds;
+      setSelectedCad2dIds(finalCad2dIds);
       return;
     }
 
@@ -2651,9 +3665,14 @@ function IsometrieModule() {
     if(marqueeRef.current){
       const m = marqueeRef.current;
       if (m.active) {
-        const total = selectedNodeIds.length + selectedSegmentIds.length + selectedDimensionIds.length;
+        const total = selectedNodeIds.length + selectedSegmentIds.length + selectedDimensionIds.length + selectedCad2dIds.length;
         if (total > 0) {
-          setStatusMessage(`Sélection multiple : ${selectedNodeIds.length} nœud(s), ${selectedSegmentIds.length} tronçon(s), ${selectedDimensionIds.length} cotation(s)`);
+          const parts: string[] = [];
+          if (selectedNodeIds.length) parts.push(`${selectedNodeIds.length} nœud(s)`);
+          if (selectedSegmentIds.length) parts.push(`${selectedSegmentIds.length} tronçon(s)`);
+          if (selectedDimensionIds.length) parts.push(`${selectedDimensionIds.length} cotation(s)`);
+          if (selectedCad2dIds.length) parts.push(`${selectedCad2dIds.length} objet(s) 2D`);
+          setStatusMessage(`Sélection multiple : ${parts.join(", ")}`);
         } else {
           setStatusMessage("Zone vide sélectionnée");
         }
@@ -3712,7 +4731,7 @@ function IsometrieModule() {
 
   return <div
       data-pdi-studio="v4.8d1"
-      className={`${workspaceFullscreen ? "fixed inset-0 z-[9999] overflow-hidden bg-[#0B0F14] px-2 pb-[34px] pt-[116px] pl-[64px]" : "w-full"} pdi-studio-root ${workspaceFullscreen ? "h-screen" : "space-y-3"} animate-fade-in`}
+      className={`${workspaceFullscreen ? "fixed inset-0 z-[9999] overflow-hidden bg-[#0B0F14] px-2 pb-2 pt-[58px] pl-[92px]" : "w-full"} pdi-studio-root ${workspaceFullscreen ? "h-screen" : "space-y-3"} animate-fade-in`}
     >
       <style>{`
         [data-pdi-studio]{--pdi-bg:#0B0F14;--pdi-panel:#161B22;--pdi-panel2:#1C222B;--pdi-line:#30363D;--pdi-text:#E6EDF3;--pdi-muted:#8B949E;--pdi-blue:#2F81F7;--pdi-cyan:#22D3EE;--pdi-select:#F59E0B;background:var(--pdi-bg)!important;color:var(--pdi-text);font-family:Inter,ui-sans-serif,system-ui,sans-serif}
@@ -3941,52 +4960,364 @@ function IsometrieModule() {
             </div>
           </div>
         </header>
-        <div className="pdi-cad-ribbon fixed left-[62px] right-0 top-[54px] z-[10004] h-[54px] px-3 flex items-center gap-2 overflow-x-auto">
-          <div className="pdi-ribbon-group"><span>Draw</span><button onClick={() => { setInteractionMode("select"); setIsoDrawMode("segment"); setStatusMessage("Line / Tube · V4.8d"); }}>Line</button><button onClick={() => prepareCad2dTool("polyline")}>Polyline</button><button onClick={() => prepareCad2dTool("circle")}>Circle</button><button onClick={() => prepareCad2dTool("arc")}>Arc</button></div>
-          <div className="pdi-ribbon-group"><span>Annotation</span><button onClick={() => prepareCad2dTool("text")}>Text</button><button onClick={() => { setInteractionMode("select"); setIsoDrawMode("dimension"); setDimensionPick(null); setRightPanelOpen(true); setRightPanelTab("dimensions"); setStatusMessage("Dimension · 2 ancrages V4.8d"); }}>Dimension</button></div>
-          <div className="pdi-ribbon-group"><span>Modify</span><button onClick={copySelection}>Copy</button><button onClick={() => selectedCad2dIds.length ? duplicateSelectedCad2d() : duplicateSelection()}>Duplicate</button><button onClick={() => rotateSelectedEquipment(15)}>Rotate</button><button onClick={() => selectedCad2dIds.length ? deleteSelectedCad2d() : deleteSelection()}>Delete</button></div>
-          <div className="pdi-ribbon-group"><span>Measure</span><button onClick={() => { setRightPanelOpen(true); setRightPanelTab("dimensions"); setStatusMessage("Mesure distance/rayon/angle préparée · cotations actives"); }}>Measure</button><button onClick={() => { setRightPanelOpen(true); setRightPanelTab("bom"); setStatusMessage("Métré / BOM V4.8d"); }}>BOM</button></div>
-          <div className="pdi-ribbon-group"><span>Output</span><button onClick={printPlanSheet}>Print</button><button onClick={exportProjectJson}>JSON</button></div>
-        </div>
-        <aside className="pdi-studio-rail fixed bottom-0 left-0 top-[108px] z-[10005] w-[62px] py-3 flex flex-col items-center gap-2">
-          <button title="Sélection (V)" onClick={()=>{setInteractionMode("select");setIsoDrawMode("select")}} className={`pdi-rail-button ${interactionMode==="select"&&isoDrawMode==="select"?"active":""}`}><MousePointer2 className="w-4 h-4" /></button>
-          <button title="Main / déplacement (H / Espace)" onClick={()=>setInteractionMode("main")} className={`pdi-rail-button ${interactionMode==="main"?"active":""}`}><Hand className="w-4 h-4" /></button>
-          <button title="Créer un Tube (T)" onClick={()=>{setInteractionMode("select");setIsoDrawMode("segment")}} className={`pdi-rail-button ${isoDrawMode==="segment"?"active":""}`}><Spline className="w-4 h-4" /></button>
-          <button title="Créer un Nœud (N)" onClick={()=>{setInteractionMode("select");setIsoDrawMode("node")}} className={`pdi-rail-button ${isoDrawMode==="node"?"active":""}`}><CircleDot className="w-4 h-4" /></button>
-          <button title="Insérer / Dérivation Té (E)" onClick={()=>{setInteractionMode("select");setIsoDrawMode("te")}} className={`pdi-rail-button ${isoDrawMode==="te"?"active":""}`}><GitFork className="w-4 h-4" /></button>
-          <button title="Insérer un Coude (C)" onClick={()=>{setInteractionMode("select");setIsoDrawMode("coude")}} className={`pdi-rail-button ${isoDrawMode==="coude"?"active":""}`}><CornerDownRight className="w-4 h-4" /></button>
+        <aside className="pdi-studio-rail fixed bottom-0 left-0 top-[54px] z-[10005] w-[86px] py-2 px-1.5 flex flex-col items-center gap-1.5 overflow-y-auto">
+          {/* Grille 2 colonnes : Symboles Tuyauterie & Outils de base */}
+          <div className="w-full grid grid-cols-2 gap-1">
+            <button
+              title="Sélection éléments (V)"
+              onClick={() => { setInteractionMode("select"); setIsoDrawMode("select"); setCad2dDraftTool(null); }}
+              className={`pdi-rail-button ${interactionMode === "select" && isoDrawMode === "select" && !cad2dDraftTool ? "active" : ""}`}
+            >
+              <MousePointer2 className="w-4 h-4" />
+            </button>
+            <button
+              title="Main / Déplacement vue (H / Espace)"
+              onClick={() => setInteractionMode("main")}
+              className={`pdi-rail-button ${interactionMode === "main" ? "active" : ""}`}
+            >
+              <Hand className="w-4 h-4" />
+            </button>
+
+            <button
+              title="Créer un Tube (T)"
+              onClick={() => { setInteractionMode("select"); setIsoDrawMode("segment"); setCad2dDraftTool(null); }}
+              className={`pdi-rail-button ${isoDrawMode === "segment" ? "active" : ""}`}
+            >
+              <Spline className="w-4 h-4" />
+            </button>
+            <button
+              title="Créer un Nœud (N)"
+              onClick={() => { setInteractionMode("select"); setIsoDrawMode("node"); setCad2dDraftTool(null); }}
+              className={`pdi-rail-button ${isoDrawMode === "node" ? "active" : ""}`}
+            >
+              <CircleDot className="w-4 h-4" />
+            </button>
+
+            <button
+              title="Insérer Dérivation Té (E)"
+              onClick={() => { setInteractionMode("select"); setIsoDrawMode("te"); setCad2dDraftTool(null); }}
+              className={`pdi-rail-button ${isoDrawMode === "te" ? "active" : ""}`}
+            >
+              <GitFork className="w-4 h-4" />
+            </button>
+            <button
+              title="Insérer Coude (C)"
+              onClick={() => { setInteractionMode("select"); setIsoDrawMode("coude"); setCad2dDraftTool(null); }}
+              className={`pdi-rail-button ${isoDrawMode === "coude" ? "active" : ""}`}
+            >
+              <CornerDownRight className="w-4 h-4" />
+            </button>
+
+            <button
+              title="Cotations & Dimensions (M / DIM)"
+              onClick={() => {
+                setInteractionMode("select");
+                setIsoDrawMode("dimension");
+                setCad2dDraftTool(null);
+                setDimensionPick(null);
+                setRightPanelOpen(true);
+                setRightPanelTab("dimensions");
+              }}
+              className={`pdi-rail-button ${isoDrawMode === "dimension" ? "active" : ""}`}
+            >
+              <Ruler className="w-4 h-4" />
+            </button>
+            <button
+              title="Pivoter équipement sélectionné (R / Maj+R)"
+              onClick={() => rotateSelectedEquipment(15)}
+              className="pdi-rail-button hover:text-cyan-300"
+            >
+              <RotateCw className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="w-full h-px bg-slate-700/60 my-0.5" />
+
+          {/* Grille 2 colonnes : Symboles CAO 2D & Dessin libre (Ligne, Polyligne, Rectangle, Polygone, Triangle, Cercle, Arc, Texte) */}
+          <div className="w-full grid grid-cols-2 gap-1">
+            <button
+              title="Ligne 2D (CAD / Dessin)"
+              onClick={() => { setRailFlyout(null); startCadDraft("line"); }}
+              className={`pdi-rail-button ${cadDraftSession?.tool === "line" ? "active" : ""}`}
+            >
+              <Slash className="w-4 h-4" />
+            </button>
+            <button
+              title="Polyligne 2D (Multi-sommets CAD)"
+              onClick={() => { setRailFlyout(null); startCadDraft("polyline"); }}
+              className={`pdi-rail-button ${cadDraftSession?.tool === "polyline" ? "active" : ""}`}
+            >
+              <Spline className="w-4 h-4" />
+            </button>
+
+            <button
+              title="Rectangle AutoCAD (2 clics / diagonale)"
+              onClick={() => { setRailFlyout(null); startCadDraft("rectangle"); }}
+              className={`pdi-rail-button ${cadDraftSession?.tool === "rectangle" ? "active" : ""}`}
+            >
+              <Square className="w-4 h-4" />
+            </button>
+            <button
+              title="Polygone Régulier (Extension colonne côtés 3 à 12+)"
+              onClick={() => setRailFlyout(v => v === "polygon" ? null : "polygon")}
+              className={`pdi-rail-button ${railFlyout === "polygon" || cadDraftSession?.tool === "polygon" ? "active ring-1 ring-cyan-400" : ""}`}
+            >
+              <Hexagon className="w-4 h-4 text-cyan-300" />
+            </button>
+
+            <button
+              title="Triangle CAD (Équilatéral, Rectangle, Isocèle, 3 points)"
+              onClick={() => setRailFlyout(v => v === "triangle" ? null : "triangle")}
+              className={`pdi-rail-button ${railFlyout === "triangle" || cadDraftSession?.tool === "triangle" ? "active ring-1 ring-amber-400" : ""}`}
+            >
+              <Triangle className="w-4 h-4 text-amber-300" />
+            </button>
+            <button
+              title="Cercle 2D (Centre + Rayon)"
+              onClick={() => { setRailFlyout(null); startCadDraft("circle"); }}
+              className={`pdi-rail-button ${cadDraftSession?.tool === "circle" ? "active" : ""}`}
+            >
+              <Circle className="w-4 h-4" />
+            </button>
+
+            <button
+              title="Arc 2D (3 Points ou Centre-Angle)"
+              onClick={() => setRailFlyout(v => v === "arc" ? null : "arc")}
+              className={`pdi-rail-button ${railFlyout === "arc" || cadDraftSession?.tool === "arc" ? "active ring-1 ring-sky-400" : ""}`}
+            >
+              <Disc3 className="w-4 h-4 text-sky-300" />
+            </button>
+            <button
+              title="Texte & Annotation 2D (Double-clic pour éditer sur plan)"
+              onClick={() => { setRailFlyout(null); startCadDraft("text"); }}
+              className={`pdi-rail-button ${cadDraftSession?.tool === "text" ? "active" : ""}`}
+            >
+              <Type className="w-4 h-4" />
+            </button>
+
+            <button
+              title="Dupliquer sélection (Ctrl+D)"
+              onClick={() => selectedCad2dIds.length ? duplicateSelectedCad2d() : duplicateSelection()}
+              className="pdi-rail-button hover:text-cyan-300"
+            >
+              <Copy className="w-4 h-4" />
+            </button>
+            <button
+              title="Supprimer sélection (Suppr / Backspace)"
+              onClick={() => selectedCad2dIds.length ? deleteSelectedCad2d() : deleteSelection()}
+              className="pdi-rail-button hover:text-red-400"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="w-full h-px bg-slate-700/60 my-0.5" />
+
+          {/* Outils Navigation, Bibliothèque & BOM */}
+          <div className="w-full grid grid-cols-2 gap-1">
+            <button
+              title="Bibliothèque composants"
+              onClick={() => setLeftPanelOpen(v => !v)}
+              className={`pdi-rail-button ${leftPanelOpen ? "active" : ""}`}
+            >
+              <Layers className="w-4 h-4" />
+            </button>
+            <button
+              title="Propriétés & BOM (F2)"
+              onClick={() => { setRightPanelOpen(true); setRightPanelTab("properties"); }}
+              className={`pdi-rail-button hover:text-amber-300 ${rightPanelOpen && rightPanelTab === "properties" ? "active" : ""}`}
+            >
+              <SlidersHorizontal className="w-4 h-4" />
+            </button>
+
+            <button
+              title="Nomenclature BOM & Métré"
+              onClick={() => { setRightPanelOpen(true); setRightPanelTab("bom"); }}
+              className={`pdi-rail-button hover:text-emerald-300 ${rightPanelOpen && rightPanelTab === "bom" ? "active" : ""}`}
+            >
+              <FileText className="w-4 h-4" />
+            </button>
+            <button
+              title="Mode Planche ISO"
+              onClick={() => setIsoMode(v => v === "editor" ? "planche" : "editor")}
+              className={`pdi-rail-button ${isoMode === "planche" ? "active" : ""}`}
+            >
+              <Maximize2 className="w-4 h-4" />
+            </button>
+
+            <button
+              title="Imprimer Isométrie (P)"
+              onClick={printPlanSheet}
+              className="pdi-rail-button"
+            >
+              <Printer className="w-4 h-4" />
+            </button>
+            <button
+              title="Annuler (Ctrl+Z)"
+              onClick={undoGraph}
+              className="pdi-rail-button"
+            >
+              <Undo2 className="w-4 h-4" />
+            </button>
+
+            <button
+              title="Sauvegarder JSON (Ctrl+S)"
+              onClick={exportProjectJson}
+              className="pdi-rail-button text-emerald-400"
+            >
+              <Download className="w-4 h-4" />
+            </button>
+            <button
+              title="Ouvrir JSON"
+              onClick={() => importProjectRef.current?.click()}
+              className="pdi-rail-button text-blue-400"
+            >
+              <FolderOpen className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="flex-1" />
           <button
-            title="Cotations & Dimensions (DIM)"
-            onClick={() => {
-              setInteractionMode("select");
-              setIsoDrawMode("dimension");
-              setDimensionPick(null);
-              setRightPanelOpen(true);
-              setRightPanelTab("dimensions");
-            }}
-            className={`pdi-rail-button ${isoDrawMode === "dimension" ? "active" : ""}`}
+            title="Aide & Raccourcis (?)"
+            onClick={() => setShortcutsOpen(true)}
+            className="pdi-rail-button w-full"
           >
-            <Ruler className="w-4 h-4" />
+            <Info className="w-4 h-4" />
           </button>
-          <button
-            title="Pivoter équipement sélectionné (R / Maj+R)"
-            onClick={() => rotateSelectedEquipment(15)}
-            className="pdi-rail-button hover:text-cyan-300"
-          >
-            <RotateCw className="w-4 h-4" />
-          </button>
-          <div className="my-1 h-px w-8 bg-slate-700"/>
-          <button title="Propriétés & BOM (F2)" onClick={()=>{ setRightPanelOpen(true); setRightPanelTab("properties"); }} className={`pdi-rail-button hover:text-amber-300 ${rightPanelOpen?"active":""}`}><FileText className="w-4 h-4" /></button>
-          <button title="Bibliothèque équipements" onClick={()=>setLeftPanelOpen(v=>!v)} className={`pdi-rail-button ${leftPanelOpen?"active":""}`}><Layers className="w-4 h-4" /></button>
-          <button title="Planche ISO" onClick={()=>setIsoMode(v=>v==="editor"?"planche":"editor")} className={`pdi-rail-button ${isoMode==="planche"?"active":""}`}><Maximize2 className="w-4 h-4" /></button>
-          <button title="Imprimer Isométrie (P)" onClick={printPlanSheet} className="pdi-rail-button"><Printer className="w-4 h-4" /></button>
-          <div className="my-1 h-px w-8 bg-slate-700"/>
-          <button title="Annuler (Ctrl+Z)" onClick={undoGraph} className="pdi-rail-button"><Undo2 className="w-4 h-4" /></button>
-          <button title="Sauvegarder JSON (Ctrl+S)" onClick={exportProjectJson} className="pdi-rail-button"><Download className="w-4 h-4" /></button>
-          <button title="Ouvrir JSON" onClick={()=>importProjectRef.current?.click()} className="pdi-rail-button"><FolderOpen className="w-4 h-4" /></button>
-          <div className="flex-1"/>
-          <button title="Aide raccourcis (?)" onClick={()=>setShortcutsOpen(true)} className="pdi-rail-button"><Info className="w-4 h-4" /></button>
         </aside>
+
+        {/* Flyout extension line/bar from the column */}
+        {railFlyout && (
+          <div
+            className="fixed left-[92px] top-[180px] z-[10015] bg-[#0E131B] border border-cyan-500/50 rounded-2xl shadow-2xl p-3 text-white w-72 animate-in fade-in slide-in-from-left-2 duration-150"
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            {railFlyout === "polygon" && (
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <Hexagon className="w-4 h-4 text-cyan-400" />
+                    <span className="text-xs font-black uppercase text-cyan-300">Polygone Régulier</span>
+                  </div>
+                  <button type="button" onClick={() => setRailFlyout(null)} className="text-slate-400 hover:text-white text-xs px-1">✕</button>
+                </div>
+                <div>
+                  <label className="text-[10px] text-slate-400 font-bold block mb-1">Nombre de côtés :</label>
+                  <div className="grid grid-cols-4 gap-1 mb-2">
+                    {[3, 4, 5, 6, 8, 10, 12].map(n => (
+                      <button
+                        key={n}
+                        type="button"
+                        onClick={() => {
+                          setPolygonSidesCount(n);
+                          startCadDraft("polygon", undefined, n);
+                          setRailFlyout(null);
+                        }}
+                        className={`py-1 rounded-lg text-xs font-mono font-bold transition-all border ${
+                          polygonSidesCount === n
+                            ? "bg-cyan-600 text-white border-cyan-400 shadow"
+                            : "bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white"
+                        }`}
+                      >
+                        {n === 3 ? "3 (Tri)" : n === 4 ? "4 (Carré)" : n === 5 ? "5 (Penta)" : n === 6 ? "6 (Hexa)" : n === 8 ? "8 (Octo)" : `${n}`}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min={3}
+                      max={64}
+                      value={polygonSidesCount}
+                      onChange={(e) => setPolygonSidesCount(Math.max(3, Math.min(64, Number(e.target.value) || 3)))}
+                      className="w-20 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs font-mono font-bold text-cyan-300 outline-none text-center"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        startCadDraft("polygon", undefined, polygonSidesCount);
+                        setRailFlyout(null);
+                      }}
+                      className="flex-1 py-1.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-lg text-xs font-black shadow-md transition-all"
+                    >
+                      Tracer ({polygonSidesCount} côtés)
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {railFlyout === "triangle" && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <Triangle className="w-4 h-4 text-amber-400" />
+                    <span className="text-xs font-black uppercase text-amber-300">Triangle CAD</span>
+                  </div>
+                  <button type="button" onClick={() => setRailFlyout(null)} className="text-slate-400 hover:text-white text-xs px-1">✕</button>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <button
+                    type="button"
+                    onClick={() => { startCadDraft("triangle", "equilateral"); setRailFlyout(null); }}
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-amber-600 hover:text-white text-xs font-bold transition-all border border-slate-700/60"
+                  >
+                    ▲ Équilatéral (Côtés égaux)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { startCadDraft("triangle", "rectangle"); setRailFlyout(null); }}
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-amber-600 hover:text-white text-xs font-bold transition-all border border-slate-700/60"
+                  >
+                    📐 Rectangle (Angle droit 90°)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { startCadDraft("triangle", "isocele"); setRailFlyout(null); }}
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-amber-600 hover:text-white text-xs font-bold transition-all border border-slate-700/60"
+                  >
+                    🔺 Isocèle (2 côtés égaux)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { startCadDraft("triangle", "3pts"); setRailFlyout(null); }}
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-amber-600 hover:text-white text-xs font-bold transition-all border border-slate-700/60"
+                  >
+                    ✦ 3 Points libres
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {railFlyout === "arc" && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <Disc3 className="w-4 h-4 text-sky-400" />
+                    <span className="text-xs font-black uppercase text-sky-300">Arc CAD</span>
+                  </div>
+                  <button type="button" onClick={() => setRailFlyout(null)} className="text-slate-400 hover:text-white text-xs px-1">✕</button>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <button
+                    type="button"
+                    onClick={() => { startCadDraft("arc", "3points"); setRailFlyout(null); }}
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-sky-600 hover:text-white text-xs font-bold transition-all border border-slate-700/60"
+                  >
+                    ⌒ 3 Points (AutoCAD classique)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { startCadDraft("arc", "center_radius_angle"); setRailFlyout(null); }}
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-sky-600 hover:text-white text-xs font-bold transition-all border border-slate-700/60"
+                  >
+                    ◐ Centre + Rayon + Angle
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </>}
       {aboutOpen && (
         <div className="fixed inset-0 z-[10030] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onMouseDown={() => setAboutOpen(false)}>
@@ -4564,7 +5895,7 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
         </div>
       </div>
 
-      <div className={`${leftPanelOpen && rightPanelOpen ? "lg:col-span-6" : leftPanelOpen || rightPanelOpen ? "lg:col-span-9" : "lg:col-span-12"} ${workspaceFullscreen ? "h-full min-h-0" : ""}`}>
+      <div className={`${leftPanelOpen && (rightPanelOpen && !autoHideRightPanel) ? "lg:col-span-6" : leftPanelOpen || (rightPanelOpen && !autoHideRightPanel) ? "lg:col-span-9" : "lg:col-span-12"} ${workspaceFullscreen ? "h-full min-h-0" : ""}`}>
         <div className={`${workspaceFullscreen ? "h-full min-h-0 flex flex-col overflow-hidden" : ""} bg-slate-900 rounded-3xl border-2 border-slate-800 p-3 shadow-2xl`}>
           <div className="flex flex-wrap justify-between gap-2 text-white border-b border-slate-800 pb-3 mb-2">
             <div className="flex items-center gap-1.5">
@@ -4780,18 +6111,33 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                           : [entity.id]);
                         setStatusMessage(`Objet 2D sélectionné · ${entity.type} · ${entity.id}`);
                       },
+                      onDoubleClick: (event: React.MouseEvent) => {
+                        event.stopPropagation();
+                        setSelectedCad2dIds([entity.id]);
+                        if (entity.type === "text") {
+                          setInlineEditTextId(entity.id);
+                        }
+                        setCadPropsOpen(true);
+                      },
+                      onContextMenu: (event: React.MouseEvent) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        setSelectedCad2dIds([entity.id]);
+                        setContextMenu({ x: event.clientX, y: event.clientY, type: "cad2d", id: entity.id });
+                      },
                     };
                     if (entity.type === "line" && entity.points && entity.points.length >= 2) {
                       const a = isoProjectV4(entity.points[0].x, entity.points[0].y, entity.metadata?.elevationZ || 0, viewport.zoom, viewport.panX, viewport.panY);
                       const b = isoProjectV4(entity.points[1].x, entity.points[1].y, entity.metadata?.elevationZ || 0, viewport.zoom, viewport.panX, viewport.panY);
                       return <line key={entity.id} x1={a.x} y1={a.y} x2={b.x} y2={b.y} {...common} />;
                     }
-                    if (entity.type === "polyline" && entity.points && entity.points.length > 0) {
+                    if ((entity.type === "polyline" || entity.type === "polygon" || entity.type === "triangle" || entity.type === "rectangle") && entity.points && entity.points.length > 0) {
                       const d = entity.points.map((p, i) => {
                         const pp = isoProjectV4(p.x, p.y, entity.metadata?.elevationZ || 0, viewport.zoom, viewport.panX, viewport.panY);
                         return `${i ? "L" : "M"} ${pp.x} ${pp.y}`;
-                      }).join(" ");
-                      return <path key={entity.id} d={d} {...common} />;
+                      }).join(" ") + (entity.closed || entity.type !== "polyline" ? " Z" : "");
+                      const fill = entity.fill || (entity.type !== "polyline" && selected ? "#fbbf2415" : "none");
+                      return <path key={entity.id} d={d} {...common} fill={fill} />;
                     }
                     if (entity.type === "circle" && entity.center && entity.radius) {
                       const c = isoProjectV4(entity.center.x, entity.center.y, entity.metadata?.elevationZ || 0, viewport.zoom, viewport.panX, viewport.panY);
@@ -4816,10 +6162,31 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                       const fFamily = entity.fontFamily || "Arial";
                       const fWeight = entity.fontWeight || "900";
                       const tAnchor = entity.textAlign === "center" ? "middle" : entity.textAlign === "right" ? "end" : "start";
+                      const isInlineEditing = inlineEditTextId === entity.id;
                       return (
-                        <g key={entity.id} onPointerDown={(event) => startCad2dPointer(event, entity.id, "body")} onClick={common.onClick} style={common.style} transform={`translate(${p.x} ${p.y}) rotate(${entity.rotation || 0})`}>
+                        <g key={entity.id} onPointerDown={(event) => startCad2dPointer(event, entity.id, "body")} onClick={common.onClick} onDoubleClick={common.onDoubleClick} onContextMenu={common.onContextMenu} style={common.style} transform={`translate(${p.x} ${p.y}) rotate(${entity.rotation || 0})`}>
                           <rect x="-4" y={-fSize - 2} width={Math.max(48, (entity.text || "Texte").length * (fSize * 0.58))} height={fSize + 8} rx="3" fill={selected ? "#fbbf24" : "#020617"} fillOpacity={selected ? .18 : .55} stroke={stroke} strokeOpacity=".55" />
-                          <text x="0" y="0" fill={stroke} fontSize={fSize} fontFamily={fFamily} fontWeight={fWeight} textAnchor={tAnchor} pointerEvents="none">{entity.text || "Texte"}</text>
+                          {isInlineEditing ? (
+                            <foreignObject x="-4" y={-fSize - 4} width={Math.max(120, (entity.text || "Texte").length * (fSize * 0.7) + 30)} height={fSize + 14}>
+                              <input
+                                autoFocus
+                                type="text"
+                                value={entity.text || ""}
+                                onChange={(e) => updateCad2dEntity(entity.id, { text: e.target.value })}
+                                onBlur={() => setInlineEditTextId(null)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" || e.key === "Escape") {
+                                    e.stopPropagation();
+                                    setInlineEditTextId(null);
+                                  }
+                                }}
+                                className="w-full h-full bg-black/90 border border-cyan-400 text-cyan-200 font-bold px-1 rounded outline-none"
+                                style={{ fontSize: `${fSize}px`, fontFamily: fFamily }}
+                              />
+                            </foreignObject>
+                          ) : (
+                            <text x="0" y="0" fill={stroke} fontSize={fSize} fontFamily={fFamily} fontWeight={fWeight} textAnchor={tAnchor} pointerEvents="none">{entity.text || "Texte"}</text>
+                          )}
                         </g>
                       );
                     }
@@ -4848,7 +6215,7 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                     if (entity.type === "line" && entity.points && entity.points.length >= 2) {
                       return [mkGrip(entity.points[0], "start", 0), mkGrip(entity.points[1], "end", 1)];
                     }
-                    if (entity.type === "polyline" && entity.points && entity.points.length) {
+                    if ((entity.type === "polyline" || entity.type === "polygon" || entity.type === "triangle" || entity.type === "rectangle") && entity.points && entity.points.length) {
                       return entity.points.map((p, i) => mkGrip(p, `v:${i}`, i));
                     }
                     if (entity.type === "circle" && entity.center) {
@@ -4952,31 +6319,214 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                     pointerEvents="none"
                   />
                 )}
+                {/* Live AutoCAD Drafting Ghost Preview */}
+                {cadDraftSession && (() => {
+                  const sess = cadDraftSession;
+                  const mw = sess.mouseWorld || { x: 0, y: 0 };
+                  const mScreen = isoProjectV4(mw.x, mw.y, 0, viewport.zoom, viewport.panX, viewport.panY);
+
+                  if (sess.tool === "rectangle") {
+                    if (sess.step === 1 && sess.points.length >= 1) {
+                      const p1 = sess.points[0];
+                      const s1 = isoProjectV4(p1.x, p1.y, 0, viewport.zoom, viewport.panX, viewport.panY);
+                      const len = cadDist(p1, mw);
+                      const mx = (s1.x + mScreen.x) / 2;
+                      const my = (s1.y + mScreen.y) / 2;
+                      return (
+                        <g pointerEvents="none">
+                          <line x1={s1.x} y1={s1.y} x2={mScreen.x} y2={mScreen.y} stroke="#f59e0b" strokeWidth="2" strokeDasharray="4 3" />
+                          <circle cx={s1.x} cy={s1.y} r="5" fill="#f59e0b" stroke="#ffffff" strokeWidth="1.5" />
+                          <circle cx={mScreen.x} cy={mScreen.y} r="5" fill="#f59e0b" stroke="#ffffff" strokeWidth="1.5" />
+                          <g transform={`translate(${mx} ${my - 12})`}>
+                            <rect x="-35" y="-9" width="70" height="18" rx="4" fill="#020617" fillOpacity="0.9" stroke="#f59e0b" strokeWidth="1" />
+                            <text x="0" y="3.5" textAnchor="middle" fill="#fde68a" fontSize="9" fontWeight="bold" fontFamily="monospace">
+                              L = {len.toFixed(2)} m
+                            </text>
+                          </g>
+                        </g>
+                      );
+                    } else if (sess.step === 2 && sess.points.length >= 2) {
+                      const p1 = sess.points[0];
+                      const p2 = sess.points[1];
+                      const rect = buildAutocadRectangle(p1, p2, sess.length || cadDist(p1, p2), mw);
+                      const sps = rect.points.map(p => isoProjectV4(p.x, p.y, 0, viewport.zoom, viewport.panX, viewport.panY));
+                      const d = sps.map((sp, i) => `${i ? "L" : "M"} ${sp.x} ${sp.y}`).join(" ") + " Z";
+                      return (
+                        <g pointerEvents="none">
+                          <path d={d} fill="#f59e0b1f" stroke="#f59e0b" strokeWidth="2.2" strokeDasharray="5 3" />
+                          {sps.map((sp, i) => (
+                            <circle key={i} cx={sp.x} cy={sp.y} r="4.5" fill="#f59e0b" stroke="#ffffff" strokeWidth="1.5" />
+                          ))}
+                          <g transform={`translate(${mScreen.x + 12} ${mScreen.y - 12})`}>
+                            <rect x="-4" y="-12" width="105" height="22" rx="4" fill="#020617" fillOpacity="0.95" stroke="#f59e0b" strokeWidth="1" />
+                            <text x="4" y="2" fill="#fde68a" fontSize="8.5" fontWeight="bold" fontFamily="monospace">
+                              {rect.length.toFixed(2)}m × {rect.width.toFixed(2)}m
+                            </text>
+                          </g>
+                        </g>
+                      );
+                    }
+                  }
+
+                  if (sess.tool === "triangle") {
+                    if (sess.points.length >= 1) {
+                      const p1 = sess.points[0];
+                      const sub = sess.subType || "equilateral";
+                      let pts: Cad2dPoint[] = [];
+                      if (sub === "equilateral") {
+                        pts = buildEquilateralTriangle(p1, mw);
+                      } else if (sub === "rectangle") {
+                        pts = buildRightTriangle(p1, mw, 0, mw);
+                      } else if (sub === "isocele") {
+                        pts = buildIsoscelesTriangle(p1, mw, 0, mw);
+                      } else if (sub === "3pts") {
+                        if (sess.step === 1) {
+                          const s1 = isoProjectV4(p1.x, p1.y, 0, viewport.zoom, viewport.panX, viewport.panY);
+                          return (
+                            <g pointerEvents="none">
+                              <line x1={s1.x} y1={s1.y} x2={mScreen.x} y2={mScreen.y} stroke="#f97316" strokeWidth="2" strokeDasharray="4 3" />
+                              <circle cx={s1.x} cy={s1.y} r="5" fill="#f97316" stroke="#ffffff" strokeWidth="1.5" />
+                              <circle cx={mScreen.x} cy={mScreen.y} r="5" fill="#f97316" stroke="#ffffff" strokeWidth="1.5" />
+                            </g>
+                          );
+                        } else if (sess.step === 2 && sess.points.length >= 2) {
+                          pts = [sess.points[0], sess.points[1], mw, sess.points[0]];
+                        }
+                      }
+                      if (pts.length > 0) {
+                        const sps = pts.map(p => isoProjectV4(p.x, p.y, 0, viewport.zoom, viewport.panX, viewport.panY));
+                        const d = sps.map((sp, i) => `${i ? "L" : "M"} ${sp.x} ${sp.y}`).join(" ") + " Z";
+                        return (
+                          <g pointerEvents="none">
+                            <path d={d} fill="#f973161f" stroke="#f97316" strokeWidth="2.2" strokeDasharray="4 3" />
+                            {sps.map((sp, i) => (
+                              <circle key={i} cx={sp.x} cy={sp.y} r="4.5" fill="#f97316" stroke="#ffffff" strokeWidth="1.5" />
+                            ))}
+                            <g transform={`translate(${mScreen.x + 12} ${mScreen.y - 12})`}>
+                              <rect x="-4" y="-10" width="85" height="18" rx="4" fill="#020617" fillOpacity="0.95" stroke="#f97316" strokeWidth="1" />
+                              <text x="4" y="2" fill="#fed7aa" fontSize="8" fontWeight="bold" fontFamily="monospace">
+                                Triangle {sub}
+                              </text>
+                            </g>
+                          </g>
+                        );
+                      }
+                    }
+                  }
+
+                  if (sess.tool === "polygon") {
+                    if (sess.points.length >= 1) {
+                      const center = sess.points[0];
+                      const sides = sess.sides || 6;
+                      const pts = buildRegularPolygon(center, mw, sides);
+                      const sps = pts.map(p => isoProjectV4(p.x, p.y, 0, viewport.zoom, viewport.panX, viewport.panY));
+                      const sc = isoProjectV4(center.x, center.y, 0, viewport.zoom, viewport.panX, viewport.panY);
+                      const d = sps.map((sp, i) => `${i ? "L" : "M"} ${sp.x} ${sp.y}`).join(" ") + " Z";
+                      const radius = cadDist(center, mw);
+                      return (
+                        <g pointerEvents="none">
+                          <path d={d} fill="#a855f71f" stroke="#a855f7" strokeWidth="2.2" strokeDasharray="4 3" />
+                          <line x1={sc.x} y1={sc.y} x2={mScreen.x} y2={mScreen.y} stroke="#c084fc" strokeWidth="1.2" strokeDasharray="3 2" />
+                          <circle cx={sc.x} cy={sc.y} r="5" fill="#a855f7" stroke="#ffffff" strokeWidth="1.5" />
+                          {sps.map((sp, i) => (
+                            <circle key={i} cx={sp.x} cy={sp.y} r="4" fill="#c084fc" stroke="#ffffff" strokeWidth="1" />
+                          ))}
+                          <g transform={`translate(${mScreen.x + 12} ${mScreen.y - 12})`}>
+                            <rect x="-4" y="-10" width="95" height="18" rx="4" fill="#020617" fillOpacity="0.95" stroke="#a855f7" strokeWidth="1" />
+                            <text x="4" y="2" fill="#e9d5ff" fontSize="8" fontWeight="bold" fontFamily="monospace">
+                              N={sides} &bull; R={radius.toFixed(2)}m
+                            </text>
+                          </g>
+                        </g>
+                      );
+                    }
+                  }
+
+                  if (sess.tool === "arc") {
+                    if (sess.subType === "3points") {
+                      if (sess.step === 1 && sess.points.length >= 1) {
+                        const s1 = isoProjectV4(sess.points[0].x, sess.points[0].y, 0, viewport.zoom, viewport.panX, viewport.panY);
+                        return (
+                          <g pointerEvents="none">
+                            <line x1={s1.x} y1={s1.y} x2={mScreen.x} y2={mScreen.y} stroke="#0ea5e9" strokeWidth="2" strokeDasharray="4 3" />
+                            <circle cx={s1.x} cy={s1.y} r="5" fill="#0ea5e9" stroke="#ffffff" strokeWidth="1.5" />
+                            <circle cx={mScreen.x} cy={mScreen.y} r="5" fill="#0ea5e9" stroke="#ffffff" strokeWidth="1.5" />
+                          </g>
+                        );
+                      } else if (sess.step === 2 && sess.points.length >= 2) {
+                        const arcData = calculate3PointArc(sess.points[0], sess.points[1], mw);
+                        if (arcData) {
+                          const c = isoProjectV4(arcData.center.x, arcData.center.y, 0, viewport.zoom, viewport.panX, viewport.panY);
+                          const r = arcData.radius * 18 * viewport.zoom;
+                          const sa = (arcData.startAngle * Math.PI) / 180;
+                          const ea = (arcData.endAngle * Math.PI) / 180;
+                          const x1 = c.x + r * Math.cos(sa);
+                          const y1 = c.y + r * Math.sin(sa);
+                          const x2 = c.x + r * Math.cos(ea);
+                          const y2 = c.y + r * Math.sin(ea);
+                          const largeArc = Math.abs(arcData.endAngle - arcData.startAngle) > 180 ? 1 : 0;
+                          const d = `M ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2}`;
+                          return (
+                            <g pointerEvents="none">
+                              <path d={d} fill="none" stroke="#0ea5e9" strokeWidth="2.5" strokeDasharray="4 3" />
+                              <circle cx={c.x} cy={c.y} r="4" fill="#0284c7" stroke="#ffffff" strokeWidth="1" />
+                              <circle cx={x1} cy={y1} r="4.5" fill="#0ea5e9" stroke="#ffffff" strokeWidth="1" />
+                              <circle cx={x2} cy={y2} r="4.5" fill="#0ea5e9" stroke="#ffffff" strokeWidth="1" />
+                            </g>
+                          );
+                        }
+                      }
+                    }
+                  }
+
+                  if (sess.tool === "paste_target") {
+                    return (
+                      <g pointerEvents="none" transform={`translate(${mScreen.x} ${mScreen.y})`}>
+                        <circle r="16" fill="#10b98122" stroke="#10b981" strokeWidth="2" strokeDasharray="4 3" />
+                        <line x1="-12" y1="0" x2="12" y2="0" stroke="#10b981" strokeWidth="1.5" />
+                        <line x1="0" y1="-12" x2="0" y2="12" stroke="#10b981" strokeWidth="1.5" />
+                        <g transform="translate(18 -12)">
+                          <rect x="-4" y="-12" width="130" height="22" rx="4" fill="#020617" fillOpacity="0.95" stroke="#10b981" strokeWidth="1.2" />
+                          <text x="4" y="2" fill="#a7f3d0" fontSize="8.5" fontWeight="bold" fontFamily="monospace">
+                            CLIQUEZ POUR COLLER ICI
+                          </text>
+                        </g>
+                      </g>
+                    );
+                  }
+
+                  return null;
+                })()}
               </g>
 
               <g transform="translate(550 45)"><circle r="22" fill="#0f172a" stroke="#0072bc"/><line x1="0" y1="-18" x2="0" y2="18" stroke="#38bdf8"/><line x1="-18" y1="0" x2="18" y2="0" stroke="#38bdf8"/><text y="-24" fill="#38bdf8" fontSize="9" textAnchor="middle">N</text><text x="24" y="3" fill="#cbd5e1" fontSize="8">E</text><text x="-24" y="3" fill="#cbd5e1" fontSize="8">O</text><text y="30" fill="#cbd5e1" fontSize="8" textAnchor="middle">S</text></g>
             </svg>
 
-            {/* Interactive CAD Context Menu */}
+            {/* Interactive CAD Context Menu & Floating PROPS */}
             {selectedCad2dEntity && cadPropsOpen && (
               <div className="pdi-cad-float-props" style={{ left: cadPropsPos.x, top: cadPropsPos.y }} onMouseDown={(e)=>e.stopPropagation()}>
-                <div className="pdi-cad-float-head" onMouseDown={startCadPropsDrag}>
-                  <b>PROPERTIES</b><span>{selectedCad2dEntity.type}</span><button onClick={()=>setCadPropsOpen(false)}>×</button>
+                <div className="pdi-cad-float-head" onPointerDown={startCadPropsPointerDrag}>
+                  <b>PROPRIÉTÉS CAD</b><span>{selectedCad2dEntity.type}</span><button onClick={()=>setCadPropsOpen(false)}>×</button>
                 </div>
                 <div className="pdi-cad-float-body">
                   <label>Layer<select value={selectedCad2dEntity.layerId} onChange={e=>updateCad2dEntity(selectedCad2dEntity.id,{layerId:e.target.value})}>{cad2dLayers.map(layer=><option key={layer.id} value={layer.id}>{layer.name}</option>)}</select></label>
-                  <label>Color<input type="color" value={selectedCad2dEntity.color} onChange={e=>updateCad2dEntity(selectedCad2dEntity.id,{color:e.target.value})}/></label>
-                  <label>Line<select value={selectedCad2dEntity.lineType || "continuous"} onChange={e=>updateCad2dEntity(selectedCad2dEntity.id,{lineType:e.target.value as Cad2dEntity["lineType"]})}><option value="continuous">Continuous</option><option value="dashed">Dashed</option><option value="center">Center</option><option value="hidden">Hidden</option></select></label>
-                  <label>Weight<input type="number" min="0.5" step="0.5" value={selectedCad2dEntity.lineWeight || 1.5} onChange={e=>updateCad2dEntity(selectedCad2dEntity.id,{lineWeight:Number(e.target.value)||1.5})}/></label>
+                  <label>Couleur<input type="color" value={selectedCad2dEntity.color} onChange={e=>updateCad2dEntity(selectedCad2dEntity.id,{color:e.target.value})}/></label>
+                  <label>Ligne<select value={selectedCad2dEntity.lineType || "continuous"} onChange={e=>updateCad2dEntity(selectedCad2dEntity.id,{lineType:e.target.value as Cad2dEntity["lineType"]})}><option value="continuous">Continue</option><option value="dashed">Tirets</option><option value="center">Axe</option><option value="hidden">Cachée</option></select></label>
+                  <label>Épaisseur<input type="number" min="0.5" step="0.5" value={selectedCad2dEntity.lineWeight || 1.5} onChange={e=>updateCad2dEntity(selectedCad2dEntity.id,{lineWeight:Number(e.target.value)||1.5})}/></label>
                   {selectedCad2dEntity.type === "text" && <>
-                    <label className="wide">Text<input value={selectedCad2dEntity.text || ""} onChange={e=>updateCad2dEntity(selectedCad2dEntity.id,{text:e.target.value})}/></label>
-                    <label>Size<input type="number" min="6" max="96" value={selectedCad2dEntity.fontSize || 16} onChange={e=>updateCad2dEntity(selectedCad2dEntity.id,{fontSize:Number(e.target.value)||16})}/></label>
-                    <label>Font<select value={selectedCad2dEntity.fontFamily || "Arial"} onChange={e=>updateCad2dEntity(selectedCad2dEntity.id,{fontFamily:e.target.value})}><option>Arial</option><option>Inter</option><option>JetBrains Mono</option><option>Georgia</option><option>Times New Roman</option><option>Courier New</option></select></label>
+                    <label className="wide">Texte<input value={selectedCad2dEntity.text || ""} onChange={e=>updateCad2dEntity(selectedCad2dEntity.id,{text:e.target.value})}/></label>
+                    <label>Taille<input type="number" min="6" max="96" value={selectedCad2dEntity.fontSize || 16} onChange={e=>updateCad2dEntity(selectedCad2dEntity.id,{fontSize:Number(e.target.value)||16})}/></label>
+                    <label>Police<select value={selectedCad2dEntity.fontFamily || "Arial"} onChange={e=>updateCad2dEntity(selectedCad2dEntity.id,{fontFamily:e.target.value})}><option>Arial</option><option>Inter</option><option>JetBrains Mono</option><option>Georgia</option><option>Times New Roman</option><option>Courier New</option></select></label>
                   </>}
-                  <label>Rot.<input type="number" step="1" value={selectedCad2dEntity.rotation || 0} onChange={e=>updateCad2dEntity(selectedCad2dEntity.id,{rotation:Number(e.target.value)||0})}/></label>
-                  <label>Opacity<input type="number" min="0.1" max="1" step="0.05" value={selectedCad2dEntity.opacity ?? 1} onChange={e=>updateCad2dEntity(selectedCad2dEntity.id,{opacity:Number(e.target.value)||1})}/></label>
+                  <label>Rotation (°)<input type="number" step="1" value={selectedCad2dEntity.rotation || 0} onChange={e=>updateCad2dEntity(selectedCad2dEntity.id,{rotation:Number(e.target.value)||0})}/></label>
+                  <label>Opacité<input type="number" min="0.1" max="1" step="0.05" value={selectedCad2dEntity.opacity ?? 1} onChange={e=>updateCad2dEntity(selectedCad2dEntity.id,{opacity:Number(e.target.value)||1})}/></label>
                 </div>
-                <div className="pdi-cad-float-actions"><button onClick={duplicateSelectedCad2d}>Dup</button><button onClick={()=>rotateSelectedCad2d(15)}>Rot</button><button onClick={()=>scaleSelectedCad2d(1.1)}>Scale</button><button onClick={deleteSelectedCad2d}>Del</button></div>
+                <div className="pdi-cad-float-actions">
+                  <button onClick={duplicateSelectedCad2d} title="Dupliquer">Dupliquer</button>
+                  <button onClick={()=>rotateSelectedCad2d(15)} title="Rotation +15°">Rot +15°</button>
+                  <button onClick={()=>scaleSelectedCad2d(1.1)} title="Agrandir +10%">Échelle +</button>
+                  <button onClick={deleteSelectedCad2d} className="text-red-400" title="Supprimer">Suppr</button>
+                </div>
               </div>
             )}
             {selectedCad2dEntity && !cadPropsOpen && <button className="pdi-cad-props-tab" onClick={()=>setCadPropsOpen(true)} style={{ left: cadPropsPos.x, top: cadPropsPos.y }}>PROPS</button>}
@@ -4987,6 +6537,71 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                 style={{ left: Math.min(contextMenu.x, (typeof window !== "undefined" ? window.innerWidth : 800) - 220), top: Math.min(contextMenu.y, (typeof window !== "undefined" ? window.innerHeight : 600) - 300) }}
                 onMouseDown={e => e.stopPropagation()}
               >
+                {contextMenu.type === "cad2d" && (() => {
+                  const ent = cad2dEntities.find(e => e.id === contextMenu.id);
+                  if (!ent) return null;
+                  return (
+                    <>
+                      <div className="px-3 py-1 text-[10px] font-black uppercase text-amber-400 border-b border-slate-800 flex justify-between">
+                        <span>Élément CAD 2D</span>
+                        <span className="font-mono text-slate-400">{ent.type}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => { setCadPropsOpen(true); setContextMenu(null); }}
+                        className="w-full text-left px-3 py-1.5 hover:bg-slate-800 flex items-center gap-2 text-amber-300 font-bold"
+                      >
+                        <span>⚙️</span> Panneau Propriétés (PROPS)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setPropertiesModalOpen(true); setPropertiesActiveTab("all"); setContextMenu(null); }}
+                        className="w-full text-left px-3 py-1.5 hover:bg-slate-800 flex items-center gap-2 text-cyan-300"
+                      >
+                        <span>📋</span> Grand Tableau des Propriétés (F2)
+                      </button>
+                      {ent.type === "text" && (
+                        <button
+                          type="button"
+                          onClick={() => { setInlineEditTextId(ent.id); setContextMenu(null); }}
+                          className="w-full text-left px-3 py-1.5 hover:bg-slate-800 flex items-center gap-2 text-emerald-300"
+                        >
+                          <span>✏️</span> Éditer le texte (Double-clic)
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => { rotateSelectedCad2d(15); setContextMenu(null); }}
+                        className="w-full text-left px-3 py-1.5 hover:bg-slate-800 flex items-center gap-2"
+                      >
+                        <span>🔄</span> Rotation +15° (R)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { rotateSelectedCad2d(-15); setContextMenu(null); }}
+                        className="w-full text-left px-3 py-1.5 hover:bg-slate-800 flex items-center gap-2"
+                      >
+                        <span>🔄</span> Rotation −15° (Maj+R)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { duplicateSelectedCad2d(); setContextMenu(null); }}
+                        className="w-full text-left px-3 py-1.5 hover:bg-slate-800 flex items-center gap-2"
+                      >
+                        <span>📑</span> Dupliquer (Ctrl+D)
+                      </button>
+                      <div className="h-px bg-slate-800 my-1" />
+                      <button
+                        type="button"
+                        onClick={() => { deleteSelectedCad2d(); setContextMenu(null); }}
+                        className="w-full text-left px-3 py-1.5 text-red-400 hover:bg-red-600 hover:text-white flex items-center gap-2"
+                      >
+                        <span>🗑️</span> Supprimer (Suppr)
+                      </button>
+                    </>
+                  );
+                })()}
+
                 {contextMenu.type === "segment" && (
                   <>
                     <div className="px-3 py-1 text-[10px] font-black uppercase text-blue-400 border-b border-slate-800 flex justify-between">
@@ -5262,6 +6877,19 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                 )}
               </div>
             )}
+
+            {/* AutoCAD Command Line Bar */}
+            <div className="p-2 bg-slate-950/95 border-t border-slate-800/80">
+              <CadCommandLineBar
+                input={autocadCmdInput}
+                setInput={setAutocadCmdInput}
+                prompt={autocadPrompt}
+                onExecuteCommand={(cmd) => executeCadCommand(cmd)}
+                cadDraftSession={cadDraftSession}
+                onCancelDraft={cancelCadDraft}
+                onApplyNumericInput={applyNumericDraftInput}
+              />
+            </div>
           </div>
 
           {/* PROPERTIES & LIST TABLE MODAL */}
@@ -5622,14 +7250,7 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
             </div>
           )}
 
-          {isoDrawMode!=="select"&&<div className="mt-3 bg-blue-950 border border-blue-700 rounded-xl p-3 text-[10px] text-blue-100"><b>MODE {isoDrawMode.toUpperCase()}</b>{" — "}{isoDrawMode==="node"&&"cliquez dans le plan pour créer un nœud."}{isoDrawMode==="segment"&&"cliquez un nœud origine puis un nœud destination."}{isoDrawMode==="te"&&"Té : cliquez un port violet/vert puis glissez jusqu’à un nœud ou relâchez pour créer un piquage."}{isoDrawMode==="coude"&&"cliquez le repère orange sur un tronçon."}
-                {isoDrawMode==="dimension"&&"cliquez deux nœuds ou ports pour créer une cotation persistante."}</div>}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 mt-2">
-            <div className="bg-slate-950/90 border border-slate-800 rounded-lg py-1.5 px-2 text-center"><span className="block text-[8px] font-bold text-slate-400 uppercase">Métré tube</span><strong className="text-blue-400 font-mono text-sm">{totalLength.toFixed(2)} m</strong></div>
-            <div className="bg-slate-950/90 border border-slate-800 rounded-lg py-1.5 px-2 text-center"><span className="block text-[8px] font-bold text-slate-400 uppercase">Poids acier</span><strong className="text-amber-400 font-mono text-sm">{totalWeight.toFixed(1)} kg</strong></div>
-            <div className="bg-slate-950/90 border border-slate-800 rounded-lg py-1.5 px-2 text-center"><span className="block text-[8px] font-bold text-slate-400 uppercase">Vol. épreuve</span><strong className="text-emerald-400 font-mono text-sm">{totalVolume.toFixed(1)} L</strong></div>
-            <div className="bg-slate-950/90 border border-slate-800 rounded-lg py-1.5 px-2 text-center"><span className="block text-[8px] font-bold text-slate-400 uppercase">Épreuve</span><strong className="text-red-400 font-mono text-sm">{hydrotest.toFixed(1)} bar</strong></div>
-          </div>
+          {/* Bottom space maximized for workspace */}
         </div>
 
         {!workspaceFullscreen && (
@@ -5644,10 +7265,24 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
         )}
       </div>
 
-      {/* Right Collapsible Detail Bar */}
-      <div className={`${rightPanelOpen ? "lg:col-span-3" : "hidden"} ${workspaceFullscreen ? "h-full min-h-0 overflow-y-auto pl-1" : "space-y-3 lg:sticky lg:top-16 lg:max-h-[calc(100vh-5rem)] lg:overflow-y-auto lg:pl-1"} space-y-3`}>
+      {/* Right Collapsible Detail Bar with Auto-Hide support */}
+      <div
+        className={`${
+          autoHideRightPanel
+            ? `fixed right-2 top-[58px] bottom-3 z-[10006] w-[340px] max-w-[calc(100vw-100px)] transition-all duration-300 ease-in-out ${
+                rightPanelHovered || rightPanelOpen
+                  ? "translate-x-0 opacity-100 shadow-2xl"
+                  : "translate-x-[calc(100%-14px)] opacity-60 hover:opacity-100 hover:translate-x-0"
+              }`
+            : rightPanelOpen
+            ? "lg:col-span-3 space-y-3"
+            : "hidden"
+        } ${workspaceFullscreen && !autoHideRightPanel ? "h-full min-h-0 overflow-y-auto pl-1" : !autoHideRightPanel ? "space-y-3 lg:sticky lg:top-16 lg:max-h-[calc(100vh-5rem)] lg:overflow-y-auto lg:pl-1" : "h-full overflow-y-auto"}`}
+        onMouseEnter={() => autoHideRightPanel && setRightPanelHovered(true)}
+        onMouseLeave={() => autoHideRightPanel && setRightPanelHovered(false)}
+      >
         <div className="bg-slate-900 border border-slate-700/80 rounded-2xl p-3 shadow-xl text-white space-y-3">
-          {/* Header with tabs & close button */}
+          {/* Header with tabs & auto-hide toggle & close button */}
           <div className="flex items-center justify-between border-b border-slate-800 pb-2">
             <div className="flex items-center gap-1 overflow-x-auto py-0.5">
               <button
@@ -5679,14 +7314,29 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                 Propriétés
               </button>
             </div>
-            <button
-              type="button"
-              onClick={() => setRightPanelOpen(false)}
-              className="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white"
-              title="Fermer le panneau latéral"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setAutoHideRightPanel(v => !v)}
+                className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 ${
+                  autoHideRightPanel
+                    ? "bg-amber-500/25 text-amber-300 border border-amber-500/40"
+                    : "bg-slate-800 text-slate-400 hover:text-white"
+                }`}
+                title={autoHideRightPanel ? "Désactiver l'auto-hide (Épingler en panneau fixe)" : "Activer l'auto-hide (Masquage automatique au repos pour libérer l'espace)"}
+              >
+                {autoHideRightPanel ? <Minimize2 className="w-3.5 h-3.5 text-amber-300" /> : <Eye className="w-3.5 h-3.5" />}
+                <span className="text-[9px]">{autoHideRightPanel ? "Auto" : "Fixe"}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => { setRightPanelOpen(false); setRightPanelHovered(false); }}
+                className="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white"
+                title="Fermer le panneau latéral"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
 
           {/* TAB: BOM */}
@@ -6099,7 +7749,20 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
       Cela permet les dérivations, piquages, postes de coupure/sectionnement et gares racleurs.
       La position d&apos;un équipement est calculée depuis l&apos;origine de sa chaîne en mètres.
     </div>
-    <div className={`hidden pdi-status-docked ${workspaceFullscreen?"fixed bottom-0 left-[62px] right-0 z-[10008] rounded-none":"sticky bottom-2 z-40 rounded-xl"} bg-slate-950 text-slate-200 border border-slate-800 px-3 py-2 flex flex-wrap items-center justify-between gap-2 text-[10px] shadow-lg`}><div className="flex gap-4"><b className="text-emerald-400">● {statusMessage}</b><span className={saveState==="error"?"text-red-400":saveState==="modified"?"text-amber-300":"text-cyan-300"}>{saveState==="modified"?"Modifications non sauvegardées":saveState==="autosaved"?`Autosauvegardé${lastSavedAt?` à ${lastSavedAt}`:""}`:saveState==="error"?"Erreur de sauvegarde":""}</span><span>{nodes.length} nœuds</span><span>{segments.length} tronçons</span><span>{selectedCount} sélectionné(s)</span><span>{selectedCad2dIds.length} objet(s) 2D</span><span className={graphErrorCount?"text-red-400":"text-emerald-400"}>{graphErrorCount?`${graphErrorCount} erreur(s) réseau`:"Graphe valide"}</span><span>{projectJoints.length} joints</span></div><div className="flex gap-3"><span>Outil: <b>{interactionMode==="main"?"MAIN":isoDrawMode.toUpperCase()}</b></span><span>Snap {isoSnapStep} m</span><span>Zoom {Math.round(viewport.zoom*100)}%</span><span>Ctrl+K commandes · ? aide</span></div></div>
+    {/* Floating trigger button when right panel is closed */}
+    {!rightPanelOpen && (
+      <button
+        type="button"
+        onClick={() => setRightPanelOpen(true)}
+        className="fixed right-3 top-20 z-[10005] bg-slate-900/90 hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-white p-2 rounded-xl shadow-xl backdrop-blur-md flex items-center gap-1.5 transition-all group"
+        title="Ouvrir le panneau latéral (BOM, Cotations, Propriétés)"
+      >
+        <PanelRightOpen className="w-4 h-4 text-cyan-400 group-hover:scale-110 transition-transform" />
+        <span className="text-[10px] font-bold pr-1">BOM & Cotations</span>
+      </button>
+    )}
+
+    <div className={`hidden pdi-status-docked ${workspaceFullscreen?"fixed bottom-0 left-[92px] right-0 z-[10008] rounded-none":"sticky bottom-2 z-40 rounded-xl"} bg-slate-950 text-slate-200 border border-slate-800 px-3 py-2 flex flex-wrap items-center justify-between gap-2 text-[10px] shadow-lg`}><div className="flex gap-4"><b className="text-emerald-400">● {statusMessage}</b><span className={saveState==="error"?"text-red-400":saveState==="modified"?"text-amber-300":"text-cyan-300"}>{saveState==="modified"?"Modifications non sauvegardées":saveState==="autosaved"?`Autosauvegardé${lastSavedAt?` à ${lastSavedAt}`:""}`:saveState==="error"?"Erreur de sauvegarde":""}</span><span>{nodes.length} nœuds</span><span>{segments.length} tronçons</span><span>{selectedCount} sélectionné(s)</span><span>{selectedCad2dIds.length} objet(s) 2D</span><span className={graphErrorCount?"text-red-400":"text-emerald-400"}>{graphErrorCount?`${graphErrorCount} erreur(s) réseau`:"Graphe valide"}</span><span>{projectJoints.length} joints</span></div><div className="flex gap-3"><span>Outil: <b>{interactionMode==="main"?"MAIN":isoDrawMode.toUpperCase()}</b></span><span>Snap {isoSnapStep} m</span><span>Zoom {Math.round(viewport.zoom*100)}%</span><span>Ctrl+K commandes · ? aide</span></div></div>
   </div>;
 }
 
