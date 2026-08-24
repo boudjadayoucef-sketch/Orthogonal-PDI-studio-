@@ -6,20 +6,20 @@ import {
   PDI_LOGO_SQUARE_DATA_URL,
 } from "../../assets/pdiLogos";
 
-// PD&I — Logo officiel certifié ISO (Vite bundled + Data URL fallbacks)
+// PD&I — Logo officiel certifié ISO (Public root + Vite asset + Base64 fallbacks)
 const HORIZONTAL_SOURCES = [
-  pdiLogoHorizontalAsset,
-  PDI_LOGO_HORIZONTAL_DATA_URL,
   "/pdi-logo-horizontal.png",
   "/pdi-logo-horizontal.jpg",
+  pdiLogoHorizontalAsset,
+  PDI_LOGO_HORIZONTAL_DATA_URL,
   "/pdi-logo-horizental.jpeg",
 ];
 
 const SQUARE_SOURCES = [
-  pdiLogoSquareAsset,
-  PDI_LOGO_SQUARE_DATA_URL,
   "/pdi-logo-square.png",
   "/pdi-logo-square.jpg",
+  pdiLogoSquareAsset,
+  PDI_LOGO_SQUARE_DATA_URL,
   "/pdo-logo-square.jpeg",
 ];
 
@@ -29,6 +29,7 @@ export type PdiBrandMarkProps = {
   className?: string;
   onClick?: () => void;
   title?: string;
+  maxHeight?: number;
 };
 
 export default function PdiBrandMark({
@@ -37,12 +38,13 @@ export default function PdiBrandMark({
   className = "",
   onClick,
   title = "PD&I — Piping Design & Isometrics",
+  maxHeight,
 }: PdiBrandMarkProps) {
   const compact = variant === "compact" || variant === "square";
   const sources = compact ? SQUARE_SOURCES : HORIZONTAL_SOURCES;
   const [srcIndex, setSrcIndex] = useState(0);
 
-  const height =
+  const defaultHeight =
     size === "xs"
       ? 26
       : size === "sm"
@@ -53,6 +55,7 @@ export default function PdiBrandMark({
       ? 64
       : 84;
 
+  const height = maxHeight || defaultHeight;
   const currentSrc = sources[Math.min(srcIndex, sources.length - 1)];
 
   return (

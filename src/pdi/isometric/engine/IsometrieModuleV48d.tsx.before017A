@@ -47,15 +47,6 @@ import {
 } from "./CadAutocadEngine";
 import { CadCommandLineBar } from "../components/CadCommandLineBar";
 import { CadShapeToolbar } from "../components/CadShapeToolbar";
-import {
-  PDI_DEFAULT_PROJECT_SETUP,
-  pdiActiveFormat,
-  pdiBuildTag,
-  pdiFindSpec,
-  pdiNextTagNumber,
-  pdiValidateTag,
-} from "./pdiTagging";
-import type { PdiProjectSetup } from "./pdiTagging";
 
 export type IsoNodeType =
   | "normal" | "entree_poste" | "sortie_poste"
@@ -82,12 +73,6 @@ export interface IsoNode {
   length?: number;
   ports?: IsoPort[];
   lineId?: string;
-  // PATCH 017A : tagging industriel.
-  tag?: string;
-  tagFormatName?: string;
-  service?: string;
-  spec?: string;
-  tagNumber?: number;
 }
 
 export type IsoFittingType =
@@ -131,15 +116,6 @@ export interface IsoSegment {
   sourceName?: string;
   // V4.7 : rattachement obligatoire après normalisation.
   lineId?: string;
-  // PATCH 017A : tagging industriel.
-  tag?: string;
-  tagFormatName?: string;
-  service?: string;
-  spec?: string;
-  tagNumber?: number;
-  pressureClass?: string;
-  insulation?: boolean;
-  lineFunction?: string;
 }
 
 export interface PipingLine {
@@ -1051,19 +1027,6 @@ function IsometrieModule() {
   useEffect(() => {
     try { window.localStorage.setItem("pdi.workspaceVisualStyle.v1", JSON.stringify(workspaceVisualStyle)); } catch {}
   }, [workspaceVisualStyle]);
-
-  // PATCH 017A : Project Setup PD&I persistant (projet, format de tag, services, specs).
-  const [projectSetup, setProjectSetup] = useState<PdiProjectSetup>(() => {
-    try {
-      const raw = window.localStorage.getItem("pdi.projectSetup.v1");
-      if (raw) return { ...PDI_DEFAULT_PROJECT_SETUP, ...JSON.parse(raw) };
-    } catch {}
-    return PDI_DEFAULT_PROJECT_SETUP;
-  });
-  const [projectSetupOpen, setProjectSetupOpen] = useState(false);
-  useEffect(() => {
-    try { window.localStorage.setItem("pdi.projectSetup.v1", JSON.stringify(projectSetup)); } catch {}
-  }, [projectSetup]);
 
   // PATCH 016A2 native command typing capture : quand raccourcis OFF,
   // taper sur le plan écrit dans la ligne de commande au lieu de déclencher P/impression, C/coude, etc.
@@ -2589,69 +2552,6 @@ function IsometrieModule() {
     }
   };
 
-  // ----- PATCH 017A : moteur de tagging industriel -----
-  const activeTagFormat = pdiActiveFormat(projectSetup);
-  const defaultService = projectSetup.services[0] ? projectSetup.services[0].code : "HC";
-  const defaultSpec = projectSetup.specs[0] ? projectSetup.specs[0].code : "CS150";
-
-  const targetSegmentIds = () => {
-    if (selectedSegmentIds.length > 0) return selectedSegmentIds;
-    if (selectedSegmentId) return [selectedSegmentId];
-    return [];
-  };
-
-  const applyTagToSelection = (service?: string, spec?: string) => {
-    const ids = targetSegmentIds();
-    if (ids.length === 0) {
-      setAutocadPrompt("TAG : selectionnez au moins un troncon de tuyauterie.");
-      return;
-    }
-    setSegments(prev => {
-      const known = prev.map(x => x.tag || "").filter(t => t.length > 0);
-      let offset = 0;
-      return prev.map(s => {
-        if (!ids.includes(s.id)) return s;
-        const svc = (service || s.service || defaultService).toUpperCase();
-        const sp = (spec || s.spec || defaultSpec).toUpperCase();
-        const num = s.tagNumber || (pdiNextTagNumber(known, svc, s.dn, activeTagFormat) + offset);
-        offset += 1;
-        const specObj = pdiFindSpec(projectSetup, sp);
-        const tag = pdiBuildTag({ nominalDiameter: s.dn, service: svc, number: num, spec: sp }, activeTagFormat);
-        known.push(tag);
-        return {
-          ...s,
-          service: svc,
-          spec: sp,
-          tagNumber: num,
-          tagFormatName: activeTagFormat.name,
-          tag,
-          material: specObj ? specObj.material : s.material,
-          pressureClass: specObj ? specObj.pressureClass : s.pressureClass,
-        };
-      });
-    });
-    setAutocadPrompt("TAG : " + ids.length + " troncon(s) tagge(s) au format " + activeTagFormat.name + ".");
-    setStatusMessage("Tagging applique (" + ids.length + ")");
-  };
-
-  const autoTagAllSegments = () => {
-    setSegments(prev => {
-      const known: string[] = [];
-      return prev.map(s => {
-        const svc = (s.service || defaultService).toUpperCase();
-        const sp = (s.spec || defaultSpec).toUpperCase();
-        const num = pdiNextTagNumber(known, svc, s.dn, activeTagFormat);
-        const specObj = pdiFindSpec(projectSetup, sp);
-        const tag = pdiBuildTag({ nominalDiameter: s.dn, service: svc, number: num, spec: sp }, activeTagFormat);
-        known.push(tag);
-        return { ...s, service: svc, spec: sp, tagNumber: num, tagFormatName: activeTagFormat.name, tag, material: specObj ? specObj.material : s.material, pressureClass: specObj ? specObj.pressureClass : s.pressureClass };
-      });
-    });
-    setAutocadPrompt("AUTOTAG : tous les troncons ont recu un tag " + activeTagFormat.name + ".");
-  };
-
-  const tagIssues = segments.filter(s => s.tag && !pdiValidateTag(s.tag, segments.map(x => x.tag || ""), activeTagFormat).ok).length;
-
   const executeCadCommand = (cmdInput: CadCommandItem | string) => {
 
     // PATCH 016A style commands : LW/EPAISSEUR/COLOR/STYLE + raccourcis ON/OFF.
@@ -2697,36 +2597,6 @@ function IsometrieModule() {
     }
     if (["rotation", "rotate", "ro", "tourner"].includes(rawVerb)) {
       startGuidedCommand("rotate");
-      return;
-    }
-
-    // PATCH 017A : commandes de tagging et Project Setup.
-    if (["projectsetup", "ps", "setup", "projet"].includes(rawVerb)) {
-      setProjectSetupOpen(true);
-      setAutocadPrompt("PROJECT SETUP : configuration projet, formats de tag, services et specs.");
-      return;
-    }
-    if (["tagformat", "tf"].includes(rawVerb)) {
-      setProjectSetupOpen(true);
-      setAutocadPrompt("TAG FORMAT ACTIF : " + activeTagFormat.name + " (" + activeTagFormat.parts.map(p => p.field).join(" " + activeTagFormat.separator + " ") + ").");
-      return;
-    }
-    if (["tag"].includes(rawVerb)) {
-      applyTagToSelection(rawParts[1], rawParts[2]);
-      return;
-    }
-    if (["service", "fluide"].includes(rawVerb)) {
-      if (!rawArg) { setAutocadPrompt("SERVICE : indiquez un code (" + projectSetup.services.map(s => s.code).join(", ") + ")."); return; }
-      applyTagToSelection(rawArg, undefined);
-      return;
-    }
-    if (["spec", "classe"].includes(rawVerb)) {
-      if (!rawArg) { setAutocadPrompt("SPEC : indiquez un code (" + projectSetup.specs.map(s => s.code).join(", ") + ")."); return; }
-      applyTagToSelection(undefined, rawArg);
-      return;
-    }
-    if (["autotag"].includes(rawVerb)) {
-      autoTagAllSegments();
       return;
     }
     if (["style"].includes(rawVerb)) {
@@ -5407,84 +5277,7 @@ function IsometrieModule() {
               ))}
             </nav>
           <div className="flex items-center gap-2">
-            {/* PATCH 017A : Project Setup PD&I */}
-    {projectSetupOpen && <div className="fixed inset-0 z-[10060] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-6" onClick={() => setProjectSetupOpen(false)}>
-      <div className="w-full max-w-3xl max-h-[86vh] overflow-auto rounded-2xl border border-cyan-600/50 bg-slate-950 p-5 space-y-4" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-          <div>
-            <div className="text-sm font-black text-cyan-300 uppercase">Project Setup PD&amp;I</div>
-            <div className="text-[10px] text-slate-500">Projet, formats de tag, services et specs — base du BOM et du 3D</div>
-          </div>
-          <button type="button" onClick={() => setProjectSetupOpen(false)} className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-black">Fermer</button>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <label className="space-y-1">
-            <span className="text-[9px] font-black text-slate-400 uppercase">Nom du projet</span>
-            <input value={projectSetup.projectName} onChange={e => setProjectSetup(p => ({ ...p, projectName: e.target.value }))} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[11px] font-bold text-white outline-none" />
-          </label>
-          <label className="space-y-1">
-            <span className="text-[9px] font-black text-slate-400 uppercase">Code projet</span>
-            <input value={projectSetup.projectCode} onChange={e => setProjectSetup(p => ({ ...p, projectCode: e.target.value }))} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[11px] font-mono font-bold text-cyan-300 outline-none" />
-          </label>
-          <label className="space-y-1">
-            <span className="text-[9px] font-black text-slate-400 uppercase">Client</span>
-            <input value={projectSetup.client} onChange={e => setProjectSetup(p => ({ ...p, client: e.target.value }))} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[11px] font-bold text-white outline-none" />
-          </label>
-          <label className="space-y-1">
-            <span className="text-[9px] font-black text-slate-400 uppercase">Standard</span>
-            <select value={projectSetup.standard} onChange={e => setProjectSetup(p => ({ ...p, standard: e.target.value as "ANSI" | "DIN" }))} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[11px] font-bold text-white outline-none">
-              <option value="ANSI">ANSI</option>
-              <option value="DIN">DIN</option>
-            </select>
-          </label>
-        </div>
-
-        <div className="rounded-xl border border-amber-700/50 bg-slate-900/60 p-3 space-y-2">
-          <div className="text-[10px] font-black text-amber-300 uppercase">Format de tag actif</div>
-          <div className="flex items-center gap-2">
-            <select value={projectSetup.tagFormatName} onChange={e => setProjectSetup(p => ({ ...p, tagFormatName: e.target.value }))} className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[11px] font-bold text-white outline-none">
-              {projectSetup.formats.map(f => (<option key={f.name} value={f.name}>{f.name}</option>))}
-            </select>
-            <span className="font-mono text-[11px] text-amber-200 font-bold">
-              {activeTagFormat.parts.map(p => p.field).join(" " + activeTagFormat.separator + " ")}
-            </span>
-          </div>
-          <div className="text-[10px] text-slate-400">Exemple : <span className="font-mono text-amber-300 font-bold">100-HC-001-CS300</span></div>
-          <div className="flex items-center gap-2 pt-1">
-            <button type="button" onClick={autoTagAllSegments} className="px-3 py-1 rounded-lg bg-amber-950/70 hover:bg-amber-900 border border-amber-700/70 text-amber-200 text-[10px] font-black">Tagger tous les troncons</button>
-            <span className="text-[10px] text-slate-500">{segments.filter(s => s.tag).length}/{segments.length} tagges · {tagIssues} anomalie(s)</span>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-xl border border-slate-700 bg-slate-900/60 p-3">
-            <div className="text-[10px] font-black text-cyan-300 uppercase mb-1.5">Services / fluides</div>
-            <div className="space-y-1 max-h-48 overflow-auto">
-              {projectSetup.services.map(sv => (
-                <div key={sv.code} className="flex items-center justify-between text-[10px] text-slate-300">
-                  <span className="font-mono font-bold" style={{ color: sv.color }}>{sv.code}</span>
-                  <span className="text-slate-400">{sv.label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="rounded-xl border border-slate-700 bg-slate-900/60 p-3">
-            <div className="text-[10px] font-black text-cyan-300 uppercase mb-1.5">Specs tuyauterie</div>
-            <div className="space-y-1 max-h-48 overflow-auto">
-              {projectSetup.specs.map(sp => (
-                <div key={sp.code} className="flex items-center justify-between text-[10px] text-slate-300">
-                  <span className="font-mono font-bold text-cyan-300">{sp.code}</span>
-                  <span className="text-slate-400">{sp.material} · {sp.pressureClass} · DN{sp.minDn}-{sp.maxDn}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>}
-
-    {/* PATCH 016A: bouton BOM & Métré topbar supprimé */}
+            {/* PATCH 016A: bouton BOM & Métré topbar supprimé */}
             <div className="hidden xl:flex items-center gap-3 text-[10px] text-slate-400"><span>{nodes.length} nœuds</span><span>{segments.length} tronçons</span><span className={graphErrorCount?"text-red-400":"text-emerald-400"}>{graphErrorCount?`${graphErrorCount} erreur(s)`:"Graphe valide"}</span></div>
             <button onClick={()=>setCommandPaletteOpen(true)} className="h-8 px-2 rounded-md border border-slate-700 bg-slate-800 text-[10px] font-black" title="Palette commandes">⌘K</button>
             <div className="relative">
@@ -8233,49 +8026,6 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                       <div className="flex items-center justify-between border-b border-slate-800 pb-1">
                         <span className="text-[10px] font-black text-blue-400 uppercase">Tronçon sélectionné</span>
                         <span className="font-mono text-cyan-300 font-bold">DN{selectedSeg.dn}</span>
-                      </div>
-                      <div className="p-2 rounded-lg bg-slate-950 border border-amber-700/50 space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[9px] font-black text-amber-300 uppercase">Tag industriel</span>
-                          <span className="text-[8px] text-slate-500 font-mono">{activeTagFormat.name}</span>
-                        </div>
-                        <input
-                          value={selectedSeg.tag || ""}
-                          placeholder="100-HC-001-CS300"
-                          onChange={e => setSegments(prev => prev.map(s => s.id === selectedSeg.id ? { ...s, tag: e.target.value, tagFormatName: activeTagFormat.name } : s))}
-                          className="w-full bg-slate-900 border border-amber-700/60 rounded px-2 py-1 text-[11px] font-mono font-bold text-amber-200 outline-none"
-                        />
-                        <div className="grid grid-cols-2 gap-1.5">
-                          <select
-                            value={selectedSeg.service || ""}
-                            onChange={e => applyTagToSelection(e.target.value, undefined)}
-                            className="w-full bg-slate-900 border border-slate-700 rounded px-1.5 py-1 text-[9px] font-bold text-white outline-none"
-                          >
-                            <option value="">Service…</option>
-                            {projectSetup.services.map(sv => (
-                              <option key={sv.code} value={sv.code}>{sv.code} — {sv.label}</option>
-                            ))}
-                          </select>
-                          <select
-                            value={selectedSeg.spec || ""}
-                            onChange={e => applyTagToSelection(undefined, e.target.value)}
-                            className="w-full bg-slate-900 border border-slate-700 rounded px-1.5 py-1 text-[9px] font-bold text-white outline-none"
-                          >
-                            <option value="">Spec…</option>
-                            {projectSetup.specs.map(sp => (
-                              <option key={sp.code} value={sp.code}>{sp.code} — {sp.pressureClass}</option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <button type="button" onClick={() => applyTagToSelection()} className="flex-1 py-1 rounded bg-amber-950/70 hover:bg-amber-900 border border-amber-700/70 text-amber-200 text-[9px] font-black">Generer le tag</button>
-                          <button type="button" onClick={() => setProjectSetupOpen(true)} className="py-1 px-2 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[9px] font-black">Setup</button>
-                        </div>
-                        {selectedSeg.tag && !pdiValidateTag(selectedSeg.tag, segments.map(x => x.tag || ""), activeTagFormat).ok && (
-                          <div className="text-[9px] font-bold text-red-400">
-                            Tag invalide : {pdiValidateTag(selectedSeg.tag, segments.map(x => x.tag || ""), activeTagFormat).reason}
-                          </div>
-                        )}
                       </div>
                       <div>
                         <label className="text-[8px] font-bold text-slate-400 block mb-0.5">Pipeline / Source</label>

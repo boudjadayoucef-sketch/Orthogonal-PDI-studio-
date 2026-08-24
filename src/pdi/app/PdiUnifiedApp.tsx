@@ -111,15 +111,32 @@ function ComingSoonPanel({ title, children }: { title: string; children: React.R
 }
 
 export default function PdiUnifiedApp() {
-  const [activeModule, setActiveModule] = useState<PdiModule>(() => {
-    try { return (window.localStorage.getItem("pdi.activeModule.v1") as PdiModule) || "home"; } catch { return "home"; }
+  const [authMode, setAuthMode] = useState<"guest" | "demo" | "pending_email" | "client" | "admin" | "super_admin">(() => {
+    try {
+      return (window.localStorage.getItem(PDI_AUTH_KEY) as any) || "demo";
+    } catch {
+      return "demo";
+    }
   });
-  const [authMode, setAuthMode] = useState<"guest" | "demo" | "pending_email" | "client" | "admin" | "super_admin">(() => { try { return (window.localStorage.getItem(PDI_AUTH_KEY) as any) || "demo"; } catch { return "demo"; } });
+
+  const [activeModule, setActiveModule] = useState<PdiModule>(() => {
+    try {
+      const saved = window.localStorage.getItem("pdi.activeModule.v1") as PdiModule;
+      const auth = window.localStorage.getItem(PDI_AUTH_KEY) || "demo";
+      const isConnected = auth !== "guest" && auth !== "pending_email";
+      if (isConnected) {
+        return (saved && saved !== "home") ? saved : "isometric";
+      }
+      return saved || "home";
+    } catch {
+      return "isometric";
+    }
+  });
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [authPanelMode, setAuthPanelMode] = useState<"login" | "register" | "activation">("login");
   const [authDraft, setAuthDraft] = useState({ name: "", email: "", company: "", password: "", plan: "demo" });
   const [activationToken, setActivationToken] = useState<string | null>(() => { try { return window.localStorage.getItem("pdi.activation.pendingToken.v1"); } catch { return null; } });
-  const startDemoSession = () => { setAuthMode("demo"); try { window.localStorage.setItem(PDI_AUTH_KEY,"demo"); window.sessionStorage.setItem(PDI_STAGE_KEY,"app"); window.localStorage.setItem("pdi.force.app.v1","1"); } catch {} setStage("app"); setActiveModule("home"); };
+  const startDemoSession = () => { setAuthMode("demo"); try { window.localStorage.setItem(PDI_AUTH_KEY,"demo"); window.sessionStorage.setItem(PDI_STAGE_KEY,"app"); window.localStorage.setItem("pdi.force.app.v1","1"); window.localStorage.setItem("pdi.activeModule.v1","isometric"); } catch {} setStage("app"); setActiveModule("isometric"); };
   const submitRegisterSimulated = () => {
     if (!authDraft.email || !authDraft.name || authDraft.password.length < 6) { setAuthPanelMode("register"); return; }
     const token = `pdi-act-${Date.now().toString(36)}`;
@@ -128,7 +145,7 @@ export default function PdiUnifiedApp() {
     try { window.localStorage.setItem("pdi.activation.pendingToken.v1", token); window.localStorage.setItem("pdi.auth.pendingUser.v1", JSON.stringify({ ...authDraft, password: undefined, status:"pending_email" })); } catch {}
     setAuthPanelMode("activation");
   };
-  const activateSimulatedAccount = () => { setAuthMode("client"); try { window.localStorage.removeItem("pdi.activation.pendingToken.v1"); window.localStorage.setItem(PDI_AUTH_KEY,"client"); window.sessionStorage.setItem(PDI_STAGE_KEY,"app"); window.localStorage.setItem("pdi.force.app.v1","1"); } catch {} setStage("app"); setActiveModule("home"); };
+  const activateSimulatedAccount = () => { setAuthMode("client"); try { window.localStorage.removeItem("pdi.activation.pendingToken.v1"); window.localStorage.setItem(PDI_AUTH_KEY,"client"); window.sessionStorage.setItem(PDI_STAGE_KEY,"app"); window.localStorage.setItem("pdi.force.app.v1","1"); window.localStorage.setItem("pdi.activeModule.v1","isometric"); } catch {} setStage("app"); setActiveModule("isometric"); };
 
   const pdiUserProfile = {
     name: "Youcef Seif Eddine Boudjada",
@@ -169,27 +186,26 @@ export default function PdiUnifiedApp() {
   const switchTab = (id: string) => { const tab = workspaceTabs.find(t=>t.id===id); if(!tab) return; setActiveTabId(id); setActiveModule(tab.module); persistTabs(workspaceTabs,id); };
   const closeTab = (id: string) => { const tabs = workspaceTabs.filter(t=>t.id!==id); const next = tabs[tabs.length-1] || null; setWorkspaceTabs(tabs); setActiveTabId(next?.id || null); setActiveModule(next?.module || "home"); persistTabs(tabs,next?.id || null); };
 
-  // PATCH 004c : etape "landing" par defaut a chaque ouverture/rechargement,
-  // puis "app" (coquille + modules) lorsque l'utilisateur clique pour entrer.
+  // Rechargement : conserve dans le module ISO quand connecté
   const [stage, setStage] = useState<"landing" | "app">(() => {
     try {
-      const auth = window.localStorage.getItem(PDI_AUTH_KEY);
+      const auth = window.localStorage.getItem(PDI_AUTH_KEY) || "demo";
+      const isConnected = auth !== "guest" && auth !== "pending_email";
       const forced = window.localStorage.getItem("pdi.force.app.v1") === "1" || window.sessionStorage.getItem(PDI_STAGE_KEY) === "app";
-      return forced && auth && auth !== "guest" && auth !== "pending_email" ? "app" : "landing";
-    } catch { return "landing"; }
+      return (isConnected || forced) ? "app" : "landing";
+    } catch { return "app"; }
   });
   const [landingScreen, setLandingScreen] = useState<"landing" | "home" | "launcher">("landing");
 
   const enterApp = React.useCallback((target?: string) => {
     try {
       window.sessionStorage.setItem(PDI_STAGE_KEY, "app");
+      window.localStorage.setItem("pdi.force.app.v1", "1");
     } catch {
       /* stockage indisponible : l'entree reste valable pour l'affichage courant */
     }
     setStage("app");
 
-    // PATCH 004d : la landing / page d'ouverture peut maintenant envoyer
-    // directement vers le module choisi, sans casser le comportement existant.
     const allowed: PdiModule[] = [
       "home",
       "isometric",
@@ -206,7 +222,9 @@ export default function PdiUnifiedApp() {
       "security",
     ];
 
-    setActiveModule(allowed.includes(target as PdiModule) ? (target as PdiModule) : "home");
+    const dest = (target && allowed.includes(target as PdiModule) ? (target as PdiModule) : "isometric");
+    setActiveModule(dest);
+    try { window.localStorage.setItem("pdi.activeModule.v1", dest); } catch {}
     window.scrollTo(0, 0);
   }, []);
 
@@ -215,7 +233,7 @@ export default function PdiUnifiedApp() {
       window.sessionStorage.removeItem(PDI_STAGE_KEY);
       window.localStorage.removeItem("pdi.force.app.v1");
       window.localStorage.setItem(PDI_AUTH_KEY, "guest");
-      window.localStorage.removeItem("pdi.activeModule.v1");
+      window.localStorage.setItem("pdi.activeModule.v1", "home");
     } catch {}
     setAuthMode("guest");
     setLandingScreen("home");
