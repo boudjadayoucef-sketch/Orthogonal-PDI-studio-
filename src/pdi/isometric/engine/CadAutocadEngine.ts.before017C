@@ -253,7 +253,7 @@ export interface CadCommandItem {
   name: string;
   aliases: string[];
   description: string;
-  category: "Dessin 2D" | "Tuyauterie" | "Édition" | "Affichage" | "Données" | "Direct";
+  category: "Dessin 2D" | "Tuyauterie" | "Édition" | "Affichage" | "Données";
   shortcut?: string;
   icon: string;
 }
@@ -518,168 +518,20 @@ export const AUTOCAD_COMMANDS: CadCommandItem[] = [
     shortcut: "CBS",
     icon: "Eye",
   },
-  // PATCH 017C : les commandes PD&I etaient executables mais absentes du
-  // catalogue, donc invisibles dans l autocompletion de la ligne de commande.
-  {
-    id: "projectsetup",
-    name: "PROJECTSETUP",
-    aliases: ["PS", "PROJECTSETUP", "SETUP", "PROJET"],
-    description: "Ouvre Project Setup PD&I : projet, formats de tag, services, specs",
-    category: "Données",
-    shortcut: "PS",
-    icon: "SlidersHorizontal",
-  },
-  {
-    id: "tagformat",
-    name: "TAGFORMAT",
-    aliases: ["TF", "TAGFORMAT", "FORMATTAG"],
-    description: "Affiche et modifie le format de tag actif (Tag_Ligne_Standard)",
-    category: "Données",
-    shortcut: "TF",
-    icon: "Type",
-  },
-  {
-    id: "tag",
-    name: "TAG",
-    aliases: ["TAG", "BALISE", "REPERE"],
-    description: "Tague la selection : TAG [service] [spec], ex TAG HC CS300",
-    category: "Données",
-    shortcut: "TAG",
-    icon: "Type",
-  },
-  {
-    id: "service",
-    name: "SERVICE",
-    aliases: ["SERVICE", "FLUIDE"],
-    description: "Affecte le service/fluide a la selection, ex SERVICE HC",
-    category: "Données",
-    shortcut: "SERVICE",
-    icon: "Disc3",
-  },
-  {
-    id: "spec",
-    name: "SPEC",
-    aliases: ["SPEC", "CLASSE", "SPECIFICATION"],
-    description: "Affecte la spec tuyauterie a la selection, ex SPEC CS300",
-    category: "Données",
-    shortcut: "SPEC",
-    icon: "Square",
-  },
-  {
-    id: "autotag",
-    name: "AUTOTAG",
-    aliases: ["AUTOTAG", "TAGALL", "TAGTOUT"],
-    description: "Tague automatiquement tous les troncons du plan",
-    category: "Données",
-    shortcut: "AUTOTAG",
-    icon: "Check",
-  },
-  {
-    id: "tagdisplay",
-    name: "TAGDISPLAY",
-    aliases: ["TAGDISPLAY", "TD", "AFFICHETAG", "TAGON"],
-    description: "Affiche ou masque les tags directement sur le plan (ON/OFF)",
-    category: "Affichage",
-    shortcut: "TD",
-    icon: "Type",
-  },
-  {
-    id: "renumber",
-    name: "RENUMBER",
-    aliases: ["RENUMBER", "RN", "RENUMEROTER"],
-    description: "Renumerote les tags en serie par service, ex RENUMBER HC 10",
-    category: "Données",
-    shortcut: "RN",
-    icon: "Ruler",
-  },
-  {
-    id: "datamanager",
-    name: "DATAMANAGER",
-    aliases: ["DATAMANAGER", "DM", "DONNEES", "TABLEAU"],
-    description: "Vue tabulaire de tous les elements tagges (base du BOM)",
-    category: "Données",
-    shortcut: "DM",
-    icon: "FileText",
-  },
-  {
-    id: "hide",
-    name: "HIDE",
-    aliases: ["HIDE", "MASQUER", "PLEINECRAN"],
-    description: "Masque la ligne de commande pour maximiser le plan de travail",
-    category: "Affichage",
-    shortcut: "HIDE",
-    icon: "Maximize2",
-  },
-  {
-    id: "epaisseur",
-    name: "EPAISSEUR",
-    aliases: ["LW", "EPAISSEUR", "LINEWEIGHT"],
-    description: "Regle l epaisseur graphique globale, ex EPAISSEUR 1.5",
-    category: "Affichage",
-    shortcut: "LW",
-    icon: "Slash",
-  },
-  {
-    id: "couleur",
-    name: "COULEUR",
-    aliases: ["COLOR", "COULEUR", "COL"],
-    description: "Couleur active : cyan, rouge, vert, jaune, blanc, gris ou #RRGGBB",
-    category: "Affichage",
-    shortcut: "COLOR",
-    icon: "Circle",
-  },
-  {
-    id: "style",
-    name: "STYLE",
-    aliases: ["STYLE", "APPARENCE"],
-    description: "Affiche le style graphique actif du plan de travail",
-    category: "Affichage",
-    shortcut: "STYLE",
-    icon: "SlidersHorizontal",
-  },
-  {
-    id: "raccourcis",
-    name: "RACCOURCIS",
-    aliases: ["SHORTCUTS", "RACCOURCIS", "RACCOURCI"],
-    description: "Active ou desactive les raccourcis clavier a une touche",
-    category: "Affichage",
-    shortcut: "?",
-    icon: "LayoutGrid",
-  },
 ];
 
 /**
  * Recherche intelligente de commandes AutoCAD par mot-clé / alias
  */
-// PATCH 017C : normalisation (accents, casse) et classement par pertinence.
-const pdiNormalizeCmd = (value: string): string =>
-  value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-zA-Z0-9?]/g, "")
-    .toUpperCase();
-
 export function searchCadCommands(query: string): CadCommandItem[] {
-  const clean = pdiNormalizeCmd(query);
-  if (!clean) return AUTOCAD_COMMANDS.slice(0, 12);
-  const scored: Array<{ cmd: CadCommandItem; score: number }> = [];
-  AUTOCAD_COMMANDS.forEach((cmd) => {
-    const name = pdiNormalizeCmd(cmd.name);
-    const id = pdiNormalizeCmd(cmd.id);
-    const aliases = cmd.aliases.map(pdiNormalizeCmd);
-    const description = pdiNormalizeCmd(cmd.description);
-    let score = -1;
-    if (name === clean || aliases.includes(clean) || id === clean) score = 100;
-    else if (name.startsWith(clean) || id.startsWith(clean)) score = 80;
-    else if (aliases.some((a) => a.startsWith(clean))) score = 70;
-    else if (name.includes(clean) || id.includes(clean)) score = 50;
-    else if (aliases.some((a) => a.includes(clean))) score = 40;
-    else if (description.includes(clean)) score = 20;
-    if (score >= 0) scored.push({ cmd, score });
+  const clean = query.trim().toUpperCase();
+  if (!clean) return AUTOCAD_COMMANDS.slice(0, 10);
+  return AUTOCAD_COMMANDS.filter((cmd) => {
+    if (cmd.name.toUpperCase().includes(clean)) return true;
+    if (cmd.aliases.some((alias) => alias.toUpperCase().startsWith(clean) || alias.toUpperCase().includes(clean))) return true;
+    if (cmd.description.toUpperCase().includes(clean)) return true;
+    return false;
   });
-  return scored
-    .sort((a, b) => (b.score - a.score) || a.cmd.name.localeCompare(b.cmd.name))
-    .map((entry) => entry.cmd);
 }
 
 

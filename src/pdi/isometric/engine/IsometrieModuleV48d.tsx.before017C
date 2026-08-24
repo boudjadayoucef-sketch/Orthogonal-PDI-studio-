@@ -1069,14 +1069,6 @@ function IsometrieModule() {
     return PDI_DEFAULT_PROJECT_SETUP;
   });
   const [projectSetupOpen, setProjectSetupOpen] = useState(false);
-  // PATCH 017C : affichage des tags sur le plan + gestionnaire de donnees.
-  const [tagDisplay, setTagDisplay] = useState<boolean>(() => {
-    try { return window.localStorage.getItem("pdi.tagDisplay.v1") === "1"; } catch { return false; }
-  });
-  const [dataManagerOpen, setDataManagerOpen] = useState(false);
-  useEffect(() => {
-    try { window.localStorage.setItem("pdi.tagDisplay.v1", tagDisplay ? "1" : "0"); } catch {}
-  }, [tagDisplay]);
   useEffect(() => {
     try { window.localStorage.setItem("pdi.projectSetup.v1", JSON.stringify(projectSetup)); } catch {}
   }, [projectSetup]);
@@ -2668,41 +2660,6 @@ function IsometrieModule() {
 
   const tagIssues = segments.filter(s => s.tag && !pdiValidateTag(s.tag, segments.map(x => x.tag || ""), activeTagFormat).ok).length;
 
-  // PATCH 017C : renumerotation en serie des tags, par service.
-  const renumberTags = (serviceFilter?: string, startAt?: number) => {
-    const svcFilter = serviceFilter ? serviceFilter.toUpperCase() : "";
-    const start = startAt && startAt > 0 ? Math.floor(startAt) : 1;
-    let touched = 0;
-    setSegments(prev => {
-      const counters = new Map<string, number>();
-      return prev.map(s => {
-        const svc = (s.service || defaultService).toUpperCase();
-        if (svcFilter && svc !== svcFilter) return s;
-        const sp = (s.spec || defaultSpec).toUpperCase();
-        const next = counters.has(svc) ? (counters.get(svc) as number) + 1 : start;
-        counters.set(svc, next);
-        touched += 1;
-        const specObj = pdiFindSpec(projectSetup, sp);
-        const tag = pdiBuildTag({ nominalDiameter: s.dn, service: svc, number: next, spec: sp }, activeTagFormat);
-        return {
-          ...s,
-          service: svc,
-          spec: sp,
-          tagNumber: next,
-          tagFormatName: activeTagFormat.name,
-          tag,
-          material: specObj ? specObj.material : s.material,
-          pressureClass: specObj ? specObj.pressureClass : s.pressureClass,
-        };
-      });
-    });
-    setAutocadPrompt(
-      "RENUMBER : " + (svcFilter ? "service " + svcFilter : "tous services") +
-      ", numerotation a partir de " + start + " (" + touched + " troncon(s))."
-    );
-    setStatusMessage("Renumerotation des tags effectuee");
-  };
-
   const segmentStrokeColor = (seg: IsoSegment) => {
     if (colorByService && seg.service) {
       const sv = projectSetup.services.find(x => x.code === seg.service);
@@ -2794,30 +2751,6 @@ function IsometrieModule() {
       const next = off ? false : on ? true : !colorByService;
       setColorByService(next);
       setAutocadPrompt("COULEUR PAR SERVICE : " + (next ? "ON" : "OFF") + ".");
-      return;
-    }
-    // PATCH 017C : affichage des tags, renumerotation, gestionnaire de donnees.
-    if (["tagdisplay", "td", "affichetag", "tagon"].includes(rawVerb)) {
-      const arg = (rawArg || "").toLowerCase();
-      const on = ["on", "1", "oui", "true"].includes(arg);
-      const off = ["off", "0", "non", "false"].includes(arg);
-      const next = off ? false : on ? true : !tagDisplay;
-      setTagDisplay(next);
-      setAutocadPrompt("AFFICHAGE DES TAGS : " + (next ? "ON" : "OFF") + ".");
-      setStatusMessage("Tags sur le plan " + (next ? "affiches" : "masques"));
-      return;
-    }
-    if (["renumber", "rn", "renumeroter"].includes(rawVerb)) {
-      const first = (rawParts[1] || "").toUpperCase();
-      const isNumberFirst = first !== "" && !isNaN(Number(first));
-      const svc = isNumberFirst ? undefined : (first || undefined);
-      const start = isNumberFirst ? Number(first) : Number(rawParts[2] || "1");
-      renumberTags(svc, isNaN(start) ? 1 : start);
-      return;
-    }
-    if (["datamanager", "dm", "donnees", "tableau"].includes(rawVerb)) {
-      setDataManagerOpen(true);
-      setAutocadPrompt("DATA MANAGER : liste des elements tagges du projet.");
       return;
     }
     if (["style"].includes(rawVerb)) {
@@ -6593,13 +6526,6 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                       {hoveredEntity?.type==="segment"&&hoveredEntity.id===s.id&&!sel&&<path d={path} stroke="#67e8f9" strokeWidth={width+4} strokeOpacity=".3" strokeLinecap="round" strokeLinejoin="round" fill="none"/>}
                       <path d={path} stroke={segmentStrokeColor(s)} strokeWidth={width} strokeLinecap="round" strokeLinejoin="round" fill="none"/>
                     </>; })()}
-                    {/* PATCH 017C : tag industriel affiche sur le plan */}
-                    {tagDisplay && s.tag && viewport.zoom > 0.35 && (
-                      <text x={mx} y={my - (width / 2) - 5} fill="#fcd34d" fontSize="9" fontWeight="bold"
-                        textAnchor="middle" paintOrder="stroke" stroke="#0f172a" strokeWidth="3" pointerEvents="none">
-                        {s.tag}
-                      </text>
-                    )}
                     {false&&showDimensions&&showPipeLabels&&s.length>=.5&&<g />}
                     {isoDrawMode==="coude"&&<g data-iso-object="true" transform={`translate(${mx} ${my})`} onClick={e=>{e.stopPropagation();insertGraphicFitting(s.id,fitType.startsWith("coude")?fitType:"coude_90",.5)}} style={{cursor:"crosshair"}}><circle r="14" fill="#f59e0b" fillOpacity=".18" stroke="#fbbf24" strokeDasharray="3 2"/><path d="M-7 7 Q-7 -7 7 -7" stroke="#fbbf24" strokeWidth="2.5" fill="none"/></g>}
                     {false&&s.fittings.map(f=>{
@@ -8441,57 +8367,6 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
     </div>}
 
 
-
-    {/* PATCH 017C : Data Manager - vue tabulaire des elements tagges */}
-    {dataManagerOpen && <div className="fixed inset-0 z-[10065] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-6" onClick={() => setDataManagerOpen(false)}>
-      <div className="w-full max-w-5xl max-h-[86vh] overflow-auto rounded-2xl border border-cyan-600/50 bg-slate-950 p-5 space-y-3" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-          <div>
-            <div className="text-sm font-black text-cyan-300 uppercase">Data Manager PD&amp;I</div>
-            <div className="text-[10px] text-slate-400">{segments.filter(s => s.tag).length}/{segments.length} troncon(s) tagge(s) · {tagIssues} anomalie(s) · format {activeTagFormat.name}</div>
-          </div>
-          <div className="flex items-center gap-2">
-            <button type="button" onClick={autoTagAllSegments} className="px-3 py-1 rounded-lg bg-amber-950/70 hover:bg-amber-900 border border-amber-700/70 text-amber-200 text-[10px] font-black">Tagger tout</button>
-            <button type="button" onClick={() => renumberTags(undefined, 1)} className="px-3 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 text-[10px] font-black">Renumeroter</button>
-            <button type="button" onClick={() => setDataManagerOpen(false)} className="px-3 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 text-[10px] font-black">Fermer</button>
-          </div>
-        </div>
-        <div className="overflow-auto rounded-xl border border-slate-800">
-          <table className="w-full text-[11px]">
-            <thead className="bg-slate-900 text-slate-400">
-              <tr>
-                <th className="text-left px-2 py-1.5 font-black uppercase text-[9px]">Tag</th>
-                <th className="text-left px-2 py-1.5 font-black uppercase text-[9px]">DN</th>
-                <th className="text-left px-2 py-1.5 font-black uppercase text-[9px]">Service</th>
-                <th className="text-left px-2 py-1.5 font-black uppercase text-[9px]">Spec</th>
-                <th className="text-left px-2 py-1.5 font-black uppercase text-[9px]">Materiau</th>
-                <th className="text-left px-2 py-1.5 font-black uppercase text-[9px]">Classe</th>
-                <th className="text-right px-2 py-1.5 font-black uppercase text-[9px]">Longueur (m)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {segments.map(s => (
-                <tr key={s.id}
-                  onClick={() => { selectSegmentV44(s.id, false); setDataManagerOpen(false); }}
-                  className="border-t border-slate-800 hover:bg-slate-900/70 cursor-pointer">
-                  <td className="px-2 py-1 font-mono font-bold text-amber-300">{s.tag || "-"}</td>
-                  <td className="px-2 py-1 text-slate-200">DN{s.dn}</td>
-                  <td className="px-2 py-1 text-cyan-300 font-bold">{s.service || "-"}</td>
-                  <td className="px-2 py-1 text-slate-300">{s.spec || "-"}</td>
-                  <td className="px-2 py-1 text-slate-400">{s.material || "-"}</td>
-                  <td className="px-2 py-1 text-slate-400">{s.pressureClass || "-"}</td>
-                  <td className="px-2 py-1 text-right text-slate-200">{(s.length || 0).toFixed(3)}</td>
-                </tr>
-              ))}
-              {segments.length === 0 && (
-                <tr><td colSpan={7} className="px-2 py-4 text-center text-slate-500">Aucun troncon dans le plan.</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-        <div className="text-[10px] text-slate-500">Clic sur une ligne : selection du troncon sur le plan. Cette table est la base directe du futur export BOM.</div>
-      </div>
-    </div>}
 
     {/* PATCH 017B : modal Project Setup repositionne au niveau racine */}
     {/* PATCH 017A : Project Setup PD&I */}
