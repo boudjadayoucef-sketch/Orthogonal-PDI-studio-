@@ -1114,11 +1114,9 @@ function IsometrieModule(props: { projectId?: string }) {
         if (autocadCmdInput.trim()) executeCadCommand(autocadCmdInput.trim());
         return;
       }
-      // PATCH 017F1B : Echap ne doit plus etre confisque par le capteur de saisie
-      // natif. Ce gestionnaire est en phase de CAPTURE sur window : appeler
-      // stopPropagation() empechait les gestionnaires globaux de fermer les
-      // panneaux, le menu contextuel et de desselectionner.
       if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
         setAutocadCmdInput("");
         setAutocadPrompt("Commande annulée.");
         return;
@@ -1694,11 +1692,7 @@ function IsometrieModule(props: { projectId?: string }) {
   const [selectedNodeId,setSelectedNodeId]=useState<string|null>(null);
   const [interactionMode,setInteractionMode]=useState<"main"|"select">("select");
   // V4.6 — poste de travail
-  // PATCH 017F1B : plus d ouverture automatique des panneaux a l ouverture
-  // d une session. L etat choisi par l utilisateur est memorise.
-  const [leftPanelOpen,setLeftPanelOpen]=useState<boolean>(()=>{
-    try{return window.localStorage.getItem("pdi.leftPanelOpen.v1")==="1";}catch{return false;}
-  });
+  const [leftPanelOpen,setLeftPanelOpen]=useState(true);
   // 007d: l'ISO plein écran est le workspace principal de PD&I.
   const [workspaceFullscreen,setWorkspaceFullscreen]=useState(true);
   // V4.8_DARK_WORKSPACE_STUDIO : shell CAO plein écran limité à PD & I.
@@ -1837,17 +1831,8 @@ function IsometrieModule(props: { projectId?: string }) {
   const [snapEndpoints, setSnapEndpoints] = useState(true);
   const [snapMidpoints, setSnapMidpoints] = useState(true);
   const [snapGrid, setSnapGrid] = useState(true);
-  const [rightPanelOpen, setRightPanelOpen] = useState<boolean>(()=>{
-    try{return window.localStorage.getItem("pdi.rightPanelOpen.v1")==="1";}catch{return false;}
-  });
+  const [rightPanelOpen, setRightPanelOpen] = useState(true);
   const [autoHideRightPanel, setAutoHideRightPanel] = useState(false);
-  // PATCH 017F1B : memorisation de l etat des deux panneaux.
-  useEffect(()=>{
-    try{window.localStorage.setItem("pdi.leftPanelOpen.v1",leftPanelOpen?"1":"0");}catch{}
-  },[leftPanelOpen]);
-  useEffect(()=>{
-    try{window.localStorage.setItem("pdi.rightPanelOpen.v1",rightPanelOpen?"1":"0");}catch{}
-  },[rightPanelOpen]);
   const [rightPanelHovered, setRightPanelHovered] = useState(false);
   const [rightPanelTab, setRightPanelTab] = useState<"properties" | "bom" | "dimensions" | "snap" | "layers">("properties");
   const [selectedDimensionId, setSelectedDimensionId] = useState<string | null>(null);

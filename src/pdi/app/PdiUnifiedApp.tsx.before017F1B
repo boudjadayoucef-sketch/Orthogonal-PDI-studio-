@@ -342,18 +342,6 @@ export default function PdiUnifiedApp() {
     if (target) pdiUpsertProject({ projectId: target.projectId, title: cleaned, module: target.module });
     setProjectsRefresh((v) => v + 1);
   };
-  // PATCH 017F1B : supprimer un projet doit aussi fermer ses onglets, sinon le
-  // nom reste affiche dans la barre alors que le projet n existe plus.
-  const closeTabsForProject = (projectId: string) => {
-    const tabs = workspaceTabs.filter((t) => t.projectId !== projectId);
-    if (tabs.length === workspaceTabs.length) return;
-    const next = tabs[tabs.length - 1] || null;
-    setWorkspaceTabs(tabs);
-    setActiveTabId(next?.id || null);
-    persistTabs(tabs, next?.id || null);
-    if (!next) setActiveModule("projects");
-    else if (renamingTabId && !tabs.some((t) => t.id === renamingTabId)) setRenamingTabId(null);
-  };
   const openProjectInTab = (entry: { projectId: string; title: string; module: PdiModule }) => {
     const existing = workspaceTabs.find((t) => t.projectId === entry.projectId);
     if (existing) { switchTab(existing.id); return; }
@@ -641,7 +629,7 @@ export default function PdiUnifiedApp() {
                 <span style={{ color: "#64748B", fontSize: 10, fontWeight: 800 }}>{entry.projectId}</span>
                 <span style={{ color: "#94A3B8", fontSize: 11, fontWeight: 800 }}>{String(entry.updatedAt).slice(0, 16).replace("T", " ")}</span>
                 <button type="button" className="pdi-start-primary" style={{ marginLeft: "auto", padding: "8px 12px" }} onClick={() => openProjectInTab(entry)}>Ouvrir</button>
-                <button type="button" style={{ padding: "8px 12px", borderRadius: 10, border: "1px solid #7F1D1D", background: "#1F0B0B", color: "#FCA5A5", fontSize: 11, fontWeight: 900, cursor: "pointer" }} onClick={() => { if (window.confirm("Supprimer definitivement le projet \"" + entry.title + "\" et sa sauvegarde locale ?")) { pdiRemoveProject(entry.projectId); closeTabsForProject(entry.projectId); setProjectsRefresh((v) => v + 1); } }}>Supprimer</button>
+                <button type="button" style={{ padding: "8px 12px", borderRadius: 10, border: "1px solid #7F1D1D", background: "#1F0B0B", color: "#FCA5A5", fontSize: 11, fontWeight: 900, cursor: "pointer" }} onClick={() => { if (window.confirm("Supprimer definitivement le projet \"" + entry.title + "\" et sa sauvegarde locale ?")) { pdiRemoveProject(entry.projectId); setProjectsRefresh((v) => v + 1); } }}>Supprimer</button>
               </div>
             ))}
           </div>
