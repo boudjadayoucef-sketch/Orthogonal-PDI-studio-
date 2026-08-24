@@ -5,58 +5,6 @@
 // PATCH 008 — SaaS tabs flow
 // PATCH 007e — compact floating props landing restore
 import React, { useEffect, useMemo, useState } from "react";
-
-// PATCH 017B : filet de securite. Une erreur d execution dans l editeur ISO
-// affichait une page totalement vide apres rechargement. On affiche desormais
-// un message et un bouton de reinitialisation de l espace de travail.
-class PdiModuleErrorBoundary extends React.Component<
-  { children: React.ReactNode },
-  { failed: boolean; message: string }
-> {
-  constructor(props: { children: React.ReactNode }) {
-    super(props);
-    this.state = { failed: false, message: "" };
-  }
-
-  static getDerivedStateFromError(error: unknown) {
-    return { failed: true, message: error instanceof Error ? error.message : String(error) };
-  }
-
-  resetWorkspace = () => {
-    try {
-      const keys = [
-        "pdi.activeModule.v1",
-        "pdi.tabs.v1",
-        "pdi.activeTabId.v1",
-        "pdi.commandPromptHidden.v1",
-        "pdi.workspaceVisualStyle.v1",
-      ];
-      keys.forEach(k => window.localStorage.removeItem(k));
-      window.localStorage.setItem("pdi.activeModule.v1", "isometric");
-    } catch {}
-    window.location.reload();
-  };
-
-  render() {
-    if (!this.state.failed) return this.props.children;
-    return (
-      <div style={{ minHeight: "100vh", background: "#070B12", color: "#E5EDF8", display: "grid", placeItems: "center", padding: 24, fontFamily: "Inter, system-ui, sans-serif" }}>
-        <div style={{ maxWidth: 620, border: "1px solid rgba(103,232,249,.35)", borderRadius: 20, padding: 24, background: "linear-gradient(180deg,#111C2A,#08111C)" }}>
-          <div style={{ fontSize: 11, fontWeight: 900, textTransform: "uppercase", color: "#67E8F9" }}>Espace de travail PD&amp;I</div>
-          <h2 style={{ margin: "8px 0 10px", fontSize: 22 }}>Le module n a pas pu s afficher</h2>
-          <p style={{ color: "#AFC4DD", fontWeight: 700, lineHeight: 1.6 }}>
-            Une erreur est survenue au chargement. Vos plans enregistres ne sont pas perdus :
-            seuls les reglages d affichage vont etre reinitialises.
-          </p>
-          <pre style={{ background: "#050B12", border: "1px solid rgba(103,232,249,.25)", borderRadius: 10, padding: 10, color: "#A7F3D0", fontSize: 11, whiteSpace: "pre-wrap" }}>{this.state.message}</pre>
-          <button type="button" onClick={this.resetWorkspace} style={{ marginTop: 12, border: 0, borderRadius: 14, padding: "12px 16px", fontWeight: 900, color: "white", background: "linear-gradient(135deg,#0284C7,#22D3EE)", cursor: "pointer" }}>
-            Reinitialiser l espace de travail
-          </button>
-        </div>
-      </div>
-    );
-  }
-}
 import PdiBrandMark from "./PdiBrandMark";
 import PdiIsometricEditor from "../isometric/PdiIsometricEditor";
 // PATCH 004c : page publicitaire publique, montee AVANT la coquille applicative.
@@ -75,18 +23,6 @@ const PDI_STAGE_KEY = "pdi.stage.v4";
 const PDI_TABS_KEY = "pdi.tabs.v1";
 const PDI_ACTIVE_TAB_KEY = "pdi.activeTabId.v1";
 const PDI_AUTH_KEY = "pdi.auth.mode.v1";
-
-// PATCH 017B : modules reellement rendus par la coquille.
-// Un module absent de cette liste (ex: "projects" ou une valeur heritee)
-// provoquait un espace de travail vide apres rechargement.
-const PDI_RENDERABLE_MODULES: PdiModule[] = [
-  "home", "isometric", "drive", "vision", "sketch", "cad", "json", "pdf",
-  "assistant", "profile", "subscription", "security",
-  "super_admin_console", "license_keys",
-];
-const pdiSafeModule = (value: unknown, fallback: PdiModule): PdiModule => {
-  return PDI_RENDERABLE_MODULES.includes(value as PdiModule) ? (value as PdiModule) : fallback;
-};
 
 type LaunchCard = {
   id: PdiModule;
@@ -189,10 +125,9 @@ export default function PdiUnifiedApp() {
       const auth = window.localStorage.getItem(PDI_AUTH_KEY) || "demo";
       const isConnected = auth !== "guest" && auth !== "pending_email";
       if (isConnected) {
-        // PATCH 017B : on ne restaure qu'un module reellement affichable.
-        return (saved && saved !== "home") ? pdiSafeModule(saved, "isometric") : "isometric";
+        return (saved && saved !== "home") ? saved : "isometric";
       }
-      return pdiSafeModule(saved, "home");
+      return saved || "home";
     } catch {
       return "isometric";
     }
@@ -363,12 +298,7 @@ export default function PdiUnifiedApp() {
   // dans le logiciel, ce qui preserve le comportement existant.
   if (stage === "landing") return <PdiLandingV4 onEnter={enterApp} initialScreen={landingScreen} />;
 
-  // PATCH 017B : editeur ISO protege par un filet de securite.
-  if (activeModule === "isometric") return (
-    <PdiModuleErrorBoundary>
-      <PdiIsometricEditor />
-    </PdiModuleErrorBoundary>
-  );
+  if (activeModule === "isometric") return <PdiIsometricEditor />;
 
   return (
     <div className="pdi-unified-root">
@@ -475,14 +405,6 @@ export default function PdiUnifiedApp() {
           </div>
         </ComingSoonPanel>}
 
-        {/* PATCH 017B : plus jamais d ecran vide pour un module sans rendu. */}
-        {!PDI_RENDERABLE_MODULES.includes(activeModule) && <ComingSoonPanel title="Espace projets PD&I">
-          <p>Ce module n a pas encore d ecran dedie. Reprenez le travail dans l editeur isometrique.</p>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
-            <button type="button" className="pdi-start-primary" onClick={() => setActiveModule("isometric")}>Ouvrir l editeur ISO</button>
-            <button type="button" className="pdi-start-primary" onClick={() => setActiveModule("home")}>Retour accueil</button>
-          </div>
-        </ComingSoonPanel>}
         {activeModule === "assistant" && <ComingSoonPanel title="Assistant et agents spécialisés"><p>PD&I orchestrera le repo <code>pipeline-design-skill</code> : agents Vision, Croquis, CAO, JSON, ISO, QA. Les agents proposent ; Python calcule.</p></ComingSoonPanel>}
       </main>
     </div>

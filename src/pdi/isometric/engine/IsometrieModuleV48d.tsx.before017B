@@ -1031,18 +1031,10 @@ function IsometrieModule() {
         cad2dStrokeScale: Number.isFinite(Number(saved.cad2dStrokeScale)) ? Math.min(3, Math.max(0.35, Number(saved.cad2dStrokeScale))) : 1,
         defaultPipeColor: typeof saved.defaultPipeColor === "string" ? saved.defaultPipeColor : "#0EA5E9",
         defaultCadColor: typeof saved.defaultCadColor === "string" ? saved.defaultCadColor : "#E5E7EB",
-        colorByService: Boolean(saved.colorByService),
       };
-    } catch { return { pipeStrokeScale: 1, cad2dStrokeScale: 1, defaultPipeColor: "#0EA5E9", defaultCadColor: "#E5E7EB", colorByService: false }; }
+    } catch { return { pipeStrokeScale: 1, cad2dStrokeScale: 1, defaultPipeColor: "#0EA5E9", defaultCadColor: "#E5E7EB" }; }
   });
   const pipeStrokeScale = workspaceVisualStyle.pipeStrokeScale;
-  const colorByService = workspaceVisualStyle.colorByService;
-  const setColorByService = (val: boolean | ((prev: boolean) => boolean)) => {
-    setWorkspaceVisualStyle(prev => ({
-      ...prev,
-      colorByService: typeof val === "function" ? val(prev.colorByService) : val
-    }));
-  };
   const [triangleMenuOpen, setTriangleMenuOpen] = useState(false);
   const [arcMenuOpen, setArcMenuOpen] = useState(false);
   const [polygonSidesCount, setPolygonSidesCount] = useState(6);
@@ -2660,14 +2652,6 @@ function IsometrieModule() {
 
   const tagIssues = segments.filter(s => s.tag && !pdiValidateTag(s.tag, segments.map(x => x.tag || ""), activeTagFormat).ok).length;
 
-  const segmentStrokeColor = (seg: IsoSegment) => {
-    if (colorByService && seg.service) {
-      const sv = projectSetup.services.find(x => x.code === seg.service);
-      if (sv) return sv.color;
-    }
-    return seg.color || workspaceVisualStyle.defaultPipeColor;
-  };
-
   const executeCadCommand = (cmdInput: CadCommandItem | string) => {
 
     // PATCH 016A style commands : LW/EPAISSEUR/COLOR/STYLE + raccourcis ON/OFF.
@@ -2743,14 +2727,6 @@ function IsometrieModule() {
     }
     if (["autotag"].includes(rawVerb)) {
       autoTagAllSegments();
-      return;
-    }
-    if (["colorbyservice", "couleurservice", "cbs"].includes(rawVerb)) {
-      const on = ["on", "1", "oui", "true"].includes((rawArg || "").toLowerCase());
-      const off = ["off", "0", "non", "false"].includes((rawArg || "").toLowerCase());
-      const next = off ? false : on ? true : !colorByService;
-      setColorByService(next);
-      setAutocadPrompt("COULEUR PAR SERVICE : " + (next ? "ON" : "OFF") + ".");
       return;
     }
     if (["style"].includes(rawVerb)) {
@@ -5144,7 +5120,7 @@ function IsometrieModule() {
       setLastSavedAt(time);setSaveState("autosaved");
     }catch{setSaveState("error");}},700);
     return()=>clearTimeout(timer);
-  }, [authReady, userUid, recoveryChecked, recoveryCandidate, recoveryFailure, projectName, wilaya, pressDesign, lines, nodes, segments, dimensions, cad2dEntities, cad2dLayers, projectSetup, showGrid, showDimensions, showPipeLabels, showLabels, showWelds, isoSnapStep, viewport, workspaceVisualStyle]);
+  },[authReady,userUid,recoveryChecked,recoveryCandidate,recoveryFailure,projectName,wilaya,pressDesign,lines,nodes,segments,showGrid,showDimensions,showPipeLabels,showLabels,showWelds,isoSnapStep,viewport]);
 
   const runWorkspaceCommand=(action:()=>void,label:string)=>{action();setCommandPaletteOpen(false);setStatusMessage(label);};
 
@@ -5431,6 +5407,83 @@ function IsometrieModule() {
               ))}
             </nav>
           <div className="flex items-center gap-2">
+            {/* PATCH 017A : Project Setup PD&I */}
+    {projectSetupOpen && <div className="fixed inset-0 z-[10060] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-6" onClick={() => setProjectSetupOpen(false)}>
+      <div className="w-full max-w-3xl max-h-[86vh] overflow-auto rounded-2xl border border-cyan-600/50 bg-slate-950 p-5 space-y-4" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+          <div>
+            <div className="text-sm font-black text-cyan-300 uppercase">Project Setup PD&amp;I</div>
+            <div className="text-[10px] text-slate-500">Projet, formats de tag, services et specs — base du BOM et du 3D</div>
+          </div>
+          <button type="button" onClick={() => setProjectSetupOpen(false)} className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-black">Fermer</button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <label className="space-y-1">
+            <span className="text-[9px] font-black text-slate-400 uppercase">Nom du projet</span>
+            <input value={projectSetup.projectName} onChange={e => setProjectSetup(p => ({ ...p, projectName: e.target.value }))} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[11px] font-bold text-white outline-none" />
+          </label>
+          <label className="space-y-1">
+            <span className="text-[9px] font-black text-slate-400 uppercase">Code projet</span>
+            <input value={projectSetup.projectCode} onChange={e => setProjectSetup(p => ({ ...p, projectCode: e.target.value }))} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[11px] font-mono font-bold text-cyan-300 outline-none" />
+          </label>
+          <label className="space-y-1">
+            <span className="text-[9px] font-black text-slate-400 uppercase">Client</span>
+            <input value={projectSetup.client} onChange={e => setProjectSetup(p => ({ ...p, client: e.target.value }))} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[11px] font-bold text-white outline-none" />
+          </label>
+          <label className="space-y-1">
+            <span className="text-[9px] font-black text-slate-400 uppercase">Standard</span>
+            <select value={projectSetup.standard} onChange={e => setProjectSetup(p => ({ ...p, standard: e.target.value as "ANSI" | "DIN" }))} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[11px] font-bold text-white outline-none">
+              <option value="ANSI">ANSI</option>
+              <option value="DIN">DIN</option>
+            </select>
+          </label>
+        </div>
+
+        <div className="rounded-xl border border-amber-700/50 bg-slate-900/60 p-3 space-y-2">
+          <div className="text-[10px] font-black text-amber-300 uppercase">Format de tag actif</div>
+          <div className="flex items-center gap-2">
+            <select value={projectSetup.tagFormatName} onChange={e => setProjectSetup(p => ({ ...p, tagFormatName: e.target.value }))} className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[11px] font-bold text-white outline-none">
+              {projectSetup.formats.map(f => (<option key={f.name} value={f.name}>{f.name}</option>))}
+            </select>
+            <span className="font-mono text-[11px] text-amber-200 font-bold">
+              {activeTagFormat.parts.map(p => p.field).join(" " + activeTagFormat.separator + " ")}
+            </span>
+          </div>
+          <div className="text-[10px] text-slate-400">Exemple : <span className="font-mono text-amber-300 font-bold">100-HC-001-CS300</span></div>
+          <div className="flex items-center gap-2 pt-1">
+            <button type="button" onClick={autoTagAllSegments} className="px-3 py-1 rounded-lg bg-amber-950/70 hover:bg-amber-900 border border-amber-700/70 text-amber-200 text-[10px] font-black">Tagger tous les troncons</button>
+            <span className="text-[10px] text-slate-500">{segments.filter(s => s.tag).length}/{segments.length} tagges · {tagIssues} anomalie(s)</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-xl border border-slate-700 bg-slate-900/60 p-3">
+            <div className="text-[10px] font-black text-cyan-300 uppercase mb-1.5">Services / fluides</div>
+            <div className="space-y-1 max-h-48 overflow-auto">
+              {projectSetup.services.map(sv => (
+                <div key={sv.code} className="flex items-center justify-between text-[10px] text-slate-300">
+                  <span className="font-mono font-bold" style={{ color: sv.color }}>{sv.code}</span>
+                  <span className="text-slate-400">{sv.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="rounded-xl border border-slate-700 bg-slate-900/60 p-3">
+            <div className="text-[10px] font-black text-cyan-300 uppercase mb-1.5">Specs tuyauterie</div>
+            <div className="space-y-1 max-h-48 overflow-auto">
+              {projectSetup.specs.map(sp => (
+                <div key={sp.code} className="flex items-center justify-between text-[10px] text-slate-300">
+                  <span className="font-mono font-bold text-cyan-300">{sp.code}</span>
+                  <span className="text-slate-400">{sp.material} · {sp.pressureClass} · DN{sp.minDn}-{sp.maxDn}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>}
+
     {/* PATCH 016A: bouton BOM & Métré topbar supprimé */}
             <div className="hidden xl:flex items-center gap-3 text-[10px] text-slate-400"><span>{nodes.length} nœuds</span><span>{segments.length} tronçons</span><span className={graphErrorCount?"text-red-400":"text-emerald-400"}>{graphErrorCount?`${graphErrorCount} erreur(s)`:"Graphe valide"}</span></div>
             <button onClick={()=>setCommandPaletteOpen(true)} className="h-8 px-2 rounded-md border border-slate-700 bg-slate-800 text-[10px] font-black" title="Palette commandes">⌘K</button>
@@ -6524,7 +6577,7 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                     {(() => { const pts=isoPolylineV4(s,a,b,viewport.zoom,viewport.panX,viewport.panY); const path=isoPathV4(pts); return <>
                       {sel&&<path d={path} stroke="#38bdf8" strokeWidth={width+8} strokeOpacity=".35" strokeLinecap="round" strokeLinejoin="round" fill="none"/>}
                       {hoveredEntity?.type==="segment"&&hoveredEntity.id===s.id&&!sel&&<path d={path} stroke="#67e8f9" strokeWidth={width+4} strokeOpacity=".3" strokeLinecap="round" strokeLinejoin="round" fill="none"/>}
-                      <path d={path} stroke={segmentStrokeColor(s)} strokeWidth={width} strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                      <path d={path} stroke={s.color||workspaceVisualStyle.defaultPipeColor} strokeWidth={width} strokeLinecap="round" strokeLinejoin="round" fill="none"/>
                     </>; })()}
                     {false&&showDimensions&&showPipeLabels&&s.length>=.5&&<g />}
                     {isoDrawMode==="coude"&&<g data-iso-object="true" transform={`translate(${mx} ${my})`} onClick={e=>{e.stopPropagation();insertGraphicFitting(s.id,fitType.startsWith("coude")?fitType:"coude_90",.5)}} style={{cursor:"crosshair"}}><circle r="14" fill="#f59e0b" fillOpacity=".18" stroke="#fbbf24" strokeDasharray="3 2"/><path d="M-7 7 Q-7 -7 7 -7" stroke="#fbbf24" strokeWidth="2.5" fill="none"/></g>}
@@ -7526,20 +7579,6 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                             <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${!commandPromptHidden ? "translate-x-6" : "translate-x-1"}`} />
                           </button>
                         </div>
-
-                        <div className="flex items-center justify-between gap-4 p-2 rounded-xl hover:bg-slate-900/50 transition-colors">
-                          <div className="space-y-0.5">
-                            <span className="text-xs font-bold text-slate-100 block">Couleur par service</span>
-                            <span className="text-[10px] text-slate-500">Coloration automatique des tubes selon le fluide (CBS).</span>
-                          </div>
-                          <button 
-                            type="button"
-                            onClick={() => setColorByService(!colorByService)}
-                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${colorByService ? "bg-cyan-600" : "bg-slate-700"}`}
-                          >
-                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${colorByService ? "translate-x-6" : "translate-x-1"}`} />
-                          </button>
-                        </div>
                       </div>
                     </div>
                   )}
@@ -8367,84 +8406,6 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
     </div>}
 
 
-
-    {/* PATCH 017B : modal Project Setup repositionne au niveau racine */}
-    {/* PATCH 017A : Project Setup PD&I */}
-    {projectSetupOpen && <div className="fixed inset-0 z-[10060] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-6" onClick={() => setProjectSetupOpen(false)}>
-      <div className="w-full max-w-3xl max-h-[86vh] overflow-auto rounded-2xl border border-cyan-600/50 bg-slate-950 p-5 space-y-4" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-          <div>
-            <div className="text-sm font-black text-cyan-300 uppercase">Project Setup PD&amp;I</div>
-            <div className="text-[10px] text-slate-500">Projet, formats de tag, services et specs — base du BOM et du 3D</div>
-          </div>
-          <button type="button" onClick={() => setProjectSetupOpen(false)} className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-black">Fermer</button>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <label className="space-y-1">
-            <span className="text-[9px] font-black text-slate-400 uppercase">Nom du projet</span>
-            <input value={projectSetup.projectName} onChange={e => setProjectSetup(p => ({ ...p, projectName: e.target.value }))} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[11px] font-bold text-white outline-none" />
-          </label>
-          <label className="space-y-1">
-            <span className="text-[9px] font-black text-slate-400 uppercase">Code projet</span>
-            <input value={projectSetup.projectCode} onChange={e => setProjectSetup(p => ({ ...p, projectCode: e.target.value }))} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[11px] font-mono font-bold text-cyan-300 outline-none" />
-          </label>
-          <label className="space-y-1">
-            <span className="text-[9px] font-black text-slate-400 uppercase">Client</span>
-            <input value={projectSetup.client} onChange={e => setProjectSetup(p => ({ ...p, client: e.target.value }))} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[11px] font-bold text-white outline-none" />
-          </label>
-          <label className="space-y-1">
-            <span className="text-[9px] font-black text-slate-400 uppercase">Standard</span>
-            <select value={projectSetup.standard} onChange={e => setProjectSetup(p => ({ ...p, standard: e.target.value as "ANSI" | "DIN" }))} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[11px] font-bold text-white outline-none">
-              <option value="ANSI">ANSI</option>
-              <option value="DIN">DIN</option>
-            </select>
-          </label>
-        </div>
-
-        <div className="rounded-xl border border-amber-700/50 bg-slate-900/60 p-3 space-y-2">
-          <div className="text-[10px] font-black text-amber-300 uppercase">Format de tag actif</div>
-          <div className="flex items-center gap-2">
-            <select value={projectSetup.tagFormatName} onChange={e => setProjectSetup(p => ({ ...p, tagFormatName: e.target.value }))} className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[11px] font-bold text-white outline-none">
-              {projectSetup.formats.map(f => (<option key={f.name} value={f.name}>{f.name}</option>))}
-            </select>
-            <span className="font-mono text-[11px] text-amber-200 font-bold">
-              {activeTagFormat.parts.map(p => p.field).join(" " + activeTagFormat.separator + " ")}
-            </span>
-          </div>
-          <div className="text-[10px] text-slate-400">Exemple : <span className="font-mono text-amber-300 font-bold">100-HC-001-CS300</span></div>
-          <div className="flex items-center gap-2 pt-1">
-            <button type="button" onClick={autoTagAllSegments} className="px-3 py-1 rounded-lg bg-amber-950/70 hover:bg-amber-900 border border-amber-700/70 text-amber-200 text-[10px] font-black">Tagger tous les troncons</button>
-            <span className="text-[10px] text-slate-500">{segments.filter(s => s.tag).length}/{segments.length} tagges · {tagIssues} anomalie(s)</span>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-xl border border-slate-700 bg-slate-900/60 p-3">
-            <div className="text-[10px] font-black text-cyan-300 uppercase mb-1.5">Services / fluides</div>
-            <div className="space-y-1 max-h-48 overflow-auto">
-              {projectSetup.services.map(sv => (
-                <div key={sv.code} className="flex items-center justify-between text-[10px] text-slate-300">
-                  <span className="font-mono font-bold" style={{ color: sv.color }}>{sv.code}</span>
-                  <span className="text-slate-400">{sv.label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="rounded-xl border border-slate-700 bg-slate-900/60 p-3">
-            <div className="text-[10px] font-black text-cyan-300 uppercase mb-1.5">Specs tuyauterie</div>
-            <div className="space-y-1 max-h-48 overflow-auto">
-              {projectSetup.specs.map(sp => (
-                <div key={sp.code} className="flex items-center justify-between text-[10px] text-slate-300">
-                  <span className="font-mono font-bold text-cyan-300">{sp.code}</span>
-                  <span className="text-slate-400">{sp.material} · {sp.pressureClass} · DN{sp.minDn}-{sp.maxDn}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>}
 
     {/* PATCH 016A — Ligne de commande masquable, non affichée derrière modal */}
     {!propertiesModalOpen && !commandPromptHidden && <div className="fixed left-[92px] right-3 bottom-3 z-[10030] rounded-2xl border border-cyan-500/35 bg-slate-950/96 shadow-2xl backdrop-blur-xl p-1.5 flex items-center gap-2 pdi-command-dock-015">

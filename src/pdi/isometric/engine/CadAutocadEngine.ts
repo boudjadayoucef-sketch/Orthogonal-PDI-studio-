@@ -509,6 +509,15 @@ export const AUTOCAD_COMMANDS: CadCommandItem[] = [
     shortcut: "P",
     icon: "SlidersHorizontal",
   },
+  {
+    id: "colorbyservice",
+    name: "COULEURSERVICE",
+    aliases: ["CBS", "COLORBYSERVICE", "COULEUR_PAR_SERVICE"],
+    description: "Active/désactive la coloration des tronçons par service/fluide",
+    category: "Affichage",
+    shortcut: "CBS",
+    icon: "Eye",
+  },
 ];
 
 /**
