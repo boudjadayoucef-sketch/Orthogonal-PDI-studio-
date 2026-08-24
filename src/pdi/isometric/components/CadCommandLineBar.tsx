@@ -254,43 +254,39 @@ export const CadCommandLineBar: React.FC<CadCommandLineBarProps> = ({
         </div>
       )}
 
-      {/* Main Command Bar Container */}
-      <div className="bg-slate-950/95 backdrop-blur border border-slate-800 hover:border-cyan-500/50 rounded-2xl p-2 shadow-2xl transition-all duration-200">
-        {/* Dynamic prompt and active session indicator - simplified */}
+      {/* Main Command Bar Container - Compact Slim 34px */}
+      <div className="bg-slate-950/95 backdrop-blur border border-cyan-500/40 rounded-xl px-2 py-1 shadow-lg flex items-center gap-2">
+        {/* Dynamic prompt and active session indicator */}
         {cadDraftSession && (
-          <div className="flex items-center justify-between gap-2 px-2 py-1 mb-1.5 bg-slate-900/90 border border-slate-800 rounded-xl text-xs font-mono">
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping shrink-0" />
-              <span className="text-cyan-300 font-bold shrink-0">
-                {`[${cadDraftSession.tool.toUpperCase()}]`}
-              </span>
-              <span className="text-slate-200 truncate font-semibold">
-                {prompt || "Action en cours..."}
-              </span>
-            </div>
-
+          <div className="flex items-center gap-1.5 px-2 py-0.5 bg-slate-900 border border-slate-800 rounded-lg text-xs font-mono shrink-0">
+            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping shrink-0" />
+            <span className="text-cyan-300 font-bold shrink-0 text-[10px]">
+              {`[${cadDraftSession.tool.toUpperCase()}]`}
+            </span>
+            <span className="text-slate-200 truncate font-semibold text-[10px] max-w-[140px]">
+              {prompt || "En cours..."}
+            </span>
             <button
               type="button"
               onClick={onCancelDraft}
-              className="px-2 py-0.5 rounded-md bg-red-950/80 hover:bg-red-900 border border-red-800/80 text-red-300 text-[10px] font-bold flex items-center gap-1 transition-colors"
-              title="Annuler l'action en cours (Échap)"
+              className="px-1 py-0.5 rounded bg-red-950 hover:bg-red-900 border border-red-800 text-red-300 text-[9px] font-bold ml-1"
+              title="Annuler (Échap)"
             >
-              <X className="w-3 h-3" />
-              ANNULER
+              <X className="w-2.5 h-2.5" />
             </button>
           </div>
         )}
 
         {/* Input & Form Controls */}
-        <form onSubmit={handleSubmit} className="flex flex-wrap items-center gap-2">
+        <form onSubmit={handleSubmit} className="flex-1 flex items-center gap-2 min-w-0">
           {/* AutoCAD Prompt Label */}
-          <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-xl text-cyan-400 font-mono text-xs font-black shrink-0 shadow-inner">
-            <Terminal className="w-3.5 h-3.5 text-cyan-400" />
-            <span>COMMANDE &gt;</span>
+          <div className="flex items-center gap-1 px-1.5 py-0.5 bg-slate-900/90 border border-slate-800 rounded-lg text-cyan-400 font-mono text-[10px] font-black shrink-0">
+            <Terminal className="w-3 h-3 text-cyan-400" />
+            <span>CMD &gt;</span>
           </div>
 
           {/* Text Input */}
-          <div className="flex-1 min-w-[200px] relative">
+          <div className="flex-1 min-w-[140px] relative">
             <input
               ref={inputRef}
               type="text"
@@ -302,10 +298,10 @@ export const CadCommandLineBar: React.FC<CadCommandLineBarProps> = ({
               onKeyDown={handleKeyDown}
               placeholder={
                 cadDraftSession
-                  ? "Saisir une valeur ou cliquer sur le dessin (ex: 5.0)..."
-                  : "Tapez une fonction : copier, collez, rectangle, triangle, arc, polygone, deplacer..."
+                  ? "Saisir une valeur ou cliquer sur le dessin..."
+                  : "Tapez une commande (ex: TUBE, COPIER, RECT, DEPLACER, TAGS...)"
               }
-              className="w-full bg-slate-900/90 border border-slate-700/80 focus:border-cyan-400 rounded-xl px-3 py-1.5 text-xs text-slate-100 placeholder-slate-500 font-mono outline-none shadow-inner transition-colors"
+              className="w-full bg-slate-900/90 border border-slate-800 focus:border-cyan-400 rounded-lg px-2.5 py-1 text-xs text-slate-100 placeholder-slate-500 font-mono outline-none transition-colors h-7"
             />
             {input && (
               <button
@@ -314,50 +310,50 @@ export const CadCommandLineBar: React.FC<CadCommandLineBarProps> = ({
                   setInput("");
                   setShowSuggestions(false);
                 }}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
               >
-                <X className="w-3.5 h-3.5" />
+                <X className="w-3 h-3" />
               </button>
             )}
           </div>
 
           {/* Numeric Direct Input for CAD Drawing session */}
           {cadDraftSession && (
-            <div className="flex items-center gap-1.5 bg-slate-900 px-2 py-1 rounded-xl border border-cyan-600/40">
-              <span className="text-[10px] font-mono text-cyan-300 font-bold">
-                {cadDraftSession.tool === "rectangle" ? "L / l :" : "Valeur :"}
+            <div className="flex items-center gap-1 bg-slate-900 px-1.5 py-0.5 rounded-lg border border-cyan-600/40 shrink-0">
+              <span className="text-[9px] font-mono text-cyan-300 font-bold">
+                {cadDraftSession.tool === "rectangle" ? "L/l:" : "Val:"}
               </span>
               <input
                 type="number"
                 step="0.1"
-                placeholder={cadDraftSession.tool === "rectangle" ? "Long." : "Dim."}
+                placeholder={cadDraftSession.tool === "rectangle" ? "L" : "Dim"}
                 value={numericVal1}
                 onChange={(e) => setNumericVal1(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleSubmit();
                 }}
-                className="w-16 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-xs text-cyan-200 font-mono outline-none text-right"
+                className="w-12 bg-slate-950 border border-slate-700 rounded px-1 py-0.5 text-[10px] text-cyan-200 font-mono outline-none text-right h-5"
               />
               {cadDraftSession.tool === "rectangle" && (
                 <input
                   type="number"
                   step="0.1"
-                  placeholder="Larg."
+                  placeholder="l"
                   value={numericVal2}
                   onChange={(e) => setNumericVal2(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") handleSubmit();
                   }}
-                  className="w-16 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-xs text-cyan-200 font-mono outline-none text-right"
+                  className="w-12 bg-slate-950 border border-slate-700 rounded px-1 py-0.5 text-[10px] text-cyan-200 font-mono outline-none text-right h-5"
                 />
               )}
               <button
                 type="button"
                 onClick={() => handleSubmit()}
-                className="px-2 py-1 bg-cyan-600 hover:bg-cyan-500 rounded text-white text-[10px] font-bold"
-                title="Appliquer la valeur"
+                className="px-1.5 py-0.5 bg-cyan-600 hover:bg-cyan-500 rounded text-white text-[9px] font-bold"
+                title="Valider"
               >
-                <Check className="w-3 h-3" />
+                <Check className="w-2.5 h-2.5" />
               </button>
             </div>
           )}
@@ -365,13 +361,12 @@ export const CadCommandLineBar: React.FC<CadCommandLineBarProps> = ({
           {/* Submit Button */}
           <button
             type="submit"
-            className="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 active:bg-cyan-700 text-white rounded-xl text-xs font-bold font-mono flex items-center gap-1 shadow-md transition-colors cursor-pointer"
+            className="px-2 py-1 bg-cyan-600 hover:bg-cyan-500 active:bg-cyan-700 text-white rounded-lg text-[10px] font-bold font-mono flex items-center gap-1 shadow transition-colors cursor-pointer shrink-0 h-7"
           >
             <span>ENTRÉE</span>
-            <CornerDownLeft className="w-3 h-3" />
+            <CornerDownLeft className="w-2.5 h-2.5" />
           </button>
         </form>
-
       </div>
     </div>
   );

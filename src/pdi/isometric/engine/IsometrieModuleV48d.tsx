@@ -5351,7 +5351,7 @@ function IsometrieModule() {
 
   return <div
       data-pdi-studio="v4.8d1"
-      className={`${workspaceFullscreen ? "fixed inset-0 z-[9999] overflow-hidden bg-[#0B0F14] px-2 pb-2 pt-[58px] pl-[92px]" : "w-full"} pdi-studio-root ${workspaceFullscreen ? "h-screen" : "space-y-3"} animate-fade-in`} style={{ "--pdi-command-reserved-bottom": (!propertiesModalOpen && !commandPromptHidden) ? "74px" : "0px" } as React.CSSProperties}
+      className={`${workspaceFullscreen ? "fixed inset-0 z-[9999] overflow-hidden bg-[#0B0F14] px-2 pb-2 pt-[56px] pl-[92px]" : "w-full"} pdi-studio-root ${workspaceFullscreen ? "h-screen" : "space-y-3"} animate-fade-in`} style={{ "--pdi-command-reserved-bottom": !propertiesModalOpen ? "44px" : "0px" } as React.CSSProperties}
     >
       <style>{`
         [data-pdi-studio]{--pdi-bg:#0B0F14;--pdi-panel:#161B22;--pdi-panel2:#1C222B;--pdi-line:#30363D;--pdi-text:#E6EDF3;--pdi-muted:#8B949E;--pdi-blue:#2F81F7;--pdi-cyan:#22D3EE;--pdi-select:#F59E0B;background:var(--pdi-bg)!important;color:var(--pdi-text);font-family:Inter,ui-sans-serif,system-ui,sans-serif}
@@ -6014,7 +6014,7 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
           <div className="flex flex-wrap gap-2"><button type="button" onClick={()=>setPlanPage(1)} className={`px-3 py-1.5 rounded-lg text-[10px] font-bold ${planPage===1?"bg-blue-600 text-white":"bg-slate-100"}`}>Planche 1</button><button type="button" onClick={()=>setPlanPage(2)} className={`px-3 py-1.5 rounded-lg text-[10px] font-bold ${planPage===2?"bg-blue-600 text-white":"bg-slate-100"}`}>Planche 2</button><button type="button" onClick={printPlanSheet} className="px-3 py-1.5 rounded-lg text-[10px] font-black bg-slate-900 text-white"><Printer className="inline w-3 h-3 mr-1"/>Imprimer A3 paysage</button></div>
         </div>}
 
-    <div className={`${workspaceFullscreen ? "h-[calc(100vh-146px)] overflow-hidden" : ""} grid grid-cols-1 lg:grid-cols-12 gap-3 items-start`}>
+    <div className={`${workspaceFullscreen ? "h-[calc(100vh-104px)] overflow-hidden" : ""} grid grid-cols-1 lg:grid-cols-12 gap-2.5 items-stretch`}>
 
       <div className={`${leftPanelOpen?"lg:col-span-3":"hidden"} ${workspaceFullscreen ? "h-full min-h-0 overflow-y-auto pr-1" : "space-y-3 lg:sticky lg:top-16 lg:max-h-[calc(100vh-5rem)] lg:overflow-y-auto lg:pr-1"} space-y-3`}>
 
@@ -6482,9 +6482,9 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
         </div>
       </div>
 
-      <div className={`${leftPanelOpen && (rightPanelOpen && !autoHideRightPanel) ? "lg:col-span-6" : leftPanelOpen || (rightPanelOpen && !autoHideRightPanel) ? "lg:col-span-9" : "lg:col-span-12"} ${workspaceFullscreen ? "h-full min-h-0" : ""}`}>
-        <div className={`${workspaceFullscreen ? "h-full min-h-0 flex flex-col overflow-hidden" : ""} bg-slate-900 rounded-3xl border-2 border-slate-800 p-3 shadow-2xl`}>
-          <div className="flex flex-wrap justify-between gap-2 text-white border-b border-slate-800 pb-3 mb-2">
+      <div className={`${leftPanelOpen && (rightPanelOpen && !autoHideRightPanel) ? "lg:col-span-6" : leftPanelOpen || (rightPanelOpen && !autoHideRightPanel) ? "lg:col-span-9" : "lg:col-span-12"} ${workspaceFullscreen ? "h-full min-h-0 flex flex-col" : ""}`}>
+        <div className={`${workspaceFullscreen ? "h-full min-h-0 flex-1 flex flex-col overflow-hidden" : ""} bg-slate-900 rounded-3xl border-2 border-slate-800 p-2.5 shadow-2xl`}>
+          <div className="flex flex-wrap justify-between gap-2 text-white border-b border-slate-800 pb-2.5 mb-2">
             <div className="flex items-center gap-1.5">
               <button
                 type="button"
@@ -6526,8 +6526,8 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
             </div>
           </div>
 
-          <div className={`${workspaceFullscreen ? "flex-1 min-h-0" : ""} bg-slate-950 rounded-2xl overflow-hidden border border-slate-800 relative`}>
-            <svg ref={svgRef} viewBox="0 0 620 400" className={`${workspaceFullscreen ? "h-full min-h-[360px]" : (commandPromptHidden ? "h-[clamp(600px,88vh,1400px)]" : "h-[clamp(560px,78vh,1000px)]")} w-full select-none touch-none cursor-crosshair`}
+          <div className={`${workspaceFullscreen ? "flex-1 min-h-0 h-full flex flex-col" : ""} bg-slate-950 rounded-2xl overflow-hidden border border-slate-800 relative`}>
+            <svg ref={svgRef} viewBox="0 0 620 400" className={`${workspaceFullscreen ? "h-full w-full flex-1" : (commandPromptHidden ? "h-[clamp(600px,88vh,1400px)]" : "h-[clamp(560px,78vh,1000px)]")} w-full select-none touch-none cursor-crosshair`}
               onWheel={wheel} onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerUp}
               onContextMenu={openIsoContextMenu}
               onDragOver={e=>{e.preventDefault();e.dataTransfer.dropEffect="copy"}} onDrop={dropEquipmentOnCanvas}>
@@ -6547,7 +6547,7 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
               </defs>
               {showGrid && <rect x="-5000" y="-5000" width="10000" height="10000" fill="url(#pdiGridMajor)" opacity="0.88" pointerEvents="none" />}
 
-              {/* PATCH 016B : apercu fantome de la commande guidee */}
+              {/* Apercu fantome de la commande guidee - ligne pleine nette */}
               {guidedPreviewNodes.length > 0 && (
                 <g className="pdi-guided-preview-016b" pointerEvents="none">
                   {segments.filter(sg => guidedPreviewNodes.some(n => n.id === sg.fromNodeId) && guidedPreviewNodes.some(n => n.id === sg.toNodeId)).map(sg => {
@@ -6555,11 +6555,11 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                     const b = guidedPreviewNodes.find(n => n.id === sg.toNodeId)!;
                     const pa = isoProjectV4(a.x, a.y, a.z || 0, viewport.zoom, viewport.panX, viewport.panY);
                     const pb = isoProjectV4(b.x, b.y, b.z || 0, viewport.zoom, viewport.panX, viewport.panY);
-                    return <line key={`gp-${sg.id}`} x1={pa.x} y1={pa.y} x2={pb.x} y2={pb.y} stroke="#f59e0b" strokeWidth="2" strokeDasharray="5 3" opacity="0.9" />;
+                    return <line key={`gp-${sg.id}`} x1={pa.x} y1={pa.y} x2={pb.x} y2={pb.y} stroke="#0ea5e9" strokeWidth="2" opacity="0.9" />;
                   })}
                   {guidedPreviewNodes.map(n => {
                     const p = isoProjectV4(n.x, n.y, n.z || 0, viewport.zoom, viewport.panX, viewport.panY);
-                    return <circle key={`gpn-${n.id}`} cx={p.x} cy={p.y} r="5" fill="none" stroke="#f59e0b" strokeWidth="1.6" strokeDasharray="3 2" />;
+                    return <circle key={`gpn-${n.id}`} cx={p.x} cy={p.y} r="5" fill="none" stroke="#0ea5e9" strokeWidth="1.6" />;
                   })}
                   {guidedCmd?.base && (() => {
                     const pb = isoProjectV4(guidedCmd.base!.x, guidedCmd.base!.y, guidedCmd.base!.z || 0, viewport.zoom, viewport.panX, viewport.panY);
@@ -8571,8 +8571,8 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
       </div>
     </div>}
 
-    {/* PATCH 016A — Ligne de commande masquable, non affichée derrière modal */}
-    {!propertiesModalOpen && !commandPromptHidden && <div className="fixed left-[92px] right-3 bottom-3 z-[10030] rounded-2xl border border-cyan-500/35 bg-slate-950/96 shadow-2xl backdrop-blur-xl p-1.5 flex items-center gap-2 pdi-command-dock-015">
+    {/* Ligne de commande compacte et permanente */}
+    {!propertiesModalOpen && <div className="fixed left-[92px] right-3 bottom-2 z-[10030] rounded-xl border border-cyan-500/30 bg-slate-950/95 shadow-xl backdrop-blur-md px-2 py-1 flex items-center gap-2">
       <div className="flex-1 min-w-0">
         <CadCommandLineBar
           input={autocadCmdInput}
@@ -8584,8 +8584,8 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
           onApplyNumericInput={applyNumericDraftInput}
         />
       </div>
-      <label className="hidden lg:flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-2 py-1 h-9 text-[10px] font-black text-slate-200" title="Épaisseur graphique des lignes de tuyauterie">
-        <span className="text-slate-400">Ép.</span>
+      <label className="hidden lg:flex items-center gap-1.5 rounded-lg border border-slate-800 bg-slate-900 px-2 py-0.5 h-7 text-[10px] font-black text-slate-200" title="Épaisseur graphique des lignes de tuyauterie">
+        <span className="text-slate-400 text-[9px]">Ép.</span>
         <input
           type="range"
           min="0.35"
@@ -8593,12 +8593,11 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
           step="0.05"
           value={pipeStrokeScale}
           onChange={(e) => setPipeStrokeScale(Number(e.target.value))}
-          className="w-24 accent-cyan-400"
+          className="w-16 accent-cyan-400"
         />
-        <span className="w-9 text-right text-cyan-300">{pipeStrokeScale.toFixed(2)}×</span>
+        <span className="w-8 text-right text-cyan-300 text-[10px]">{pipeStrokeScale.toFixed(2)}×</span>
       </label>
     </div>}
-    {!propertiesModalOpen && commandPromptHidden && <button type="button" onClick={() => setCommandPromptHidden(false)} className="fixed left-[92px] bottom-2 z-[10030] rounded-lg border border-cyan-500/35 bg-slate-950/90 px-3 py-1.5 text-[11px] font-black text-cyan-200 shadow-xl">⌨ Commande</button>}
 
     <div className={`hidden pdi-status-docked ${workspaceFullscreen?"fixed bottom-0 left-[92px] right-0 z-[10008] rounded-none":"sticky bottom-2 z-40 rounded-xl"} bg-slate-950 text-slate-200 border border-slate-800 px-3 py-2 flex flex-wrap items-center justify-between gap-2 text-[10px] shadow-lg`}><div className="flex gap-4"><b className="text-emerald-400">● {statusMessage}</b><span className={saveState==="error"?"text-red-400":saveState==="modified"?"text-amber-300":"text-cyan-300"}>{saveState==="modified"?"Modifications non sauvegardées":saveState==="autosaved"?`Autosauvegardé${lastSavedAt?` à ${lastSavedAt}`:""}`:saveState==="error"?"Erreur de sauvegarde":""}</span><span>{nodes.length} nœuds</span><span>{segments.length} tronçons</span><span>{selectedCount} sélectionné(s)</span><span>{selectedCad2dIds.length} objet(s) 2D</span><span className={graphErrorCount?"text-red-400":"text-emerald-400"}>{graphErrorCount?`${graphErrorCount} erreur(s) réseau`:"Graphe valide"}</span><span>{projectJoints.length} joints</span></div><div className="flex gap-3"><span>Outil: <b>{interactionMode==="main"?"MAIN":isoDrawMode.toUpperCase()}</b></span><span>Snap {isoSnapStep} m</span><span>Zoom {Math.round(viewport.zoom*100)}%</span><span>Ctrl+K commandes · ? aide</span></div></div>
   </div>;
