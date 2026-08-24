@@ -1,8 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import L from "leaflet";
-// PATCH 017H2 : CSS leaflet injecte par src/pdiInlineStyles, AVANT Tailwind.
-// (l injection locale arrivait apres Tailwind et cassait la cascade).
+import "leaflet/dist/leaflet.css";
 import { Info, Map as MapIcon, Globe, Layers, Compass, Maximize2, Minimize2, Check, RefreshCw } from "lucide-react";
 import { Project } from "./ProjectManagement";
 

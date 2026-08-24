@@ -22,8 +22,6 @@ export default defineConfig(() => {
     },
     build: {
       chunkSizeWarningLimit: 1200,
-      // PATCH 017H : aucun asset CSS eclate ; les styles sont embarques en JS.
-      cssCodeSplit: false,
       rollupOptions: {
         output: {
           manualChunks(id) {

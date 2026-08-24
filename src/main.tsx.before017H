@@ -1,12 +1,10 @@
-// PATCH 017H : les CSS ne sont plus des assets separes (403 sur /assets/*.css).
-// pdiInlineStyles importe chaque feuille en "?inline" et l injecte au demarrage.
-import "./pdiInlineStyles";
+import "./pdiIsoPrecisionUx.css";
 import "./pdiIsoUxRuntimePatch.js";
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import { ErrorBoundary } from './components/ErrorBoundary.tsx';
-// PATCH 017H : index.css est injecte par ./pdiInlineStyles (bundle JS).
+import './index.css';
 
 // Global error listener for non-React uncaught runtime and resource-loading crashes
 window.addEventListener("error", (event) => {
@@ -138,11 +136,6 @@ async function pdiTryRecoverStylesheet(): Promise<void> {
       });
     }
   } catch {}
-  // PATCH 017H : dernier recours, la route serveur /api/style/main.css
-  // (utile quand /assets/*.css est refuse en 403 par la plateforme).
-  if (injected === 0) {
-    if (pdiInjectStylesheet("/api/style/main.css")) injected += 1;
-  }
   if (injected === 0) {
     console.error(
       "[PD&I 017G] Aucune feuille de styles recuperable. Le bundle CSS n a pas ete " +

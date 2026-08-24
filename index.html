@@ -37,6 +37,80 @@
         50% { opacity: 1; }
       }
     </style>
+    <!-- PATCH 017G : CSS critique en ligne. Sert d ossature minimale quand le
+         bundle Tailwind n est pas livre. N inclut volontairement aucune classe
+         utilitaire Tailwind (dont .hidden) pour ne pas fausser la sonde 017D. -->
+    <style id="pdi-critical-017g">
+      #root { min-height: 100vh; }
+      html.pdi-no-tailwind body {
+        background: #020617;
+        color: #E5EDF8;
+        font-family: system-ui, -apple-system, sans-serif;
+      }
+      html.pdi-no-tailwind .pdi-unified-root {
+        display: grid;
+        grid-template-rows: 72px 40px 1fr;
+        min-height: 100vh;
+      }
+      html.pdi-no-tailwind .pdi-unified-topbar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 0 16px;
+        background: #060B14;
+        border-bottom: 1px solid rgba(103, 232, 249, 0.25);
+      }
+      html.pdi-no-tailwind .pdi-tabsbar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 12px;
+        background: #0B111A;
+        border-bottom: 1px solid rgba(103, 232, 249, 0.2);
+        overflow-x: auto;
+      }
+      html.pdi-no-tailwind .pdi-content {
+        padding: 16px;
+        overflow: auto;
+      }
+      html.pdi-no-tailwind button,
+      html.pdi-no-tailwind .pdi-start-primary {
+        min-height: 30px;
+        padding: 6px 12px;
+        border-radius: 10px;
+        border: 1px solid rgba(103, 232, 249, 0.45);
+        background: #0F172A;
+        color: #E5EDF8;
+        font-size: 12px;
+        font-weight: 800;
+        cursor: pointer;
+      }
+      html.pdi-no-tailwind input,
+      html.pdi-no-tailwind select {
+        padding: 6px 8px;
+        border-radius: 8px;
+        border: 1px solid #334155;
+        background: #0B111A;
+        color: #E5EDF8;
+      }
+      html.pdi-no-tailwind svg { width: 18px; height: 18px; }
+      html.pdi-no-tailwind #pdi-style-alert {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 99999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        padding: 8px 12px;
+        background: #7C2D12;
+        color: #FFEDD5;
+        font-size: 12px;
+        font-weight: 800;
+      }
+    </style>
   </head>
   <body style="background-color: #020617;">
     <div id="root"></div>

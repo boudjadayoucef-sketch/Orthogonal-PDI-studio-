@@ -10,7 +10,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import PdiBrandMark from "../app/PdiBrandMark";
-// PATCH 017H : pdiLandingV4.css est injecte par src/pdiInlineStyles (bundle JS).
+import "./pdiLandingV4.css";
 
 export type PdiLandingV4Props = {
   /** Appele pour entrer dans le logiciel (connexion / demarrage). */

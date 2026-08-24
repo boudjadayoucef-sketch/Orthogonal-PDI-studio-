@@ -1,12 +1,10 @@
-// PATCH 017H : les CSS ne sont plus des assets separes (403 sur /assets/*.css).
-// pdiInlineStyles importe chaque feuille en "?inline" et l injecte au demarrage.
-import "./pdiInlineStyles";
+import "./pdiIsoPrecisionUx.css";
 import "./pdiIsoUxRuntimePatch.js";
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import { ErrorBoundary } from './components/ErrorBoundary.tsx';
-// PATCH 017H : index.css est injecte par ./pdiInlineStyles (bundle JS).
+import './index.css';
 
 // Global error listener for non-React uncaught runtime and resource-loading crashes
 window.addEventListener("error", (event) => {
@@ -88,78 +86,5 @@ function pdiCheckStylesheet(): boolean {
   }
 }
 
-// PATCH 017G : recuperation automatique de la feuille de styles.
-// Cas traite : dist/index.html en cache pointe sur un asset disparu, ou la
-// balise <link> a ete perdue. On relit index.html cote serveur et la sonde
-// /api/health/assets, on injecte les CSS trouves, puis on re-teste.
-let pdiStyleRecoveryAttempts = 0;
-
-function pdiInjectStylesheet(href: string): boolean {
-  try {
-    const already = Array.from(document.querySelectorAll('link[rel="stylesheet"]')).some(
-      (node) => (node as HTMLLinkElement).getAttribute("href") === href
-    );
-    if (already) return false;
-    const link = document.createElement("link");
-    link.rel = "stylesheet";
-    link.href = href;
-    link.setAttribute("data-pdi-recovered", "017G");
-    document.head.appendChild(link);
-    console.warn("[PD&I 017G] Feuille de styles injectee : " + href);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-async function pdiTryRecoverStylesheet(): Promise<void> {
-  if (pdiStyleRecoveryAttempts >= 2) return;
-  pdiStyleRecoveryAttempts += 1;
-  let injected = 0;
-  try {
-    const res = await fetch("/index.html", { cache: "no-store" });
-    if (res.ok) {
-      const html = await res.text();
-      const matches: string[] = html.match(/href="([^"]+\.css)"/g) || [];
-      matches.forEach((raw: string) => {
-        const href = raw.slice(6, -1);
-        if (pdiInjectStylesheet(href)) injected += 1;
-      });
-    }
-  } catch {}
-  try {
-    const res = await fetch("/api/health/assets", { cache: "no-store" });
-    if (res.ok) {
-      const data = await res.json();
-      const list: string[] = Array.isArray(data?.css) ? data.css : [];
-      console.warn("[PD&I 017G] CSS presents dans dist/assets : " + (list.join(", ") || "aucun"));
-      list.forEach((name) => {
-        if (pdiInjectStylesheet("/assets/" + name)) injected += 1;
-      });
-    }
-  } catch {}
-  // PATCH 017H : dernier recours, la route serveur /api/style/main.css
-  // (utile quand /assets/*.css est refuse en 403 par la plateforme).
-  if (injected === 0) {
-    if (pdiInjectStylesheet("/api/style/main.css")) injected += 1;
-  }
-  if (injected === 0) {
-    console.error(
-      "[PD&I 017G] Aucune feuille de styles recuperable. Le bundle CSS n a pas ete " +
-        "genere : relancer npm ci && npm run build, puis verifier dist/assets/*.css."
-    );
-    return;
-  }
-  window.setTimeout(() => {
-    if (!pdiCheckStylesheet()) void pdiTryRecoverStylesheet();
-  }, 400);
-}
-
-window.setTimeout(() => {
-  if (!pdiCheckStylesheet()) void pdiTryRecoverStylesheet();
-}, 700);
-window.addEventListener("load", () =>
-  window.setTimeout(() => {
-    if (!pdiCheckStylesheet()) void pdiTryRecoverStylesheet();
-  }, 250)
-);
+window.setTimeout(pdiCheckStylesheet, 700);
+window.addEventListener("load", () => window.setTimeout(pdiCheckStylesheet, 250));

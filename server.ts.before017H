@@ -304,30 +304,6 @@ async function startServer() {
       }
     });
 
-    // PATCH 017H : route de secours pour les styles. Certaines plateformes
-    // repondent 403 sur /assets/*.css ; /api/* reste accessible. On concatene
-    // les CSS presents dans dist/assets et on les sert en text/css.
-    app.get("/api/style/main.css", (_req, res) => {
-      try {
-        const assetsDir = path.join(distPath, "assets");
-        const files = fs.existsSync(assetsDir)
-          ? fs.readdirSync(assetsDir).filter((f) => f.endsWith(".css"))
-          : [];
-        if (files.length === 0) {
-          res.status(404).type("text/plain").send("Aucun bundle CSS dans dist/assets");
-          return;
-        }
-        const css = files
-          .map((f) => fs.readFileSync(path.join(assetsDir, f), "utf-8"))
-          .join("\n");
-        res.setHeader("Content-Type", "text/css; charset=utf-8");
-        res.setHeader("Cache-Control", "no-store");
-        res.send(css);
-      } catch (err: any) {
-        res.status(500).type("text/plain").send("Erreur lecture CSS: " + String(err));
-      }
-    });
-
     app.get("*", (req, res) => {
       // PATCH 017G : ne jamais renvoyer index.html a la place d un asset.
       // C est ce fallback qui masquait l absence du bundle CSS : le navigateur
