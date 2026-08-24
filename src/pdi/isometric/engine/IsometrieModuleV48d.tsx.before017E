@@ -943,9 +943,7 @@ function migrateProjectFileV474(value:unknown, fallbackOwnerUid = ""):IsoProject
   };
 }
 
-// PATCH 017F1 : le moteur recoit le projet actif de l onglet.
-function IsometrieModule(props: { projectId?: string }) {
-  const projectId = props?.projectId;
+function IsometrieModule() {
   // V4.7.4e_PROFILE_SCOPED_STORAGE : identité et clés par profil.
   // V4.7.4f_PLATFORM_PROFILE_FALLBACK : Firebase Auth reste prioritaire,
   // puis le profil applicatif validé par App.tsx est utilisé en mode fallback.
@@ -957,19 +955,7 @@ function IsometrieModule(props: { projectId?: string }) {
       return typeof profile?.uid==="string"&&profile.uid.trim()?profile.uid.trim():null;
     }catch{return null;}
   };
-  // PATCH 017E : identite locale de secours.
-  // Sans compte Firebase ni profil plateforme, autosavePrefix restait vide et
-  // TOUTE sauvegarde locale etait desactivee : le dessin disparaissait a F5.
-  const readLocalFallbackUid=()=>{
-    try{
-      const existing=localStorage.getItem("pdi.localUid.v1");
-      if(existing&&existing.trim())return existing.trim();
-      const generated="local-"+Math.random().toString(36).slice(2,10)+Date.now().toString(36);
-      localStorage.setItem("pdi.localUid.v1",generated);
-      return generated;
-    }catch{return "local-session";}
-  };
-  const resolveStableUid=()=>auth.currentUser?.uid||readPlatformProfileUid()||readLocalFallbackUid();
+  const resolveStableUid=()=>auth.currentUser?.uid||readPlatformProfileUid();
   const initialAuthUidRef=useRef<string|null>(resolveStableUid());
   const authSeenRef=useRef(false);
   const [authReady,setAuthReady]=useState(false);
@@ -992,11 +978,7 @@ function IsometrieModule(props: { projectId?: string }) {
     window.addEventListener("focus",syncIdentity);
     return()=>{unsubscribe();window.clearInterval(timer);window.removeEventListener("focus",syncIdentity);};
   },[]);
-  // PATCH 017F1 : isolation par projet. Chaque onglet ISO ecrit dans sa propre
-  // cle locale, donc un nouvel onglet demarre sur un plan vierge et deux
-  // projets ne se recouvrent plus jamais.
-  const activeProjectKey=(projectId&&projectId.trim())?projectId.trim():"default";
-  const autosavePrefix=userUid?`isometrie.autosave.v474.user.${userUid}.project.${activeProjectKey}`:"";
+  const autosavePrefix=userUid?`isometrie.autosave.v474.user.${userUid}`:"";
   const AUTOSAVE_CURRENT_KEY=autosavePrefix?`${autosavePrefix}.current`:"";
   const AUTOSAVE_PREVIOUS_KEY=autosavePrefix?`${autosavePrefix}.previous`:"";
   const AUTOSAVE_LEGACY_KEY=autosavePrefix?`${autosavePrefix}.legacy`:"";
@@ -2812,17 +2794,6 @@ function IsometrieModule(props: { projectId?: string }) {
       const next = off ? false : on ? true : !colorByService;
       setColorByService(next);
       setAutocadPrompt("COULEUR PAR SERVICE : " + (next ? "ON" : "OFF") + ".");
-      return;
-    }
-    // PATCH 017F1 : inspecteur cible de l element selectionne (Regle 8).
-    if (["props", "pr", "proprietes", "propriete", "properties"].includes(rawVerb)) {
-      setRightPanelOpen(true);
-      setRightPanelTab("properties");
-      const totalSelected = selectedNodeIds.length + selectedSegmentIds.length + selectedFittingIds.length;
-      setAutocadPrompt(totalSelected === 0
-        ? "PROPS : selectionnez un element sur le plan pour inspecter ses proprietes."
-        : "PROPS : inspecteur ouvert sur " + totalSelected + " element(s).");
-      setStatusMessage("Inspecteur de proprietes ouvert");
       return;
     }
     // PATCH 017C : affichage des tags, renumerotation, gestionnaire de donnees.
@@ -5185,14 +5156,6 @@ function IsometrieModule(props: { projectId?: string }) {
     if(!userUid){
       setSaveState("error");setStatusMessage("Autosauvegarde suspendue · utilisateur non identifié");setRecoveryChecked(true);return;
     }
-    // PATCH 017F1 : migration unique de l ancienne archive globale du profil
-    // vers le projet par defaut, pour ne perdre aucun plan existant.
-    try{
-      if(activeProjectKey==="default"&&!localStorage.getItem(AUTOSAVE_CURRENT_KEY)){
-        const legacyScoped=localStorage.getItem(`isometrie.autosave.v474.user.${userUid}.current`);
-        if(legacyScoped)localStorage.setItem(AUTOSAVE_CURRENT_KEY,legacyScoped);
-      }
-    }catch{}
     let invalidFound=false;
     const tryLoad=(raw:string|null,source:"current"|"previous"|"legacy",storageKey:string)=>{
       if(!raw)return null;
@@ -5215,18 +5178,7 @@ function IsometrieModule(props: { projectId?: string }) {
     let recovered=tryLoad(currentRaw,"current",AUTOSAVE_CURRENT_KEY);
     if(!recovered&&currentRaw)setStatusMessage("Sauvegarde actuelle inutilisable · recherche de la précédente");
     if(!recovered)recovered=tryLoad(localStorage.getItem(AUTOSAVE_PREVIOUS_KEY),"previous",AUTOSAVE_PREVIOUS_KEY);
-    if(recovered&&recovered.source==="current"){
-      // PATCH 017E : la session courante est restauree silencieusement.
-      // Auparavant il fallait confirmer une fenetre de recuperation, donc un
-      // simple F5 affichait un plan vide.
-      try{
-        applyProjectSnapshot(recovered.snapshot,"Session restauree automatiquement");
-        autosaveBaselineRef.current=persistenceFingerprint(recovered.snapshot);
-        setSaveState("autosaved");
-      }catch{
-        setRecoveryCandidate(recovered.snapshot);setRecoverySource(recovered.source);
-      }
-    }else if(recovered){
+    if(recovered){
       setRecoveryCandidate(recovered.snapshot);setRecoverySource(recovered.source);
       if(recovered.source==="previous")setStatusMessage("Sauvegarde précédente récupérée");
     }else if(invalidFound){
@@ -5260,31 +5212,6 @@ function IsometrieModule(props: { projectId?: string }) {
     }catch{setSaveState("error");}},700);
     return()=>clearTimeout(timer);
   }, [authReady, userUid, recoveryChecked, recoveryCandidate, recoveryFailure, projectName, wilaya, pressDesign, lines, nodes, segments, dimensions, cad2dEntities, cad2dLayers, projectSetup, showGrid, showDimensions, showPipeLabels, showLabels, showWelds, isoSnapStep, viewport, workspaceVisualStyle]);
-
-  // PATCH 017E : sauvegarde immediate avant fermeture ou rechargement (F5).
-  // L autosauvegarde differee de 700 ms pouvait perdre les dernieres actions.
-  useEffect(()=>{
-    if(!authReady||!userUid||!recoveryChecked||recoveryCandidate||recoveryFailure)return;
-    const flush=()=>{
-      try{
-        const snapshot=buildProjectFileV474();
-        if(snapshot.model.nodes.length===0&&snapshot.model.segments.length===0)return;
-        const serialized=JSON.stringify(snapshot);
-        const previous=localStorage.getItem(AUTOSAVE_CURRENT_KEY);
-        if(previous&&previous!==serialized)localStorage.setItem(AUTOSAVE_PREVIOUS_KEY,previous);
-        localStorage.setItem(AUTOSAVE_CURRENT_KEY,serialized);
-      }catch{}
-    };
-    const onVisibility=()=>{if(document.visibilityState==="hidden")flush();};
-    window.addEventListener("beforeunload",flush);
-    window.addEventListener("pagehide",flush);
-    document.addEventListener("visibilitychange",onVisibility);
-    return()=>{
-      window.removeEventListener("beforeunload",flush);
-      window.removeEventListener("pagehide",flush);
-      document.removeEventListener("visibilitychange",onVisibility);
-    };
-  },[authReady,userUid,recoveryChecked,recoveryCandidate,recoveryFailure,projectName,lines,nodes,segments,dimensions,cad2dEntities,cad2dLayers,projectSetup,viewport]);
 
   const runWorkspaceCommand=(action:()=>void,label:string)=>{action();setCommandPaletteOpen(false);setStatusMessage(label);};
 
@@ -8298,82 +8225,6 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
           {/* TAB: PROPERTIES */}
           {rightPanelTab === "properties" && (
             <div className="space-y-3 text-xs">
-              {/* PATCH 017F1 : inspecteur cible. Les champs affiches dependent du
-                  type reel de l element selectionne, plus de table generique. */}
-              {(() => {
-                const totalTargeted = selectedNodeIds.length + selectedSegmentIds.length + selectedFittingIds.length;
-                if (totalTargeted !== 1) return null;
-                const line = (label: string, value: string, key: string) => (
-                  <div key={key} className="flex justify-between gap-2 text-[11px]">
-                    <span className="text-slate-400">{label}</span>
-                    <span className="font-bold text-slate-100 text-right">{value}</span>
-                  </div>
-                );
-                if (selectedSegmentIds.length === 1) {
-                  const seg = segments.find((s) => s.id === selectedSegmentIds[0]);
-                  if (!seg) return null;
-                  const rows: Array<[string, string]> = [
-                    ["Tag", String(seg.tag || "non tagge")],
-                    ["Diametre", "DN" + String(seg.dn)],
-                    ["Service / fluide", String(seg.service || "-")],
-                    ["Spec", String(seg.spec || "-")],
-                    ["Materiau", String(seg.material || "-")],
-                    ["Classe", String(seg.pressureClass || seg.pn || "-")],
-                    ["Longueur", (Number(seg.length) || 0).toFixed(3) + " m"],
-                    ["Type", String(seg.type || "-")],
-                    ["Isolation", String(seg.insulation || "-")],
-                    ["Ligne", String(seg.lineId || "-")],
-                    ["Raccords", String((seg.fittings || []).length)],
-                  ];
-                  return (
-                    <div className="p-3 rounded-xl bg-slate-950 border border-cyan-700/70 space-y-1.5">
-                      <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
-                        <span className="text-[10px] font-black text-cyan-400 uppercase">Troncon selectionne</span>
-                        <span className="font-mono text-[9px] text-cyan-300">{seg.id}</span>
-                      </div>
-                      {rows.map(([label, value]) => line(label, value, label))}
-                    </div>
-                  );
-                }
-                const targetedId = selectedNodeIds[0] || selectedFittingIds[0];
-                const node = nodes.find((n) => n.id === targetedId);
-                if (!node) return null;
-                const linked = segments.filter((s) => s.fromNodeId === node.id || s.toNodeId === node.id);
-                const rows: Array<[string, string]> = [
-                  ["Repere", String(node.name || node.id)],
-                  ["Type", String(node.type || "-")],
-                  ["Equipement", String(node.equipmentLabel || node.equipmentType || "-")],
-                  ["Diametre", node.dn ? "DN" + String(node.dn) : "-"],
-                  ["Angle de branche", node.branchAngle != null ? String(node.branchAngle) + " deg" : "-"],
-                  ["Direction de coude", String(node.bendDirection || "-")],
-                  ["Rotation", node.rotation != null ? String(node.rotation) + " deg" : "-"],
-                  ["Miroir", node.mirrored ? "oui" : "non"],
-                  ["Position X / Y / Z", Number(node.x || 0).toFixed(2) + " / " + Number(node.y || 0).toFixed(2) + " / " + Number(node.z || 0).toFixed(2)],
-                  ["Troncons relies", String(linked.length)],
-                  ["Reference", String(node.reference || "-")],
-                  ["Fabricant", String(node.manufacturer || "-")],
-                ];
-                return (
-                  <div className="p-3 rounded-xl bg-slate-950 border border-amber-700/70 space-y-1.5">
-                    <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
-                      <span className="text-[10px] font-black text-amber-400 uppercase">
-                        {selectedFittingIds.length === 1 ? "Raccord selectionne" : "Noeud selectionne"}
-                      </span>
-                      <span className="font-mono text-[9px] text-amber-300">{node.id}</span>
-                    </div>
-                    {rows.map(([label, value]) => line(label, value, label))}
-                    {linked.length > 0 && (
-                      <div className="pt-1.5 border-t border-slate-800 text-[10px] text-slate-400">
-                        {linked.map((s) => (
-                          <button key={s.id} type="button" onClick={() => selectSegmentV44(s.id, false)} className="mr-1 mb-1 px-1.5 py-0.5 rounded bg-slate-900 border border-slate-700 text-slate-300 font-bold">
-                            {s.tag || s.id} · DN{String(s.dn)}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
               {(() => {
                 const totalSel = selectedNodeIds.length + selectedSegmentIds.length + selectedFittingIds.length;
                 if (totalSel > 1) {

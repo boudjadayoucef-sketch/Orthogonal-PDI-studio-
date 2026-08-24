@@ -14,8 +14,7 @@
 import React from "react";
 import IsometrieModule from "./engine/IsometrieModuleV48d";
 
-// PATCH 017F1 : le wrapper transmet le projet de l onglet actif au moteur.
-export default function PdiIsometricEditor(props: { projectId?: string }) {
+export default function PdiIsometricEditor() {
   return (
     <div
       className="pdi-v48d-primary-workspace pdi-isometric-primary-lock pdi-isometric-embedded pdi-isometric-primary-lock pdi-isometric-embedded pdi-isometric-primary-lock"
@@ -27,7 +26,7 @@ export default function PdiIsometricEditor(props: { projectId?: string }) {
         position: "relative",
       }}
     >
-      <IsometrieModule projectId={props.projectId} />
+      <IsometrieModule />
     </div>
   );
 }

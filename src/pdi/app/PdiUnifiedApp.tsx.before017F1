@@ -85,47 +85,6 @@ const PDI_RENDERABLE_MODULES: PdiModule[] = [
   "super_admin_console", "license_keys",
 ];
 
-// PATCH 017F1 : index des projets PD&I de ce poste.
-// Un projet survit a la fermeture de son onglet : il reste ouvrable depuis
-// l ecran Mes projets, avec sa propre sauvegarde locale.
-const PDI_PROJECT_INDEX_KEY = "pdi.projects.index.v1";
-
-type PdiProjectIndexEntry = { projectId: string; title: string; module: PdiModule; updatedAt: string };
-
-function pdiReadProjectIndex(): PdiProjectIndexEntry[] {
-  try {
-    const raw = window.localStorage.getItem(PDI_PROJECT_INDEX_KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter((entry) => entry && typeof entry.projectId === "string");
-  } catch { return []; }
-}
-
-function pdiWriteProjectIndex(entries: PdiProjectIndexEntry[]) {
-  try { window.localStorage.setItem(PDI_PROJECT_INDEX_KEY, JSON.stringify(entries)); } catch {}
-}
-
-function pdiUpsertProject(entry: { projectId: string; title: string; module: PdiModule }) {
-  const list = pdiReadProjectIndex();
-  const now = new Date().toISOString();
-  const found = list.find((item) => item.projectId === entry.projectId);
-  if (found) { found.title = entry.title; found.module = entry.module; found.updatedAt = now; }
-  else list.push({ projectId: entry.projectId, title: entry.title, module: entry.module, updatedAt: now });
-  pdiWriteProjectIndex(list);
-}
-
-function pdiRemoveProject(projectId: string) {
-  pdiWriteProjectIndex(pdiReadProjectIndex().filter((item) => item.projectId !== projectId));
-  try {
-    const doomed: string[] = [];
-    for (let i = 0; i < window.localStorage.length; i++) {
-      const key = window.localStorage.key(i);
-      if (key && key.indexOf(".project." + projectId + ".") !== -1) doomed.push(key);
-    }
-    doomed.forEach((key) => window.localStorage.removeItem(key));
-  } catch {}
-}
-
 // PATCH 017E : sessions locales autosauvegardees par l editeur ISO.
 // Sert d ecran "Mes projets" reel au lieu d un espace vide.
 type PdiLocalSession = {
@@ -323,43 +282,14 @@ export default function PdiUnifiedApp() {
   const [activeTabId, setActiveTabId] = useState<string | null>(() => { try { return window.localStorage.getItem(PDI_ACTIVE_TAB_KEY); } catch { return null; } });
   // PATCH 017E : dock d onglets de l editeur ISO.
   const [isoTabDockOpen, setIsoTabDockOpen] = useState(true);
-  // PATCH 017F1 : projet actif de l onglet, renommage en ligne, rafraichissement
-  // de l ecran Mes projets.
-  const [renamingTabId, setRenamingTabId] = useState<string | null>(null);
-  const [renameDraft, setRenameDraft] = useState("");
-  const [projectsRefresh, setProjectsRefresh] = useState(0);
-  const activeWorkspaceTab = workspaceTabs.find((t) => t.id === activeTabId) || null;
-  const activeProjectId = activeWorkspaceTab?.projectId || "default";
-  const beginRenameTab = (tab: PdiWorkspaceTab) => { setRenamingTabId(tab.id); setRenameDraft(tab.title); };
-  const commitRenameTab = (id: string) => {
-    const cleaned = renameDraft.trim();
-    setRenamingTabId(null);
-    if (!cleaned) return;
-    const tabs = workspaceTabs.map((t) => (t.id === id ? { ...t, title: cleaned } : t));
-    setWorkspaceTabs(tabs);
-    persistTabs(tabs, activeTabId);
-    const target = tabs.find((t) => t.id === id);
-    if (target) pdiUpsertProject({ projectId: target.projectId, title: cleaned, module: target.module });
-    setProjectsRefresh((v) => v + 1);
-  };
-  const openProjectInTab = (entry: { projectId: string; title: string; module: PdiModule }) => {
-    const existing = workspaceTabs.find((t) => t.projectId === entry.projectId);
-    if (existing) { switchTab(existing.id); return; }
-    openModuleInTab(entry.module || "isometric", entry.title, entry.projectId);
-  };
   const persistTabs = (tabs: PdiWorkspaceTab[], id: string | null) => { try { window.localStorage.setItem(PDI_TABS_KEY, JSON.stringify(tabs)); if(id) window.localStorage.setItem(PDI_ACTIVE_TAB_KEY,id); } catch {} };
   const canOpenWorkspaceModule = authMode === "demo" || authMode === "client" || authMode === "admin" || authMode === "super_admin";
-  const openModuleInTab = (module: PdiModule, title?: string, projectId?: string) => {
+  const openModuleInTab = (module: PdiModule, title?: string) => {
     if (!canOpenWorkspaceModule && module !== "home") { setAuthPanelMode("login"); setActiveModule("home"); return; }
     if (module === "home") { setActiveModule("home"); return; }
     const id = `tab-${Date.now().toString(36)}`;
-    // PATCH 017F1 : un onglet = un projet identifie, reutilisable et renommable.
-    const resolvedTitle = title || navItems.find(x=>x.id===module)?.title || "Projet PD&I";
-    const resolvedProjectId = projectId || `project-${Date.now().toString(36)}`;
-    const next: PdiWorkspaceTab = { id, title: resolvedTitle, module, projectId: resolvedProjectId, dirty: false, createdAt: new Date().toISOString() };
+    const next: PdiWorkspaceTab = { id, title: title || navItems.find(x=>x.id===module)?.title || "Projet PD&I", module, projectId: `project-${Date.now().toString(36)}`, dirty: false, createdAt: new Date().toISOString() };
     const tabs = [...workspaceTabs, next]; setWorkspaceTabs(tabs); setActiveTabId(id); setActiveModule(module); persistTabs(tabs,id);
-    pdiUpsertProject({ projectId: resolvedProjectId, title: resolvedTitle, module });
-    setProjectsRefresh((v) => v + 1);
   };
   const switchTab = (id: string) => { const tab = workspaceTabs.find(t=>t.id===id); if(!tab) return; setActiveTabId(id); setActiveModule(tab.module); persistTabs(workspaceTabs,id); };
   const closeTab = (id: string) => { const tabs = workspaceTabs.filter(t=>t.id!==id); const next = tabs[tabs.length-1] || null; setWorkspaceTabs(tabs); setActiveTabId(next?.id || null); setActiveModule(next?.module || "home"); persistTabs(tabs,next?.id || null); };
@@ -484,11 +414,8 @@ export default function PdiUnifiedApp() {
         <button type="button" onClick={() => setIsoTabDockOpen(v => !v)} title="Onglets PD&I" style={{ border: "1px solid rgba(103,232,249,.35)", background: "linear-gradient(135deg,#0284C7,#22D3EE)", color: "white", borderRadius: 8, height: 24, padding: "0 8px", fontSize: 10, fontWeight: 900, cursor: "pointer" }}>
           {isoTabDockOpen ? "▾" : "▸"} ONGLETS ({workspaceTabs.length})
         </button>
-        {isoTabDockOpen && workspaceTabs.map(tab => renamingTabId === tab.id ? (
-          /* PATCH 017F1 : saisie directe du nom de l onglet. */
-          <input key={tab.id} autoFocus defaultValue={tab.title} onChange={(e) => setRenameDraft(e.target.value)} onBlur={() => commitRenameTab(tab.id)} onKeyDown={(e) => { if (e.key === "Enter") commitRenameTab(tab.id); if (e.key === "Escape") setRenamingTabId(null); }} style={{ height: 24, minWidth: 150, borderRadius: 8, border: "1px solid #67E8F9", background: "#0B111A", color: "#E5EDF8", fontSize: 10, fontWeight: 900, padding: "0 8px", outline: "none" }} />
-        ) : (
-          <button key={tab.id} type="button" onClick={() => switchTab(tab.id)} onDoubleClick={() => beginRenameTab(tab)} title={tab.title + " - double-clic pour renommer"} style={{ border: activeTabId === tab.id ? "1px solid #67E8F9" : "1px solid #263241", background: activeTabId === tab.id ? "linear-gradient(135deg,#0284C7,#22D3EE)" : "#111827", color: activeTabId === tab.id ? "white" : "#CBD5E1", borderRadius: 8, height: 24, padding: "0 8px", fontSize: 10, fontWeight: 900, whiteSpace: "nowrap", cursor: "pointer" }}>
+        {isoTabDockOpen && workspaceTabs.map(tab => (
+          <button key={tab.id} type="button" onClick={() => switchTab(tab.id)} title={tab.title} style={{ border: activeTabId === tab.id ? "1px solid #67E8F9" : "1px solid #263241", background: activeTabId === tab.id ? "linear-gradient(135deg,#0284C7,#22D3EE)" : "#111827", color: activeTabId === tab.id ? "white" : "#CBD5E1", borderRadius: 8, height: 24, padding: "0 8px", fontSize: 10, fontWeight: 900, whiteSpace: "nowrap", cursor: "pointer" }}>
             {tab.title}
             <span onClick={(e) => { e.stopPropagation(); closeTab(tab.id); }} style={{ marginLeft: 6, opacity: .7 }}>×</span>
           </button>
@@ -496,10 +423,7 @@ export default function PdiUnifiedApp() {
         {isoTabDockOpen && <button type="button" onClick={() => openModuleInTab("isometric", "Nouveau plan ISO")} title="Nouvel onglet ISO" style={{ border: "1px solid #263241", background: "#111827", color: "#CBD5E1", borderRadius: 8, height: 24, minWidth: 26, fontSize: 12, fontWeight: 900, cursor: "pointer" }}>+</button>}
         {isoTabDockOpen && <button type="button" onClick={() => setActiveModule("projects")} title="Mes projets PD&I" style={{ border: "1px solid #263241", background: "#111827", color: "#CBD5E1", borderRadius: 8, height: 24, padding: "0 8px", fontSize: 10, fontWeight: 900, cursor: "pointer" }}>PROJETS</button>}
       </div>
-      {/* PATCH 017F1 : remontage propre du moteur a chaque changement de projet. */}
-      <div key={activeProjectId} style={{ width: "100%", height: "100%" }}>
-        <PdiIsometricEditor projectId={activeProjectId} />
-      </div>
+      <PdiIsometricEditor />
     </PdiModuleErrorBoundary>
   );
 
@@ -513,9 +437,7 @@ export default function PdiUnifiedApp() {
       {/* PATCH 017E : barre d onglets toujours visible et directement accessible. */}
       <div className="pdi-tabsbar">
         <span style={{ color: "#64748B", fontSize: 10, fontWeight: 900, letterSpacing: ".08em", marginRight: 4 }}>ONGLETS</span>
-        {workspaceTabs.map(tab => renamingTabId === tab.id
-          ? <input key={tab.id} autoFocus defaultValue={tab.title} onChange={(e) => setRenameDraft(e.target.value)} onBlur={() => commitRenameTab(tab.id)} onKeyDown={(e) => { if (e.key === "Enter") commitRenameTab(tab.id); if (e.key === "Escape") setRenamingTabId(null); }} style={{ height: 24, minWidth: 140, borderRadius: 8, border: "1px solid #67E8F9", background: "#0B111A", color: "#E5EDF8", fontSize: 11, fontWeight: 800, padding: "0 8px", outline: "none" }} />
-          : <button key={tab.id} className={activeTabId===tab.id?"active":""} onClick={()=>switchTab(tab.id)} onDoubleClick={() => beginRenameTab(tab)} title={tab.title + " - double-clic pour renommer"}>{tab.title}<span onClick={(e)=>{e.stopPropagation(); closeTab(tab.id)}}>×</span></button>)}
+        {workspaceTabs.map(tab=><button key={tab.id} className={activeTabId===tab.id?"active":""} onClick={()=>switchTab(tab.id)} title={tab.title}>{tab.title}<span onClick={(e)=>{e.stopPropagation(); closeTab(tab.id)}}>×</span></button>)}
         {workspaceTabs.length===0 && <span style={{ color: "#64748B", fontSize: 11, fontWeight: 800 }}>Aucun onglet ouvert - cliquez sur + pour un nouveau plan ISO</span>}
         <button className="plus" onClick={()=>openModuleInTab("isometric","Nouveau plan ISO")} title="Nouvel onglet ISO">+</button>
         <button className="plus" style={{ minWidth: 70 }} onClick={()=>setActiveModule("projects")} title="Mes projets PD&I">Projets</button>
@@ -619,21 +541,7 @@ export default function PdiUnifiedApp() {
 
         {/* PATCH 017E : ecran "Mes projets" reel, alimente par les sessions locales. */}
         {activeModule === "projects" && <ComingSoonPanel title="Mes projets PD&I">
-          <p>Projets PD&I de ce poste. Chaque projet possede son propre plan et sa propre sauvegarde locale. Double-cliquez sur le titre d un onglet pour le renommer.</p>
-          {/* PATCH 017F1 : index des projets, independant des onglets ouverts. */}
-          <div key={projectsRefresh} style={{ display: "grid", gap: 8, marginTop: 12 }}>
-            {pdiReadProjectIndex().length === 0 && <span style={{ color: "#94A3B8", fontWeight: 800 }}>Aucun projet enregistre. Cliquez sur Nouveau plan ISO.</span>}
-            {pdiReadProjectIndex().map(entry => (
-              <div key={entry.projectId} style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, border: "1px solid rgba(103,232,249,.35)", borderRadius: 14, padding: "10px 12px", background: "#0B111A" }}>
-                <b style={{ color: "#E5EDF8" }}>{entry.title}</b>
-                <span style={{ color: "#64748B", fontSize: 10, fontWeight: 800 }}>{entry.projectId}</span>
-                <span style={{ color: "#94A3B8", fontSize: 11, fontWeight: 800 }}>{String(entry.updatedAt).slice(0, 16).replace("T", " ")}</span>
-                <button type="button" className="pdi-start-primary" style={{ marginLeft: "auto", padding: "8px 12px" }} onClick={() => openProjectInTab(entry)}>Ouvrir</button>
-                <button type="button" style={{ padding: "8px 12px", borderRadius: 10, border: "1px solid #7F1D1D", background: "#1F0B0B", color: "#FCA5A5", fontSize: 11, fontWeight: 900, cursor: "pointer" }} onClick={() => { if (window.confirm("Supprimer definitivement le projet \"" + entry.title + "\" et sa sauvegarde locale ?")) { pdiRemoveProject(entry.projectId); setProjectsRefresh((v) => v + 1); } }}>Supprimer</button>
-              </div>
-            ))}
-          </div>
-          <p style={{ marginTop: 16 }}>Sauvegardes locales detectees sur ce poste :</p>
+          <p>Sessions enregistrees sur ce poste. L editeur restaure automatiquement la derniere session au rechargement (F5).</p>
           <div style={{ display: "grid", gap: 8, marginTop: 14 }}>
             {pdiListLocalSessions().length === 0 && <span style={{ color: "#94A3B8", fontWeight: 800 }}>Aucune session enregistree pour le moment. Dessinez un tronçon dans l editeur ISO : la sauvegarde locale est automatique.</span>}
             {pdiListLocalSessions().map(session => (

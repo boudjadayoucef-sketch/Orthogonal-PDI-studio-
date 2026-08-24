@@ -575,15 +575,6 @@ export const AUTOCAD_COMMANDS: CadCommandItem[] = [
     icon: "Check",
   },
   {
-    id: "props",
-    name: "PROPS",
-    aliases: ["PROPS", "PR", "PROPRIETES", "PROPRIETE", "PROPERTIES"],
-    description: "Ouvre l inspecteur de proprietes de l element selectionne",
-    category: "Affichage",
-    shortcut: "PR",
-    icon: "Info",
-  },
-  {
     id: "tagdisplay",
     name: "TAGDISPLAY",
     aliases: ["TAGDISPLAY", "TD", "AFFICHETAG", "TAGON"],
