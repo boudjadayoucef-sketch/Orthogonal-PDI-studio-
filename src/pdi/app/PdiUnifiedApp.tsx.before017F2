@@ -134,8 +134,6 @@ type PdiLocalSession = {
   nodes: number;
   segments: number;
   updatedAt: string;
-  // PATCH 017F2 : chaque sauvegarde sait a quel projet elle appartient.
-  projectId: string;
   archive: boolean;
 };
 
@@ -145,11 +143,9 @@ function pdiListLocalSessions(): PdiLocalSession[] {
     for (let i = 0; i < window.localStorage.length; i++) {
       const key = window.localStorage.key(i);
       if (!key || key.indexOf("isometrie.autosave.") !== 0) continue;
-      // PATCH 017F2 : les archives ".previous" ne sont plus listees. Elles
-      // dupliquaient chaque projet et rendaient l ouverture ambigue.
       const isCurrent = key.slice(-8) === ".current";
-      if (!isCurrent) continue;
-      const isPrevious = false;
+      const isPrevious = key.slice(-9) === ".previous";
+      if (!isCurrent && !isPrevious) continue;
       const raw = window.localStorage.getItem(key);
       if (!raw) continue;
       try {
@@ -157,13 +153,8 @@ function pdiListLocalSessions(): PdiLocalSession[] {
         const nodes = Array.isArray(snap?.model?.nodes) ? snap.model.nodes.length : 0;
         const segments = Array.isArray(snap?.model?.segments) ? snap.model.segments.length : 0;
         if (nodes === 0 && segments === 0) continue;
-        // PATCH 017F2 : identification du projet porteur de la sauvegarde.
-        const marker = ".project.";
-        const at = key.indexOf(marker);
-        const projectId = at >= 0 ? key.slice(at + marker.length, key.lastIndexOf(".")) : "default";
         out.push({
           key,
-          projectId,
           name: String(snap?.project?.name || "Projet isometrique"),
           nodes,
           segments,
@@ -173,33 +164,7 @@ function pdiListLocalSessions(): PdiLocalSession[] {
       } catch {}
     }
   } catch {}
-  // PATCH 017F2 : une seule ligne par projet, la plus recente.
-  const sorted = out.sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1));
-  const seen: Record<string, boolean> = {};
-  return sorted.filter((session) => {
-    if (seen[session.projectId]) return false;
-    seen[session.projectId] = true;
-    return true;
-  });
-}
-
-// PATCH 017F2 : une sauvegarde locale sans entree d index (plan dessine avant
-// 017F1, ou projet supprime de l index par erreur) devient un projet visible.
-function pdiAdoptOrphanSessions(): number {
-  let added = 0;
-  try {
-    const index = pdiReadProjectIndex();
-    pdiListLocalSessions().forEach((session) => {
-      if (index.some((entry) => entry.projectId === session.projectId)) return;
-      pdiUpsertProject({
-        projectId: session.projectId,
-        title: session.name || "Projet isometrique",
-        module: "isometric",
-      });
-      added += 1;
-    });
-  } catch {}
-  return added;
+  return out.sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1));
 }
 const pdiSafeModule = (value: unknown, fallback: PdiModule): PdiModule => {
   return PDI_RENDERABLE_MODULES.includes(value as PdiModule) ? (value as PdiModule) : fallback;
@@ -688,15 +653,13 @@ export default function PdiUnifiedApp() {
                 <b style={{ color: "#E5EDF8" }}>{session.name}</b>
                 <span style={{ color: "#67E8F9", fontWeight: 900, fontSize: 11 }}>{session.nodes} noeuds · {session.segments} tronçons</span>
                 <span style={{ color: "#94A3B8", fontSize: 11, fontWeight: 800 }}>{session.updatedAt}</span>
-                <span style={{ color: "#64748B", fontSize: 10, fontWeight: 800, textTransform: "uppercase" }}>{"projet " + session.projectId}</span>
-                <button type="button" className="pdi-start-primary" style={{ marginLeft: "auto", padding: "8px 12px" }} onClick={() => openProjectInTab({ projectId: session.projectId, title: session.name || "Projet isometrique", module: "isometric" })}>Ouvrir dans son onglet</button>
+                <span style={{ color: "#64748B", fontSize: 10, fontWeight: 800, textTransform: "uppercase" }}>{session.archive ? "archive precedente" : "session courante"}</span>
+                <button type="button" className="pdi-start-primary" style={{ marginLeft: "auto", padding: "8px 12px" }} onClick={() => setActiveModule("isometric")}>Ouvrir dans l editeur</button>
               </div>
             ))}
           </div>
           <div style={{ marginTop: 16, display: "flex", gap: 8, flexWrap: "wrap" }}>
             <button type="button" className="pdi-start-primary" onClick={() => openModuleInTab("isometric", "Nouveau plan ISO")}>Nouveau plan ISO</button>
-            {/* PATCH 017F2 : recuperation des sauvegardes orphelines. */}
-            <button type="button" className="pdi-start-primary" onClick={() => { const added = pdiAdoptOrphanSessions(); setProjectsRefresh((v) => v + 1); window.alert(added > 0 ? added + " projet(s) recupere(s) depuis les sauvegardes locales." : "Aucune sauvegarde orpheline a recuperer."); }}>Recuperer les sauvegardes orphelines</button>
           </div>
         </ComingSoonPanel>}
 

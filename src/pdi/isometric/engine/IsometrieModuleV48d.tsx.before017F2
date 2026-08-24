@@ -53,7 +53,6 @@ import {
   pdiBuildTag,
   pdiFindSpec,
   pdiNextTagNumber,
-  pdiSpecAllowsDn,
   pdiValidateTag,
 } from "./pdiTagging";
 import type { PdiProjectSetup } from "./pdiTagging";
@@ -2644,43 +2643,6 @@ function IsometrieModule(props: { projectId?: string }) {
   const defaultService = projectSetup.services[0] ? projectSetup.services[0].code : "HC";
   const defaultSpec = projectSetup.specs[0] ? projectSetup.specs[0].code : "CS150";
 
-  // PATCH 017F2 : edition en place d un troncon depuis l inspecteur, refusee
-  // si la spec du projet n admet pas le diametre demande.
-  const applySegmentEdit017F2 = (
-    id: string,
-    patch: { dn?: number; service?: string; spec?: string; length?: number }
-  ) => {
-    const target = segments.find((s) => s.id === id);
-    if (!target) return;
-    const nextDn = patch.dn != null && Number.isFinite(patch.dn) ? Math.round(patch.dn) : Number(target.dn);
-    if (!(nextDn > 0)) {
-      setStatusMessage("Diametre invalide : une valeur superieure a 0 est attendue");
-      return;
-    }
-    const nextSpecCode = patch.spec != null ? patch.spec : (target.spec || "");
-    const specObj = nextSpecCode ? pdiFindSpec(projectSetup, nextSpecCode) : undefined;
-    if (specObj && !pdiSpecAllowsDn(specObj, nextDn)) {
-      setStatusMessage(
-        "Refuse : la spec " + specObj.code + " n admet que DN" + specObj.minDn + " a DN" + specObj.maxDn
-      );
-      return;
-    }
-    const anySpec = specObj as any;
-    setSegments((prev) => prev.map((s) => {
-      if (s.id !== id) return s;
-      const updated: any = { ...s, dn: nextDn };
-      if (patch.service != null) updated.service = patch.service || undefined;
-      if (patch.spec != null) {
-        updated.spec = patch.spec || undefined;
-        if (anySpec && anySpec.material) updated.material = anySpec.material;
-        if (anySpec && anySpec.pressureClass) updated.pressureClass = anySpec.pressureClass;
-      }
-      if (patch.length != null && Number.isFinite(patch.length) && patch.length > 0) updated.length = patch.length;
-      return updated;
-    }));
-    setStatusMessage("Troncon " + (target.tag || id) + " mis a jour");
-  };
-
   const targetSegmentIds = () => {
     if (selectedSegmentIds.length > 0) return selectedSegmentIds;
     if (selectedSegmentId) return [selectedSegmentId];
@@ -3323,14 +3285,6 @@ function IsometrieModule(props: { projectId?: string }) {
       const target = e.target as HTMLElement;
       const isInput = target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT" || target.isContentEditable);
 
-      // PATCH 017F2 : Ctrl+1 ouvre l inspecteur de proprietes.
-      if ((e.ctrlKey || e.metaKey) && e.key === "1") {
-        e.preventDefault();
-        setRightPanelOpen(true);
-        setRightPanelTab("properties");
-        setStatusMessage("Inspecteur de proprietes ouvert");
-        return;
-      }
       // PATCH 016B : Echap annule d'abord la commande guidee.
       if (e.key === "Escape" && guidedCmd) {
         e.preventDefault();
@@ -8393,60 +8347,6 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                         <span className="font-mono text-[9px] text-cyan-300">{seg.id}</span>
                       </div>
                       {rows.map(([label, value]) => line(label, value, label))}
-                      {/* PATCH 017F2 : edition en place validee par la spec du projet. */}
-                      <div className="pt-1.5 border-t border-slate-800 grid grid-cols-2 gap-1.5">
-                        <label className="text-[9px] font-black text-slate-400 uppercase">
-                          DN
-                          <input
-                            key={"dn-" + seg.id + "-" + String(seg.dn)}
-                            type="number"
-                            defaultValue={String(seg.dn)}
-                            onBlur={(e) => applySegmentEdit017F2(seg.id, { dn: Number(e.target.value) })}
-                            onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
-                            className="w-full mt-0.5 px-1.5 py-1 rounded bg-slate-900 border border-slate-700 text-slate-100 text-[11px] font-bold"
-                          />
-                        </label>
-                        <label className="text-[9px] font-black text-slate-400 uppercase">
-                          Longueur (m)
-                          <input
-                            key={"len-" + seg.id + "-" + String(seg.length)}
-                            type="number"
-                            step="0.001"
-                            defaultValue={String(Number(seg.length) || 0)}
-                            onBlur={(e) => applySegmentEdit017F2(seg.id, { length: Number(e.target.value) })}
-                            onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
-                            className="w-full mt-0.5 px-1.5 py-1 rounded bg-slate-900 border border-slate-700 text-slate-100 text-[11px] font-bold"
-                          />
-                        </label>
-                        <label className="text-[9px] font-black text-slate-400 uppercase">
-                          Service
-                          <select
-                            value={String(seg.service || "")}
-                            onChange={(e) => applySegmentEdit017F2(seg.id, { service: e.target.value })}
-                            className="w-full mt-0.5 px-1.5 py-1 rounded bg-slate-900 border border-slate-700 text-slate-100 text-[11px] font-bold"
-                          >
-                            <option value="">-</option>
-                            {projectSetup.services.map((sv) => (
-                              <option key={sv.code} value={sv.code}>{sv.code}</option>
-                            ))}
-                          </select>
-                        </label>
-                        <label className="text-[9px] font-black text-slate-400 uppercase">
-                          Spec
-                          <select
-                            value={String(seg.spec || "")}
-                            onChange={(e) => applySegmentEdit017F2(seg.id, { spec: e.target.value })}
-                            className="w-full mt-0.5 px-1.5 py-1 rounded bg-slate-900 border border-slate-700 text-slate-100 text-[11px] font-bold"
-                          >
-                            <option value="">-</option>
-                            {projectSetup.specs.map((sp) => (
-                              <option key={sp.code} value={sp.code}>
-                                {sp.code + " (DN" + sp.minDn + "-" + sp.maxDn + ")"}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                      </div>
                     </div>
                   );
                 }
@@ -8485,57 +8385,6 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                           </button>
                         ))}
                       </div>
-                    )}
-                  </div>
-                );
-              })()}
-              {/* PATCH 017F2 : volet Anomalies cliquable. */}
-              {(() => {
-                const issues: Array<{ id: string; kind: "segment" | "node"; label: string }> = [];
-                segments.forEach((s) => {
-                  const specObj = s.spec ? pdiFindSpec(projectSetup, s.spec) : undefined;
-                  if (specObj && !pdiSpecAllowsDn(specObj, Number(s.dn))) {
-                    issues.push({ id: s.id, kind: "segment", label: "DN" + String(s.dn) + " hors spec " + specObj.code });
-                  }
-                  if (!s.tag) issues.push({ id: s.id, kind: "segment", label: "Troncon non tagge" });
-                  if (!(Number(s.length) > 0)) issues.push({ id: s.id, kind: "segment", label: "Longueur nulle" });
-                });
-                nodes.forEach((n) => {
-                  const linked = segments.filter((s) => s.fromNodeId === n.id || s.toNodeId === n.id).length;
-                  if (linked === 0) issues.push({ id: n.id, kind: "node", label: "Noeud isole" });
-                  else if (n.type === "tee" && linked < 3) {
-                    issues.push({ id: n.id, kind: "node", label: "Te incomplet (" + String(linked) + " branche(s))" });
-                  }
-                });
-                return (
-                  <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5">
-                    <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
-                      <span className="text-[10px] font-black text-amber-300 uppercase">Anomalies</span>
-                      <span className={`font-mono text-[10px] font-black px-2 py-0.5 rounded border ${issues.length === 0 ? "text-emerald-300 border-emerald-800 bg-emerald-950" : "text-amber-300 border-amber-800 bg-amber-950"}`}>
-                        {issues.length}
-                      </span>
-                    </div>
-                    {issues.length === 0 && (
-                      <div className="text-[11px] text-emerald-300 font-bold">Aucune anomalie detectee.</div>
-                    )}
-                    {issues.slice(0, 40).map((issue, idx) => (
-                      <button
-                        key={issue.kind + issue.id + String(idx)}
-                        type="button"
-                        onClick={() => {
-                          if (issue.kind === "segment") selectSegmentV44(issue.id, false);
-                          else selectNodeV44(issue.id, false);
-                          setRightPanelOpen(true);
-                          setRightPanelTab("properties");
-                        }}
-                        className="w-full text-left px-1.5 py-1 rounded bg-slate-900 border border-slate-700 hover:border-amber-600 text-[10px] font-bold text-slate-300"
-                      >
-                        <span className="text-amber-300">{issue.label}</span>
-                        <span className="font-mono text-slate-500"> · {issue.id}</span>
-                      </button>
-                    ))}
-                    {issues.length > 40 && (
-                      <div className="text-[10px] text-slate-500 font-bold">... et {issues.length - 40} autre(s).</div>
                     )}
                   </div>
                 );
