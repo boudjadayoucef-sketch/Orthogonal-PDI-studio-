@@ -256,21 +256,6 @@ export const CadCommandLineBar: React.FC<CadCommandLineBarProps> = ({
 
       {/* Main Command Bar Container - Compact Slim 34px */}
       <div className="bg-slate-950/95 backdrop-blur border border-cyan-500/40 rounded-xl px-2 py-1 shadow-lg flex items-center gap-2">
-        {/* PATCH 017I3 : retour de commande permanent. Auparavant le prompt
-            n etait affiche que pendant une session de dessin, donc toute
-            commande qui repond par un texte restait muette. */}
-        {!cadDraftSession && prompt && (
-          <div
-            className="hidden md:flex items-center gap-1.5 px-2 py-0.5 bg-slate-900 border border-slate-800 rounded-lg shrink-0 max-w-[42%]"
-            title={prompt}
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 shrink-0" />
-            <span className="text-slate-200 truncate font-semibold text-[10px] font-mono">
-              {prompt}
-            </span>
-          </div>
-        )}
-
         {/* Dynamic prompt and active session indicator */}
         {cadDraftSession && (
           <div className="flex items-center gap-1.5 px-2 py-0.5 bg-slate-900 border border-slate-800 rounded-lg text-xs font-mono shrink-0">

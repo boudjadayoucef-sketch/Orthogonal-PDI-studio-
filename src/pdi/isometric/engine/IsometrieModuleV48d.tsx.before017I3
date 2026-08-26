@@ -6871,8 +6871,8 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                     onPointerEnter={()=>setHoveredEntity({ type: "segment", id: s.id })}
                     onPointerLeave={()=>setHoveredEntity(null)}>
                     {(() => { const pts=isoPolylineV4(s,a,b,viewport.zoom,viewport.panX,viewport.panY); const path=isoPathV4(pts); return <>
-                      {sel&&<path d={path} stroke="#38bdf8" strokeWidth={width+5} strokeOpacity=".16" strokeLinecap="round" strokeLinejoin="round" fill="none"/>}
-                      {hoveredEntity?.type==="segment"&&hoveredEntity.id===s.id&&!sel&&<path d={path} stroke="#67e8f9" strokeWidth={width+3} strokeOpacity=".12" strokeLinecap="round" strokeLinejoin="round" fill="none"/>}
+                      {sel&&<path d={path} stroke="#38bdf8" strokeWidth={width+8} strokeOpacity=".35" strokeLinecap="round" strokeLinejoin="round" fill="none"/>}
+                      {hoveredEntity?.type==="segment"&&hoveredEntity.id===s.id&&!sel&&<path d={path} stroke="#67e8f9" strokeWidth={width+4} strokeOpacity=".3" strokeLinecap="round" strokeLinejoin="round" fill="none"/>}
                       <path d={path} stroke={segmentStrokeColor(s)} strokeWidth={width} strokeLinecap="round" strokeLinejoin="round" fill="none"/>
                     </>; })()}
                     {/* PATCH 017C : tag industriel affiche sur le plan */}
@@ -6889,7 +6889,7 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                       const isFitSel=selectedFittingIds.includes(f.id)||selectedFitting?.fittingId===f.id;
                        const angle=Math.atan2(p2.y-p1.y,p2.x-p1.x)*180/Math.PI;
                        return <g key={f.id} data-iso-object="true" data-iso-fitting="true" data-segment-id={s.id} data-fitting-id={f.id} transform={`translate(${x} ${y})`} onPointerDown={e=>{e.stopPropagation();selectFittingV44(s.id,f.id,e.ctrlKey||e.metaKey||e.shiftKey);setDragFittingInfo({segmentId:s.id,fittingId:f.id});e.currentTarget.ownerSVGElement?.setPointerCapture(e.pointerId);}} onDoubleClick={e=>{e.stopPropagation();setEdit({segmentId:s.id,fitting:{...f,cumulativePosition:cumulative.fittings.get(f.id)||0}});}}>
-                        {isFitSel&&<circle r="17" fill="#ffffff" stroke="#ffffff" strokeWidth="4" opacity=".28"/>}
+                        {isFitSel&&<circle r="19" fill="#ffffff" stroke="#ffffff" strokeWidth="6" opacity=".96"/>}
                         <circle r="13" fill="#ffffff" stroke={isFitSel?"#facc15":"#ffffff"} strokeWidth={isFitSel?2.5:1.5}/>
                         <g transform={`rotate(${angle})`} dangerouslySetInnerHTML={{ __html: getFittingSvgGraphic(f.type, false) }} />
                         {showLabels&&<text x="0" y="21" fill="#e2e8f0" fontSize="7" fontWeight="bold" textAnchor="middle" paintOrder="stroke" stroke="#0f172a" strokeWidth="2">{f.label}</text>}
