@@ -11,15 +11,6 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 // PATCH 017J : identite de cartouche parametrable (R15).
 import { pdiCompanyName, pdiStandardsNote } from "../../branding/pdiBranding";
-// PATCH 017P : precision geometrique (accroche a priorites, axes ISO, QA).
-import {
-  PDI_SNAP_TOL_PX,
-  pdiRound3,
-  pdiSnapValue,
-  pdiSnapDirectionIso,
-  pdiFindCoincidentNodes,
-  pdiAuditGraph,
-} from "./pdiPrecision017P";
 import { auth } from "../../../lib/firebase";
 import {
   PDI_LOGO_HORIZONTAL_SRC,
@@ -2299,8 +2290,11 @@ function IsometrieModule(props: { projectId?: string }) {
     selectFittingV44(segmentId,fittingId,false);
   };
 
-  // PATCH 017P : une seule regle d accroche pour tout le moteur.
-  const snapBranchWorld=(w:{x:number;y:number;z:number})=>pdiCreatePoint(w);
+  const snapBranchWorld=(w:{x:number;y:number;z:number})=>({
+    x:snapIsoV4(w.x,isoSnapStep),
+    y:snapIsoV4(w.y,isoSnapStep),
+    z:nodeZ||0
+  });
 
 
   const segmentGeomLength=(s:IsoSegment,ns:IsoNode[])=>{
@@ -4395,7 +4389,7 @@ function IsometrieModule(props: { projectId?: string }) {
             for (const port of node.ports) {
               const wp = portWorldPosition(node, port.id);
               const sp = isoProjectV4(wp.x, wp.y, wp.z, viewport.zoom, viewport.panX, viewport.panY);
-              if (Math.hypot(sp.x - sx, sp.y - sy) < PDI_SNAP_TOL_PX.PORT) {
+              if (Math.hypot(sp.x - sx, sp.y - sy) < 14) {
                 detectedSnap = { kind: "PORT", label: `PORT ${node.name} [${port.role || port.index}]`, worldPos: wp, screenPos: sp };
                 break;
               }
@@ -4407,7 +4401,7 @@ function IsometrieModule(props: { projectId?: string }) {
       if (!detectedSnap && snapEndpoints) {
         for (const node of nodes) {
           const np = isoProjectV4(node.x, node.y, node.z, viewport.zoom, viewport.panX, viewport.panY);
-          if (Math.hypot(np.x - sx, np.y - sy) < PDI_SNAP_TOL_PX.ENDPOINT) {
+          if (Math.hypot(np.x - sx, np.y - sy) < 14) {
             detectedSnap = { kind: "ENDPOINT", label: `POINT ${node.name} (Z=${node.z || 0}m)`, worldPos: { x: node.x, y: node.y, z: node.z || 0 }, screenPos: np };
             break;
           }
@@ -4419,7 +4413,7 @@ function IsometrieModule(props: { projectId?: string }) {
           if (ep) {
             const mx = (ep.from.x + ep.to.x) / 2, my = (ep.from.y + ep.to.y) / 2, mz = (ep.from.z + ep.to.z) / 2;
             const sp = isoProjectV4(mx, my, mz, viewport.zoom, viewport.panX, viewport.panY);
-            if (Math.hypot(sp.x - sx, sp.y - sy) < PDI_SNAP_TOL_PX.MIDPOINT) {
+            if (Math.hypot(sp.x - sx, sp.y - sy) < 12) {
               detectedSnap = { kind: "MIDPOINT", label: `MILIEU ${seg.sourceName || "Tube"}`, worldPos: { x: mx, y: my, z: mz }, screenPos: sp };
               break;
             }
@@ -4431,7 +4425,7 @@ function IsometrieModule(props: { projectId?: string }) {
         const gx = snapIsoV4(w.x, isoSnapStep);
         const gy = snapIsoV4(w.y, isoSnapStep);
         const gp = isoProjectV4(gx, gy, nodeZ || 0, viewport.zoom, viewport.panX, viewport.panY);
-        if (Math.hypot(gp.x - sx, gp.y - sy) < PDI_SNAP_TOL_PX.GRID) {
+        if (Math.hypot(gp.x - sx, gp.y - sy) < 8) {
           detectedSnap = { kind: "GRID", label: `GRILLE (${gx.toFixed(2)}, ${gy.toFixed(2)})`, worldPos: { x: gx, y: gy, z: nodeZ || 0 }, screenPos: gp };
         }
       }
@@ -4537,8 +4531,7 @@ function IsometrieModule(props: { projectId?: string }) {
         const targetNode=nodes.find(n=>n.id===targetId);
         createSegmentFromNodes(branchDrawing.fromNodeId,targetId,branchDrawing.fromPortId,portByIndex(targetNode,targetPortIndex)?.id);
       }else{
-        // PATCH 017P : le piquage respecte l accroche active.
-        const sw=pdiCreatePoint(w);
+        const sw={x:snapIsoV4(w.x,isoSnapStep),y:snapIsoV4(w.y,isoSnapStep),z:nodeZ||0};
         const newN=makeNode(`Piquage N${nodes.length+1}`,sw.x,sw.y,sw.z,"normal");
         const nextNodes=[...nodes,newN];
         setNodes(nextNodes);
@@ -4610,16 +4603,8 @@ function IsometrieModule(props: { projectId?: string }) {
       }
       return { ...n, rotation: ((((n.rotation || 0) + delta) % 360) + 360) % 360 };
     });
-    // PATCH 017P : rotation transactionnelle. La commande refuse de valider
-    // si elle a fait varier le nombre de noeuds (cause des noeuds et tubes
-    // fantomes observes) et signale toute anomalie geometrique residuelle.
-    if (nextNodes.length !== nodes.length) {
-      setStatusMessage("Rotation refusée : le nombre de nœuds a changé");
-      return;
-    }
-    const rotationAudit = pdiAuditGraph(nextNodes, segments);
     commitGraph(nextNodes, recalcSegmentLengths(nextNodes, segments));
-    setStatusMessage(`Rotation ${delta > 0 ? "+" : ""}${delta}° (R)${rotationAudit ? " · contrôle : " + rotationAudit : ""}`);
+    setStatusMessage(`Rotation ${delta > 0 ? "+" : ""}${delta}° (R)`);
   };
   const flipSelectedEquipment=()=>{
     const selected=nodes.filter(n=>selectedNodeIds.includes(n.id)&&n.equipmentType);
@@ -4716,25 +4701,6 @@ function IsometrieModule(props: { projectId?: string }) {
   const screenToIsoWorld=(e:React.PointerEvent<SVGSVGElement>, targetZ:number = nodeZ || 0)=>{
     const { sx, sy } = getSvgCoordinates(e.clientX, e.clientY, svgRef.current || (e.currentTarget as unknown as SVGSVGElement));
     return isoUnprojectV4(sx, sy, viewport.zoom, viewport.panX, viewport.panY, targetZ);
-  };
-
-  // PATCH 017P : point de creation. Avant ce patch la creation d un noeud
-  // ignorait activeSnap et ne retenait que la grille : impossible de poser
-  // un noeud exactement sur un port, une extremite ou un milieu de tube.
-  const pdiCreatePoint = (w: { x: number; y: number; z?: number }) => {
-    if (snapEnabled && activeSnap) {
-      return {
-        x: pdiRound3(activeSnap.worldPos.x),
-        y: pdiRound3(activeSnap.worldPos.y),
-        z: pdiRound3(activeSnap.worldPos.z),
-      };
-    }
-    const step = snapEnabled && snapGrid ? isoSnapStep : 0;
-    return {
-      x: pdiSnapValue(w.x, step),
-      y: pdiSnapValue(w.y, step),
-      z: pdiRound3(nodeZ || 0),
-    };
   };
 
   
@@ -4849,25 +4815,15 @@ function IsometrieModule(props: { projectId?: string }) {
     // on applique uniquement le delta nécessaire sur l’axe choisi et on ne re-snap jamais
     // les autres coordonnées. Cela évite le glissement des points observé après alignement.
     const selected = new Set(selectedNodeIds);
-    // PATCH 017P : la coordonnee de reference est ramenee sur le pas de
-    // grille. Les autres coordonnees restent intactes : aucune regression
-    // du PATCH 013 (pas de re-snap lateral), mais la ligne tombe juste.
-    const rawRef = Number(reference[axis] || 0);
-    const refValue = snapEnabled && snapGrid ? pdiSnapValue(rawRef, isoSnapStep) : pdiRound3(rawRef);
+    const refValue = Number(reference[axis] || 0);
     const nextNodes = nodes.map((node) => {
       if (!selected.has(node.id) || node.id === referenceId) return node;
       const delta = Number((refValue - Number(node[axis] || 0)).toFixed(6));
       if (Math.abs(delta) < 1e-9) return node;
       return { ...node, [axis]: Number((Number(node[axis] || 0) + delta).toFixed(3)) };
     });
-    // PATCH 017P : QA avant validation, jamais deux noeuds confondus.
-    const alignAudit = pdiFindCoincidentNodes(nextNodes, 0.001);
-    if (alignAudit) {
-      setStatusMessage(`Alignement ${axis.toUpperCase()} refusé : ${alignAudit}`);
-      return;
-    }
     commitGraph(nextNodes, recalcSegmentLengths(nextNodes, segments));
-    setStatusMessage(`Alignement ${axis.toUpperCase()} sur ${refValue.toFixed(3)} m — référence : ${reference.name}`);
+    setStatusMessage(`Alignement ${axis.toUpperCase()} appliqué sans re-snap — référence : ${reference.name}`);
   };
 
   const alignSelectedEquipmentOnTube = () => {
@@ -4913,36 +4869,21 @@ function IsometrieModule(props: { projectId?: string }) {
     const ra = nodes.find((node) => node.id === reference.fromNodeId);
     const rb = nodes.find((node) => node.id === reference.toNodeId);
     if (!ta || !tb || !ra || !rb) return;
-    // PATCH 017P : la direction de reference est ramenee sur un axe ISO,
-    // le tube pivote autour de son noeud AMONT et tout l aval suit. Avant,
-    // seul toNodeId etait deplace : le reseau se dechirait en aval.
     const rv = { x: rb.x - ra.x, y: rb.y - ra.y, z: rb.z - ra.z };
-    const dir = pdiSnapDirectionIso(rv);
+    const rl = Math.hypot(rv.x, rv.y, rv.z) || 1;
     const tl = Math.max(0.05, target.length || Math.hypot(tb.x - ta.x, tb.y - ta.y, tb.z - ta.z));
-    const pnx = pdiRound3(ta.x + dir.x * tl);
-    const pny = pdiRound3(ta.y + dir.y * tl);
-    const pnz = pdiRound3(ta.z + dir.z * tl);
-    const pdx = pdiRound3(pnx - tb.x);
-    const pdy = pdiRound3(pny - tb.y);
-    const pdz = pdiRound3(pnz - tb.z);
-    const downstreamParallel = downstreamNodeIds(tb.id, segments, target.id);
-    const nextNodes = nodes.map((node) => {
-      if (node.id === tb.id) return { ...node, x: pnx, y: pny, z: pnz };
-      if (!downstreamParallel.has(node.id)) return node;
-      return {
-        ...node,
-        x: pdiRound3(node.x + pdx),
-        y: pdiRound3(node.y + pdy),
-        z: pdiRound3((node.z || 0) + pdz),
-      };
-    });
-    const parallelAudit = pdiFindCoincidentNodes(nextNodes, 0.001);
-    if (parallelAudit) {
-      setStatusMessage(`Rendre parallèle refusé : ${parallelAudit}`);
-      return;
-    }
+    const nextNodes = nodes.map((node) =>
+      node.id === tb.id
+        ? {
+            ...node,
+            x: Number((ta.x + (rv.x / rl) * tl).toFixed(3)),
+            y: Number((ta.y + (rv.y / rl) * tl).toFixed(3)),
+            z: Number((ta.z + (rv.z / rl) * tl).toFixed(3)),
+          }
+        : node,
+    );
     commitGraph(nextNodes, recalcSegmentLengths(nextNodes, segments));
-    setStatusMessage(`Tube parallèle · axe ISO ${dir.label} · ${downstreamParallel.size} nœud(s) aval suivis`);
+    setStatusMessage("Tube cible rendu parallèle au tube de référence");
   };
 
   const redressIsoSelection = () => {
@@ -5010,7 +4951,7 @@ function IsometrieModule(props: { projectId?: string }) {
       return id;
     }
     const w = screenToIsoWorld(e, nodeZ || 0);
-    const node = makeEquipmentNode("te_egal", `Té N${nodes.length + 1}`, pdiCreatePoint(w).x, pdiCreatePoint(w).y, pdiCreatePoint(w).z, newDN, 0);
+    const node = makeEquipmentNode("te_egal", `Té N${nodes.length + 1}`, snapIsoV4(w.x, isoSnapStep), snapIsoV4(w.y, isoSnapStep), nodeZ || 0, newDN, 0);
     setNodes(prev => [...prev, node]);
     setSelectedNodeId(node.id);
     setSelectedNodeIds([node.id]);
@@ -5045,7 +4986,7 @@ function IsometrieModule(props: { projectId?: string }) {
       }
     }
     const w = screenToIsoWorld(e, nodeZ || 0);
-    const n = makeNode(`N${nodes.length + 1}`, pdiCreatePoint(w).x, pdiCreatePoint(w).y, pdiCreatePoint(w).z, "normal");
+    const n = makeNode(`N${nodes.length + 1}`, snapIsoV4(w.x, isoSnapStep), snapIsoV4(w.y, isoSnapStep), nodeZ || 0, "normal");
     setNodes(prev => [...prev, n]);
     setSelectedNodeId(n.id);
     setSelectedNodeIds([n.id]);
@@ -5077,7 +5018,7 @@ function IsometrieModule(props: { projectId?: string }) {
       return id;
     }
     const w = screenToIsoWorld(e, nodeZ || 0);
-    const node = makeEquipmentNode("coude_90", `Coude 90° N${nodes.length + 1}`, pdiCreatePoint(w).x, pdiCreatePoint(w).y, pdiCreatePoint(w).z, newDN, elbowOrientationFromSegment(selectedSegmentId, 0));
+    const node = makeEquipmentNode("coude_90", `Coude 90° N${nodes.length + 1}`, snapIsoV4(w.x, isoSnapStep), snapIsoV4(w.y, isoSnapStep), nodeZ || 0, newDN, elbowOrientationFromSegment(selectedSegmentId, 0));
     setNodes(prev => [...prev, node]);
     setSelectedNodeId(node.id);
     setSelectedNodeIds([node.id]);
