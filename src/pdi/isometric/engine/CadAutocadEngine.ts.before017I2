@@ -674,16 +674,6 @@ export const AUTOCAD_COMMANDS: CadCommandItem[] = [
     shortcut: "RESTORE",
     icon: "History",
   },
-  // PATCH 017I2 : mesure du cache de projection.
-  {
-    id: "perf",
-    name: "PERF",
-    aliases: ["PERF", "PERFORMANCE", "DIAG", "STATS"],
-    description: "Affiche l etat du cache de projection et le cout du dernier calcul",
-    category: "Affichage",
-    shortcut: "PERF",
-    icon: "Activity",
-  },
 ];
 
 /**

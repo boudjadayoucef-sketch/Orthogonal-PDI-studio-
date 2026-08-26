@@ -655,35 +655,6 @@ export const AUTOCAD_COMMANDS: CadCommandItem[] = [
     shortcut: "?",
     icon: "LayoutGrid",
   },
-  // PATCH 017I : sauvegarde et restauration explicites.
-  {
-    id: "save",
-    name: "SAUVER",
-    aliases: ["SAVE", "SAUVER", "SAUVEGARDER", "QSAVE", "SV"],
-    description: "Force une sauvegarde locale immediate du projet actif",
-    category: "Données",
-    shortcut: "Ctrl+S",
-    icon: "Save",
-  },
-  {
-    id: "restore",
-    name: "RESTAURER",
-    aliases: ["RESTORE", "RESTAURER", "RECUPERER", "RECOVER"],
-    description: "Ouvre la derniere sauvegarde locale pour restauration",
-    category: "Données",
-    shortcut: "RESTORE",
-    icon: "History",
-  },
-  // PATCH 017I2 : mesure du cache de projection.
-  {
-    id: "perf",
-    name: "PERF",
-    aliases: ["PERF", "PERFORMANCE", "DIAG", "STATS"],
-    description: "Affiche l etat du cache de projection et le cout du dernier calcul",
-    category: "Affichage",
-    shortcut: "PERF",
-    icon: "Activity",
-  },
 ];
 
 /**

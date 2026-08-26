@@ -731,25 +731,18 @@ function getFittingSvgGraphic(type: IsoFittingType, isPrint: boolean = false) {
 
 type IsoDrawMode = "select" | "node" | "segment" | "coude" | "te" | "dimension";
 
-// PATCH 017I2 : l angle isometrique est constant (30 degres). Le calculer a
-// chaque projection coutait deux appels trigonometriques par point et par
-// rendu. Il est desormais evalue une seule fois au chargement du module.
-const PDI_ISO_ANGLE_017I2 = Math.PI / 6;
-const PDI_ISO_COS_017I2 = Math.cos(PDI_ISO_ANGLE_017I2);
-const PDI_ISO_SIN_017I2 = Math.sin(PDI_ISO_ANGLE_017I2);
-
 const isoProjectV4 = (x:number,y:number,z:number,zoom:number,panX:number,panY:number) => {
-  const scale=28*zoom;
+  const scale=28*zoom, a=Math.PI/6;
   return {
-    x:310+panX+(x-y)*PDI_ISO_COS_017I2*scale,
-    y:210+panY+(x+y)*PDI_ISO_SIN_017I2*scale-z*scale
+    x:310+panX+(x-y)*Math.cos(a)*scale,
+    y:210+panY+(x+y)*Math.sin(a)*scale-z*scale
   };
 };
 
 const isoUnprojectV4 = (sx:number,sy:number,zoom:number,panX:number,panY:number,targetZ:number=0) => {
-  const scale=Math.max(1,28*zoom);
-  const u=(sx-310-panX)/(PDI_ISO_COS_017I2*scale);
-  const v=(sy+targetZ*scale-210-panY)/(PDI_ISO_SIN_017I2*scale);
+  const scale=Math.max(1,28*zoom), a=Math.PI/6;
+  const u=(sx-310-panX)/(Math.cos(a)*scale);
+  const v=(sy+targetZ*scale-210-panY)/(Math.sin(a)*scale);
   return {x:(u+v)/2,y:(v-u)/2,z:targetZ};
 };
 
@@ -2065,41 +2058,6 @@ function IsometrieModule(props: { projectId?: string }) {
   },0),[segments]);
   const hydrotest=pressDesign*1.5;
   const projectJoints=useMemo(()=>deriveProjectJoints(nodes,segments),[nodes,segments]);
-  // PATCH 017I2 : projection des noeuds stockee dans un Float32Array.
-  // Un objet {x,y} par noeud et par rendu saturait le ramasse-miettes ;
-  // ici deux flottants contigus par noeud, recalcules seulement quand les
-  // noeuds ou le viewport changent.
-  const projCacheStats017I2 = useRef({ count: 0, bytes: 0, ms: 0, builds: 0 });
-  const nodeById017I2 = useMemo(() => {
-    const m = new Map<string, IsoNode>();
-    for (let i = 0; i < nodes.length; i += 1) m.set(nodes[i].id, nodes[i]);
-    return m;
-  }, [nodes]);
-  const nodeProjection017I2 = useMemo(() => {
-    const t0 = typeof performance !== "undefined" ? performance.now() : 0;
-    const buffer = new Float32Array(nodes.length * 2);
-    const index = new Map<string, number>();
-    for (let i = 0; i < nodes.length; i += 1) {
-      const n = nodes[i];
-      const p = isoProjectV4(n.x, n.y, n.z || 0, viewport.zoom, viewport.panX, viewport.panY);
-      buffer[i * 2] = p.x;
-      buffer[i * 2 + 1] = p.y;
-      index.set(n.id, i);
-    }
-    const t1 = typeof performance !== "undefined" ? performance.now() : 0;
-    projCacheStats017I2.current = {
-      count: nodes.length,
-      bytes: buffer.byteLength,
-      ms: Number((t1 - t0).toFixed(3)),
-      builds: projCacheStats017I2.current.builds + 1,
-    };
-    return { buffer, index };
-  }, [nodes, viewport]);
-  const projectNodeCached017I2 = (node: IsoNode) => {
-    const i = nodeProjection017I2.index.get(node.id);
-    if (i === undefined) return isoProjectV4(node.x, node.y, node.z || 0, viewport.zoom, viewport.panX, viewport.panY);
-    return { x: nodeProjection017I2.buffer[i * 2], y: nodeProjection017I2.buffer[i * 2 + 1] };
-  };
   const editorAnnotationMap=useMemo(()=>buildIsoAnnotationLayout(nodes,segments,projectJoints,viewport),[nodes,segments,projectJoints,viewport]);
   const graphIssues=useMemo(()=>validateProjectGraph(nodes,segments,lines),[nodes,segments,lines]);
   const graphErrorCount=graphIssues.filter(i=>i.severity==="error").length;
@@ -3112,50 +3070,6 @@ function IsometrieModule(props: { projectId?: string }) {
       setRightPanelOpen(true);
       setRightPanelTab("properties");
       setAutocadPrompt("COMMANDE [PROPRIETES] : Inspecteur de propriétés ouvert.");
-    } else if (cmdId === "save") {
-      // PATCH 017I : sauvegarde locale immediate, sans attendre l autosauvegarde.
-      try {
-        const snapshot017I = buildProjectFileV474();
-        if (AUTOSAVE_CURRENT_KEY) {
-          const previous017I = localStorage.getItem(AUTOSAVE_CURRENT_KEY);
-          if (previous017I && AUTOSAVE_PREVIOUS_KEY) localStorage.setItem(AUTOSAVE_PREVIOUS_KEY, previous017I);
-          localStorage.setItem(AUTOSAVE_CURRENT_KEY, JSON.stringify(snapshot017I));
-        }
-        autosaveBaselineRef.current = persistenceFingerprint(snapshot017I);
-        const hh017I = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-        setLastSavedAt(hh017I);
-        setSaveState("autosaved");
-        setAutocadPrompt("COMMANDE [SAUVER] : projet enregistre localement a " + hh017I + ".");
-        setStatusMessage("Sauvegarde locale effectuee a " + hh017I);
-      } catch (err017I) {
-        setSaveState("error");
-        setAutocadPrompt("COMMANDE [SAUVER] : echec de la sauvegarde locale. Espace de stockage sature ?");
-      }
-    } else if (cmdId === "restore") {
-      // PATCH 017I : reutilise la modale de recuperation existante.
-      try {
-        const raw017I = AUTOSAVE_CURRENT_KEY ? localStorage.getItem(AUTOSAVE_CURRENT_KEY) : null;
-        const fallback017I = AUTOSAVE_PREVIOUS_KEY ? localStorage.getItem(AUTOSAVE_PREVIOUS_KEY) : null;
-        const chosen017I = raw017I || fallback017I;
-        if (!chosen017I) {
-          setAutocadPrompt("COMMANDE [RESTAURER] : aucune sauvegarde locale disponible pour ce projet.");
-        } else {
-          setRecoveryCandidate(JSON.parse(chosen017I));
-          setRecoverySource(raw017I ? "current" : "previous");
-          setAutocadPrompt("COMMANDE [RESTAURER] : sauvegarde trouvee, confirmez la restauration.");
-        }
-      } catch (err017I) {
-        setAutocadPrompt("COMMANDE [RESTAURER] : sauvegarde locale illisible.");
-      }
-    } else if (cmdId === "perf") {
-      // PATCH 017I2 : mesure reelle, pour comparer avant et apres optimisation.
-      const st017I2 = projCacheStats017I2.current;
-      setAutocadPrompt(
-        "COMMANDE [PERF] : " + st017I2.count + " noeud(s) en cache Float32Array, " +
-        st017I2.bytes + " octets, " + st017I2.builds + " reprojection(s), " +
-        "derniere en " + st017I2.ms + " ms.",
-      );
-      setStatusMessage("PERF : cache " + st017I2.bytes + " octets, " + st017I2.ms + " ms");
     } else {
       const plant3dCommand = PDI_PLANT3D_COMMAND_TABLE?.find((item) =>
         item.id.toLowerCase() === cmdId ||
@@ -3585,21 +3499,6 @@ function IsometrieModule(props: { projectId?: string }) {
     window.addEventListener("keydown",onKey);
     return()=>window.removeEventListener("keydown",onKey);
   },[selectedNodeIds, nodes, segments, cadDraftSession, selectedCad2dIds, selectedDimensionIds, selectedSegmentIds, selectedFittingIds, selectedFitting]);
-
-  // PATCH 017I : la molette est ecoutee en natif avec { passive: false }.
-  // React enregistre "wheel" en passif : preventDefault y est ignore et
-  // declenche l avertissement console. L ecoute native corrige les deux.
-  useEffect(() => {
-    const el = svgRef.current;
-    if (!el) return;
-    const onWheelNative017I = (ev: WheelEvent) => {
-      ev.preventDefault();
-      wheel(ev as unknown as React.WheelEvent<SVGSVGElement>);
-    };
-    el.addEventListener("wheel", onWheelNative017I, { passive: false });
-    return () => el.removeEventListener("wheel", onWheelNative017I);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const wheel = (e: React.WheelEvent<SVGSVGElement>) => {
     e.preventDefault();
@@ -4274,16 +4173,14 @@ function IsometrieModule(props: { projectId?: string }) {
       const minY = Math.min(m.startY, sy), maxY = Math.max(m.startY, sy);
       const isCrossing = sx < m.startX;
 
-      // PATCH 017I2 : lecture du cache Float32Array au lieu de reprojeter.
       const boxedNodeIds = nodes.filter(n => {
-        const p = projectNodeCached017I2(n);
+        const p = isoProjectV4(n.x, n.y, n.z || 0, viewport.zoom, viewport.panX, viewport.panY);
         return p.x >= minX && p.x <= maxX && p.y >= minY && p.y <= maxY;
       }).map(n => n.id);
 
       const boxedSegIds = segments.filter(s => {
-        // PATCH 017I2 : recherche indexee, plus de balayage complet par troncon.
-        const a = nodeById017I2.get(s.fromNodeId);
-        const b = nodeById017I2.get(s.toNodeId);
+        const a = nodes.find(n => n.id === s.fromNodeId);
+        const b = nodes.find(n => n.id === s.toNodeId);
         if (!a || !b) return false;
         const ep = segmentEndpoints(s, nodes);
         const pa = ep ? isoProjectV4(ep.from.x, ep.from.y, ep.from.z, viewport.zoom, viewport.panX, viewport.panY) : isoProjectV4(a.x, a.y, a.z || 0, viewport.zoom, viewport.panX, viewport.panY);
@@ -6797,20 +6694,8 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
           </div>
 
           <div className={`${workspaceFullscreen ? "flex-1 min-h-0 h-full flex flex-col" : ""} bg-slate-950 rounded-2xl overflow-hidden border border-slate-800 relative`}>
-            <div
-              className={"pdi-save-badge-017i absolute top-2 right-2 z-[60] pointer-events-none select-none rounded-lg border px-2 py-1 text-[10px] font-black shadow-lg bg-slate-900/85 " + (saveState === "error" ? "border-red-600 text-red-300" : saveState === "modified" ? "border-amber-500 text-amber-300" : saveState === "autosaved" ? "border-emerald-600 text-emerald-300" : "border-slate-700 text-slate-400")}
-              title="Etat de la sauvegarde locale du projet actif"
-            >
-              {saveState === "modified"
-                ? "● Modifications non sauvegardees"
-                : saveState === "autosaved"
-                  ? "● Autosauvegarde" + (lastSavedAt ? " a " + lastSavedAt : "")
-                  : saveState === "error"
-                    ? "● Erreur de sauvegarde"
-                    : "○ Pret"}
-            </div>
             <svg ref={svgRef} viewBox="0 0 620 400" className={`${workspaceFullscreen ? "h-full w-full flex-1" : (commandPromptHidden ? "h-[clamp(600px,88vh,1400px)]" : "h-[clamp(560px,78vh,1000px)]")} w-full select-none touch-none cursor-crosshair`}
-              onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerUp}
+              onWheel={wheel} onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerUp}
               onContextMenu={openIsoContextMenu}
               onDragOver={e=>{e.preventDefault();e.dataTransfer.dropEffect="copy"}} onDrop={dropEquipmentOnCanvas}>
               {draggedEquipmentType&&<g pointerEvents="none"><rect x="8" y="8" width="250" height="28" rx="7" fill="#052e16" stroke="#22c55e"/><text x="20" y="26" fill="#86efac" fontSize="10" fontWeight="bold">Déposer sur un tube pour l’intégrer · ailleurs pour le placer</text></g>}

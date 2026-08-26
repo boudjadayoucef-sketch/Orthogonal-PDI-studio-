@@ -731,25 +731,18 @@ function getFittingSvgGraphic(type: IsoFittingType, isPrint: boolean = false) {
 
 type IsoDrawMode = "select" | "node" | "segment" | "coude" | "te" | "dimension";
 
-// PATCH 017I2 : l angle isometrique est constant (30 degres). Le calculer a
-// chaque projection coutait deux appels trigonometriques par point et par
-// rendu. Il est desormais evalue une seule fois au chargement du module.
-const PDI_ISO_ANGLE_017I2 = Math.PI / 6;
-const PDI_ISO_COS_017I2 = Math.cos(PDI_ISO_ANGLE_017I2);
-const PDI_ISO_SIN_017I2 = Math.sin(PDI_ISO_ANGLE_017I2);
-
 const isoProjectV4 = (x:number,y:number,z:number,zoom:number,panX:number,panY:number) => {
-  const scale=28*zoom;
+  const scale=28*zoom, a=Math.PI/6;
   return {
-    x:310+panX+(x-y)*PDI_ISO_COS_017I2*scale,
-    y:210+panY+(x+y)*PDI_ISO_SIN_017I2*scale-z*scale
+    x:310+panX+(x-y)*Math.cos(a)*scale,
+    y:210+panY+(x+y)*Math.sin(a)*scale-z*scale
   };
 };
 
 const isoUnprojectV4 = (sx:number,sy:number,zoom:number,panX:number,panY:number,targetZ:number=0) => {
-  const scale=Math.max(1,28*zoom);
-  const u=(sx-310-panX)/(PDI_ISO_COS_017I2*scale);
-  const v=(sy+targetZ*scale-210-panY)/(PDI_ISO_SIN_017I2*scale);
+  const scale=Math.max(1,28*zoom), a=Math.PI/6;
+  const u=(sx-310-panX)/(Math.cos(a)*scale);
+  const v=(sy+targetZ*scale-210-panY)/(Math.sin(a)*scale);
   return {x:(u+v)/2,y:(v-u)/2,z:targetZ};
 };
 
@@ -2065,41 +2058,6 @@ function IsometrieModule(props: { projectId?: string }) {
   },0),[segments]);
   const hydrotest=pressDesign*1.5;
   const projectJoints=useMemo(()=>deriveProjectJoints(nodes,segments),[nodes,segments]);
-  // PATCH 017I2 : projection des noeuds stockee dans un Float32Array.
-  // Un objet {x,y} par noeud et par rendu saturait le ramasse-miettes ;
-  // ici deux flottants contigus par noeud, recalcules seulement quand les
-  // noeuds ou le viewport changent.
-  const projCacheStats017I2 = useRef({ count: 0, bytes: 0, ms: 0, builds: 0 });
-  const nodeById017I2 = useMemo(() => {
-    const m = new Map<string, IsoNode>();
-    for (let i = 0; i < nodes.length; i += 1) m.set(nodes[i].id, nodes[i]);
-    return m;
-  }, [nodes]);
-  const nodeProjection017I2 = useMemo(() => {
-    const t0 = typeof performance !== "undefined" ? performance.now() : 0;
-    const buffer = new Float32Array(nodes.length * 2);
-    const index = new Map<string, number>();
-    for (let i = 0; i < nodes.length; i += 1) {
-      const n = nodes[i];
-      const p = isoProjectV4(n.x, n.y, n.z || 0, viewport.zoom, viewport.panX, viewport.panY);
-      buffer[i * 2] = p.x;
-      buffer[i * 2 + 1] = p.y;
-      index.set(n.id, i);
-    }
-    const t1 = typeof performance !== "undefined" ? performance.now() : 0;
-    projCacheStats017I2.current = {
-      count: nodes.length,
-      bytes: buffer.byteLength,
-      ms: Number((t1 - t0).toFixed(3)),
-      builds: projCacheStats017I2.current.builds + 1,
-    };
-    return { buffer, index };
-  }, [nodes, viewport]);
-  const projectNodeCached017I2 = (node: IsoNode) => {
-    const i = nodeProjection017I2.index.get(node.id);
-    if (i === undefined) return isoProjectV4(node.x, node.y, node.z || 0, viewport.zoom, viewport.panX, viewport.panY);
-    return { x: nodeProjection017I2.buffer[i * 2], y: nodeProjection017I2.buffer[i * 2 + 1] };
-  };
   const editorAnnotationMap=useMemo(()=>buildIsoAnnotationLayout(nodes,segments,projectJoints,viewport),[nodes,segments,projectJoints,viewport]);
   const graphIssues=useMemo(()=>validateProjectGraph(nodes,segments,lines),[nodes,segments,lines]);
   const graphErrorCount=graphIssues.filter(i=>i.severity==="error").length;
@@ -3147,15 +3105,6 @@ function IsometrieModule(props: { projectId?: string }) {
       } catch (err017I) {
         setAutocadPrompt("COMMANDE [RESTAURER] : sauvegarde locale illisible.");
       }
-    } else if (cmdId === "perf") {
-      // PATCH 017I2 : mesure reelle, pour comparer avant et apres optimisation.
-      const st017I2 = projCacheStats017I2.current;
-      setAutocadPrompt(
-        "COMMANDE [PERF] : " + st017I2.count + " noeud(s) en cache Float32Array, " +
-        st017I2.bytes + " octets, " + st017I2.builds + " reprojection(s), " +
-        "derniere en " + st017I2.ms + " ms.",
-      );
-      setStatusMessage("PERF : cache " + st017I2.bytes + " octets, " + st017I2.ms + " ms");
     } else {
       const plant3dCommand = PDI_PLANT3D_COMMAND_TABLE?.find((item) =>
         item.id.toLowerCase() === cmdId ||
@@ -4274,16 +4223,14 @@ function IsometrieModule(props: { projectId?: string }) {
       const minY = Math.min(m.startY, sy), maxY = Math.max(m.startY, sy);
       const isCrossing = sx < m.startX;
 
-      // PATCH 017I2 : lecture du cache Float32Array au lieu de reprojeter.
       const boxedNodeIds = nodes.filter(n => {
-        const p = projectNodeCached017I2(n);
+        const p = isoProjectV4(n.x, n.y, n.z || 0, viewport.zoom, viewport.panX, viewport.panY);
         return p.x >= minX && p.x <= maxX && p.y >= minY && p.y <= maxY;
       }).map(n => n.id);
 
       const boxedSegIds = segments.filter(s => {
-        // PATCH 017I2 : recherche indexee, plus de balayage complet par troncon.
-        const a = nodeById017I2.get(s.fromNodeId);
-        const b = nodeById017I2.get(s.toNodeId);
+        const a = nodes.find(n => n.id === s.fromNodeId);
+        const b = nodes.find(n => n.id === s.toNodeId);
         if (!a || !b) return false;
         const ep = segmentEndpoints(s, nodes);
         const pa = ep ? isoProjectV4(ep.from.x, ep.from.y, ep.from.z, viewport.zoom, viewport.panX, viewport.panY) : isoProjectV4(a.x, a.y, a.z || 0, viewport.zoom, viewport.panX, viewport.panY);
