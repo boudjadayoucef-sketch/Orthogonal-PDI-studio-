@@ -39,7 +39,8 @@ const BOOT_STEPS = [
 const ENTRY_POINTS = [
   { id: "isometric", title: "Nouveau Plan", sub: "Dessin isométrique manuel", badge: "Recommandé", icon: "ISO", color: "#4db8d4", text: "Créer un projet vierge : nœuds, tubes, accessoires, cotations et alignements." },
   { id: "cad", title: "CAD to ISO", sub: "DXF / DWG → isométrique", badge: "DXF · DWG", icon: "CAD", color: "#4db8d4", text: "Convertir un dessin CAO en modèle PD&I puis en planche isométrique normée." },
-  { id: "sketch", title: "Sketch to ISO", sub: "Croquis papier → isométrique", badge: "100 % local", icon: "CRQ", color: "#e8a838", text: "Redresser un croquis, détecter lignes et symboles, produire un ISO propre." },
+  { id: "vision", title: "Vision AI — Photo to ISO", sub: "Photo réelle → JSON → ISO", badge: "IA", icon: "VIS", color: "#e8a838", text: "Reconnaissance IA de la tuyauterie sur photo de site, validation puis génération ISO." },
+  { id: "sketch", title: "Croquis to ISO", sub: "Croquis main → isométrique", badge: "Croquis", icon: "CRQ", color: "#e8a838", text: "Redresser un croquis, détecter lignes et symboles, produire un ISO propre." },
   { id: "json", title: "Importer JSON", sub: "JSON PD&I existant", badge: "Reprise", icon: "{}", color: "#4caf7d", text: "Reprendre un modèle PD&I : graphe, soudures, cotes et métré restaurés à l’identique." },
   { id: "cad", title: "Importer CAD / PDF", sub: "Import de fond de plan", badge: "Import", icon: "PDF", color: "#4db8d4", text: "Charger un DXF/DWG/PDF comme support de tracé avec mapping des calques." },
   { id: "home", title: "Ouvrir un projet", sub: "Projets récents du compte", badge: "Récents", icon: "CLK", color: "#888888", text: "Reprendre un projet existant là où il s’est arrêté, avec son historique." },
@@ -54,15 +55,15 @@ const NAV_LINKS = [
 ];
 
 const BAND = [
-  { key: "iso", cls: "pdiL-band-iso", title: "Impression & export", tag: "A5 → A0 · PDF vectoriel", icon: "🖨", text: "Planches A5 à A0, cartouche ISO 7200, échelles 1:1 à 1:200, PDF vectoriel et DXF." },
-  { key: "sketch", cls: "pdiL-band-sketch", title: "Sketch to ISO", tag: "Traitement 100 % local", icon: "✏️", text: "Un dessin à main levée devient un réseau topologique industriel normé et exploitable." },
+  { key: "iso", cls: "pdiL-band-iso", title: "Isométrique", tag: "Moteur ISO V4.8d", icon: "📐", text: "Nœuds, tubes DN, organes, cotations réelles, élévations Z et soudures W00x." },
+  { key: "vision", cls: "pdiL-band-vision", title: "Vision IA", tag: "Photo to ISO", icon: "✨", text: "Photo, scan ou plan 2D reconnu automatiquement et converti en JSON piping vérifiable." },
+  { key: "sketch", cls: "pdiL-band-sketch", title: "Croquis", tag: "Croquis to ISO", icon: "✏️", text: "Un dessin à main levée devient un réseau topologique industriel normé et exploitable." },
   { key: "json", cls: "pdiL-band-json", title: "JSON Central", tag: "Vérité Technique", icon: "⚡", text: "Un seul modèle de référence unique pour le 2D, le 3D, l'ISO et le métré BOM." },
-  { key: "bom", cls: "pdiL-band-json", title: "Nomenclature & métré", tag: "BOM par tag", icon: "📋", text: "Boulonnerie ASME B16.5, joints B16.20, supports et consommables de soudure comptés automatiquement." },
 ];
 
 const STEPS = [
   { n: "01", cls: "pdiL-step-1", title: "Capturer", text: "Photo, scan, PDF, plan 2D ou donnees CAO : toute source devient un point de depart." },
-  { n: "02", cls: "pdiL-step-2", title: "Reconnaitre", text: "Le traitement local redresse les lignes et identifie les symboles, sans aucun envoi sur internet." },
+  { n: "02", cls: "pdiL-step-2", title: "Reconnaitre", text: "La vision IA identifie la tuyauterie et produit un JSON piping structure." },
   { n: "03", cls: "pdiL-step-3", title: "Construire", text: "Modele topologique, 2D et 3D synchronises, edition professionnelle temps reel." },
   { n: "04", cls: "pdiL-step-4", title: "Livrer", text: "ISO, cotations, DN, W00x, BOM, metre, QA engineering et export documentaire." },
 ];
@@ -75,11 +76,11 @@ const BENTO = [
   { span: "pdiL-sp2", title: "2D et 3D synchronises", text: "Le plan tuyauterie et l'isometrique partagent le meme graphe : aucune double saisie." },
   { span: "", title: "QA engineering", text: "Controle du reseau, ports orphelins, incoherences DN signalees." },
   { span: "", title: "Trackpad & raccourcis", text: "Pan et pincement Mac, raccourcis Cmd et Ctrl, rotation R / Shift+R." },
-  { span: "pdiL-sp3", title: "Impression & export", text: "Planches A5 a A0, cartouche ISO 7200, PDF vectoriel, DXF et dossier de fabrication." },
+  { span: "pdiL-sp3", title: "Export documentaire", text: "Planches A4 a A1, cartouche, PDF, DXF et dossier de fabrication." },
 ];
 
 const FOOT_COLS = [
-  { title: "Produit", links: ["Editeur isometrique", "Impression & export", "Sketch to ISO", "Import CAO"] },
+  { title: "Produit", links: ["Editeur isometrique", "Vision IA", "Croquis vers ISO", "Import CAO"] },
   { title: "Ingenierie", links: ["Modele JSON", "Soudures W00x", "Metre & BOM", "QA engineering"] },
   { title: "Ressources", links: ["Documentation", "Historique des patchs", "Regles de l'art", "Journal des versions"] },
   { title: "Societe", links: ["A propos", "Contact", "Mentions legales", "Confidentialite"] },

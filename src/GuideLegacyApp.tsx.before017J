@@ -291,8 +291,7 @@ export default function App() {
   const [user, setUser] = useState<any | null>(null);
   const [userProfile, setUserProfile] = useState<any | null>(() => {
     try {
-      const saved = localStorage.getItem("pdi.userProfile.v1")
-        || localStorage.getItem("sonelgaz_user_profile");
+      const saved = localStorage.getItem("sonelgaz_user_profile");
       return saved ? JSON.parse(saved) : null;
     } catch {
       return null;
@@ -411,9 +410,8 @@ export default function App() {
   useEffect(() => {
     try {
       if (userProfile) {
-        localStorage.setItem("pdi.userProfile.v1", JSON.stringify(userProfile));
+        localStorage.setItem("sonelgaz_user_profile", JSON.stringify(userProfile));
       } else {
-        localStorage.removeItem("pdi.userProfile.v1");
         localStorage.removeItem("sonelgaz_user_profile");
       }
     } catch (err) {
@@ -4265,23 +4263,10 @@ export function ProfileTabContent({
 
     let targetEmail = email.trim().toLowerCase();
     if (targetEmail && !targetEmail.includes("@")) {
-      // PATCH 017J : domaine de messagerie parametrable, plus de domaine client.
-      const pdiMailDomain017J = String(
-        ((import.meta as unknown as { env?: Record<string, string> }).env || {})
-          .VITE_PDI_EMAIL_DOMAIN || "",
-      ).trim();
-      targetEmail = pdiMailDomain017J ? targetEmail + "@" + pdiMailDomain017J : targetEmail;
+      targetEmail = targetEmail + "@sonelgaz.dz";
     }
     const isSuperAdminEmail = targetEmail === "boudjada.youcef@gmail.com";
-    // PATCH 017J : plus aucun mot de passe en dur (R18). Le compte de secours
-    // n existe que si VITE_PDI_ADMIN_PASSWORD est fourni au moment du build,
-    // et il doit faire au moins 12 caracteres.
-    const pdiAdminSecret017J = String(
-      ((import.meta as unknown as { env?: Record<string, string> }).env || {})
-        .VITE_PDI_ADMIN_PASSWORD || "",
-    ).trim();
-    const isSuperAdminPassword =
-      pdiAdminSecret017J.length >= 12 && password === pdiAdminSecret017J;
+    const isSuperAdminPassword = password === "Sonelgaz2026!" || password === "Sonelgaz2026";
 
     if (!targetEmail || !password) {
       setErrorMsg("Veuillez remplir tous les champs.");
@@ -4474,7 +4459,7 @@ export function ProfileTabContent({
       if (err?.message?.includes("Compte non pré-enregistré")) {
         setErrorMsg("Accès non autorisé. Votre adresse de messagerie Google n'a pas été pré-enregistrée par l'administrateur de l'application.");
       } else if (err.code === "auth/operation-not-allowed" || String(err?.code || err?.message || "").toLowerCase().includes("operation-not-allowed")) {
-        setErrorMsg("⚙️ Firebase : La connexion via Google n'est pas encore activée dans votre console Firebase. Pour vous connecter immédiatement en tant que Super Administrateur, utilisez un compte administrateur declare dans votre console Firebase.");
+        setErrorMsg("⚙️ Firebase : La connexion via Google n'est pas encore activée dans votre console Firebase. Pour vous connecter immédiatement en tant que Super Administrateur, utilisez l'adresse boudjada.youcef@gmail.com avec le mot de passe Sonelgaz2026!.");
       } else {
         setErrorMsg("Erreur de connexion via Google : " + (err.message || "Veuillez réessayer."));
       }
