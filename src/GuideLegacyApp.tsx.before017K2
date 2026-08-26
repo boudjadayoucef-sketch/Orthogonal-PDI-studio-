@@ -83,8 +83,6 @@ import defaultBg from "./assets/images/sonelgaz_bg_1783414375853.jpg";
 import slideDesert from "./assets/images/gazoduc_desert_sunset_1783427970931.jpg";
 import slideValves from "./assets/images/gazoduc_station_valves_1783427984252.jpg";
 import { GuidesTabContent } from "./components/GuidesTabContent";
-// PATCH 017K2
-import { pdiAlert } from "./pdi/ui/PdiNotice";
 
 // Helper to compress image files before uploading to Firestore (under 1MB constraint)
 const compressImage = (file: File, maxW = 1000, maxH = 1000): Promise<string> => {
@@ -617,7 +615,7 @@ export default function App() {
       setIsQuickPlanModalOpen(false);
     } catch (err: any) {
       console.error("Error deleting plan:", err);
-      void pdiAlert("Erreur lors de la suppression: " + err.message);
+      alert("Erreur lors de la suppression: " + err.message);
     } finally {
       setQuickPlanLoading(false);
     }
@@ -6848,7 +6846,7 @@ export function ProfileTabContent({
                           for (const log of connectionLogs) {
                             await deleteDoc(doc(db, "connection_logs", log.id));
                           }
-                          void pdiAlert("L'historique de connexion a été vidé avec succès !");
+                          alert("L'historique de connexion a été vidé avec succès !");
                         } catch (err) {
                           console.error("Error clearing logs:", err);
                         }

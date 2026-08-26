@@ -68,10 +68,6 @@ import plantScan3D from "../../assets/images/pdi_plant_scan_3d_1787006555680.jpg
 import cadSpool3D from "../../assets/images/pdi_cad_spool_3d_1787006567003.jpg";
 // PATCH 017K
 import { pdiConfirm } from "../ui/PdiConfirm";
-// PATCH 017K2
-import { pdiAlert } from "../ui/PdiNotice";
-// PATCH 017K2
-import { PdiCompanyPanel } from "../ui/PdiCompanyPanel";
 
 type PdiModule = "home" | "isometric" | "drive" | "vision" | "sketch" | "cad" | "json" | "pdf" | "projects" | "assistant" | "profile" | "subscription" | "security" | "super_admin_console" | "license_keys";
 type PdiWorkspaceTab = { id: string; title: string; module: PdiModule; projectId: string; dirty?: boolean; createdAt: string };
@@ -665,8 +661,6 @@ export default function PdiUnifiedApp() {
             <section className="pdi-profile-card"><h3>Compte</h3><p><b>Rôle</b><span>{String(pdiUserProfile.role).toUpperCase()}</span></p><p><b>Plan</b><span>{pdiUserProfile.plan}</span></p><p><b>Email</b><span>{pdiUserProfile.emailStatus}</span></p><p><b>Créé le</b><span>{pdiUserProfile.createdAt}</span></p></section>
             <section className="pdi-profile-card wide"><h3>Actions</h3><div className="pdi-profile-actions"><button onClick={()=>setActiveModule("projects")}>Mes projets</button><button onClick={()=>setActiveModule("subscription")}>Mon abonnement</button><button onClick={()=>setActiveModule("security")}>Sécurité</button><button onClick={handleLogoutToHome} style={{ color: "#f87171", borderColor: "rgba(248,113,113,0.4)" }}>⎋ Déconnexion</button></div></section>
           </div>
-          {/* PATCH 017K2 : identite societe editable, remplace toute marque codee en dur. */}
-          <PdiCompanyPanel />
         </ComingSoonPanel>}
         {activeModule === "subscription" && <ComingSoonPanel title="Abonnement"><p>Plan actuel : <b>{pdiUserProfile.plan}</b>. Les clés SaaS, paiements et renouvellements seront reliés au Super Admin dans les patchs 011 à 016.</p></ComingSoonPanel>}
         {activeModule === "security" && <ComingSoonPanel title="Sécurité du compte"><div className="pdi-security-list">{['clés API dans .env','.env dans .gitignore','rate limiting login','règles sécurité base','mots de passe hashés','droits serveur','HTTPS','sessions expirantes','inputs validés','uploads limités','type fichier vérifié','CORS','erreurs détaillées coupées','console.log clean','message erreur unique','webhooks signés','dépendances à jour','email confirmé','backup auto'].map((item,i)=><span key={item}>{i+1}. {item}</span>)}</div></ComingSoonPanel>}
@@ -727,7 +721,7 @@ export default function PdiUnifiedApp() {
           <div style={{ marginTop: 16, display: "flex", gap: 8, flexWrap: "wrap" }}>
             <button type="button" className="pdi-start-primary" onClick={() => openModuleInTab("isometric", "Nouveau plan ISO")}>Nouveau plan ISO</button>
             {/* PATCH 017F2 : recuperation des sauvegardes orphelines. */}
-            <button type="button" className="pdi-start-primary" onClick={() => { const added = pdiAdoptOrphanSessions(); setProjectsRefresh((v) => v + 1); void pdiAlert(added > 0 ? added + " projet(s) recupere(s) depuis les sauvegardes locales." : "Aucune sauvegarde orpheline a recuperer."); }}>Recuperer les sauvegardes orphelines</button>
+            <button type="button" className="pdi-start-primary" onClick={() => { const added = pdiAdoptOrphanSessions(); setProjectsRefresh((v) => v + 1); window.alert(added > 0 ? added + " projet(s) recupere(s) depuis les sauvegardes locales." : "Aucune sauvegarde orpheline a recuperer."); }}>Recuperer les sauvegardes orphelines</button>
           </div>
         </ComingSoonPanel>}
 

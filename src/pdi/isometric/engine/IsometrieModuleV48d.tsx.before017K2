@@ -59,8 +59,6 @@ import {
   pdiValidateTag,
 } from "./pdiTagging";
 import type { PdiProjectSetup } from "./pdiTagging";
-// PATCH 017K2
-import { pdiAlert } from "../../ui/PdiNotice";
 
 export type IsoNodeType =
   | "normal" | "entree_poste" | "sortie_poste"
@@ -5132,7 +5130,7 @@ function IsometrieModule(props: { projectId?: string }) {
   const onGcFile = (file?: File) => {
     if(!file) return;
     if(!/^image\/(png|jpeg|jpg|svg\+xml)$/.test(file.type)) {
-      void pdiAlert("Pour la sous-couche V1, exporter le fond GC en PNG/JPG/SVG depuis Croquis/CAD.");
+      alert("Pour la sous-couche V1, exporter le fond GC en PNG/JPG/SVG depuis Croquis/CAD.");
       return;
     }
     const reader = new FileReader();
@@ -5366,9 +5364,9 @@ function IsometrieModule(props: { projectId?: string }) {
 
   const importProjectJson=(file?:File)=>{
     if(!file)return;
-    if(!userUid){void pdiAlert("Import impossible : utilisateur non identifié");return;}
+    if(!userUid){alert("Import impossible : utilisateur non identifié");return;}
     const reader=new FileReader();
-    reader.onload=()=>{try{const migrated=migrateProjectFileV474(JSON.parse(String(reader.result||"{}")),userUid);const snapshot:IsoProjectFileV474={...migrated,project:{...migrated.project,ownerUid:userUid}};applyProjectSnapshot(snapshot,`Projet ${snapshot.schemaVersion} chargé`);void pdiAlert(`Import terminé\n\n${snapshot.model.nodes.length} nœuds\n${snapshot.model.segments.length} tronçons\n${snapshot.model.lines.length} ligne(s)\n\nMigration et validation réussies.`);}catch(error){void pdiAlert(`Import impossible: ${error instanceof Error?error.message:"fichier invalide"}`);}};
+    reader.onload=()=>{try{const migrated=migrateProjectFileV474(JSON.parse(String(reader.result||"{}")),userUid);const snapshot:IsoProjectFileV474={...migrated,project:{...migrated.project,ownerUid:userUid}};applyProjectSnapshot(snapshot,`Projet ${snapshot.schemaVersion} chargé`);alert(`Import terminé\n\n${snapshot.model.nodes.length} nœuds\n${snapshot.model.segments.length} tronçons\n${snapshot.model.lines.length} ligne(s)\n\nMigration et validation réussies.`);}catch(error){alert(`Import impossible: ${error instanceof Error?error.message:"fichier invalide"}`);}};
     reader.readAsText(file);
   };
 
@@ -6218,7 +6216,7 @@ autosaveBaselineRef.current=persistenceFingerprint(recoveryCandidate);
 if(recoverySource==="previous"||recoverySource==="legacy"){localStorage.setItem(AUTOSAVE_CURRENT_KEY,JSON.stringify(recoveryCandidate));}
 applyProjectSnapshot(recoveryCandidate,recoverySource==="previous"?"Sauvegarde précédente restaurée":"Projet autosauvegardé restauré");
 const restoredTime=new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
-setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null);setRecoverySource(null);}catch(error){void pdiAlert(error instanceof Error?error.message:"Restauration impossible")}}} className="px-4 py-2 rounded-lg bg-blue-600 text-white text-xs font-black">Restaurer</button></div></div></div>}
+setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null);setRecoverySource(null);}catch(error){alert(error instanceof Error?error.message:"Restauration impossible")}}} className="px-4 py-2 rounded-lg bg-blue-600 text-white text-xs font-black">Restaurer</button></div></div></div>}
     {recoveryFailure&&<div className="fixed inset-0 z-[10021] bg-slate-950/75 flex items-center justify-center p-4"><div className="w-[min(520px,94vw)] bg-white rounded-2xl border shadow-2xl p-5"><div className="text-[10px] font-black uppercase text-red-600">Récupération bloquée</div><h3 className="text-lg font-black mt-1">Archives locales illisibles</h3><p className="text-xs text-slate-600 mt-2">{recoveryFailure} Une copie de la sauvegarde actuelle a été placée en quarantaine. Aucune autosauvegarde ne sera écrite avant ton choix.</p><div className="flex flex-wrap justify-end gap-2 mt-5"><button onClick={()=>{autosaveBaselineRef.current=persistenceFingerprint(buildProjectFileV474());setRecoveryFailure(null);setStatusMessage("Nouvelle session autorisée")}} className="px-3 py-2 rounded-lg bg-slate-100 text-xs font-bold">Continuer sans restaurer</button><button onClick={()=>{localStorage.removeItem(AUTOSAVE_CURRENT_KEY);localStorage.removeItem(AUTOSAVE_PREVIOUS_KEY);localStorage.removeItem(AUTOSAVE_LEGACY_KEY);localStorage.removeItem(AUTOSAVE_CORRUPT_KEY);setRecoveryFailure(null);setStatusMessage("Archives locales supprimées")}} className="px-3 py-2 rounded-lg bg-red-600 text-white text-xs font-black">Supprimer les archives</button></div></div></div>}
     {commandPaletteOpen&&<div className="fixed inset-0 z-[10000] bg-slate-950/60 backdrop-blur-sm flex justify-center pt-[12vh]" onMouseDown={()=>setCommandPaletteOpen(false)}><div className="w-[min(560px,92vw)] h-fit bg-slate-900 text-slate-100 rounded-2xl border border-slate-700 shadow-2xl overflow-hidden" onMouseDown={e=>e.stopPropagation()}><div className="px-4 py-3 border-b border-slate-700"><div className="text-[10px] font-black text-cyan-400 uppercase">Palette de commandes · Ctrl+K</div><div className="text-sm font-bold mt-1 text-slate-100">Choisir une action</div></div><div className="p-2 grid grid-cols-2 gap-2 text-xs"><button onClick={()=>runWorkspaceCommand(()=>setIsoDrawMode("segment"),"Outil Tube")} className="p-3 text-left rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700"><b>T</b> · Nouveau tube</button><button onClick={()=>runWorkspaceCommand(()=>setIsoDrawMode("node"),"Outil Nœud")} className="p-3 text-left rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700"><b>N</b> · Nouveau nœud</button><button onClick={()=>runWorkspaceCommand(resetView,"Vue recentrée")} className="p-3 text-left rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700"><b>F</b> · Recentrer</button><button onClick={()=>runWorkspaceCommand(exportProjectJson,"Projet exporté")} className="p-3 text-left rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700"><b>Ctrl+S</b> · Export JSON</button><button onClick={()=>runWorkspaceCommand(()=>setShortcutsOpen(true),"Aide raccourcis")} className="p-3 text-left rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700"><b>?</b> · Raccourcis</button><button onClick={()=>runWorkspaceCommand(printPlanSheet,"Impression A3")} className="p-3 text-left rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700"><b>P</b> · Imprimer</button>
               <button

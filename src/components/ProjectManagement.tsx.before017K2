@@ -65,8 +65,6 @@ import {
 
 import ProjectMapViewer from "./ProjectMapViewer";
 import ProjectAltitudeProfile from "./ProjectAltitudeProfile";
-// PATCH 017K2
-import { pdiAlert } from "../pdi/ui/PdiNotice";
 
 // Project Interface structure matched with Sonelgaz requirements
 export interface PlanDeControleItemStatus {
@@ -1517,7 +1515,7 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
       URL.revokeObjectURL(url);
     } catch (err) {
       console.error("Error downloading KML:", err);
-      void pdiAlert("Erreur lors de la génération ou du téléchargement du fichier.");
+      alert("Erreur lors de la génération ou du téléchargement du fichier.");
     }
   };
 
@@ -1775,7 +1773,7 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
       `);
       win.document.close();
     } else {
-      void pdiAlert("Veuillez autoriser les popups pour pouvoir imprimer le plan de charge.");
+      alert("Veuillez autoriser les popups pour pouvoir imprimer le plan de charge.");
     }
   };
 
@@ -2009,7 +2007,7 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
       pdf.save(`Plan_de_Charge_Sonelgaz_${new Date().toISOString().split('T')[0]}.pdf`);
     } catch (error) {
       console.error("Error generating PDF:", error);
-      void pdiAlert("Une erreur est survenue lors de la génération du PDF.");
+      alert("Une erreur est survenue lors de la génération du PDF.");
     } finally {
       document.body.removeChild(tempDiv);
     }
@@ -2018,7 +2016,7 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
   const handleExportActivePanePDF = async () => {
     const element = document.getElementById("current-content-pane");
     if (!element) {
-      void pdiAlert("Impossible de trouver la section de contenu active à exporter.");
+      alert("Impossible de trouver la section de contenu active à exporter.");
       return;
     }
     
@@ -2063,7 +2061,7 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
       pdf.save(fileName);
     } catch (error) {
       console.error("Error generating page PDF:", error);
-      void pdiAlert("Une erreur est survenue lors de la génération du PDF de la page.");
+      alert("Une erreur est survenue lors de la génération du PDF de la page.");
     }
   };
 
@@ -2548,7 +2546,7 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
       `);
       win.document.close();
     } else {
-      void pdiAlert("Veuillez autoriser les popups pour pouvoir imprimer la fiche projet.");
+      alert("Veuillez autoriser les popups pour pouvoir imprimer la fiche projet.");
     }
   };
 
@@ -2614,7 +2612,7 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
       pdf.save(`Fiche_Projet_${project.name.replace(/\s+/g, "_")}.pdf`);
     } catch (error) {
       console.error("Error generating PDF:", error);
-      void pdiAlert("Une erreur est survenue lors de la génération du PDF.");
+      alert("Une erreur est survenue lors de la génération du PDF.");
     } finally {
       document.body.removeChild(tempDiv);
     }
@@ -2890,7 +2888,7 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
       pdf.save(`Genese_Projet_${project.name.replace(/\s+/g, "_")}.pdf`);
     } catch (error) {
       console.error("Error exporting Genesis PDF:", error);
-      void pdiAlert("Une erreur est survenue lors de la génération du PDF.");
+      alert("Une erreur est survenue lors de la génération du PDF.");
     } finally {
       document.body.removeChild(tempDiv);
     }
@@ -2902,12 +2900,12 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
     if (!file) return;
 
     if (!canEditProject(project)) {
-      void pdiAlert("Accès refusé: Vous n'avez pas le privilège de modification pour cet ouvrage (Projet non pris en charge ou compte en lecture seule).");
+      alert("Accès refusé: Vous n'avez pas le privilège de modification pour cet ouvrage (Projet non pris en charge ou compte en lecture seule).");
       return;
     }
 
     if (file.size > 800 * 1024) {
-      void pdiAlert("Le fichier est trop volumineux. La taille maximale autorisée est de 800 Ko.");
+      alert("Le fichier est trop volumineux. La taille maximale autorisée est de 800 Ko.");
       return;
     }
 
@@ -2930,10 +2928,10 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
         delete (updatedProject as any).id;
 
         await setDoc(projectRef, updatedProject);
-        void pdiAlert(`Le fichier ${file.name} a été chargé avec succès !`);
+        alert(`Le fichier ${file.name} a été chargé avec succès !`);
       } catch (err) {
         console.error("Error uploading KML/KMZ:", err);
-        void pdiAlert("Une erreur s'est produite lors de l'enregistrement du fichier.");
+        alert("Une erreur s'est produite lors de l'enregistrement du fichier.");
       }
     };
     reader.readAsDataURL(file);
@@ -2942,7 +2940,7 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
   // Delete custom KML/KMZ file and revert to auto-generated KML
   const handleDeleteKMZ = async (project: Project) => {
     if (!canEditProject(project)) {
-      void pdiAlert("Accès refusé: Vous n'avez pas le privilège de modification pour cet ouvrage (Projet non pris en charge ou compte en lecture seule).");
+      alert("Accès refusé: Vous n'avez pas le privilège de modification pour cet ouvrage (Projet non pris en charge ou compte en lecture seule).");
       return;
     }
     const confirmDelete = window.confirm(
@@ -2965,10 +2963,10 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
       delete (updatedProject as any).id;
 
       await setDoc(projectRef, updatedProject);
-      void pdiAlert("Le fichier KMZ/KML personnalisé a été supprimé. Retour au tracé automatique.");
+      alert("Le fichier KMZ/KML personnalisé a été supprimé. Retour au tracé automatique.");
     } catch (err) {
       console.error("Error deleting KML/KMZ:", err);
-      void pdiAlert("Une erreur s'est produite lors de la suppression du fichier.");
+      alert("Une erreur s'est produite lors de la suppression du fichier.");
     }
   };
 
@@ -3557,11 +3555,11 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
   const handleSaveFicheSuivi = async () => {
     if (!selectedProject) return;
     if (!hasPrivilege("section_etude")) {
-      void pdiAlert("Accès refusé: Vous ne disposez pas du privilège requis pour modifier la section étude.");
+      alert("Accès refusé: Vous ne disposez pas du privilège requis pour modifier la section étude.");
       return;
     }
     if (!canEditProject(selectedProject)) {
-      void pdiAlert("Accès refusé: Vous n'avez pas le privilège de modification pour cet ouvrage (Projet non pris en charge ou compte en lecture seule).");
+      alert("Accès refusé: Vous n'avez pas le privilège de modification pour cet ouvrage (Projet non pris en charge ou compte en lecture seule).");
       return;
     }
     setIsSavingFicheSuivi(true);
@@ -3626,7 +3624,7 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
       setIsEditingFicheSuivi(false);
     } catch (err) {
       console.error("Error saving Fiche de Suivi:", err);
-      void pdiAlert("Erreur lors de la sauvegarde de la fiche de suivi administrative.");
+      alert("Erreur lors de la sauvegarde de la fiche de suivi administrative.");
     } finally {
       setIsSavingFicheSuivi(false);
     }
@@ -3636,11 +3634,11 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
   const handleSavePlanDeControleItem = async (ord: string) => {
     if (!selectedProject) return;
     if (!hasPrivilege("section_travaux")) {
-      void pdiAlert("Accès refusé: Vous ne disposez pas du privilège requis pour modifier la section travaux.");
+      alert("Accès refusé: Vous ne disposez pas du privilège requis pour modifier la section travaux.");
       return;
     }
     if (!canEditProject(selectedProject)) {
-      void pdiAlert("Accès refusé: Vous n'avez pas le privilège de modification pour cet ouvrage (Projet non pris en charge ou compte en lecture seule).");
+      alert("Accès refusé: Vous n'avez pas le privilège de modification pour cet ouvrage (Projet non pris en charge ou compte en lecture seule).");
       return;
     }
     setIsSavingPlanItem(true);
@@ -3662,7 +3660,7 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
       setExpandedPlanDeControleItem(null);
     } catch (err) {
       console.error("Error saving Plan de Contrôle item:", err);
-      void pdiAlert("Erreur lors de la sauvegarde du point de contrôle.");
+      alert("Erreur lors de la sauvegarde du point de contrôle.");
     } finally {
       setIsSavingPlanItem(false);
     }
@@ -3747,7 +3745,7 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
   const startEditing = () => {
     if (selectedProject) {
       if (!canEditProject(selectedProject)) {
-        void pdiAlert("Accès refusé: Vous n'avez pas le privilège d'édition pour cet ouvrage (Projet non pris en charge ou compte en lecture seule).");
+        alert("Accès refusé: Vous n'avez pas le privilège d'édition pour cet ouvrage (Projet non pris en charge ou compte en lecture seule).");
         return;
       }
       setEditProjectData(JSON.parse(JSON.stringify(selectedProject))); // Deep copy
@@ -3759,7 +3757,7 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
   const saveProjectChanges = async () => {
     if (!editProjectData) return;
     if (!canEditProject(editProjectData)) {
-      void pdiAlert("Accès refusé: Vous n'avez pas le privilège de modification pour cet ouvrage.");
+      alert("Accès refusé: Vous n'avez pas le privilège de modification pour cet ouvrage.");
       return;
     }
     try {
@@ -4031,7 +4029,7 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
       setEditProjectData(null);
     } catch (err) {
       console.error("Error saving project changes:", err);
-      void pdiAlert("Erreur lors de la sauvegarde du projet. Veuillez vérifier vos autorisations.");
+      alert("Erreur lors de la sauvegarde du projet. Veuillez vérifier vos autorisations.");
     }
   };
 
@@ -4039,7 +4037,7 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
   const deleteProject = async (id: string) => {
     const targetProj = projects.find(p => p.id === id);
     if (!canEditProject(targetProj)) {
-      void pdiAlert("Accès refusé: Vous n'avez pas le droit de supprimer cet ouvrage.");
+      alert("Accès refusé: Vous n'avez pas le droit de supprimer cet ouvrage.");
       return;
     }
     try {
@@ -4049,7 +4047,7 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
       }
     } catch (err) {
       console.error("Error deleting project:", err);
-      void pdiAlert("Impossible de supprimer le projet. Vérifiez vos accès d'administrateur.");
+      alert("Impossible de supprimer le projet. Vérifiez vos accès d'administrateur.");
     }
   };
 
@@ -4235,7 +4233,7 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
       setEditProjectData(null);
     } catch (err) {
       console.error("Error creating project:", err);
-      void pdiAlert("Une erreur s'est produite lors de l'ajout du projet.");
+      alert("Une erreur s'est produite lors de l'ajout du projet.");
     }
   };
 
@@ -4662,7 +4660,7 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
       setEditingConstraintsProjectId(null);
     } catch (err) {
       console.error("Error saving constraints quickly:", err);
-      void pdiAlert("Une erreur s'est produite lors de la mise à jour des contraintes.");
+      alert("Une erreur s'est produite lors de la mise à jour des contraintes.");
     } finally {
       setIsSavingConstraints(false);
     }
@@ -6563,7 +6561,7 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
         document.body.removeChild(tempDiv);
       } catch (err) {
         console.error("Error generating report PDF:", err);
-        void pdiAlert("Erreur lors de la génération du PDF.");
+        alert("Erreur lors de la génération du PDF.");
       } finally {
         setIsGeneratingReport(false);
       }
@@ -6602,10 +6600,10 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
           authorRole: userProfile?.role || "Superviseur",
           readBy: []
         });
-        void pdiAlert(`Sauvegarde mensuelle effectuée avec succès ! Les états d'avancement et le plan de charge au format Word et PDF ont été téléchargés de manière sécurisée.`);
+        alert(`Sauvegarde mensuelle effectuée avec succès ! Les états d'avancement et le plan de charge au format Word et PDF ont été téléchargés de manière sécurisée.`);
       } catch (notifErr) {
         console.warn("Could not log archiving notification:", notifErr);
-        void pdiAlert(`Sauvegarde réussie ! Vos documents d'archivage mensuels ont été enregistrés localement.`);
+        alert(`Sauvegarde réussie ! Vos documents d'archivage mensuels ont été enregistrés localement.`);
       }
     };
 
@@ -12468,7 +12466,7 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
                                     setIsEditingTravauxProgress(false);
                                   } catch (error) {
                                     console.error("Error saving progress sheet:", error);
-                                    void pdiAlert("Erreur lors de l'enregistrement de l'avancement.");
+                                    alert("Erreur lors de l'enregistrement de l'avancement.");
                                   }
                                 }}
                                 className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-[11px] font-black rounded-lg transition-all flex items-center gap-1 cursor-pointer"
@@ -12921,7 +12919,7 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
                                     setIsEditingMateriel(false);
                                   } catch (error) {
                                     console.error("Error saving material availability:", error);
-                                    void pdiAlert("Erreur lors de la sauvegarde.");
+                                    alert("Erreur lors de la sauvegarde.");
                                   }
                                 }}
                                 className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-[11px] font-black rounded-lg transition-all flex items-center gap-1 cursor-pointer"
