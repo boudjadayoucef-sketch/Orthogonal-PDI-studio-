@@ -24,8 +24,6 @@ import { pdiReorientPorts, pdiTolViewBox } from "./pdiPorts017P2";
 import { pdiIsoAxisDirs017P3, pdiNodeRadius017P3, pdiNodeHasFaceOffset017P3, PDI_METRE_CONVENTION_017P3 } from "./pdiAxes017P3";
 import { PDI_PATCH_VERSION } from "../../pdiVersion";
 import { pdiGlyphScale017P5 } from "./pdiGlyphes017P5";
-// PATCH 017P9 : source unique des anomalies (11 codes, un seul module).
-import { pdiUnifyAnomalies017P9, pdiAnomalieKind017P9, pdiAnomalieLibelle017P9 } from "./pdiAnomalies017P9";
 import { auth } from "../../../lib/firebase";
 import {
   PDI_LOGO_HORIZONTAL_SRC,
@@ -2124,10 +2122,7 @@ function IsometrieModule(props: { projectId?: string }) {
     return { x: nodeProjection017I2.buffer[i * 2], y: nodeProjection017I2.buffer[i * 2 + 1] };
   };
   const editorAnnotationMap=useMemo(()=>buildIsoAnnotationLayout(nodes,segments,projectJoints,viewport),[nodes,segments,projectJoints,viewport]);
-  // PATCH 017P9 : le graphe d anomalies est desormais l union des deux jeux
-  // de regles. Bandeau, panneau Controle du reseau, volet Anomalies et barre
-  // d etat lisent tous cette seule liste.
-  const graphIssues=useMemo(()=>pdiUnifyAnomalies017P9(validateProjectGraph(nodes,segments,lines),nodes,segments,(codeSpec:string,dn:number)=>{const so=pdiFindSpec(projectSetup,codeSpec);return so?pdiSpecAllowsDn(so,dn):true;}),[nodes,segments,lines,projectSetup]);
+  const graphIssues=useMemo(()=>validateProjectGraph(nodes,segments,lines),[nodes,segments,lines]);
   const graphErrorCount=graphIssues.filter(i=>i.severity==="error").length;
   const graphWarningCount=graphIssues.filter(i=>i.severity==="warning").length;
 
@@ -8731,14 +8726,22 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
               })()}
               {/* PATCH 017F2 : volet Anomalies cliquable. */}
               {(() => {
-                // PATCH 017P9 : le volet ne calcule plus ses propres regles. Il lit la
-                // source unique (graphIssues). Le clic-vers-entite du 017F2 est conserve.
-                const issues: Array<{ id: string; kind: "segment" | "node"; label: string }> =
-                  graphIssues.map((issue) => ({
-                    id: issue.entityId || issue.id,
-                    kind: pdiAnomalieKind017P9(issue, nodes),
-                    label: pdiAnomalieLibelle017P9(issue),
-                  }));
+                const issues: Array<{ id: string; kind: "segment" | "node"; label: string }> = [];
+                segments.forEach((s) => {
+                  const specObj = s.spec ? pdiFindSpec(projectSetup, s.spec) : undefined;
+                  if (specObj && !pdiSpecAllowsDn(specObj, Number(s.dn))) {
+                    issues.push({ id: s.id, kind: "segment", label: "DN" + String(s.dn) + " hors spec " + specObj.code });
+                  }
+                  if (!s.tag) issues.push({ id: s.id, kind: "segment", label: "Troncon non tagge" });
+                  if (!(Number(s.length) > 0)) issues.push({ id: s.id, kind: "segment", label: "Longueur nulle" });
+                });
+                nodes.forEach((n) => {
+                  const linked = segments.filter((s) => s.fromNodeId === n.id || s.toNodeId === n.id).length;
+                  if (linked === 0) issues.push({ id: n.id, kind: "node", label: "Noeud isole" });
+                  else if (n.type === "tee" && linked < 3) {
+                    issues.push({ id: n.id, kind: "node", label: "Te incomplet (" + String(linked) + " branche(s))" });
+                  }
+                });
                 return (
                   <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5">
                     <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
@@ -9104,11 +9107,12 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
             </div>
           </div>
           <div className="rounded-xl border border-slate-700 bg-slate-900/60 p-3">
-            <div className="text-[10px] font-black text-cyan-300 uppercase mb-1.5">Specs tuyauterie</div>
-            <div className="space-y-1 max-h-48 overflow-auto">
-            xœŒWÁrÛ6½û+Nš‘ÒR¢¥¸‰IGv·µ“·—v:cˆ\I°A‚@K
-‡Ğ™ÎôĞC®½µş‚Ş«éäKº %™¤$·98 ¸» Ş¾}’ÆR\ƒ¯/A'qCÅà«FHãšŠI¯Oj{¤ò¯°[ró^ªâ†/ÈˆÏ©R4„3â0#LC¨\"’\'J³ÑÜ‚DDÃL»?î{ñì§|¬8Õà¶=Ïéol†Û©˜F¥D¤İPD‚ØÑPğ ãÏi”‡YŸ¬Û4Şÿ+lá(ÏV1BœIFyFşş‹˜…X‚R‰„ñ³«'ÖE'Qææ>3îÚ¸ÛDôªËõz¶÷ Qe¡4-Lòa¶g'ió)ywüİàñöŸŸál	€ø"i”bêkø‚„T½Oè‰©$oÎNNÉÓf~¨ôò#©¨sPş6Æ$>yB-ã¼“F¿aA¯[~€æúaàÂ¿qñ,±„ÃypØ2<l<Ñn›…Ö"t[äƒaˆ×öğ“Hğ¬;ãøUH¨ü¿<İ×l{d8^¦îğÀk5¡˜ZêßxwÈé†‰g>»ûd“ªc»­5«1öè†¹v§n‘¬İ9ß²^QYÈ‹âD÷Ršhá£Yœ™…bÂè³ÜGÇ»íbô:T{Ñ@D§3ğËÃôÒ_7eËëƒÚ/EgŒx"ée@)&¢^ZY(o4 ‘Ü~7–f2XÚ—ã˜Ï/’ëÈ_Ş’–¬Gå¦Í-ÔÆ	§CàÅ|LrÊñqg{&÷köğq…=9]^xEîàdÅ}'îó’XårÃ‘PEİj¡XÍ4Ç-~)S
-<€¤ñ„½OLÅ©¼ö”)>Ì1xu(èa1ZâáôqFU]º–dÜõ<Æ(’Fcp
-ËHİã5Ú¥E:ë9íâŠÒ;¯dwKy½4f1\j)nàÒ§*´˜˜-‘w`Y‡|~W6¯aŞ‡ kĞĞTA7lÔ² p˜ºû_ê›¤æõn¤y“([œº/rØ¬´”D1«(ô•5´xmªÖªg‹e¨»MËÂ²Üšñ†ÚVid2-CÓDRÍò9§[¤ø?Õv—ØmöÉO“ÎüÌÃ*ƒM÷Úˆrõl›V›3	»äú™Ş(´µL?Û”i¬¶¶Õb¬¶eNö·Uš…v¯ëë’;˜?Áí¶ÂZ3­¬îô?ıò'YB İfÓªQVd>½ZêŠÁ3§e[Bğ8
-yƒ|ğáuÂ¹ò%¾gœŸ%&Ş–¾æ-qò^Üã‰œƒO#ÿf^aºoyNVÂ¬¢;;%m…k+ïq¶qMQ~˜ÙîWR¼%Ü||•õ·uCëòÌéw‡â(ï”ù[êÓÇ_ñùd±<ÇnBÇæe6ìW‹6Uô+oÑëõRHç('!Õ)™„"`#ÁÊŠm±OÀS~fıt—ç¹ú¶>Á¼E“[S,î@U¶4Í×, çÕ±¯m§x}i>ë£+²ø”–²«ãàŸ­·<•Ò´äì:¢á‡³zIZ¬úi„¯ZÕàõ$#Ñ?¿%*[(‡˜ß{#T¶hñŞ­jÇñÑøH"µ¸3sÄ ZÜÕT}‡1ZÁYp\¯A£9i=ŠIµğÔ\ÓnUMè&]0WUŸ«ÇÕ¥Œ€EÌì-w
-h‚ğ~eŒÀ´*†ğU°[şÎùZ°"<×vº²´’¾“êmgëm¢ï úöSfj‰ZäI9¹(‹±Ï.œS9Só;Ë÷1Šû€*¨Õó(ğ2ÂMÑÁ.±	g$,ü DHÒsª'«µ[ÓXHİø€_¢ÄÔ³ÏJ-ùçß¬Q™Ÿ,G„2#ƒÅ¯^Zùàåj#ÌLd’’3%BĞøbÁ;$ø!{¹úÀˆ&\W-^îı  ÿÿ µB
+            <div className="text-[10px] font-black text-cyan-300 uppercase mb-1.5">SpecsxœŒWÁrÛ6½û+PNš‘ÒR¦%»±KWv·µ“·—v:cˆ\I°A‚@K
+‡Ğ™ÎôĞC®½µş‚Ş«éäKº )™¤$·98 ¸X oß¾]Ìi¢A28ŞØ]‡”şã
+ñ9Uê’†ĞsTL}pçî	éÌ¸û‡DÜq1uÑ‹pªÛ	Ic)nÀ×W “¸¥bğU+¤qCÅ¤×'šuqà-Ì{©Š[¾ +?â0#LC¨\"¼4¹I”f£¹;=ˆˆ†™vÜóâÙOùXqªÁíxŞÚÕìqø ¨r‚ˆ´ŠH;
+ä~ü9r7«›ïšİÿËmé*ûK!5¨S‘¿ÿ"f!– T"a`öÙÕÓKkÈ¢Ó(só=3n;xC 	i6³Gj•ii’³;IwŸ‘·'ß^oïù)éÎÆ ˆ/ÂFù É¢ás¤Šz—Ğ!SI^ŸŸ‘g»ù¥ÒO1HÍ@]ˆ€ò71ñéSòIáç­D7ú5‚|½NÈ8`®n ü[ï›A@8ŒGmÃÉÆívÈPh-B·MŞ†x?‰ï¸3_e€„ÊÿËÃ}ày»ÇEè¼İ£¢&4@¾›=Ô¿ğî'ÒÏĞ}lòcªc»íë1ö&­XäNİ2Y4ä`|Ë"ø’ÊRìX'º—šÔóÑ,ÎÍB9à
+ôyn„£“ív±zå*Ç½l ¢³ø¨Åezioš4†âÃê¢öKy3z<•t„2 Q/­-TĞÈn¿K3öUÃ“8æóË$Ä<ò‹WÒÒ’İQ{éîjã„Ó!ğr<&9åø¸»9’{­ƒ{ø¸Æœ.‡^™;8Y²ÃÃ½÷yE¬r¹áH¨²nµQ,ˆfšã?Ç”)	^@ÒxÂŞ%&ãT{Ê$ßƒ–—	ô¸·8ÂK8}<£UW—cK²îz£I£18¥e¤nÏñZƒÊ"õœNyEiˆW±»£<^³®´·påS5ZLÌ‘È;°¬C>¿­š70îChi*Ç [ÖkU K8Lİ½/õMPó|7Ò¼N”NİÃ6+-ÕQ*
+}íE--^j´›ÙâCêã]ËÂªÜšñšÚfid"%CÓDRÍò9§¤ø?Õv›ØmÎÉOÎü[ŒÃ2ƒõíå
+šÙ&­6w¶Éõ#2½–h+™Ş_—iÌ¶ÕbÌ¶"&{›2ÍúÀD{ĞõUÊŒFÌŸàqam˜RÖtúù“`•Ã´,”5™O¯]1X`ät¢léB¤S!omƒõ*á\ùû™—NO‰·¡®yNŞáN‘ˆÀé:Øù·ó2 ÓCÉs²
+f5İÙ*iK\Ûy³…kŠ‚ôxcf«_Eñ
+¸ùø:ëoª†vË¾Ó?®‰ ¼Sä½ÔÇ¿bûd±¼ÀjBÇ¦3öëI›*z‡™ˆ¯èõzH)¤ó2w'!wÕ­˜„"`#ÁÒŠm±-`×©¶„Y?İ¶óÂ}›ŸŠ`\ˆ¢ÉŒ©÷ jGšâkpçõ‰¯lŸ¤ø}e>è—×dñ;©,e×]ÇÁ?_y&¥)ÈÙ•GÃgÙIZ¬úi„]­jqˆÆz’‘èŸß’@U-ŒCŒïƒ*[´øßV·ãØôöI¤3¢÷fD‹û†jn1¦A;8œ‹áh4'íÓòrPm%<3Ï´GÕºNŒU}Ïõ“úRFÀ"fÎ–‹{4Ax¿2F`JCøjØ¿s¾¬Ï.-­¤o¥zÇ)|½I4ã]Tß~ÊL.Q‹2)'e‘!ÖÉù¥ÓeJ`“35ß°²|£¸¨‚F3Oò¯"LÑ7˜ÁáŒ„ƒ„IzAõ¤e5¢qÇ`©[ïñË3”˜föieÇ@KşÙ7+ATæ'ËKB™‘Áò‹—V>x±ƒÚ3ã™¤ä\‰4v,ø†"d/–ßÑ„ëºÅ‹  ÿÿ gŠÏÆ

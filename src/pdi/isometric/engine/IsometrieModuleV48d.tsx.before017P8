@@ -24,8 +24,6 @@ import { pdiReorientPorts, pdiTolViewBox } from "./pdiPorts017P2";
 import { pdiIsoAxisDirs017P3, pdiNodeRadius017P3, pdiNodeHasFaceOffset017P3, PDI_METRE_CONVENTION_017P3 } from "./pdiAxes017P3";
 import { PDI_PATCH_VERSION } from "../../pdiVersion";
 import { pdiGlyphScale017P5 } from "./pdiGlyphes017P5";
-// PATCH 017P9 : source unique des anomalies (11 codes, un seul module).
-import { pdiUnifyAnomalies017P9, pdiAnomalieKind017P9, pdiAnomalieLibelle017P9 } from "./pdiAnomalies017P9";
 import { auth } from "../../../lib/firebase";
 import {
   PDI_LOGO_HORIZONTAL_SRC,
@@ -2124,10 +2122,7 @@ function IsometrieModule(props: { projectId?: string }) {
     return { x: nodeProjection017I2.buffer[i * 2], y: nodeProjection017I2.buffer[i * 2 + 1] };
   };
   const editorAnnotationMap=useMemo(()=>buildIsoAnnotationLayout(nodes,segments,projectJoints,viewport),[nodes,segments,projectJoints,viewport]);
-  // PATCH 017P9 : le graphe d anomalies est desormais l union des deux jeux
-  // de regles. Bandeau, panneau Controle du reseau, volet Anomalies et barre
-  // d etat lisent tous cette seule liste.
-  const graphIssues=useMemo(()=>pdiUnifyAnomalies017P9(validateProjectGraph(nodes,segments,lines),nodes,segments,(codeSpec:string,dn:number)=>{const so=pdiFindSpec(projectSetup,codeSpec);return so?pdiSpecAllowsDn(so,dn):true;}),[nodes,segments,lines,projectSetup]);
+  const graphIssues=useMemo(()=>validateProjectGraph(nodes,segments,lines),[nodes,segments,lines]);
   const graphErrorCount=graphIssues.filter(i=>i.severity==="error").length;
   const graphWarningCount=graphIssues.filter(i=>i.severity==="warning").length;
 
@@ -3762,7 +3757,7 @@ function IsometrieModule(props: { projectId?: string }) {
       if(nodeId){
         selectNodeV44(nodeId,additive);
         const node=nodes.find(n=>n.id===nodeId);
-        const portCible=portByIndex(node,portIdx);const portOccupe=!!portCible&&segments.some(s=>s.fromPortId===portCible.id||s.toPortId===portCible.id);if(portOccupe){setStatusMessage("PORT OCCUPE : ce port porte deja une soudure. Aucune branche creee. Choisissez un port libre.");e.stopPropagation();return;}setBranchDrawing({fromNodeId:nodeId,fromPortId:portCible?.id,handleIndex:portIdx,currentWorldPos:screenToIsoWorld(e)});
+        setBranchDrawing({fromNodeId:nodeId,fromPortId:portByIndex(node,portIdx)?.id,handleIndex:portIdx,currentWorldPos:screenToIsoWorld(e)});
         e.currentTarget.setPointerCapture(e.pointerId);
         e.stopPropagation();
         return;
@@ -5696,7 +5691,7 @@ function IsometrieModule(props: { projectId?: string }) {
       title: "Outils",
       items: [
         { label: "ğŸ“‹ BOM / Tableau global", hint: "BOM", run: () => { setRightPanelOpen(true); setRightPanelTab("bom"); } },
-        { label: "ContrÃ´le rÃ©seau", hint: graphErrorCount ? `${graphErrorCount} erreur(s)` : "OK", run: () => { setStudioLayout("control"); setLeftPanelOpen(true); setStatusMessage(graphIssues.length?`CONTROLE RESEAU : ${graphErrorCount} erreur(s), ${graphWarningCount} alerte(s) - ${graphIssues.slice(0,3).map(issue=>issue.code+" "+issue.message).join(" ; ")}`:"CONTROLE RESEAU : graphe valide, aucune anomalie detectee."); } },
+        { label: "ContrÃ´le rÃ©seau", hint: graphErrorCount ? `${graphErrorCount} erreur(s)` : "OK", run: () => { setStudioLayout("control"); setLeftPanelOpen(true); } },
         { label: "Palette commandes", hint: "Ctrl+K", run: () => setCommandPaletteOpen(true) },
         { label: "Raccourcis clavier", hint: "?", run: () => setShortcutsOpen(true) },
       ],
@@ -5853,7 +5848,7 @@ function IsometrieModule(props: { projectId?: string }) {
             </nav>
           <div className="flex items-center gap-2">
     {/* PATCH 016A: bouton BOM & MÃ©trÃ© topbar supprimÃ© */}
-            <div className="hidden xl:flex items-center gap-3 text-[10px] text-slate-400"><span>{nodes.length} nÅ“uds</span><span>{segments.length} tronÃ§ons</span><button type="button" title={graphIssues.length?graphIssues.slice(0,8).map(issue=>(issue.severity==="error"?"ERREUR : ":"ALERTE : ")+issue.message).join("\n"):"Aucune anomalie de reseau detectee."} onClick={()=>{setStudioLayout("control");setLeftPanelOpen(true);setStatusMessage(graphErrorCount?`CONTROLE RESEAU : ${graphErrorCount} erreur(s) - ${graphIssues.filter(issue=>issue.severity==="error").slice(0,3).map(issue=>issue.message).join(" ; ")}`:graphWarningCount?`CONTROLE RESEAU : ${graphWarningCount} alerte(s) - ${graphIssues.slice(0,3).map(issue=>issue.message).join(" ; ")}`:"CONTROLE RESEAU : graphe valide, aucune anomalie.");}} className={graphErrorCount?"text-red-400 underline decoration-dotted cursor-pointer":graphWarningCount?"text-amber-300 underline decoration-dotted cursor-pointer":"text-emerald-400 cursor-pointer"}>{graphErrorCount?`${graphErrorCount} erreur(s)`:graphWarningCount?`${graphWarningCount} alerte(s)`:"Graphe valide"}</button></div>
+            <div className="hidden xl:flex items-center gap-3 text-[10px] text-slate-400"><span>{nodes.length} nÅ“uds</span><span>{segments.length} tronÃ§ons</span><span className={graphErrorCount?"text-red-400":"text-emerald-400"}>{graphErrorCount?`${graphErrorCount} erreur(s)`:"Graphe valide"}</span></div>
             <button onClick={()=>setCommandPaletteOpen(true)} className="h-8 px-2 rounded-md border border-slate-700 bg-slate-800 text-[10px] font-black" title="Palette commandes">âŒ˜K</button>
             <div className="relative">
               <button
@@ -7010,7 +7005,7 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                       <g>
                         {isSel&&<rect x={-11.5*kGlyph} y={-11.5*kGlyph} width={23*kGlyph} height={23*kGlyph} rx="5" fill="none" stroke="#facc15" strokeWidth="1.5" strokeDasharray="4 2"/>}
                         {isHov&&!isSel&&<rect x={-10.8*kGlyph} y={-10.8*kGlyph} width={21.6*kGlyph} height={21.6*kGlyph} rx="4" fill="none" stroke="#67e8f9" strokeWidth="1" strokeDasharray="2 2"/>}
-                        {isBend&&p0&&p1?<path d={`M ${p0.sx} ${p0.sy} Q 0 0 ${p1.sx} ${p1.sy}`} stroke="#f59e0b" strokeWidth="4" fill="none" strokeLinecap="round"/>:branchPort?<g data-pdi-te="017p8"><circle r={pdiNodeRadius017P3(viewport.zoom,isSel,isHov)+2} fill="#052e16" stroke={isSel?"#facc15":"#22c55e"} strokeWidth={2}/>{nativePorts.map(port=>(<line key={`teq-branche-${port.id}`} x1="0" y1="0" x2={port.sx} y2={port.sy} stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round"/>))}</g>:<g>{nativePorts.map(port=>(<line key={`patte-${port.id}`} x1="0" y1="0" x2={port.sx} y2={port.sy} stroke="#64748b" strokeWidth="1.6" strokeLinecap="round"/>))}<g transform={`rotate(${angle}) scale(${kGlyph} ${n.mirrored?-kGlyph:kGlyph})`} dangerouslySetInnerHTML={{__html:getFittingSvgGraphic(n.equipmentType!,false)}}/></g>}
+                        {isBend&&p0&&p1?<path d={`M ${p0.sx} ${p0.sy} Q 0 0 ${p1.sx} ${p1.sy}`} stroke="#f59e0b" strokeWidth="4" fill="none" strokeLinecap="round"/>:branchPort?<g data-pdi-te="017p7"><circle r={pdiNodeRadius017P3(viewport.zoom,isSel,isHov)+2} fill="#052e16" stroke={isSel?"#facc15":"#22c55e"} strokeWidth={2}/>{nativePorts.map(port=>(<line key={`teq-branche-${port.id}`} x1="0" y1="0" x2={port.sx} y2={port.sy} stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round"/>))}{nativePorts.map(port=>(<g key={port.id} data-iso-port="true" data-port-node-id={n.id} data-port-idx={String(port.index)} className="cursor-crosshair"><circle cx={port.sx} cy={port.sy} r={port.role==="branch"?4:3} fill={port.role==="branch"?"#22c55e":"#16a34a"} stroke="#ffffff" strokeWidth={port.role==="branch"?1.5:1}/></g>))}</g>:<g>{nativePorts.map(port=>(<line key={`patte-${port.id}`} x1="0" y1="0" x2={port.sx} y2={port.sy} stroke="#64748b" strokeWidth="1.6" strokeLinecap="round"/>))}<g transform={`rotate(${angle}) scale(${kGlyph} ${n.mirrored?-kGlyph:kGlyph})`} dangerouslySetInnerHTML={{__html:getFittingSvgGraphic(n.equipmentType!,false)}}/></g>}
                         {nativePorts.map(port=>{
                           const joint=projectJoints.find(item=>item.nodeId===n.id&&item.portId===port.id);
                           const connected=!!joint;
@@ -7032,7 +7027,7 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                       <g>
                         <circle r={pdiNodeRadius017P3(viewport.zoom,isSel,isHov)+2} fill="#1e1b4b" stroke={isSel?"#facc15":"#a78bfa"} strokeWidth={2}/>
                         {nativePorts.length?nativePorts.map(port=>(<line key={`te-branche-${port.id}`} x1="0" y1="0" x2={port.sx} y2={port.sy} stroke="#a78bfa" strokeWidth="2.5" strokeLinecap="round"/>)):(<path d="M -10 0 L 10 0 M 0 0 L 0 -12" stroke="#a78bfa" strokeWidth="2.5" strokeLinecap="round"/>)}
-                        {nativePorts.map(port=>{const jointTe=projectJoints.find(item=>item.nodeId===n.id&&item.portId===port.id);if(jointTe)return <g key={port.id} pointerEvents="none"><circle cx={port.sx} cy={port.sy} r="3.4" fill="#0f172a" stroke="#fbbf24" strokeWidth="1.4"/></g>;return <g key={port.id} data-iso-port="true" data-port-node-id={n.id} data-port-idx={String(port.index)} className="cursor-crosshair"><circle cx={port.sx} cy={port.sy} r={port.role==="branch"?4:3} fill={port.role==="branch"?"#22c55e":"#8b5cf6"} stroke="#ffffff" strokeWidth={port.role==="branch"?1.5:1}/></g>;})}
+                        {nativePorts.map(port=>(<g key={port.id} data-iso-port="true" data-port-node-id={n.id} data-port-idx={String(port.index)} className="cursor-crosshair"><circle cx={port.sx} cy={port.sy} r={port.role==="branch"?4:3} fill={port.role==="branch"?"#22c55e":"#8b5cf6"} stroke="#ffffff" strokeWidth={port.role==="branch"?1.5:1}/></g>))}
                       </g>
                     ) : (
                       <circle r={pdiNodeRadius017P3(viewport.zoom,isSel,isHov)} fill={fill} stroke={isSel?"#facc15":"#e0f2fe"} strokeWidth={isSel?2:1.5}/>
@@ -8731,14 +8726,22 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
               })()}
               {/* PATCH 017F2 : volet Anomalies cliquable. */}
               {(() => {
-                // PATCH 017P9 : le volet ne calcule plus ses propres regles. Il lit la
-                // source unique (graphIssues). Le clic-vers-entite du 017F2 est conserve.
-                const issues: Array<{ id: string; kind: "segment" | "node"; label: string }> =
-                  graphIssues.map((issue) => ({
-                    id: issue.entityId || issue.id,
-                    kind: pdiAnomalieKind017P9(issue, nodes),
-                    label: pdiAnomalieLibelle017P9(issue),
-                  }));
+                const issues: Array<{ id: string; kind: "segment" | "node"; label: string }> = [];
+                segments.forEach((s) => {
+                  const specObj = s.spec ? pdiFindSpec(projectSetup, s.spec) : undefined;
+                  if (specObj && !pdiSpecAllowsDn(specObj, Number(s.dn))) {
+                    issues.push({ id: s.id, kind: "segment", label: "DN" + String(s.dn) + " hors spec " + specObj.code });
+                  }
+                  if (!s.tag) issues.push({ id: s.id, kind: "segment", label: "Troncon non tagge" });
+                  if (!(Number(s.length) > 0)) issues.push({ id: s.id, kind: "segment", label: "Longueur nulle" });
+                });
+                nodes.forEach((n) => {
+                  const linked = segments.filter((s) => s.fromNodeId === n.id || s.toNodeId === n.id).length;
+                  if (linked === 0) issues.push({ id: n.id, kind: "node", label: "Noeud isole" });
+                  else if (n.type === "tee" && linked < 3) {
+                    issues.push({ id: n.id, kind: "node", label: "Te incomplet (" + String(linked) + " branche(s))" });
+                  }
+                });
                 return (
                   <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5">
                     <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
@@ -9106,9 +9109,31 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
           <div className="rounded-xl border border-slate-700 bg-slate-900/60 p-3">
             <div className="text-[10px] font-black text-cyan-300 uppercase mb-1.5">Specs tuyauterie</div>
             <div className="space-y-1 max-h-48 overflow-auto">
-            xœŒWÁrÛ6½û+Nš‘ÒR¢¥¸‰IGv·µ“·—v:cˆ\I°A‚@K
-‡Ğ™ÎôĞC®½µş‚Ş«éäKº %™¤$·98 ¸» Ş¾}’ÆR\ƒ¯/A'qCÅà«FHãšŠI¯Oj{¤ò¯°[ró^ªâ†/ÈˆÏ©R4„3â0#LC¨\"’\'J³ÑÜ‚DDÃL»?î{ñì§|¬8Õà¶=Ïéol†Û©˜F¥D¤İPD‚ØÑPğ ãÏi”‡YŸ¬Û4Şÿ+lá(ÏV1BœIFyFşş‹˜…X‚R‰„ñ³«'ÖE'Qææ>3îÚ¸ÛDôªËõz¶÷ Qe¡4-Lòa¶g'ió)ywüİàñöŸŸál	€ø"i”bêkø‚„T½Oè‰©$oÎNNÉÓf~¨ôò#©¨sPş6Æ$>yB-ã¼“F¿aA¯[~€æúaàÂ¿qñ,±„ÃypØ2<l<Ñn›…Ö"t[äƒaˆ×öğ“Hğ¬;ãøUH¨ü¿<İ×l{d8^¦îğÀk5¡˜ZêßxwÈé†‰g>»ûd“ªc»­5«1öè†¹v§n‘¬İ9ß²^QYÈ‹âD÷Ršhá£Yœ™…bÂè³ÜGÇ»íbô:T{Ñ@D§3ğËÃôÒ_7eËëƒÚ/EgŒx"ée@)&¢^ZY(o4 ‘Ü~7–f2XÚ—ã˜Ï/’ëÈ_Ş’–¬Gå¦Í-ÔÆ	§CàÅ|LrÊñqg{&÷köğq…=9]^xEîàdÅ}'îó’XårÃ‘PEİj¡XÍ4Ç-~)S
-<€¤ñ„½OLÅ©¼ö”)>Ì1xu(èa1ZâáôqFU]º–dÜõ<Æ(’Fcp
-ËHİã5Ú¥E:ë9íâŠÒ;¯dwKy½4f1\j)nàÒ§*´˜˜-‘w`Y‡|~W6¯aŞ‡ kĞĞTA7lÔ² p˜ºû_ê›¤æõn¤y“([œº/rØ¬´”D1«(ô•5´xmªÖªg‹e¨»MËÂ²Üšñ†ÚVid2-CÓDRÍò9§[¤ø?Õv—ØmöÉO“ÎüÌÃ*ƒM÷Úˆrõl›V›3	»äú™Ş(´µL?Û”i¬¶¶Õb¬¶eNö·Uš…v¯ëë’;˜?Áí¶ÂZ3­¬îô?ıò'YB İfÓªQVd>½ZêŠÁ3§e[Bğ8
-yƒ|ğáuÂ¹ò%¾gœŸ%&Ş–¾æ-qò^Üã‰œƒO#ÿf^aºoyNVÂ¬¢;;%m…k+ïq¶qMQ~˜ÙîWR¼%Ü||•õ·uCëòÌéw‡â(ï”ù[êÓÇ_ñùd±<ÇnBÇæe6ìW‹6Uô+oÑëõRHç('!Õ)™„"`#ÁÊŠm±OÀS~fıt—ç¹ú¶>Á¼E“[S,î@U¶4Í×, çÕ±¯m§x}i>ë£+²ø”–²«ãàŸ­·<•Ò´äì:¢á‡³zIZ¬úi„¯ZÕàõ$#Ñ?¿%*[(‡˜ß{#T¶hñŞ­jÇñÑøH"µ¸3sÄ ZÜÕT}‡1ZÁYp\¯A£9i=ŠIµğÔ\ÓnUMè&]0WUŸ«ÇÕ¥Œ€EÌì-w
-h‚ğ~eŒÀ´*†ğU°[şÎùZ°"<×vº²´’¾“êmgëm¢ï úöSfj‰ZäI9¹(‹±Ï.œS9Só;Ë÷1Šû€*¨Õó(ğ2ÂMÑÁ.±	g$,ü DHÒsª'«µ[ÓXHİø€_¢ÄÔ³ÏJ-ùçß¬Q™Ÿ,G„2#ƒÅ¯^Zùàåj#ÌLd’’3%BĞøbÁ;$ø!{¹úÀˆ&\W-^îı  ÿÿ µB
+              {projectSetup.specs.map(sp => (
+                <div key={sp.code} className="flex items-center justify-between text-[10px] text-slate-300">
+                  <span className="font-mono font-bold text-cyan-300">{sp.code}</span>
+                  <span className="text-slate-400">{sp.material} Â· {sp.pressureClass} Â· DN{sp.minDn}-{sp.maxDn}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>}
+
+    {/* PATCH 017D : ligne de commande compacte, masquable par HIDE */}
+    {!propertiesModalOpen && !commandPromptHidden && <div className="pdi-cmd-dock-017d fixed left-[92px] right-3 bottom-2 z-[10030] rounded-xl border border-cyan-500/30 bg-slate-950/95 shadow-xl backdrop-blur-md px-2 py-1 flex items-center gap-2">
+      <div className="flex-1 min-w-0">
+        <CadCommandLineBar
+          input={autocadCmdInput}
+          setInput={setAutocadCmdInput}
+          prompt={autocadPrompt}
+          onExecuteCommand={(cmd) => executeCadCommand(cmd)}
+          cadDraftSession={cadDraftSession}
+          onCancelDraft={cancelCadDraft}
+          onApplyNumericInput={applyNumericDraftInput}
+        />
+      </div>
+      <xœ|VİNãF¾ç)¦]%TNL]‰
+l¡,íM«•˜xNœ±Ç“d-?@¥J½èÅŞö®å	zß¨/²OÒ3vì åÂ™Ÿóûs¾AĞªõ`àL8cöÆf„ˆ´@l@‘&înkŸ(™Æ˜+B2’ŠáMùãjA¸GFársˆ›dævH2w=Ô¸o‰™qÚõ’Ù2–±qG‚÷åq©Õñ<‡nF´ø%¡\kH1 E“	ÿ9Â@ÁÃ“ÎiŠrpü-²üëë„ÆÕÔ*ö÷0ª2ŠCÂñÑG«ß¶
+}'©Yo	1ó­(‡àT#¯Õİ¯ÒÙÀéVO´ÄÊy5¹*Rd	OàÆ(y7W$d<œX—ƒ¬M2ğ‰s]o\¥ÑTZ†ªL«°ÚlVÍTp˜º»_Ø¢ºÁœÆ§˜ÚÿƒàÔ=(aS<œ˜rYXè®ñ,ªêø›µŒ|ÇgÀf¾øT‡ºß¶Ëm¿Íøƒ_FµwÈõÉ÷Ãsâí¾=%=l³ÔÈØV\64UÔğr/hÙvÈ(¢Ø d§½´óE¢dÊpĞ—’Qñ>Áóf%y­d”˜ó²óñ¸?JõS¼Ü8¶‚÷X‡U†ÏÕc*44ó*j	ãn1×Æ,¸˜#c‹0¶=Ø±“0’è'ÂIùhQôºŞ‡×­ }ßóÚ{ÕQÛ÷Ú‡ûvÚºvÚì¤.k²ûÒ¤6pĞˆP&§îL¬Gîd<æÁİ½kãüâô¬éøŸı‹,!€~»„	+W–«XÁ »]òŠÅ+gRí2Ü#ÛÙTª{ì‡ Ş¥Bè@ÄÇN‰Ï¯TÑ|xVâä<áËœ£Öi^aZÉ`šy³Şy•ÒV¸vHÁŒöãN‘êy—¢÷ñÜ™b"gvjŒ·„[„·¹¿“SX¶*{ß=#/ˆ@QÁŠõ?úd%–— 5!Ç*ø›C›iú€“ˆY”’Ê9.Í)(Mõj"‘d|Ì­¤¨å;áˆlmâÜÏ^Ó¼,–A1Ÿš`]ˆ¦é„T±Å#è—HŞÒ æíI±^Ëng˜‰¹±—'æø–,ş µ£ü¶ç8øy1Ë3¥ì³=»¶hûÃÉ—T`åg±Äç¤% Í$'ñ¿¿§L×%4„Ö÷I™-^ü‰¹mÊ	°!6›É‰^<Ú=b/ºùŠ0evÁŒËÑ'ÓªFµ¨ÅKxfÓ,\môy»`­6un·7rbÖ·Z<j )ÂûûTq„o;dÖ;Ìâ[É«ğÜÛ•dAé¯¶z×YÚzŸ.zÈ¾~Æí,Ñ9ì¤²¹(mc\\9=®å©¢S{‡/Ë	’ûjh4Ë¨Fxãˆf¨`7øç$ª	ü(eD²Kj&­‚#¦‰T¦õovbšù—5¡Qâ«ïÖ„¨É?“cB¹¥ÁjÆÅwkõ¦m!7ÂÌZ&¹Ğ2ƒÿ±`© ’­îŒi*Ì¦ÄÑÖ   ÿÿ l"I.
