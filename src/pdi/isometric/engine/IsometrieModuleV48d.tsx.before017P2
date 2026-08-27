@@ -20,7 +20,6 @@ import {
   pdiFindCoincidentNodes,
   pdiAuditGraph,
 } from "./pdiPrecision017P";
-import { pdiReorientPorts, pdiTolViewBox } from "./pdiPorts017P2";
 import { auth } from "../../../lib/firebase";
 import {
   PDI_LOGO_HORIZONTAL_SRC,
@@ -1702,10 +1701,7 @@ function IsometrieModule(props: { projectId?: string }) {
   ) => {
     if (!historyBusyRef.current) pushHistory();
     historyBusyRef.current = true;
-    // PATCH 017P2 : les faces suivent la geometrie reelle et les coudes
-    // sont ramenes sur l angle normalise le plus proche.
-    const pdiReor = pdiReorientPorts(nextNodes, nextSegments, { adaptElbows: true });
-    setNodesRaw(pdiReor.nodes);
+    setNodesRaw(nextNodes);
     setSegmentsRaw(nextSegments);
     setLinesRaw(nextLines);
     setDimensionsRaw(nextDimensions);
@@ -4269,8 +4265,8 @@ function IsometrieModule(props: { projectId?: string }) {
 
     if (updateCad2dPointer(e)) return;
     if (cadDraftSession) {
-      // PATCH 017P2 : ce que l on voit est ce qui sera cree.
-      const pt = pdiCreatePoint(screenToIsoWorld(e));
+      const w = screenToIsoWorld(e);
+      const pt = { x: snapIsoV4(w.x, isoSnapStep), y: snapIsoV4(w.y, isoSnapStep) };
       setCadDraftSession((prev) => (prev ? { ...prev, mouseWorld: pt } : null));
     }
     const { sx, sy } = getSvgCoordinates(e.clientX, e.clientY, svgRef.current || (e.currentTarget as unknown as SVGSVGElement));
@@ -4390,8 +4386,6 @@ function IsometrieModule(props: { projectId?: string }) {
       return;
     }
 
-    // PATCH 017P2 : la tolerance est convertie du viewBox vers les pixels reels.
-    const pdiTolScale = (t: number) => pdiTolViewBox(t, svgRef.current ? svgRef.current.getBoundingClientRect().width : 0);
     // Detection du snap le plus proche (Port, Endpoint, Midpoint, Grid)
     let detectedSnap: { kind: "PORT"|"ENDPOINT"|"MIDPOINT"|"AXIS"|"GRID"; label: string; worldPos: { x: number; y: number; z: number }; screenPos: { x: number; y: number } } | null = null;
     if (snapEnabled) {
@@ -4401,7 +4395,7 @@ function IsometrieModule(props: { projectId?: string }) {
             for (const port of node.ports) {
               const wp = portWorldPosition(node, port.id);
               const sp = isoProjectV4(wp.x, wp.y, wp.z, viewport.zoom, viewport.panX, viewport.panY);
-              if (Math.hypot(sp.x - sx, sp.y - sy) < pdiTolScale(PDI_SNAP_TOL_PX.PORT)) {
+              if (Math.hypot(sp.x - sx, sp.y - sy) < PDI_SNAP_TOL_PX.PORT) {
                 detectedSnap = { kind: "PORT", label: `PORT ${node.name} [${port.role || port.index}]`, worldPos: wp, screenPos: sp };
                 break;
               }
@@ -4413,7 +4407,7 @@ function IsometrieModule(props: { projectId?: string }) {
       if (!detectedSnap && snapEndpoints) {
         for (const node of nodes) {
           const np = isoProjectV4(node.x, node.y, node.z, viewport.zoom, viewport.panX, viewport.panY);
-          if (Math.hypot(np.x - sx, np.y - sy) < pdiTolScale(PDI_SNAP_TOL_PX.ENDPOINT)) {
+          if (Math.hypot(np.x - sx, np.y - sy) < PDI_SNAP_TOL_PX.ENDPOINT) {
             detectedSnap = { kind: "ENDPOINT", label: `POINT ${node.name} (Z=${node.z || 0}m)`, worldPos: { x: node.x, y: node.y, z: node.z || 0 }, screenPos: np };
             break;
           }
@@ -4425,7 +4419,7 @@ function IsometrieModule(props: { projectId?: string }) {
           if (ep) {
             const mx = (ep.from.x + ep.to.x) / 2, my = (ep.from.y + ep.to.y) / 2, mz = (ep.from.z + ep.to.z) / 2;
             const sp = isoProjectV4(mx, my, mz, viewport.zoom, viewport.panX, viewport.panY);
-            if (Math.hypot(sp.x - sx, sp.y - sy) < pdiTolScale(PDI_SNAP_TOL_PX.MIDPOINT)) {
+            if (Math.hypot(sp.x - sx, sp.y - sy) < PDI_SNAP_TOL_PX.MIDPOINT) {
               detectedSnap = { kind: "MIDPOINT", label: `MILIEU ${seg.sourceName || "Tube"}`, worldPos: { x: mx, y: my, z: mz }, screenPos: sp };
               break;
             }
@@ -4437,7 +4431,7 @@ function IsometrieModule(props: { projectId?: string }) {
         const gx = snapIsoV4(w.x, isoSnapStep);
         const gy = snapIsoV4(w.y, isoSnapStep);
         const gp = isoProjectV4(gx, gy, nodeZ || 0, viewport.zoom, viewport.panX, viewport.panY);
-        if (Math.hypot(gp.x - sx, gp.y - sy) < pdiTolScale(PDI_SNAP_TOL_PX.GRID)) {
+        if (Math.hypot(gp.x - sx, gp.y - sy) < PDI_SNAP_TOL_PX.GRID) {
           detectedSnap = { kind: "GRID", label: `GRILLE (${gx.toFixed(2)}, ${gy.toFixed(2)})`, worldPos: { x: gx, y: gy, z: nodeZ || 0 }, screenPos: gp };
         }
       }
@@ -4844,7 +4838,7 @@ function IsometrieModule(props: { projectId?: string }) {
 
   const alignSelectedNodesAxis = (axis: "x" | "y" | "z") => {
     if (selectedNodeIds.length < 2) {
-      setStatusMessage(`Aligner ${axis.toUpperCase()} : s√©lectionner au moins deux n≈ìuds (astuce : s√©lection par rectangle pour des n≈ìuds empil√©s)`);
+      setStatusMessage(`Aligner ${axis.toUpperCase()} : s√©lectionner au moins deux n≈ìuds`);
       return;
     }
     const referenceId = selectedNodeIds[selectedNodeIds.length - 1];
@@ -4866,12 +4860,6 @@ function IsometrieModule(props: { projectId?: string }) {
       if (Math.abs(delta) < 1e-9) return node;
       return { ...node, [axis]: Number((Number(node[axis] || 0) + delta).toFixed(3)) };
     });
-    // PATCH 017P2 : un alignement sans effet ne doit plus etre muet.
-    const pdiMoved = nextNodes.some((n, i) => n !== nodes[i]);
-    if (!pdiMoved) {
-      setStatusMessage(`Alignement ${axis.toUpperCase()} : noeuds deja alignes sur ${refValue.toFixed(3)} m - aucun changement`);
-      return;
-    }
     // PATCH 017P : QA avant validation, jamais deux noeuds confondus.
     const alignAudit = pdiFindCoincidentNodes(nextNodes, 0.001);
     if (alignAudit) {
@@ -5661,9 +5649,9 @@ function IsometrieModule(props: { projectId?: string }) {
     {
       title: "Alignement",
       items: [
-        { label: "Aligner X", hint: "AX", run: () => alignSelectedNodesAxis("x") },
-        { label: "Aligner Y", hint: "AY", run: () => alignSelectedNodesAxis("y") },
-        { label: "Aligner Z", hint: "AZ", run: () => alignSelectedNodesAxis("z") },
+        { label: "Aligner X", hint: "AX", run: () => alignSelectedNodesAxis("x"), disabled: selectedNodeIds.length < 2 },
+        { label: "Aligner Y", hint: "AY", run: () => alignSelectedNodesAxis("y"), disabled: selectedNodeIds.length < 2 },
+        { label: "Aligner Z", hint: "AZ", run: () => alignSelectedNodesAxis("z"), disabled: selectedNodeIds.length < 2 },
         { label: "√âquipement sur tube", hint: "AT", run: alignSelectedEquipmentOnTube },
         { label: "Rendre parall√®le", hint: "//", run: makeSelectedSegmentsParallel, disabled: selectedSegmentIds.length < 2 },
         { label: "Redresser ISO", hint: "ISO", run: redressIsoSelection, disabled: selectedSegmentIds.length < 1 },
@@ -9145,5 +9133,9 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
     {/* PATCH 017D : bouton de restauration de la ligne de commande */}
     {!propertiesModalOpen && commandPromptHidden && <button type="button" onClick={() => setCommandPromptHidden(false)} className="pdi-cmd-restore-017d fixed left-[92px] bottom-2 z-[10030] rounded-lg border border-cyan-500/40 bg-slate-950/95 px-3 py-1.5 text-[11px] font-black text-cyan-200 shadow-xl" title="Afficher la ligne de commande (HIDE)">‚å® Commande</button>}
 
-    <div className={`hidden pdi-status-docked ${workspaceFullscreen?"fixed bottom-0 left-[92px] right-0 z-[10008] rounded-none":"sticky bottom-2 z-40 rounded-xl"} bg-slate-950 text-slate-200 border border-slate-800 px-3 py-2 flex flex-wrap items-center justify-between gap-2 text-[10px] shadow-lg`}><div className="flex gap-4"><b className="text-emerald-400">‚óè {statusMessage}</b><span className={saveState==="error"?"text-red-400":saveState==="modified"?"text-amber-300":"text-cyan-300"}>{saveState==="modified"?"Modifications non sauvegard√©es":saveState==="autosaved"?`Autosauvegard√©${lastSavedAt?` √† ${lastSavedAt}`:""}`:saveState==="error"?"Erreur de sauvegarde":""}</span><span>{nodes.length} n≈ìuds</span><span>{segments.length} tron√ßons</span><span>{selectedCount} s√xúdPÀN1ºÔWXH-®•<N}lÖ
-Bà'‹∆¥©≤I‰dK≈j?®_¿~ålÇÖãe{flè7öfAYc>6ﬂÏyá&Ìoc·©IéPû»±ÙmMf%ÿÈíB§√…≈oÃ4zãä9£[\2[Ÿ‹Ñ°¥-&Ÿ:ÎtDwWRFåz◊*”ößΩø≠àôrÆvÛ«∆ÊO]qUëV®ï$Q÷M8∂ÀË‚⁄*~,∑Â7ÛH™U⁄è·óÒ¨ist≠SÒ5Î.Jw°?Mã®éßo?7±íÉÅ»P1ìÛÒ≠Ë*o/_*¨ÏÉsƒ#Ù‘h∆Î¶iÌ¬{Éä(®í˚@ÆÑ¨Fx¥6ÉbÇa—Ê¯ŸX)zqñC˚5"«ùN≥‹Ø)FÅı·Ãlñ°ë‰·˝ÜÄÒ;u«€ò Ïí^R&	≠´…P¿ÿ€å+ärMPˆæ1IœòÎó—K>  ˇˇ Vü”
+    <div className={`hidden pdi-status-docked ${workspaceFullscreen?"fixed bottom-0 left-[92px] right-0 z-[10008] rounded-none":"sticky bottom-2 z-40 rounded-xl"} bg-slate-950 text-slate-200 border border-slate-800 px-3 py-2 flex flex-wrap items-center justify-between gap-2 text-[10px] shadow-lg`}><div className="flex gap-4"><b className="text-emerald-400">‚óè {statusMessage}</b><span className={saveState==="error"?"text-red-400":saveState==="modified"?"text-amber-300":"text-cyan-300"}>{saveState==="modified"?"Modifications non sauvegard√©es":saveState==="autosaved"?`Autosauvegard√©${lastSavedAt?` √† ${lastSavedAt}`:""}`:saveState==="error"?"Erreur de sauvegarde":""}</span><span>{nodes.length} n≈ìuds</span><span>{segments.length} tron√ßons</span><span>{selectedCount} s√©lectionn√©(s)</span><span>{selectedCad2dIds.length} objet(s) 2D</span><span className={graphErrorCount?"text-red-400":"text-emerald-400"}>{graphErrorCount?`${graphErrorCount} erreur(s) r√©seau`:"Graphe valide"}</span><span>{projectJoints.length} joints</span></div><div className="flex gap-3"><span>Outil: <b>{interactionMode==="main"?"MAIN":isoDrawMode.toUpperCase()}</b></span><span>Snap {isoSnapStep} m</span><span>Zoom {Math.round(viewport.zoom*100)}%</span><span>Ctrl+K commandes ¬∑ ? aide</span></div></div>
+  </div>;
+}
+
+export { IsometrieModule };
+export default IsometrieModule;
