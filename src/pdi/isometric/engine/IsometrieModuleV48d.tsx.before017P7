@@ -22,7 +22,6 @@ import {
 } from "./pdiPrecision017P";
 import { pdiReorientPorts, pdiTolViewBox } from "./pdiPorts017P2";
 import { pdiIsoAxisDirs017P3, pdiNodeRadius017P3, pdiNodeHasFaceOffset017P3, PDI_METRE_CONVENTION_017P3 } from "./pdiAxes017P3";
-import { PDI_PATCH_VERSION } from "../../pdiVersion";
 import { pdiGlyphScale017P5 } from "./pdiGlyphes017P5";
 import { auth } from "../../../lib/firebase";
 import {
@@ -5866,7 +5865,7 @@ function IsometrieModule(props: { projectId?: string }) {
                   onClick={() => setTopbarProfileOpen(false)}
                 >
                   <div className="px-3 py-2 border-b border-slate-700/50 mb-1">
-                    <p className="font-bold text-slate-200 truncate"><span className="text-[9px] font-mono text-cyan-300 border border-cyan-500/40 rounded px-1 py-0.5 mr-1.5 align-middle">{PDI_PATCH_VERSION}</span>Youcef</p>
+                    <p className="font-bold text-slate-200 truncate">Youcef</p>
                     <p className="text-[10px] text-cyan-400 uppercase font-mono">Session active</p>
                   </div>
                   <button
@@ -7005,7 +7004,7 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                       <g>
                         {isSel&&<rect x={-11.5*kGlyph} y={-11.5*kGlyph} width={23*kGlyph} height={23*kGlyph} rx="5" fill="none" stroke="#facc15" strokeWidth="1.5" strokeDasharray="4 2"/>}
                         {isHov&&!isSel&&<rect x={-10.8*kGlyph} y={-10.8*kGlyph} width={21.6*kGlyph} height={21.6*kGlyph} rx="4" fill="none" stroke="#67e8f9" strokeWidth="1" strokeDasharray="2 2"/>}
-                        {isBend&&p0&&p1?<path d={`M ${p0.sx} ${p0.sy} Q 0 0 ${p1.sx} ${p1.sy}`} stroke="#f59e0b" strokeWidth="4" fill="none" strokeLinecap="round"/>:branchPort?<g data-pdi-te="017p7"><circle r={pdiNodeRadius017P3(viewport.zoom,isSel,isHov)+2} fill="#052e16" stroke={isSel?"#facc15":"#22c55e"} strokeWidth={2}/>{nativePorts.map(port=>(<line key={`teq-branche-${port.id}`} x1="0" y1="0" x2={port.sx} y2={port.sy} stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round"/>))}{nativePorts.map(port=>(<g key={port.id} data-iso-port="true" data-port-node-id={n.id} data-port-idx={String(port.index)} className="cursor-crosshair"><circle cx={port.sx} cy={port.sy} r={port.role==="branch"?4:3} fill={port.role==="branch"?"#22c55e":"#16a34a"} stroke="#ffffff" strokeWidth={port.role==="branch"?1.5:1}/></g>))}</g>:<g>{nativePorts.map(port=>(<line key={`patte-${port.id}`} x1="0" y1="0" x2={port.sx} y2={port.sy} stroke="#64748b" strokeWidth="1.6" strokeLinecap="round"/>))}<g transform={`rotate(${angle}) scale(${kGlyph} ${n.mirrored?-kGlyph:kGlyph})`} dangerouslySetInnerHTML={{__html:getFittingSvgGraphic(n.equipmentType!,false)}}/></g>}
+                        {isBend&&p0&&p1?<path d={`M ${p0.sx} ${p0.sy} Q 0 0 ${p1.sx} ${p1.sy}`} stroke="#f59e0b" strokeWidth="4" fill="none" strokeLinecap="round"/>:branchPort&&p0&&p1?<g data-pdi-te="017p6"><line x1={p0.sx} y1={p0.sy} x2={p1.sx} y2={p1.sy} stroke="#22c55e" strokeWidth="3.5" strokeLinecap="round"/><line x1="0" y1="0" x2={branchPort.sx} y2={branchPort.sy} stroke="#22c55e" strokeWidth="3.5" strokeLinecap="round"/><circle cx={branchPort.sx} cy={branchPort.sy} r="2.5" fill="#22c55e"/></g>:<g>{nativePorts.map(port=>(<line key={`patte-${port.id}`} x1="0" y1="0" x2={port.sx} y2={port.sy} stroke="#64748b" strokeWidth="1.6" strokeLinecap="round"/>))}<g transform={`rotate(${angle}) scale(${kGlyph} ${n.mirrored?-kGlyph:kGlyph})`} dangerouslySetInnerHTML={{__html:getFittingSvgGraphic(n.equipmentType!,false)}}/></g>}
                         {nativePorts.map(port=>{
                           const joint=projectJoints.find(item=>item.nodeId===n.id&&item.portId===port.id);
                           const connected=!!joint;
@@ -9134,6 +9133,15 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
           onApplyNumericInput={applyNumericDraftInput}
         />
       </div>
-      <xœ|VÝNãF¾ç)¦]%TNL]‰
-l¡,íM«•˜xNœ±Ç“d-?@¥J½èÅÞö®å	zß¨/²OÒ3vì åÂ™Ÿóûs¾AÐªõ`àL8cöÆf„ˆ´@l@‘&înkŸ(™Æ˜+B2’ŠáMùãjA¸žGFársˆ›dævH2w=Ô¸o‰™qÚõ’Ù2–±qG‚÷åq©Õñ<‡nF´ø%¡\kH1 E“	ÿ9Â@ÁÃ“ÎiŠrpü-²üëë„ÆÕÔ*ö÷0ª2ŠCÂñÑG«ß¶
-}'©Yo	1ó­(‡àTŽ#¯ÕÝ¯ÒÙÀéVO´ÄÊy5¹*Rd	OàÆ(y7W$d<œX—ƒ¬M2ð‰s]o\¥ÑTZ†ªL«°ÚlVÍTp˜º»_Ø¢ºÁœÆ§˜ÚÿƒàÔ=(aS<œ˜rYXè®ñ,ªêø›µŒ|ÇgÀf¾øT‡ºß¶Ëm¿Íøƒ_FžµwÈõÉ÷Ãsâí¾=%=l³ÔÈØV\64UÔðr/hÙvÈ(¢Ø d§½´óE¢dÊpÐ—’Qñ>Áóf%y­d”˜ó²óñ¸?JõS¼Ü8¶‚÷X‡U†ÏÕc*44ó*j	ãn1×Æ,¸˜#c‹0¶=Ø±“0’è'ÂIùhQôºÞ‡×­ }ßóÚ{ÕQÛ÷Ú‡ûvÚºvÚì¤.k²ûÒ¤6pÐˆžP&§îL¬Gîd<æÁÝ½kãüâô¬éøŸý‹,!€~»„	+W–«XÁ »]òŠÅ+gRí2Ü#ÛÙTª{ì‡ Þ¥Bè@ÄÇN‰Ï¯TÑ|xVâä<áËœž£Öi^aZÉ`šy³Þy•ÒV¸vHÁŒöãN‘êy—¢÷ñÜ™b"gvjŒ·„[„·¹¿“SX¶*{Žß=#/ˆ@QÁŠõ?úd%–— 5!Ç*ø›C›iú€“ˆY”’Ê9.Í)(Mõj"‘d|Ì­¤¨å;áˆlmâÜÏ^Ó¼,–A1Ÿš`]ˆ¦é„T±Å#è—HÞÒ æíI±^Ëng˜‰¹±—'æø–,þ µ£ü¶ç8øy1Ë3¥ì³=»¶hûÃÉ—T`åg±Äç¤% Í$'ñ¿¿§L×%4„Ö÷I™-^ü‰¹mÊ	°!6›É‰^<Ú=b/ºùŠ0evÁžŒËÑ'ÓªFµ¨ÅKxfÓ,\môy»`­6un·7rbÖ·Z<j )ÂûûTq„o;dÖ;Ìâ[É«ðÜÛ•dAé¯¶z×YÚzŸ.zÈ¾~Æí,Ñ9ì¤²¹(mc\\9=®å©¢S{‡/Ë	’ûjh4Ë¨Fxãˆf¨`7øç$ª	ü(eD²Kj&­‚#¦‰T¦õovbšù—5¡Qâ«ïÖ„¨É?“cB¹¥ÁjÆÅwkõ¦m!7ÂÌZ&¹Ð2ƒÿ±`© ’­îŒi*Ì¦ÄÑÖ   ÿÿ l"I.
+      <label className="hidden lg:flex items-center gap-1.5 rounded-lg border border-slate-800 bg-slate-900 px-2 py-0.5 h-7 text-[10px] font-black text-slate-200" title="Ã‰paisseur graphique des lignes de tuyauterie">
+        <span className="text-slate-400 text-[9px]">Ã‰p.</span>
+        <input
+          type="range"
+          min="0.35"
+          max="3"
+          step="0.05"
+          value={pipeStrokeScale}
+          onChange={(e) => setPipeStrokeScale(Number(e.target.value))}
+          className="w-16 accent-cyxœt•Ínã6€ïyŠ©.ìŠ'AÇV8ÙMZdw´—˜Ç2JH*vVÐè¡‡½öÖæ	z¯ÑÙ'éP²Ù»ñA’3CÍ7?b©Þ,ðIì›Œ¥IfÌ[–àÀ›ùG`qn}-â©­Åè¥þ~Ô«_÷‚lþÁ‹LdxcµºÃ›ˆIÜµêµ˜#ouÛåâS¿ã<¯.êw$£¬—ý÷aYÉEgÞŸý4¼„`ïûsèÁXåV¥À4ËrÍ¬¨×’qŠNŽT’°”„ÎÒÏ7™Vj+Ð\+Îä»Sxõj¥ù^«$³—‚óz»?Î­»Ç>dt½ð@¥C)¢»AÑjÃ ƒvø¥ykÂ¤ÁvÙ¤–qáG	÷Ý;+>Ãaâh€Ä	1;î3
+ŽîIü.|tƒýàh•SÜ—1jŽzùWC?‚ÎA ãØ7’YôƒÎñ!ds²o÷p•“=ç¢Rë%‹î‰ëRâÌ”q5óçÒ+¬¤7>›LD4¥ë¾Šµuyu~ÑöÂÏ¿ýKØïÔ˜(su)‹ÅhZÓu,(s67>WÑ!Ø.fJßQ=Dø:—ÒD1=õj>K&Á¨ªøh¯æ=sJUŠ^Ï3–òôÐJ˜V:f¹Æ¬¦Q/ŽuÒõþí¯¸va"q^=ü™f‹‰ñ#L-™ÝætûäÁ£Q ³Œ,½±Â-ãQn`ò*ÏÎäÀûãæIåÔLòªaÃÏŸ~‡¢fyÆ°KÊB¸Ù´…a÷Ô‰Å`0ðPk¥½ÓÚÆÚUoM%Q\Lò•KÆÄaßéykï•añ’åu%FU ¼€aù=ÆLóÅ#š+µµÛ ËÑY%?én‰½q‡göt‹?am«õ<_òBkÌµ+Þ'®>¼r9€*Va‘*ŽfWbÛi	éäÜ¬kŒÊï³M¶tñÅ¶©'1²È‡Tl¶³xtkb.[¦ý‚2ã]~ÅŸ«ñ-ZR‡îyÓ¢™Ô˜
+ozáÂ¬®ÚLè—åB¹Ú´mon•€1w·^<d9á}ã”î™„oƒMÖ[Šâ%šxn«åJ³é/–ú¾·ôõ.·Böhú†…p½Ä*rTIuq1‘ºÂ:»zëõ„QçšÍÜ}Y~Îh¸™ÁV»næÞ¤Ô¢8áÆbVB²¦ð‹R	×ÌNw«Ñº8Ë”¶»éd‡FL»üvÍbhµüîÇ§hàßà˜pc°qõÜZ}ÓN¶h6âÜy†®ŒJÐjC.Ê“ÕÇ	Ë¥ÝÔ8Ùú  ÿÿ ‰å¬
