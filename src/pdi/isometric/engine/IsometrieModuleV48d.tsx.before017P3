@@ -21,7 +21,6 @@ import {
   pdiAuditGraph,
 } from "./pdiPrecision017P";
 import { pdiReorientPorts, pdiTolViewBox } from "./pdiPorts017P2";
-import { pdiIsoAxisDirs017P3, pdiNodeRadius017P3, pdiNodeHasFaceOffset017P3, PDI_METRE_CONVENTION_017P3 } from "./pdiAxes017P3";
 import { auth } from "../../../lib/firebase";
 import {
   PDI_LOGO_HORIZONTAL_SRC,
@@ -467,7 +466,6 @@ function availablePortId(node:IsoNode|undefined,segments:IsoSegment[],preferred:
 function portWorldPosition(node: IsoNode, portId?: string) {
   const port=node.ports?.find(p=>p.id===portId);
   if(!port) return {x:node.x,y:node.y,z:node.z};
-  if(!pdiNodeHasFaceOffset017P3(node)) return {x:node.x,y:node.y,z:node.z};
   let portDx=port.dx,portDy=port.dy;
   const bend=node.equipmentType?elbowAngle(node.equipmentType):0;
   if(bend&&port.index===0){portDx=-1;portDy=0;}
@@ -5184,7 +5182,7 @@ function IsometrieModule(props: { projectId?: string }) {
       <div class="meta">
         <div><b>Projet :</b> ${projectName} | <b>R√©gion :</b> ${wilaya}</div>
         <div><b>Pression :</b> ${pressDesign} bar | <b>√âpreuve :</b> ${hydrotest.toFixed(1)} bar</div>
-        <div><b>Longueur totale :</b> ${totalLength.toFixed(2)} m | <b>Poids :</b> ${totalWeight.toFixed(1)} kg | <b>Convention :</b> ${PDI_METRE_CONVENTION_017P3}</div>
+        <div><b>Longueur totale :</b> ${totalLength.toFixed(2)} m | <b>Poids :</b> ${totalWeight.toFixed(1)} kg</div>
       </div>
       <table><thead><tr><th>N¬∞</th><th>Liaison / Tron√ßon</th><th>Diam√®tre</th><th>Classe</th><th>Mat√©riau</th><th>Longueur</th><th>Poids</th></tr></thead><tbody>${rows}</tbody></table>
       <script>onload=()=>setTimeout(()=>print(),300)</script></body></html>`);
@@ -5398,7 +5396,7 @@ function IsometrieModule(props: { projectId?: string }) {
       </div>
       <div class="bom"><h3>NOMENCLATURE MAT√âRIEL</h3><table><thead><tr><th>RP</th><th>D√âSIGNATION</th><th>DN</th><th>"</th><th>Qt√©</th><th>U</th><th>L</th><th>R√âF.</th></tr></thead><tbody>${rows}</tbody></table></div>
       <div class="drawing"><svg viewBox="0 0 620 420"><text x="310" y="26" text-anchor="middle" font-size="13" font-weight="bold" fill="#0369a1">${title}</text>${gcUnderlay ? `<image href="${gcUnderlay}" x="${60 + gcX}" y="${65 + gcY}" width="${500 * gcScale}" height="${300 * gcScale}" opacity="${gcOpacity}" preserveAspectRatio="none"/>` : ""}<g transform="translate(0,35)">${drawingMarkup}</g></svg></div>
-      <div class="cartouche"><div class="cartouche-header"><div class="cartouche-title">${pdiCompanyName()}</div><div style="font-size:9px;margin-top:2px;color:#93c5fd;">${dia(segments[0]?.dn || 150).inch} ‚Äî ${wilaya}</div></div><div class="cartouche-sub">PLAN ISOM√âTRIQUE M√âCANIQUE</div><div class="notes"><b>Projet :</b> ${title}<br/><b>Pression service :</b> <span style="color:#0284c7;font-weight:bold;">${pressDesign} bar</span><br/><b>Pression √©preuve :</b> <span style="color:#dc2626;font-weight:bold;">${hydrotest.toFixed(1)} bar</span><br/><b>M√©tr√© total :</b> <span style="color:#0f172a;font-weight:bold;">${totalLength.toFixed(2)} m</span><br/><span style="font-size:7px;color:#64748b;">${PDI_METRE_CONVENTION_017P3}</span><br/><b>Poids acier :</b> <span style="color:#d97706;font-weight:bold;">${totalWeight.toFixed(1)} kg</span><br/><b>Feuille :</b> ${planPage}/${totalSheets}</div></div>
+      <div class="cartouche"><div class="cartouche-header"><div class="cartouche-title">${pdiCompanyName()}</div><div style="font-size:9px;margin-top:2px;color:#93c5fd;">${dia(segments[0]?.dn || 150).inch} ‚Äî ${wilaya}</div></div><div class="cartouche-sub">PLAN ISOM√âTRIQUE M√âCANIQUE</div><div class="notes"><b>Projet :</b> ${title}<br/><b>Pression service :</b> <span style="color:#0284c7;font-weight:bold;">${pressDesign} bar</span><br/><b>Pression √©preuve :</b> <span style="color:#dc2626;font-weight:bold;">${hydrotest.toFixed(1)} bar</span><br/><b>M√©tr√© total :</b> <span style="color:#0f172a;font-weight:bold;">${totalLength.toFixed(2)} m</span><br/><b>Poids acier :</b> <span style="color:#d97706;font-weight:bold;">${totalWeight.toFixed(1)} kg</span><br/><b>Feuille :</b> ${planPage}/${totalSheets}</div></div>
       <div class="footer">√âditeur isom√©trique tuyauterie ¬∑ ${pdiStandardsNote()} ¬∑ Format A3 paysage</div>
     </div><div style="position:fixed;right:10mm;bottom:5mm;font:8px Arial;color:#64748b">Generated with PD & I ¬∑ ¬© 2026 DZ-YSB-DEV</div><script>onload=()=>setTimeout(()=>print(),400)</script></body></html>`); w.document.close();
   };
@@ -7021,12 +7019,14 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                       </g>
                     ) : isTee ? (
                       <g>
-                        <circle r={pdiNodeRadius017P3(viewport.zoom,isSel,isHov)+2} fill="#1e1b4b" stroke={isSel?"#facc15":"#a78bfa"} strokeWidth={2}/>
-                        {nativePorts.length?nativePorts.map(port=>(<line key={`te-branche-${port.id}`} x1="0" y1="0" x2={port.sx} y2={port.sy} stroke="#a78bfa" strokeWidth="2.5" strokeLinecap="round"/>)):(<path d="M -10 0 L 10 0 M 0 0 L 0 -12" stroke="#a78bfa" strokeWidth="2.5" strokeLinecap="round"/>)}
-                        {nativePorts.map(port=>(<g key={port.id} data-iso-port="true" data-port-node-id={n.id} data-port-idx={String(port.index)} className="cursor-crosshair"><circle cx={port.sx} cy={port.sy} r={port.role==="branch"?4:3} fill={port.role==="branch"?"#22c55e":"#8b5cf6"} stroke="#ffffff" strokeWidth={port.role==="branch"?1.5:1}/></g>))}
+                        <circle r={isSel?9:7} fill="#1e1b4b" stroke={isSel?"#facc15":"#a78bfa"} strokeWidth={2}/>
+                        <path d="M -10 0 L 10 0 M 0 0 L 0 -12" stroke="#a78bfa" strokeWidth="2.5" strokeLinecap="round"/>
+                        <g data-iso-port="true" data-port-node-id={n.id} data-port-idx="0" className="cursor-crosshair"><circle cx="-12" cy="0" r="4" fill="#8b5cf6" stroke="#ffffff" strokeWidth="1"/></g>
+                        <g data-iso-port="true" data-port-node-id={n.id} data-port-idx="1" className="cursor-crosshair"><circle cx="12" cy="0" r="4" fill="#8b5cf6" stroke="#ffffff" strokeWidth="1"/></g>
+                        <g data-iso-port="true" data-port-node-id={n.id} data-port-idx="2" className="cursor-crosshair"><circle cx="0" cy="-14" r="5" fill="#22c55e" stroke="#ffffff" strokeWidth="1.5"/></g>
                       </g>
                     ) : (
-                      <circle r={pdiNodeRadius017P3(viewport.zoom,isSel,isHov)} fill={fill} stroke={isSel?"#facc15":"#e0f2fe"} strokeWidth={isSel?2:1.5}/>
+                      <circle r={isSel?7:isHov?6:5} fill={fill} stroke={isSel?"#facc15":"#e0f2fe"} strokeWidth={isSel?2:1.5}/>
                     )}
                     {showLabels&&(viewport.zoom>=0.5||isEquip||isSel)&&(()=>{
                           const fullLabel=`${isEquip?equipmentLabel(n):n.name}${n.z?` (Z=${n.z}m)`:""}`;
@@ -7467,7 +7467,7 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                 })()}
               </g>
 
-              <g transform="translate(566 44)">{pdiIsoAxisDirs017P3(PDI_ISO_COS_017I2,PDI_ISO_SIN_017I2).map(a=>(<g key={a.key}><line x1="0" y1="0" x2={a.sx*24} y2={a.sy*24} stroke={a.color} strokeWidth="1.8" strokeLinecap="round"/><text x={a.sx*34} y={a.sy*34+3} fill={a.color} fontSize="9" fontWeight="bold" textAnchor="middle">{a.key}</text></g>))}<circle r="2.2" fill="#e2e8f0"/></g>
+              <g transform="translate(550 45)"><circle r="22" fill="#0f172a" stroke="#0072bc"/><line x1="0" y1="-18" x2="0" y2="18" stroke="#38bdf8"/><line x1="-18" y1="0" x2="18" y2="0" stroke="#38bdf8"/><text y="-24" fill="#38bdf8" fontSize="9" textAnchor="middle">N</text><text x="24" y="3" fill="#cbd5e1" fontSize="8">E</text><text x="-24" y="3" fill="#cbd5e1" fontSize="8">O</text><text y="30" fill="#cbd5e1" fontSize="8" textAnchor="middle">S</text></g>
             </svg>
 
             {/* Interactive CAD Context Menu & Floating PROPS */}
@@ -8213,7 +8213,6 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                         <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 text-center">
                           <span className="text-[10px] text-slate-400 block font-bold uppercase">Longueur Totale Tube</span>
                           <strong className="text-lg font-mono text-cyan-300">{totalLength.toFixed(2)} m</strong>
-                          <span data-pdi-metre="017p3-bom" className="text-[8px] text-slate-500 block normal-case leading-tight mt-1">{PDI_METRE_CONVENTION_017P3}</span>
                         </div>
                         <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 text-center">
                           <span className="text-[10px] text-slate-400 block font-bold uppercase">Poids Acier Estim√©</span>
@@ -8358,7 +8357,6 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                 <div className="bg-slate-950 border border-slate-800 rounded-xl p-2 text-center">
                   <span className="text-[8px] font-bold text-slate-400 uppercase block">Longueur totale</span>
                   <strong className="text-cyan-300 font-mono text-sm">{totalLength.toFixed(2)} m</strong>
-                  <span data-pdi-metre="017p3-panneau" className="text-[7px] text-slate-500 block normal-case leading-tight">{PDI_METRE_CONVENTION_017P3}</span>
                 </div>
                 <div className="bg-slate-950 border border-slate-800 rounded-xl p-2 text-center">
                   <span className="text-[8px] font-bold text-slate-400 uppercase block">Poids acier</span>
@@ -9147,6 +9145,5 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
     {/* PATCH 017D : bouton de restauration de la ligne de commande */}
     {!propertiesModalOpen && commandPromptHidden && <button type="button" onClick={() => setCommandPromptHidden(false)} className="pdi-cmd-restore-017d fixed left-[92px] bottom-2 z-[10030] rounded-lg border border-cyan-500/40 bg-slate-950/95 px-3 py-1.5 text-[11px] font-black text-cyan-200 shadow-xl" title="Afficher la ligne de commande (HIDE)">‚å® Commande</button>}
 
-    <div className={`hidden pdi-status-docked ${workspaceFullscreen?"fixed bottom-0 left-[92px] right-0 z-[10008] rounded-none":"sticky bottom-2 z-40 rounded-xl"} bg-slate-950 text-slate-200 xútS¡n”@ΩÁ+FVëZêS”ˆÄ“$U’V®†ñCƒÑîqv‚ldÔZª„$≈Ú7p‡¿ï p'‚G¯vmJC/ÎŸô˜f<ofcmàÎOhSd
-_D‰´Úª¶)≠Í#\ÃA2e6úêbGõñÂÙ.åâóD
-ÃÉi≈·˚ÁQæ˙ vÜB/√4W√æêò§hÌ-f4ÍÃûr˚Òv§Œ@LExE¡◊óOPZF.ÏYã	U˝√xÿ∑9™-fiqA#£¡`ê1⁄gM:CM™ﬁ$”BN%â{f±”·ÿ„«‰U}ØÜÂcÃõ⁄ú K≠,(≠¿b±†çÿ¨…∂Jb¡⁄;s|^€±{•ÎÑG>xŒgcÿ|ÖW5ÓÅ;˛€Âï1TÙPùèÔzï≠Ü•“Çl7%ï¨ıÛs!Ï.¬Ríπ˘>Äÿhµ˘Êzk„Rö0â](Æ¿n÷˛Ó4Põıæ=xå‚H\ãá‰:û;8]n3∂áö∏≈õ]˘6ÎRÌÅ˛ª.nVmŒxØÌ™Äj≈|m≥Y[¬¬…˚“ÉòJ'_Kª‹ËπÎ‚ïñ€ÚÃÎÎ=Ú–m˘„´~¸…ı¶`ôˆ†KÈﬂ÷ πMjñ•Úãu~}Ù§’óó>÷e˝6œ…\†•˝ÉÊ	lˇ·Hπ'Z:Ç7FLyŸ‡ù÷î7»≥Æq"à˝Ö§eÆw?∫»”ÁQtP=Ÿa\∞IüΩÜâŒ2Tnu‡«w8tÍÏv\üÄ∆8ÌTù≠|f(·⁄ÍåÿHr=)Auz4≈"Â6‚¥Û  ˇˇ û´©Â
+    <div className={`hidden pdi-status-docked ${workspaceFullscreen?"fixed bottom-0 left-[92px] right-0 z-[10008] rounded-none":"sticky bottom-2 z-40 rounded-xl"} bg-slate-950 text-slate-200 border border-slate-800 px-3 py-2 flex flex-wrap items-center justify-between gap-2 text-[10px] shadow-lg`}><div className="flex gap-4"><b className="text-emerald-400">‚óè {statusMessage}</b><span className={saveState==="error"?"text-red-400":saveState==="modified"?"text-amber-300":"text-cyan-300"}>{saveState==="modified"?"Modifications non sauvegard√©es":saveState==="autosaved"?`Autosauvegard√©${lastSavedAt?` √† ${lastSavedAt}`:""}`:saveState==="error"?"Erreur de sauvegarde":""}</span><span>{nodes.length} n≈ìuds</span><span>{segments.length} tron√ßons</span><span>{selectedCount} s√xúdPÀN1ºÔWXH-®•<N}lÖ
+Bà'‹∆¥©≤I‰dK≈j?®_¿~ålÇÖãe{flè7öfAYc>6ﬂÏyá&Ìoc·©IéPû»±ÙmMf%ÿÈíB§√…≈oÃ4zãä9£[\2[Ÿ‹Ñ°¥-&Ÿ:ÎtDwWRFåz◊*”ößΩø≠àôrÆvÛ«∆ÊO]qUëV®ï$Q÷M8∂ÀË‚⁄*~,∑Â7ÛH™U⁄è·óÒ¨ist≠SÒ5Î.Jw°?Mã®éßo?7±íÉÅ»P1ìÛÒ≠Ë*o/_*¨ÏÉsƒ#Ù‘h∆Î¶iÌ¬{Éä(®í˚@ÆÑ¨Fx¥6ÉbÇa—Ê¯ŸX)zqñC˚5"«ùN≥‹Ø)FÅı·Ãlñ°ë‰·˝ÜÄÒ;u«€ò Ïí^R&	≠´…P¿ÿ€å+ärMPˆæ1IœòÎó—K>  ˇˇ Vü”
