@@ -28,9 +28,6 @@ import { pdiGlyphScale017P5 } from "./pdiGlyphes017P5";
 import { pdiUnifyAnomalies017P9, pdiAnomalieKind017P9, pdiAnomalieLibelle017P9 } from "./pdiAnomalies017P9";
 // PATCH 017P10 : regles de validation de saisie (un seul endroit).
 import { pdiValiderLongueur017P10, pdiValiderDn017P10, pdiEcartAccrochage017P10 } from "./pdiSaisie017P10";
-// PATCH 017M : registre unique des commandes, source du ruban.
-import { PDI_ONGLETS_RUBAN_017M, PDI_INVITE_COMMANDE_017M, pdiGroupesOnglet017M, pdiEntreesGroupe017M } from "./pdiRegistreCommandes.v1";
-import type { PdiEntreeRuban017M } from "./pdiRegistreCommandes.v1";
 import { auth } from "../../../lib/firebase";
 import {
   PDI_LOGO_HORIZONTAL_SRC,
@@ -1067,8 +1064,7 @@ function IsometrieModule(props: { projectId?: string }) {
   const [autocadHistoryIdx, setAutocadHistoryIdx] = useState(-1);
   const [autocadSuggestions, setAutocadSuggestions] = useState<CadCommandItem[]>([]);
   const [autocadActiveIdx, setAutocadActiveIdx] = useState(0);
-  // PATCH 017M : invite lue dans le registre (vocabulaire tuyauterie).
-  const [autocadPrompt, setAutocadPrompt] = useState(PDI_INVITE_COMMANDE_017M);
+  const [autocadPrompt, setAutocadPrompt] = useState("Tapez une commande (ex: LIGNE, RECT, TRIANGLE, COPIER, COLLER...)");
   const [commandPromptHidden, setCommandPromptHidden] = useState<boolean>(() => {
     try { return window.localStorage.getItem("pdi.commandPromptHidden.v1") === "1"; } catch { return false; }
   });
@@ -1243,7 +1239,7 @@ function IsometrieModule(props: { projectId?: string }) {
   const cancelCadDraft = () => {
     setCadDraftSession(null);
     setCad2dDraftTool(null);
-    setAutocadPrompt("PrÃªt. " + PDI_INVITE_COMMANDE_017M);
+    setAutocadPrompt("PrÃªt. Tapez une commande (ex: LIGNE, RECT, TRIANGLE, COPIER, COLLER...)");
     setStatusMessage("Action CAO rÃ©initialisÃ©e");
   };
 
@@ -5738,47 +5734,6 @@ function IsometrieModule(props: { projectId?: string }) {
     },
   ];
 
-  // PATCH 017M : etat du ruban. Le registre decrit QUOI afficher, ces
-  // quelques lignes decrivent OU on en est dans la navigation.
-  const [rubanOnglet017M, setRubanOnglet017M] = useState<string>("dessin");
-  const [rubanReplie017M, setRubanReplie017M] = useState<boolean>(() => {
-    try { return localStorage.getItem("pdi.ribbon.collapsed.v1") === "1"; }
-    catch { return false; }
-  });
-  useEffect(() => {
-    try { localStorage.setItem("pdi.ribbon.collapsed.v1", rubanReplie017M ? "1" : "0"); }
-    catch { /* stockage indisponible : le ruban reste utilisable */ }
-  }, [rubanReplie017M]);
-  useEffect(() => {
-    const surTouche = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "F1") {
-        e.preventDefault();
-        setRubanReplie017M((v) => !v);
-      }
-    };
-    window.addEventListener("keydown", surTouche);
-    return () => window.removeEventListener("keydown", surTouche);
-  }, []);
-
-  // PATCH 017M : resolution de l action. Le registre designe une entree de
-  // menu par (groupe, index) ; on reutilise la fermeture existante telle
-  // quelle. Aucune des 47 actions n est reecrite : c est ce qui rend le
-  // passage au ruban sans risque pour le code qui fonctionne.
-  const pdiCibleRuban017M = (entree: PdiEntreeRuban017M) => {
-    if (!entree.source) return undefined;
-    const groupe = cadMenuGroups.find((g) => g.title === entree.source!.menu);
-    if (!groupe) return undefined;
-    return groupe.items[entree.source!.index];
-  };
-  const pdiInfobulleRuban017M = (entree: PdiEntreeRuban017M, indice?: string) => {
-    const base = entree.nomFr + " / " + entree.nomEn
-      + (entree.raccourci ? "  [" + entree.raccourci + "]" : "")
-      + (indice ? "  (" + indice + ")" : "");
-    return entree.etat === "grise"
-      ? base + "\nPrevu au jalon : " + (entree.jalon || "a definir")
-      : base;
-  };
-
   return <div
       data-pdi-studio="v4.8d1"
       className={`${workspaceFullscreen ? "fixed inset-0 z-[9999] overflow-hidden bg-[#0B0F14] px-2 pb-2 pt-[56px] pl-[92px]" : "w-full"} pdi-studio-root ${workspaceFullscreen ? "h-screen" : "space-y-3"} animate-fade-in`} style={{ "--pdi-command-reserved-bottom": (!propertiesModalOpen && !commandPromptHidden) ? "44px" : "0px" } as React.CSSProperties} /* PATCH 017D */
@@ -5843,17 +5798,6 @@ function IsometrieModule(props: { projectId?: string }) {
         [data-pdi-studio] .pdi-ribbon-group span{font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:#7D8590;font-weight:900;margin-right:3px}
         [data-pdi-studio] .pdi-ribbon-group button{height:30px;padding:0 9px;border-radius:6px;border:1px solid #30363D;background:#1F2937;color:#D1D5DB;font-size:10px;font-weight:900;white-space:nowrap}
         [data-pdi-studio] .pdi-ribbon-group button:hover{background:#2563EB;color:white;border-color:#60A5FA}
-        /* PATCH 017M : ruban a 9 onglets. Les classes .pdi-cad-ribbon et
-           .pdi-ribbon-group existaient deja mais n etaient utilisees nulle
-           part : elles sont enfin branchees, sans style en double. */
-        [data-pdi-studio] .pdi-ruban-onglet{height:26px;padding:0 11px;border-radius:6px 6px 0 0;color:#9CA3AF;background:transparent;font-size:11px;font-weight:900;white-space:nowrap;border:1px solid transparent;border-bottom:0}
-        [data-pdi-studio] .pdi-ruban-onglet:hover{background:#1F2937;color:#E6EDF3}
-        [data-pdi-studio] .pdi-ruban-onglet.actif{background:#151B24;color:#22D3EE;border-color:#30363D}
-        [data-pdi-studio] .pdi-cad-ribbon{display:flex;align-items:stretch;gap:10px;padding:5px 10px;min-height:64px;overflow-x:auto}
-        [data-pdi-studio] .pdi-ribbon-group{height:auto;flex-direction:column;align-items:flex-start;justify-content:space-between;gap:3px}
-        [data-pdi-studio] .pdi-ruban-boutons{display:flex;align-items:center;gap:4px}
-        [data-pdi-studio] .pdi-ribbon-group button:disabled{opacity:.42;cursor:not-allowed;background:#161B22;color:#7D8590;border-color:#262C36}
-        @media(max-width:900px){[data-pdi-studio] .pdi-cad-ribbon{display:none!important}}
 
 
         [data-pdi-studio] ::-webkit-scrollbar{width:8px;height:8px}[data-pdi-studio] ::-webkit-scrollbar-track{background:#0B0F14}[data-pdi-studio] ::-webkit-scrollbar-thumb{background:#374151;border:2px solid #0B0F14;border-radius:8px}
@@ -5912,29 +5856,31 @@ function IsometrieModule(props: { projectId?: string }) {
             <div className="hidden lg:block h-7 w-px bg-slate-700"/>
             <div className="hidden lg:block min-w-0"><div className="text-[9px] uppercase text-slate-500">Projet actif</div><div className="max-w-[220px] truncate text-xs font-bold">{projectName}</div></div>
           </div>
-            {/* PATCH 017M : bande d onglets. Les anciens menus deroulants ne
-                sont plus affiches ; ils restent la source des actions du
-                ruban, donc il n existe qu une seule surface cliquable. */}
-            <nav className="pdi-cad-menubar hidden md:flex" aria-label="Onglets du ruban PD & I">
-              {PDI_ONGLETS_RUBAN_017M.map((onglet) => (
-                <button
-                  key={onglet.id}
-                  type="button"
-                  onClick={() => { setRubanOnglet017M(onglet.id); setRubanReplie017M(false); }}
-                  className={"pdi-ruban-onglet" + (rubanOnglet017M === onglet.id && !rubanReplie017M ? " actif" : "")}
-                  title={onglet.nomFr + " / " + onglet.nomEn}
-                >
-                  {onglet.nomFr}
-                </button>
+            <nav className="pdi-cad-menubar hidden md:flex" aria-label="Menus PD & I">
+              {cadMenuGroups.map((group) => (
+                <div key={group.title} className="pdi-cad-menu">
+                  <button type="button" className="pdi-cad-menu-trigger">
+                    {group.title}
+                  </button>
+                  <div className="pdi-cad-menu-panel">
+                    {group.items.map((item) => (
+                      <button
+                        key={`${group.title}-${item.label}`}
+                        type="button"
+                        disabled={item.disabled}
+                        onClick={() => {
+                          item.run();
+                          setStatusMessage(`${group.title} Â· ${item.label}`);
+                        }}
+                        className="pdi-cad-menu-item"
+                      >
+                        <span>{item.label}</span>
+                        {item.hint && <span className="pdi-cad-menu-hint">{item.hint}</span>}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               ))}
-              <button
-                type="button"
-                onClick={() => setRubanReplie017M((v) => !v)}
-                className="pdi-ruban-onglet"
-                title="Replier ou deplier le ruban (Ctrl+F1)"
-              >
-                {rubanReplie017M ? "\u25be" : "\u25b4"}
-              </button>
             </nav>
           <div className="flex items-center gap-2">
     {/* PATCH 016A: bouton BOM & MÃ©trÃ© topbar supprimÃ© */}
@@ -6009,36 +5955,6 @@ function IsometrieModule(props: { projectId?: string }) {
             </div>
           </div>
         </header>
-        {/* PATCH 017M : rangee de groupes du ruban, lue depuis
-            pdiRegistreCommandes.v1. Une commande grisee est visible mais non
-            cliquable : son infobulle annonce le jalon qui l activera. */}
-        {!rubanReplie017M && (
-          <div className="pdi-cad-ribbon" data-pdi-ruban="017m">
-            {pdiGroupesOnglet017M(rubanOnglet017M).map((groupe) => (
-              <div key={groupe} className="pdi-ribbon-group">
-                <div className="pdi-ruban-boutons">
-                  {pdiEntreesGroupe017M(rubanOnglet017M, groupe).map((entree) => {
-                    const cible = pdiCibleRuban017M(entree);
-                    const inactif = entree.etat === "grise" || !cible || !!cible.disabled;
-                    const libelle = entree.suivreLibelle && cible ? cible.label : entree.nomFr;
-                    return (
-                      <button
-                        key={entree.id}
-                        type="button"
-                        disabled={inactif}
-                        title={pdiInfobulleRuban017M(entree, cible ? cible.hint : undefined)}
-                        onClick={() => { if (cible) { cible.run(); setStatusMessage(entree.nomFr); } }}
-                      >
-                        {entree.icone ? entree.icone + " " : ""}{libelle}
-                      </button>
-                    );
-                  })}
-                </div>
-                <span>{groupe}</span>
-              </div>
-            ))}
-          </div>
-        )}
         <aside className="pdi-studio-rail fixed bottom-0 left-0 top-[54px] z-[10005] w-[86px] py-2 px-1.5 flex flex-col items-center gap-1.5 overflow-y-auto">
           {/* Grille 2 colonnes : Symboles Tuyauterie & Outils de base */}
           <div className="w-full grid grid-cols-2 gap-1">
@@ -9134,15 +9050,75 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
             <tbody>
               {segments.map(s => (
                 <tr key={s.id}
-                  onClick={() => { selectSegmentV44(s.id, false); setDataMxœìZËnÉİû+jAzÜdKÔË²Hƒ¦ìXI,Ğd“»‹d[İ]5UÕ5ÙEÌ6»Ä_}„üˆ¿$÷V?Ø/J–ÇÏ"^ÈİÕõ¸uï©sEÑ)“¯‹Z(Ö~BV«{¤öÏ¨R§4d}kÌ¥Ç¤­Iú ª™}à8dÆçL§iÓcÇéî;Ä¥âÒÜ4“Ö aö#íW{›ˆ+{‹Lx¤íG<yóÀ#š-´MÃ1,İsk°TM§ä‡ˆe[«£®öî´„™.x§;>…	½è'r¯h„b­å5*&ç¾Ë>‡Ù•`îç˜o'/„éÓàsÎ)$S*–l„ıÚÄÒŸÎtÍXË–ê,šêÎî´;š¿ğÌkõÚÖVYmm·«_*6Y¤óÙûı>qÈƒ¤UŸ&4²óàLĞ¨¿Ü_5íc'ÃSPÜÈ.nd»qD´ä‘Ë#âÑH‘€Ğ¨cöÑ(vYjè2æŞU±4ÑqÀÖMG]ÏŸ^á­(«‘êÛ-G,ŞÖ$¾KÀ˜$	ü)ü=$ŠÌÕ>ŠçÒc§Lx2bZ3bÄ LiP2¦ŠÏ—0’á¸I¬a[.5yöúU§$eá%y\İ3/ËîCòføÍè%q¶öŸ,!÷ ½o$“3¦cA$\ù( ˆKcùsÿIêúĞğ°»ªO5„©Ê“¼9~p²î+’oæò&‚¢ªÇ	bø‘bÚvÈ÷¨RgÏyKÖÔ¸ëtĞ„{áI.ìq‘†d°ñ5U”w±Òşä*{öEx„Æ¸è/[mÒ€ô›ŠP)™¯r%V¼´'q.ìK»·Hfö·{óÙ[‚4>	ø¥McÍ‰äqä1ÏŞ†n	ågÌoÈnX~×)m¤Ü%JP—Ù€û‚¼Åe¥¹ ‰R4Mk-g]ÒÍ3}É@ÿ©0ãº?c{»äoJèßxĞ†¾°O…×c!˜tÁÖ †Š''•#v×cf&Õ@ 	Œ¬ˆ‡‡gúˆ¤D¦	R¿"şø·ô(Åxjğ<õkÔÆ±ÖpPõ•@n^î‚ª
-½õšÎpL×`hˆ
-ö¡©Lã$ÕÇêc­xkğ‚ÉÉ£n"aÅ6bf*}à8YıN©°{e$tÌ‚â ¯[•å>Duë=.[ñ~E˜œòcxCuqºÊ
-~$bMæ4ˆY¿Ä/ô^¡f4š²ôUÔØØZ’N§#‘ÂÈC8ršÊ)Ó³YµË6LÙ ¸UNúÚt©•IÅ=—¬—Gi—38¹„Ç: ºµ#1‹tËĞ4vøB–q8]?Å.8Á§ÙGşÜviŠ£s^ûå)ğ÷ïh×º£i’Aÿ?-q¦iäQé5š"	m¡Òqw´F6¬fªˆ5<=;±äÇ'§ÖµP5(?âÂÄÃ‰&Aø÷¨›|¹e nh š»ƒî¢oDÅmî1sÔµx.Iª÷«¼ïaL×ËcºzTµ)¼©"+ÏÛ‹Èzab4Ô!ŠI=f¹5.D'¿]ıf\ÂZÉÂŸà]KcoeŒ/ÄòfÓp²|Ñš˜­d¸»`Wıå¤%¤zJ_ÙCÆj¦Ü„ÇªY»Ÿâ
-€Ø.WLª[AHÌÙ7™Ò;‚Êt/Æ,°=Ÿ^»óûQË"ùšT‡(ƒ¨æ¾Aú>*œv+ 7ñ¦ôñ|ÁB`‚|›*Öç¡°}Èí—#Ûq¶ìÑ|K¥ûÔ3A„®{ƒ›S Lü@wÃ 8K!ô'»Áäv¿÷§­5ì¯éfß©‚¡™C¬5Åò	±@¢²šƒª'	@¼)óZ×|&~ Êk)ÃÈí´´êVC+¤‚)òï‘%<(3PxH!h©ö­ØúéÌÇRüšoø½Š‘;ğz=?&áØŞêìBÜe®]2	bßcê#Rä<ŠI+;åªÄ-t—eË†#ÔÜ^½p‡kúSókBù;6€Éh›ê››©`}ö!ì¹
-€—XNäòÑà‰¬€39›B°›_ªÊÎ;&^Ø8Iƒuê%Ò(2ü’!i
-(:¾(1é³Ÿ¸b‚Fq+Å/e="vÄgÀŸÈ¯V†5•(ß˜V¼…~t­ìdÌâ8úßböîeçcğğI)bW—‡!¤,æÀ¢Ù#€Šú.6¥o>ÈË“ãçë:òW€À¥ö™z…•ë¬–üU:DŸ¡Ğ/}Ïk®1Ï·İĞ³=î^Ø ‹G’ªsÀ&˜Öm#Ì¥	¸ê1ß‚çHJÑ=ç-Ùx¹Á!v{å¢n÷ñ.Q3êŞqL©rÃÖÛ"ó¦¨•Ù—v¬G#êeüÂÜgTlgrÿ$Pq¡[è`CÑàÁŸ$ài¸¹Ÿ0ŠÎ§Jô^ìÀ#ˆç\`ŠT˜ş²Š7ER–~È5_ŠƒaÆcI'@JAİ_VÊhä²À|Çø2Jû—;…®NãÎ‘›î’šÌˆÊN»Ğn* ÌÈÓÃfKƒ–Â¾2?¨yÆÎìıá]õzh_ƒ3´®ÿ$¨¯‹A IÅÌÿ.Æ§’³—ÔÈs./èf2"ë
-ˆ5€5:UvI
-L½'Ñ²Ä4Ñ*4tû–Óéí–é¢oõŠ-J3ıœR¿,5õ;ƒhö‚¹4`X¤™i‹å¥ùr÷ØBçV9-`©@²µ59ïHÍu 4hğÒ>¨İÇæ¶`U úÊò«ÙíöêúÇ²ªK%ŒŒnñ¹Æ¶cÈyñ¶‘pšÆ’&·/ëT|+Ûn"Û¼!Õ‡7^’¤\2sÉ6Ñõ4];h9MïÔi:OÏà´5ß­‡ÙVÎëù‘N&¾;ƒåÕÚBWÖ¶şüO’ª€åXê(+4¿<Oyu–Ó±2®TpyÉå…	°^ÄA \	ñÌÓô5Õ‰Óà×²›Uç`­'S
-9´ 4r/®Š
-İq
-.ÏZ•ï++÷Q›(-ÓëvâãŒãºBº90Krğ"ã¥ê¦ç«AcCv¬ÁÑ¸F^è^K}øñ/>]¾oB§™ÕC»Tt'vÑï÷-&%—ÖÓd:É’©K]BîùŸyY¯õm­rHˆ9É†‘¯Ì£kÎ§"ş.€Æs6¥Ò»~ÏTeIt¾Ø #Ï‡æ9ï{	;Ñgøq¨Ÿ“ë¿“RÓêüĞ²àOã.ŸK‰n0›Ïˆø°²HÒèj°Œ ª]§ôÑş{ªÜ£÷K]ÿÃ”Êı°Æ ˆñB]¿O!]¿_ª©·íxëÉùøÓĞlGj<ásÜ¦YªjĞ:\ÀVÕ1ç÷«M+ÂŒÆpmyı^1ƒzº*Hß«ºKóœßàï»Ö;xg^K•«P‡,/™ëu¬ıàØw°4?£Fs€¤\ÔXÃ“SëĞW‚œKüå÷˜â Åkµ“#P”ğ,‚#º„øpNxEÂR‡?p’å+ªgÃ­¹Ï.ñ×(ïáËC ˜öêW¥#-ƒ¯›¢)ÿ<%ÔG,î8‹´’‡'÷€Óß¹,É‰â!Ó±ÀbHVO²o›Ğ8ĞÕOîı  ÿÿ Ûï}|
+                  onClick={() => { selectSegmentV44(s.id, false); setDataManagerOpen(false); }}
+                  className="border-t border-slate-800 hover:bg-slate-900/70 cursor-pointer">
+                  <td className="px-2 py-1 font-mono font-bold text-amber-300">{s.tag || "-"}</td>
+                  <td className="px-2 py-1 text-slate-200">DN{s.dn}</td>
+                  <td className="px-2 py-1 text-cyan-300 font-bold">{s.service || "-"}</td>
+                  <td className="px-2 py-1 text-slate-300">{s.spec || "-"}</td>
+                  <td className="px-2 py-1 text-slate-400">{s.material || "-"}</td>
+                  <td className="px-2 py-1 text-slate-400">{s.pressureClass || "-"}</td>
+                  <td className="px-2 py-1 text-right text-slate-200">{(s.length || 0).toFixed(3)}</td>
+                </tr>
+              ))}
+              {segments.length === 0 && (
+                <tr><td colSpan={7} className="px-2 py-4 text-center text-slate-500">Aucun troncon dans le plan.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+        <div className="text-[10px] text-slate-500">Clic sur une ligne : selection du troncon sur le plan. Cette table est la base directe du futur export BOM.</div>
+      </div>
+    </div>}
+
+    {/* PATCH 017B : modal Project Setup repositionne au niveau racine */}
+    {/* PATCH 017A : Project Setup PD&I */}
+    {projectSetupOpen && <div className="fixed inset-0 z-[10060] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-6" onClick={() => setProjectSetupOpen(false)}>
+      <div className="w-full max-w-3xl max-h-[86vh] overflow-auto rounded-2xl border border-cyan-600/50 bg-slate-950 p-5 space-y-4" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+          <div>
+            <div className="text-sm font-black text-cyan-300 uppercase">Project Setup PD&amp;I</div>
+            <div className="text-[10px] text-slate-500">Projet, formats de tag, services et specs â€” base du BOM et du 3D</div>
+          </div>
+          <button type="button" onClick={() => setProjectSetupOpen(false)} className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-black">Fermer</button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <label className="space-y-1">
+            <span className="text-[9px] font-black text-slate-400 uppercase">Nom du projet</span>
+            <input value={projectSetup.projectName} onChange={e => setProjectSetup(p => ({ ...p, projectName: e.target.value }))} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[11px] font-bold text-white outline-none" />
+          </label>
+          <label className="space-y-1">
+            <span className="text-[9px] font-black text-slate-400 uppercase">Code projet</span>
+            <input value={projectSetup.projectCode} onChange={e => setProjectSetup(p => ({ ...p, projectCode: e.target.value }))} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[11px] font-mono font-bold text-cyan-300 outline-none" />
+          </label>
+          <label className="space-y-1">
+            <span className="text-[9px] font-black text-slate-400 uppercase">Client</span>
+            <input value={projectSetup.client} onChange={e => setProjectSetup(p => ({ ...p, client: e.target.value }))} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[11px] font-bold text-white outline-none" />
+          </label>
+          <label className="space-y-1">
+            <span className="text-[9px] font-black text-slate-400 uppercase">Standard</span>
+            <select value={projectSetup.standard} onChange={e => setProjectSetup(p => ({ ...p, standard: e.target.value as "ANSI" | "DIN" }))} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[11px] font-bold text-white outline-none">
+              <option value="ANSI">ANSI</option>
+              <option value="DIN">DIN</option>
+            </select>
+          </label>
+        </div>
+
+        <div className="rounded-xl border border-amber-700/50 bg-slate-900/60 p-3 space-y-2">
+          <div className="text-[10px] font-black text-amber-300 uppercase">Format de tag actif</div>
+          <div className="flex items-center gap-2">
+            <select value={projectSetup.tagFormatName} onChange={e => setProjectSetup(p => ({ ...p, tagFormatName: e.target.value }))} className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[11px] font-bold text-white outline-none">
+              {projectSetup.formats.map(f => (<option key={f.name} value={f.name}>{f.name}</option>))}
+            </select>
+            <span className="font-mono text-[11px] text-amber-200 font-bold">
+              {activeTagFormat.parts.map(p => p.field).join(" " + activeTagFormat.separator + " ")}
+            </span>
+  xœÌXÍ’·¾ë)à)ÅEÊr¸«õJIÕš+GëD²ªè\’rÕ‚3MZÌ``øã©y€T¹*‡|Í-Ñäî-¿ˆŸÄ`–œşè’¤¬Ã
+À4ş¾şúë	qÿİˆ-GÈöß û$äT©·4†¡§a­ı¿ö‚tı-±mÅ©ÿix£WkˆS¤O*¥IuÚL$ÚE"Ü$OAúçA@ì‡©à‘7êÿzìAÏOğÛ kV}ôH3kÂ4ÄÊ!Ñ Éœ¦şIµßóªqê4ÓZ$DoRœè:É˜³ğn˜ÓL‹oèüŠó	Ìc\KÕÒµNÒß#RdI‘Ïçd:/oóü"è^d!– û»Q¼ãTÈOåş+Ç/k]Aã,(»%ºNÃ;o„‡šã
+ZdŠpPDK‘„"Qƒ®»Cã–Mô8íÂ8-WåU;3Æ¼–"ÃQMçí‡d®EwgTmN¤ÈOÿ!96o”Ê Á¢‰ˆ)gĞRíÒ{U¿ÕYvwı†[ç’EÄüñCÁúÓxõÜ;Å„·¬yswßKã‹yÙAÇt?HsÉÓŒßùÄánhbiœ¥)È* ñÔïu.¼Ñä’…Q—ÌxÆ"P{DŞß!Á7‹éÚ_øOŸC§+ß³qTBòTŠ÷ê	è,í¨rÏNLÓ–ZG¶Ê=ï`3ÌÕ²ŠŠÓÁô>SšÍ6şô
+ !GÈtnÈ´·Ù2î¤`ûDé‡aôµ}b†-R£í9÷)ušñi2kp:~t‘Ş!¤İ.4ú¨8ı¦(™BˆÚ‘mJ üivtlL?ÊÆô7ÂÆ:†;é)Â`P§¼°ª‰©ÔM	c3Ï^¿µ†,¹N
+ßÍYcóÊÙZ·ÒqÍÂ	tŞ}BŞ]}3~M‚Şå5fxÎæ	0`ã˜&®dÑğ{¤Šú.£S¬R*Éë›ëWäI×*ÿù¼ÔÔQşuŠNüôSòI¹Î;‰Ëè×,ŠÜx“iÄü0üH„w>%"3¶†³âyğüÌğ@²ùBcª
+Ì1fïC‚óà[r4­»1!vÏ«‰)ıùQ!ßÍ³/€—I?–g®$8R…lYx¨j1aÅåWÉ:ÓhìÀøKà*+¾cIšiW¨„hG7f êpúÆaëê¸]jŞ.åp¯ˆë¹•¢<Ì0o!ğmÆP~ØÔ~©NÆ¯%¡(ÅD2ÌõÆ4	ÛïÆÒtÆ¥}İğ*Mùæmc…å-ieÈÎhÜ´{€ÚØ±É ê…£Ÿ÷{´Vöóg1ß²#À¹ÿòHyWÕ-,=¢™Ædèİÿ-¥L)Èğ ’¦ö]f"N¹ØS&øvZ^%Ği1*OñápNS]–dÜ]µ,i2¯2ŒÔzAçü¢6H×Cï¼:¢4¤Æ.¨Ù-)Ï0á§,…	V³w0	)‡-fKäXÖ!ŸßÕÍ[èw,[€ÕªœƒîØUëXÁaå÷>'44Nuñn¤yŸ(\ùÏlVZ‰¶âUúÆ:Z|iªuÖ.î¬C=èZÖåÖ´÷Ôv*2ólAcÊĞ4“T3×çô€Tm‰íéçQëÁãıé­å
+ÚÅ!­6gÉõ	™Ş´­L?İ—éíó£­ôIïh…d^[[]ß†ÜÕlÆÂnwÖ–IemoôËÿ&%°}•‰²!óùm©+ôœÎ”M]Áã|%ä-°¾Ì8W¡Äzæ¥çğ)1	äµ Ä)x¶Ã)	x}K£ğnSaÚ¥<¯¨aÖĞ£’ö€ë™Ëq6q­PNfî^U¼n>¿-FßğfÊSo4˜î‰ ¼S¹Zê—ÿå“Åòf:7•ÙtÔÚ\Ñ%F"Şb8z ¥ŞK·œ·T¿f‹ˆÍDVÛ)ÙzIhŞ$Gf¾±ÍĞÆ§"è¢h¶„9•ÑıP-Mò58óöÊ¶·¶s¼‰˜Wúå-¹ÿ'©·}ÏÃ?oùJJ“6³Û?¼‡JÒb5Ê¬jwOúäçd‘ª[ì¿û¥Hîÿez¨Ûq,úë,ÑQ÷L1Hî?ì~hÓè,º‰v‹‹é{ĞhNÎ®«3ªNµ™ğ•¹¦İªéĞ}º ¯šsn7‡
+1³·¼ÿ €fïŒ˜T…Ï÷&vå;ç+Áªğ¼·İÚ/WG©¯<·Ö×™f¼ê;Ê™‰%j‘C&9rQ–b]İ¼õúL	,rVæf–?›'ŞŸx­¶ê	'	†hLc‚I¸ qÍà/BÄ$Cõ¢c5¢µd°J…ÔïñË”˜vñ»ÚŒ±–ü³?nÑşüó’Pfd°zã‡JË5^<Bm„µY™ääF‰4V,x‡ŸÅ‹‡oÌhÆuÓâÅ£_  ÿÿ jœŸ
