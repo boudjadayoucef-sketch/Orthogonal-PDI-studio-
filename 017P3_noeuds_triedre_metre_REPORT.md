@@ -36,7 +36,7 @@ anciennes valeurs (qui etaient fausses par defaut). Le BOM suit.
 
 ## Journal d execution
 
-- APPLIQUE : module pdiAxes017P3.ts ecrit (1928 octets)
+- DEJA : module pdiAxes017P3.ts identique
 - APPLIQUE : backup cree IsometrieModuleV48d.tsx.before017P3
 - APPLIQUE : E1 import du module d axes
 - APPLIQUE : E2 noeud simple sans dimension (tube au centre)

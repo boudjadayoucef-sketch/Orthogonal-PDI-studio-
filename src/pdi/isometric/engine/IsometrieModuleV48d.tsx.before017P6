@@ -22,6 +22,7 @@ import {
 } from "./pdiPrecision017P";
 import { pdiReorientPorts, pdiTolViewBox } from "./pdiPorts017P2";
 import { pdiIsoAxisDirs017P3, pdiNodeRadius017P3, pdiNodeHasFaceOffset017P3, PDI_METRE_CONVENTION_017P3 } from "./pdiAxes017P3";
+import { pdiGlyphScale017P5 } from "./pdiGlyphes017P5";
 import { auth } from "../../../lib/firebase";
 import {
   PDI_LOGO_HORIZONTAL_SRC,
@@ -5398,7 +5399,7 @@ function IsometrieModule(props: { projectId?: string }) {
       </div>
       <div class="bom"><h3>NOMENCLATURE MAT√âRIEL</h3><table><thead><tr><th>RP</th><th>D√âSIGNATION</th><th>DN</th><th>"</th><th>Qt√©</th><th>U</th><th>L</th><th>R√âF.</th></tr></thead><tbody>${rows}</tbody></table></div>
       <div class="drawing"><svg viewBox="0 0 620 420"><text x="310" y="26" text-anchor="middle" font-size="13" font-weight="bold" fill="#0369a1">${title}</text>${gcUnderlay ? `<image href="${gcUnderlay}" x="${60 + gcX}" y="${65 + gcY}" width="${500 * gcScale}" height="${300 * gcScale}" opacity="${gcOpacity}" preserveAspectRatio="none"/>` : ""}<g transform="translate(0,35)">${drawingMarkup}</g></svg></div>
-      <div class="cartouche"><div class="cartouche-header"><div class="cartouche-title">${pdiCompanyName()}</div><div style="font-size:9px;margin-top:2px;color:#93c5fd;">${dia(segments[0]?.dn || 150).inch} ‚Äî ${wilaya}</div></div><div class="cartouche-sub">PLAN ISOM√âTRIQUE M√âCANIQUE</div><div class="notes"><b>Projet :</b> ${title}<br/><b>Pression service :</b> <span style="color:#0284c7;font-weight:bold;">${pressDesign} bar</span><br/><b>Pression √©preuve :</b> <span style="color:#dc2626;font-weight:bold;">${hydrotest.toFixed(1)} bar</span><br/><b>M√©tr√© total :</b> <span style="color:#0f172a;font-weight:bold;">${totalLength.toFixed(2)} m</span><br/><b>Poids acier :</b> <span style="color:#d97706;font-weight:bold;">${totalWeight.toFixed(1)} kg</span><br/><b>Feuille :</b> ${planPage}/${totalSheets}</div></div>
+      <div class="cartouche"><div class="cartouche-header"><div class="cartouche-title">${pdiCompanyName()}</div><div style="font-size:9px;margin-top:2px;color:#93c5fd;">${dia(segments[0]?.dn || 150).inch} ‚Äî ${wilaya}</div></div><div class="cartouche-sub">PLAN ISOM√âTRIQUE M√âCANIQUE</div><div class="notes"><b>Projet :</b> ${title}<br/><b>Pression service :</b> <span style="color:#0284c7;font-weight:bold;">${pressDesign} bar</span><br/><b>Pression √©preuve :</b> <span style="color:#dc2626;font-weight:bold;">${hydrotest.toFixed(1)} bar</span><br/><b>M√©tr√© total :</b> <span style="color:#0f172a;font-weight:bold;">${totalLength.toFixed(2)} m</span><br/><span style="font-size:7px;color:#64748b;">${PDI_METRE_CONVENTION_017P3}</span><br/><b>Poids acier :</b> <span style="color:#d97706;font-weight:bold;">${totalWeight.toFixed(1)} kg</span><br/><b>Feuille :</b> ${planPage}/${totalSheets}</div></div>
       <div class="footer">√âditeur isom√©trique tuyauterie ¬∑ ${pdiStandardsNote()} ¬∑ Format A3 paysage</div>
     </div><div style="position:fixed;right:10mm;bottom:5mm;font:8px Arial;color:#64748b">Generated with PD & I ¬∑ ¬© 2026 DZ-YSB-DEV</div><script>onload=()=>setTimeout(()=>print(),400)</script></body></html>`); w.document.close();
   };
@@ -6986,6 +6987,7 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                   const p0=nativePorts.find(port=>port.index===0),p1=nativePorts.find(port=>port.index===1);
                   const angle=p0&&p1?Math.atan2(p1.sy-p0.sy,p1.sx-p0.sx)*180/Math.PI:(n.rotation||0);
                   const isBend=!!n.equipmentType&&elbowAngle(n.equipmentType)>0;
+                  const kGlyph=pdiGlyphScale017P5(nativePorts);
                   const nodeAnnotation=editorAnnotationMap.get(`node:${n.id}`);
                   return <g key={n.id} data-iso-object="true" data-iso-node="true" data-node-id={n.id} transform={`translate(${p.x} ${p.y})`}
                     onClick={e=>{e.stopPropagation()}}
@@ -6999,9 +7001,9 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                     }}>
                     {isEquip ? (
                       <g>
-                        {isSel&&<rect x="-15" y="-15" width="30" height="30" rx="5" fill="none" stroke="#facc15" strokeWidth="1.5" strokeDasharray="4 2"/>}
-                        {isHov&&!isSel&&<rect x="-14" y="-14" width="28" height="28" rx="4" fill="none" stroke="#67e8f9" strokeWidth="1" strokeDasharray="2 2"/>}
-                        {isBend&&p0&&p1?<path d={`M ${p0.sx} ${p0.sy} Q 0 0 ${p1.sx} ${p1.sy}`} stroke="#f59e0b" strokeWidth="4" fill="none" strokeLinecap="round"/>:<g transform={`rotate(${angle}) scale(1.3 ${n.mirrored?-1.3:1.3})`} dangerouslySetInnerHTML={{__html:getFittingSvgGraphic(n.equipmentType!,false)}}/>}
+                        {isSel&&<rect x={-11.5*kGlyph} y={-11.5*kGlyph} width={23*kGlyph} height={23*kGlyph} rx="5" fill="none" stroke="#facc15" strokeWidth="1.5" strokeDasharray="4 2"/>}
+                        {isHov&&!isSel&&<rect x={-10.8*kGlyph} y={-10.8*kGlyph} width={21.6*kGlyph} height={21.6*kGlyph} rx="4" fill="none" stroke="#67e8f9" strokeWidth="1" strokeDasharray="2 2"/>}
+                        {isBend&&p0&&p1?<path d={`M ${p0.sx} ${p0.sy} Q 0 0 ${p1.sx} ${p1.sy}`} stroke="#f59e0b" strokeWidth="4" fill="none" strokeLinecap="round"/>:<g>{nativePorts.map(port=>(<line key={`patte-${port.id}`} x1="0" y1="0" x2={port.sx} y2={port.sy} stroke="#64748b" strokeWidth="1.6" strokeLinecap="round"/>))}<g transform={`rotate(${angle}) scale(${kGlyph} ${n.mirrored?-kGlyph:kGlyph})`} dangerouslySetInnerHTML={{__html:getFittingSvgGraphic(n.equipmentType!,false)}}/></g>}
                         {nativePorts.map(port=>{
                           const joint=projectJoints.find(item=>item.nodeId===n.id&&item.portId===port.id);
                           const connected=!!joint;
@@ -7021,11 +7023,9 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                       </g>
                     ) : isTee ? (
                       <g>
-                        <circle r={isSel?9:7} fill="#1e1b4b" stroke={isSel?"#facc15":"#a78bfa"} strokeWidth={2}/>
-                        <path d="M -10 0 L 10 0 M 0 0 L 0 -12" stroke="#a78bfa" strokeWidth="2.5" strokeLinecap="round"/>
-                        <g data-iso-port="true" data-port-node-id={n.id} data-port-idx="0" className="cursor-crosshair"><circle cx="-12" cy="0" r="4" fill="#8b5cf6" stroke="#ffffff" strokeWidth="1"/></g>
-                        <g data-iso-port="true" data-port-node-id={n.id} data-port-idx="1" className="cursor-crosshair"><circle cx="12" cy="0" r="4" fill="#8b5cf6" stroke="#ffffff" strokeWidth="1"/></g>
-                        <g data-iso-port="true" data-port-node-id={n.id} data-port-idx="2" className="cursor-crosshair"><circle cx="0" cy="-14" r="5" fill="#22c55e" stroke="#ffffff" strokeWidth="1.5"/></g>
+                        <circle r={pdiNodeRadius017P3(viewport.zoom,isSel,isHov)+2} fill="#1e1b4b" stroke={isSel?"#facc15":"#a78bfa"} strokeWidth={2}/>
+                        {nativePorts.length?nativePorts.map(port=>(<line key={`te-branche-${port.id}`} x1="0" y1="0" x2={port.sx} y2={port.sy} stroke="#a78bfa" strokeWidth="2.5" strokeLinecap="round"/>)):(<path d="M -10 0 L 10 0 M 0 0 L 0 -12" stroke="#a78bfa" strokeWidth="2.5" strokeLinecap="round"/>)}
+                        {nativePorts.map(port=>(<g key={port.id} data-iso-port="true" data-port-node-id={n.id} data-port-idx={String(port.index)} className="cursor-crosshair"><circle cx={port.sx} cy={port.sy} r={port.role==="branch"?4:3} fill={port.role==="branch"?"#22c55e":"#8b5cf6"} stroke="#ffffff" strokeWidth={port.role==="branch"?1.5:1}/></g>))}
                       </g>
                     ) : (
                       <circle r={pdiNodeRadius017P3(viewport.zoom,isSel,isHov)} fill={fill} stroke={isSel?"#facc15":"#e0f2fe"} strokeWidth={isSel?2:1.5}/>
@@ -9147,8 +9147,7 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
       </label>
     </div>}
     {/* PATCH 017D : bouton de restauration de la ligne de commande */}
-    {!propertiesModalOpen && commandPromptHidden && <button type="button" onClick={() => setCommandPromptHidden(false)} className="pdi-cmd-restore-017d fixed left-[92px] bottom-2 z-[10030] rounded-lg border border-cyan-500/40 bg-slate-950/95 px-3 py-1.5 text-[11px] font-black text-cyan-200 shadow-xl" title="Afficher la ligne de commande (HIDE)">‚å® Commande</button>}
+    {!propertiesModalOpen && commandPromptHidden && <button type="button" onClick={() => setCommandPromptHidden(false)} className="pdi-cmd-restore-017d fixed left-[92px] bottom-2 z-[10030] rounded-lgxútTÕn€8æÁ)BH∂ê£8	–8∂É …∂È"È!ËeòG2äH ?ÙÏ°á^{kÛΩ◊ÿŸ'Ÿ°'∂w„MŒ|3‘˜Õp ÷Ü£Åˆ/LÊLÖGQ¥wAúÖV2á·ÒQ¥w|≈,<ÄbÓwé¿·ÃÖøÔÔ≥? ’ Ö±d…}knrt£Ïòq=g2 'úƒApñ¶"”uíÅôB‡âŒs¶h≥ÛˆÍ‚r7˛ÛÁ784ˆ˜‚“9≠Üı÷–Øœ≈…¨Ωa9™—Xpé
 
-    <div className={`hidden pdi-status-docked ${workspaceFullscreen?"fixed bottom-0 left-[92px] right-0 z-[10008] rounded-none":"sticky bottom-2 z-40 rounded-xl"} bg-slate-950 text-slate-200 border border-slate-800 px-3 py-2 flex flex-wxútSÕn”@æÁ)FVëZê”ÙÁî&Æ™∂Bµ". §L≤g#{◊⁄')ñüÅÆ‹PûÄ;/¬ì∞kízYÕŒ|ﬂÃŒ7≥3êL©«§òÃrÀrÚéàD
-bÃ¬S`Zr¯˛§ì-?Äù¢–ã0âáe‘r„≠}¿î˙¡$°eE9¢ﬁh7Re†î&"<ÔtÇË◊óOPXFŒÌ=Yã1ïΩ„Q‘≥™faqN£~øê1⁄óu:Cu™Ó$’BN$â
-”ôÃ„j«¯Uu/£‚)Ê}eéë•VîV`1üSåF¨Wd%1gÌé9º™ÏøÿÉ¬u¬º‚À!¨ø¬û´vÉ¿ˇÌÚ÷ ⁄Vß¿„{«^•Z´®PZêm'§bûñ†~~ŒÖ›GXäS7ﬂ-àçVÎoÆ∑&.°1ì∏÷π‚ÏzÂÔNµ^⁄£'¿(N≈ùÿ&◊£±É√ÈÕ.cw®±¡lzÎ€¨J5˙Ô∫∏Y59√É¶´™ÛµÕze	s'ÔK"òc"ù|Ì2£gÆãWZÓ 3´Æ‰±€ÚßW˝,¯ìÎMŒ2ÈBo“ˇ%¨îsõT/JÂÎÍÓ!ËJ´o.|¨Õ˙mñëπFKáGıÿ}·@π/Z8Ç7LY	È‡ù÷)˜»”∂q"à√π§E¶∑?∫»ÛìNÁ®|∂«∏fìºxcù¶®‹Í¿èÔp	Ë‘ŸÔ∏:[ µq—*[-Z˙ÃP¿ù’)±ë‰z»ÇÚb4¡<·&‚¢ı  ˇˇ ·‹ö¨
+.BÎò+m»urè∂´©6˜∂`	˛RJiÉ®NÉTÃ»kJöáHLâ»q◊1";≤}$fQΩ&ã.Èx®¥¬†X'í˚˘2∏K@íiâ!öıöf≠Ì—À±ÆtkMˆ•Æ]H%Œö%úVÄpò€0AÂ(ÏÆ§€”y£õ»XAèuà¸Á? -≥Q=‹ê)h2˚ê√`ÿèW=MÃ—0…âNDÚ˛™VÀk¥ñeXSÜ}íR≠JoŸo	ÜÉ¡ @c¥	N€t€TΩ5HÆπHÚ%äÂ1Èp‡q¡s„¯s=¨^äºn∂	sB+T∞¨ú`∆_<†›∏íïN{EéŒö˝vª"&Ó÷;œ‹È_`ÕTèzA@Àˇ≤º4K„õ˜)£ÔèÄÑÚ*µZ+•9⁄éDïπqÍÔO%∑ÎãYNı}9£’‚+q€ƒILÚsj6WÉ]<¯3i†;v˜0„]~≈üìÎ¯¡°{±±Z‘åo|Èi6WmÙøÌBµ⁄åmoöj¿F1∑Y<Xd%…˚∆É&L
+íoCª¬Ë;bÒNãUyÓö„πG]˛r´èπﬁóN»Ù„a%¸[bçr‘Ims1°|cù]›=aıÖaSÔÎ8˝°(–ú3ã;ªÌX˝¬[EO¥¢ øπuX‘êØ~”:áÍöπqßô;Å”B◊˘HûüiƒÏ÷?≠Eú;#_˝˙4-¸¯ß¿ÑÉ´åõï∆aª9Ÿ¢Ÿà3ü*∏≤:GgáR"‘'K«îï“m"N∂˛  ˇˇ X$

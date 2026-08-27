@@ -11,6 +11,17 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 // PATCH 017J : identite de cartouche parametrable (R15).
 import { pdiCompanyName, pdiStandardsNote } from "../../branding/pdiBranding";
+// PATCH 017P : precision geometrique (accroche a priorites, axes ISO, QA).
+import {
+  PDI_SNAP_TOL_PX,
+  pdiRound3,
+  pdiSnapValue,
+  pdiSnapDirectionIso,
+  pdiFindCoincidentNodes,
+  pdiAuditGraph,
+} from "./pdiPrecision017P";
+import { pdiReorientPorts, pdiTolViewBox } from "./pdiPorts017P2";
+import { pdiIsoAxisDirs017P3, pdiNodeRadius017P3, pdiNodeHasFaceOffset017P3, PDI_METRE_CONVENTION_017P3 } from "./pdiAxes017P3";
 import { auth } from "../../../lib/firebase";
 import {
   PDI_LOGO_HORIZONTAL_SRC,
@@ -456,6 +467,7 @@ function availablePortId(node:IsoNode|undefined,segments:IsoSegment[],preferred:
 function portWorldPosition(node: IsoNode, portId?: string) {
   const port=node.ports?.find(p=>p.id===portId);
   if(!port) return {x:node.x,y:node.y,z:node.z};
+  if(!pdiNodeHasFaceOffset017P3(node)) return {x:node.x,y:node.y,z:node.z};
   let portDx=port.dx,portDy=port.dy;
   const bend=node.equipmentType?elbowAngle(node.equipmentType):0;
   if(bend&&port.index===0){portDx=-1;portDy=0;}
@@ -1692,7 +1704,10 @@ function IsometrieModule(props: { projectId?: string }) {
   ) => {
     if (!historyBusyRef.current) pushHistory();
     historyBusyRef.current = true;
-    setNodesRaw(nextNodes);
+    // PATCH 017P2 : les faces suivent la geometrie reelle et les coudes
+    // sont ramenes sur l angle normalise le plus proche.
+    const pdiReor = pdiReorientPorts(nextNodes, nextSegments, { adaptElbows: true });
+    setNodesRaw(pdiReor.nodes);
     setSegmentsRaw(nextSegments);
     setLinesRaw(nextLines);
     setDimensionsRaw(nextDimensions);
@@ -2290,11 +2305,8 @@ function IsometrieModule(props: { projectId?: string }) {
     selectFittingV44(segmentId,fittingId,false);
   };
 
-  const snapBranchWorld=(w:{x:number;y:number;z:number})=>({
-    x:snapIsoV4(w.x,isoSnapStep),
-    y:snapIsoV4(w.y,isoSnapStep),
-    z:nodeZ||0
-  });
+  // PATCH 017P : une seule regle d accroche pour tout le moteur.
+  const snapBranchWorld=(w:{x:number;y:number;z:number})=>pdiCreatePoint(w);
 
 
   const segmentGeomLength=(s:IsoSegment,ns:IsoNode[])=>{
@@ -4259,8 +4271,8 @@ function IsometrieModule(props: { projectId?: string }) {
 
     if (updateCad2dPointer(e)) return;
     if (cadDraftSession) {
-      const w = screenToIsoWorld(e);
-      const pt = { x: snapIsoV4(w.x, isoSnapStep), y: snapIsoV4(w.y, isoSnapStep) };
+      // PATCH 017P2 : ce que l on voit est ce qui sera cree.
+      const pt = pdiCreatePoint(screenToIsoWorld(e));
       setCadDraftSession((prev) => (prev ? { ...prev, mouseWorld: pt } : null));
     }
     const { sx, sy } = getSvgCoordinates(e.clientX, e.clientY, svgRef.current || (e.currentTarget as unknown as SVGSVGElement));
@@ -4380,6 +4392,8 @@ function IsometrieModule(props: { projectId?: string }) {
       return;
     }
 
+    // PATCH 017P2 : la tolerance est convertie du viewBox vers les pixels reels.
+    const pdiTolScale = (t: number) => pdiTolViewBox(t, svgRef.current ? svgRef.current.getBoundingClientRect().width : 0);
     // Detection du snap le plus proche (Port, Endpoint, Midpoint, Grid)
     let detectedSnap: { kind: "PORT"|"ENDPOINT"|"MIDPOINT"|"AXIS"|"GRID"; label: string; worldPos: { x: number; y: number; z: number }; screenPos: { x: number; y: number } } | null = null;
     if (snapEnabled) {
@@ -4389,7 +4403,7 @@ function IsometrieModule(props: { projectId?: string }) {
             for (const port of node.ports) {
               const wp = portWorldPosition(node, port.id);
               const sp = isoProjectV4(wp.x, wp.y, wp.z, viewport.zoom, viewport.panX, viewport.panY);
-              if (Math.hypot(sp.x - sx, sp.y - sy) < 14) {
+              if (Math.hypot(sp.x - sx, sp.y - sy) < pdiTolScale(PDI_SNAP_TOL_PX.PORT)) {
                 detectedSnap = { kind: "PORT", label: `PORT ${node.name} [${port.role || port.index}]`, worldPos: wp, screenPos: sp };
                 break;
               }
@@ -4401,7 +4415,7 @@ function IsometrieModule(props: { projectId?: string }) {
       if (!detectedSnap && snapEndpoints) {
         for (const node of nodes) {
           const np = isoProjectV4(node.x, node.y, node.z, viewport.zoom, viewport.panX, viewport.panY);
-          if (Math.hypot(np.x - sx, np.y - sy) < 14) {
+          if (Math.hypot(np.x - sx, np.y - sy) < pdiTolScale(PDI_SNAP_TOL_PX.ENDPOINT)) {
             detectedSnap = { kind: "ENDPOINT", label: `POINT ${node.name} (Z=${node.z || 0}m)`, worldPos: { x: node.x, y: node.y, z: node.z || 0 }, screenPos: np };
             break;
           }
@@ -4413,7 +4427,7 @@ function IsometrieModule(props: { projectId?: string }) {
           if (ep) {
             const mx = (ep.from.x + ep.to.x) / 2, my = (ep.from.y + ep.to.y) / 2, mz = (ep.from.z + ep.to.z) / 2;
             const sp = isoProjectV4(mx, my, mz, viewport.zoom, viewport.panX, viewport.panY);
-            if (Math.hypot(sp.x - sx, sp.y - sy) < 12) {
+            if (Math.hypot(sp.x - sx, sp.y - sy) < pdiTolScale(PDI_SNAP_TOL_PX.MIDPOINT)) {
               detectedSnap = { kind: "MIDPOINT", label: `MILIEU ${seg.sourceName || "Tube"}`, worldPos: { x: mx, y: my, z: mz }, screenPos: sp };
               break;
             }
@@ -4425,7 +4439,7 @@ function IsometrieModule(props: { projectId?: string }) {
         const gx = snapIsoV4(w.x, isoSnapStep);
         const gy = snapIsoV4(w.y, isoSnapStep);
         const gp = isoProjectV4(gx, gy, nodeZ || 0, viewport.zoom, viewport.panX, viewport.panY);
-        if (Math.hypot(gp.x - sx, gp.y - sy) < 8) {
+        if (Math.hypot(gp.x - sx, gp.y - sy) < pdiTolScale(PDI_SNAP_TOL_PX.GRID)) {
           detectedSnap = { kind: "GRID", label: `GRILLE (${gx.toFixed(2)}, ${gy.toFixed(2)})`, worldPos: { x: gx, y: gy, z: nodeZ || 0 }, screenPos: gp };
         }
       }
@@ -4531,7 +4545,8 @@ function IsometrieModule(props: { projectId?: string }) {
         const targetNode=nodes.find(n=>n.id===targetId);
         createSegmentFromNodes(branchDrawing.fromNodeId,targetId,branchDrawing.fromPortId,portByIndex(targetNode,targetPortIndex)?.id);
       }else{
-        const sw={x:snapIsoV4(w.x,isoSnapStep),y:snapIsoV4(w.y,isoSnapStep),z:nodeZ||0};
+        // PATCH 017P : le piquage respecte l accroche active.
+        const sw=pdiCreatePoint(w);
         const newN=makeNode(`Piquage N${nodes.length+1}`,sw.x,sw.y,sw.z,"normal");
         const nextNodes=[...nodes,newN];
         setNodes(nextNodes);
@@ -4603,8 +4618,16 @@ function IsometrieModule(props: { projectId?: string }) {
       }
       return { ...n, rotation: ((((n.rotation || 0) + delta) % 360) + 360) % 360 };
     });
+    // PATCH 017P : rotation transactionnelle. La commande refuse de valider
+    // si elle a fait varier le nombre de noeuds (cause des noeuds et tubes
+    // fantomes observes) et signale toute anomalie geometrique residuelle.
+    if (nextNodes.length !== nodes.length) {
+      setStatusMessage("Rotation refus√©e : le nombre de n≈ìuds a chang√©");
+      return;
+    }
+    const rotationAudit = pdiAuditGraph(nextNodes, segments);
     commitGraph(nextNodes, recalcSegmentLengths(nextNodes, segments));
-    setStatusMessage(`Rotation ${delta > 0 ? "+" : ""}${delta}¬∞ (R)`);
+    setStatusMessage(`Rotation ${delta > 0 ? "+" : ""}${delta}¬∞ (R)${rotationAudit ? " ¬∑ contr√¥le : " + rotationAudit : ""}`);
   };
   const flipSelectedEquipment=()=>{
     const selected=nodes.filter(n=>selectedNodeIds.includes(n.id)&&n.equipmentType);
@@ -4701,6 +4724,25 @@ function IsometrieModule(props: { projectId?: string }) {
   const screenToIsoWorld=(e:React.PointerEvent<SVGSVGElement>, targetZ:number = nodeZ || 0)=>{
     const { sx, sy } = getSvgCoordinates(e.clientX, e.clientY, svgRef.current || (e.currentTarget as unknown as SVGSVGElement));
     return isoUnprojectV4(sx, sy, viewport.zoom, viewport.panX, viewport.panY, targetZ);
+  };
+
+  // PATCH 017P : point de creation. Avant ce patch la creation d un noeud
+  // ignorait activeSnap et ne retenait que la grille : impossible de poser
+  // un noeud exactement sur un port, une extremite ou un milieu de tube.
+  const pdiCreatePoint = (w: { x: number; y: number; z?: number }) => {
+    if (snapEnabled && activeSnap) {
+      return {
+        x: pdiRound3(activeSnap.worldPos.x),
+        y: pdiRound3(activeSnap.worldPos.y),
+        z: pdiRound3(activeSnap.worldPos.z),
+      };
+    }
+    const step = snapEnabled && snapGrid ? isoSnapStep : 0;
+    return {
+      x: pdiSnapValue(w.x, step),
+      y: pdiSnapValue(w.y, step),
+      z: pdiRound3(nodeZ || 0),
+    };
   };
 
   
@@ -4804,7 +4846,7 @@ function IsometrieModule(props: { projectId?: string }) {
 
   const alignSelectedNodesAxis = (axis: "x" | "y" | "z") => {
     if (selectedNodeIds.length < 2) {
-      setStatusMessage(`Aligner ${axis.toUpperCase()} : s√©lectionner au moins deux n≈ìuds`);
+      setStatusMessage(`Aligner ${axis.toUpperCase()} : s√©lectionner au moins deux n≈ìuds (astuce : s√©lection par rectangle pour des n≈ìuds empil√©s)`);
       return;
     }
     const referenceId = selectedNodeIds[selectedNodeIds.length - 1];
@@ -4815,15 +4857,31 @@ function IsometrieModule(props: { projectId?: string }) {
     // on applique uniquement le delta n√©cessaire sur l‚Äôaxe choisi et on ne re-snap jamais
     // les autres coordonn√©es. Cela √©vite le glissement des points observ√© apr√®s alignement.
     const selected = new Set(selectedNodeIds);
-    const refValue = Number(reference[axis] || 0);
+    // PATCH 017P : la coordonnee de reference est ramenee sur le pas de
+    // grille. Les autres coordonnees restent intactes : aucune regression
+    // du PATCH 013 (pas de re-snap lateral), mais la ligne tombe juste.
+    const rawRef = Number(reference[axis] || 0);
+    const refValue = snapEnabled && snapGrid ? pdiSnapValue(rawRef, isoSnapStep) : pdiRound3(rawRef);
     const nextNodes = nodes.map((node) => {
       if (!selected.has(node.id) || node.id === referenceId) return node;
       const delta = Number((refValue - Number(node[axis] || 0)).toFixed(6));
       if (Math.abs(delta) < 1e-9) return node;
       return { ...node, [axis]: Number((Number(node[axis] || 0) + delta).toFixed(3)) };
     });
+    // PATCH 017P2 : un alignement sans effet ne doit plus etre muet.
+    const pdiMoved = nextNodes.some((n, i) => n !== nodes[i]);
+    if (!pdiMoved) {
+      setStatusMessage(`Alignement ${axis.toUpperCase()} : noeuds deja alignes sur ${refValue.toFixed(3)} m - aucun changement`);
+      return;
+    }
+    // PATCH 017P : QA avant validation, jamais deux noeuds confondus.
+    const alignAudit = pdiFindCoincidentNodes(nextNodes, 0.001);
+    if (alignAudit) {
+      setStatusMessage(`Alignement ${axis.toUpperCase()} refus√© : ${alignAudit}`);
+      return;
+    }
     commitGraph(nextNodes, recalcSegmentLengths(nextNodes, segments));
-    setStatusMessage(`Alignement ${axis.toUpperCase()} appliqu√© sans re-snap ‚Äî r√©f√©rence : ${reference.name}`);
+    setStatusMessage(`Alignement ${axis.toUpperCase()} sur ${refValue.toFixed(3)} m ‚Äî r√©f√©rence : ${reference.name}`);
   };
 
   const alignSelectedEquipmentOnTube = () => {
@@ -4869,21 +4927,36 @@ function IsometrieModule(props: { projectId?: string }) {
     const ra = nodes.find((node) => node.id === reference.fromNodeId);
     const rb = nodes.find((node) => node.id === reference.toNodeId);
     if (!ta || !tb || !ra || !rb) return;
+    // PATCH 017P : la direction de reference est ramenee sur un axe ISO,
+    // le tube pivote autour de son noeud AMONT et tout l aval suit. Avant,
+    // seul toNodeId etait deplace : le reseau se dechirait en aval.
     const rv = { x: rb.x - ra.x, y: rb.y - ra.y, z: rb.z - ra.z };
-    const rl = Math.hypot(rv.x, rv.y, rv.z) || 1;
+    const dir = pdiSnapDirectionIso(rv);
     const tl = Math.max(0.05, target.length || Math.hypot(tb.x - ta.x, tb.y - ta.y, tb.z - ta.z));
-    const nextNodes = nodes.map((node) =>
-      node.id === tb.id
-        ? {
-            ...node,
-            x: Number((ta.x + (rv.x / rl) * tl).toFixed(3)),
-            y: Number((ta.y + (rv.y / rl) * tl).toFixed(3)),
-            z: Number((ta.z + (rv.z / rl) * tl).toFixed(3)),
-          }
-        : node,
-    );
+    const pnx = pdiRound3(ta.x + dir.x * tl);
+    const pny = pdiRound3(ta.y + dir.y * tl);
+    const pnz = pdiRound3(ta.z + dir.z * tl);
+    const pdx = pdiRound3(pnx - tb.x);
+    const pdy = pdiRound3(pny - tb.y);
+    const pdz = pdiRound3(pnz - tb.z);
+    const downstreamParallel = downstreamNodeIds(tb.id, segments, target.id);
+    const nextNodes = nodes.map((node) => {
+      if (node.id === tb.id) return { ...node, x: pnx, y: pny, z: pnz };
+      if (!downstreamParallel.has(node.id)) return node;
+      return {
+        ...node,
+        x: pdiRound3(node.x + pdx),
+        y: pdiRound3(node.y + pdy),
+        z: pdiRound3((node.z || 0) + pdz),
+      };
+    });
+    const parallelAudit = pdiFindCoincidentNodes(nextNodes, 0.001);
+    if (parallelAudit) {
+      setStatusMessage(`Rendre parall√®le refus√© : ${parallelAudit}`);
+      return;
+    }
     commitGraph(nextNodes, recalcSegmentLengths(nextNodes, segments));
-    setStatusMessage("Tube cible rendu parall√®le au tube de r√©f√©rence");
+    setStatusMessage(`Tube parall√®le ¬∑ axe ISO ${dir.label} ¬∑ ${downstreamParallel.size} n≈ìud(s) aval suivis`);
   };
 
   const redressIsoSelection = () => {
@@ -4951,7 +5024,7 @@ function IsometrieModule(props: { projectId?: string }) {
       return id;
     }
     const w = screenToIsoWorld(e, nodeZ || 0);
-    const node = makeEquipmentNode("te_egal", `T√© N${nodes.length + 1}`, snapIsoV4(w.x, isoSnapStep), snapIsoV4(w.y, isoSnapStep), nodeZ || 0, newDN, 0);
+    const node = makeEquipmentNode("te_egal", `T√© N${nodes.length + 1}`, pdiCreatePoint(w).x, pdiCreatePoint(w).y, pdiCreatePoint(w).z, newDN, 0);
     setNodes(prev => [...prev, node]);
     setSelectedNodeId(node.id);
     setSelectedNodeIds([node.id]);
@@ -4986,7 +5059,7 @@ function IsometrieModule(props: { projectId?: string }) {
       }
     }
     const w = screenToIsoWorld(e, nodeZ || 0);
-    const n = makeNode(`N${nodes.length + 1}`, snapIsoV4(w.x, isoSnapStep), snapIsoV4(w.y, isoSnapStep), nodeZ || 0, "normal");
+    const n = makeNode(`N${nodes.length + 1}`, pdiCreatePoint(w).x, pdiCreatePoint(w).y, pdiCreatePoint(w).z, "normal");
     setNodes(prev => [...prev, n]);
     setSelectedNodeId(n.id);
     setSelectedNodeIds([n.id]);
@@ -5018,7 +5091,7 @@ function IsometrieModule(props: { projectId?: string }) {
       return id;
     }
     const w = screenToIsoWorld(e, nodeZ || 0);
-    const node = makeEquipmentNode("coude_90", `Coude 90¬∞ N${nodes.length + 1}`, snapIsoV4(w.x, isoSnapStep), snapIsoV4(w.y, isoSnapStep), nodeZ || 0, newDN, elbowOrientationFromSegment(selectedSegmentId, 0));
+    const node = makeEquipmentNode("coude_90", `Coude 90¬∞ N${nodes.length + 1}`, pdiCreatePoint(w).x, pdiCreatePoint(w).y, pdiCreatePoint(w).z, newDN, elbowOrientationFromSegment(selectedSegmentId, 0));
     setNodes(prev => [...prev, node]);
     setSelectedNodeId(node.id);
     setSelectedNodeIds([node.id]);
@@ -5111,7 +5184,7 @@ function IsometrieModule(props: { projectId?: string }) {
       <div class="meta">
         <div><b>Projet :</b> ${projectName} | <b>R√©gion :</b> ${wilaya}</div>
         <div><b>Pression :</b> ${pressDesign} bar | <b>√âpreuve :</b> ${hydrotest.toFixed(1)} bar</div>
-        <div><b>Longueur totale :</b> ${totalLength.toFixed(2)} m | <b>Poids :</b> ${totalWeight.toFixed(1)} kg</div>
+        <div><b>Longueur totale :</b> ${totalLength.toFixed(2)} m | <b>Poids :</b> ${totalWeight.toFixed(1)} kg | <b>Convention :</b> ${PDI_METRE_CONVENTION_017P3}</div>
       </div>
       <table><thead><tr><th>N¬∞</th><th>Liaison / Tron√ßon</th><th>Diam√®tre</th><th>Classe</th><th>Mat√©riau</th><th>Longueur</th><th>Poids</th></tr></thead><tbody>${rows}</tbody></table>
       <script>onload=()=>setTimeout(()=>print(),300)</script></body></html>`);
@@ -5325,7 +5398,7 @@ function IsometrieModule(props: { projectId?: string }) {
       </div>
       <div class="bom"><h3>NOMENCLATURE MAT√âRIEL</h3><table><thead><tr><th>RP</th><th>D√âSIGNATION</th><th>DN</th><th>"</th><th>Qt√©</th><th>U</th><th>L</th><th>R√âF.</th></tr></thead><tbody>${rows}</tbody></table></div>
       <div class="drawing"><svg viewBox="0 0 620 420"><text x="310" y="26" text-anchor="middle" font-size="13" font-weight="bold" fill="#0369a1">${title}</text>${gcUnderlay ? `<image href="${gcUnderlay}" x="${60 + gcX}" y="${65 + gcY}" width="${500 * gcScale}" height="${300 * gcScale}" opacity="${gcOpacity}" preserveAspectRatio="none"/>` : ""}<g transform="translate(0,35)">${drawingMarkup}</g></svg></div>
-      <div class="cartouche"><div class="cartouche-header"><div class="cartouche-title">${pdiCompanyName()}</div><div style="font-size:9px;margin-top:2px;color:#93c5fd;">${dia(segments[0]?.dn || 150).inch} ‚Äî ${wilaya}</div></div><div class="cartouche-sub">PLAN ISOM√âTRIQUE M√âCANIQUE</div><div class="notes"><b>Projet :</b> ${title}<br/><b>Pression service :</b> <span style="color:#0284c7;font-weight:bold;">${pressDesign} bar</span><br/><b>Pression √©preuve :</b> <span style="color:#dc2626;font-weight:bold;">${hydrotest.toFixed(1)} bar</span><br/><b>M√©tr√© total :</b> <span style="color:#0f172a;font-weight:bold;">${totalLength.toFixed(2)} m</span><br/><b>Poids acier :</b> <span style="color:#d97706;font-weight:bold;">${totalWeight.toFixed(1)} kg</span><br/><b>Feuille :</b> ${planPage}/${totalSheets}</div></div>
+      <div class="cartouche"><div class="cartouche-header"><div class="cartouche-title">${pdiCompanyName()}</div><div style="font-size:9px;margin-top:2px;color:#93c5fd;">${dia(segments[0]?.dn || 150).inch} ‚Äî ${wilaya}</div></div><div class="cartouche-sub">PLAN ISOM√âTRIQUE M√âCANIQUE</div><div class="notes"><b>Projet :</b> ${title}<br/><b>Pression service :</b> <span style="color:#0284c7;font-weight:bold;">${pressDesign} bar</span><br/><b>Pression √©preuve :</b> <span style="color:#dc2626;font-weight:bold;">${hydrotest.toFixed(1)} bar</span><br/><b>M√©tr√© total :</b> <span style="color:#0f172a;font-weight:bold;">${totalLength.toFixed(2)} m</span><br/><span style="font-size:7px;color:#64748b;">${PDI_METRE_CONVENTION_017P3}</span><br/><b>Poids acier :</b> <span style="color:#d97706;font-weight:bold;">${totalWeight.toFixed(1)} kg</span><br/><b>Feuille :</b> ${planPage}/${totalSheets}</div></div>
       <div class="footer">√âditeur isom√©trique tuyauterie ¬∑ ${pdiStandardsNote()} ¬∑ Format A3 paysage</div>
     </div><div style="position:fixed;right:10mm;bottom:5mm;font:8px Arial;color:#64748b">Generated with PD & I ¬∑ ¬© 2026 DZ-YSB-DEV</div><script>onload=()=>setTimeout(()=>print(),400)</script></body></html>`); w.document.close();
   };
@@ -5590,9 +5663,9 @@ function IsometrieModule(props: { projectId?: string }) {
     {
       title: "Alignement",
       items: [
-        { label: "Aligner X", hint: "AX", run: () => alignSelectedNodesAxis("x"), disabled: selectedNodeIds.length < 2 },
-        { label: "Aligner Y", hint: "AY", run: () => alignSelectedNodesAxis("y"), disabled: selectedNodeIds.length < 2 },
-        { label: "Aligner Z", hint: "AZ", run: () => alignSelectedNodesAxis("z"), disabled: selectedNodeIds.length < 2 },
+        { label: "Aligner X", hint: "AX", run: () => alignSelectedNodesAxis("x") },
+        { label: "Aligner Y", hint: "AY", run: () => alignSelectedNodesAxis("y") },
+        { label: "Aligner Z", hint: "AZ", run: () => alignSelectedNodesAxis("z") },
         { label: "√âquipement sur tube", hint: "AT", run: alignSelectedEquipmentOnTube },
         { label: "Rendre parall√®le", hint: "//", run: makeSelectedSegmentsParallel, disabled: selectedSegmentIds.length < 2 },
         { label: "Redresser ISO", hint: "ISO", run: redressIsoSelection, disabled: selectedSegmentIds.length < 1 },
@@ -6948,14 +7021,12 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                       </g>
                     ) : isTee ? (
                       <g>
-                        <circle r={isSel?9:7} fill="#1e1b4b" stroke={isSel?"#facc15":"#a78bfa"} strokeWidth={2}/>
-                        <path d="M -10 0 L 10 0 M 0 0 L 0 -12" stroke="#a78bfa" strokeWidth="2.5" strokeLinecap="round"/>
-                        <g data-iso-port="true" data-port-node-id={n.id} data-port-idx="0" className="cursor-crosshair"><circle cx="-12" cy="0" r="4" fill="#8b5cf6" stroke="#ffffff" strokeWidth="1"/></g>
-                        <g data-iso-port="true" data-port-node-id={n.id} data-port-idx="1" className="cursor-crosshair"><circle cx="12" cy="0" r="4" fill="#8b5cf6" stroke="#ffffff" strokeWidth="1"/></g>
-                        <g data-iso-port="true" data-port-node-id={n.id} data-port-idx="2" className="cursor-crosshair"><circle cx="0" cy="-14" r="5" fill="#22c55e" stroke="#ffffff" strokeWidth="1.5"/></g>
+                        <circle r={pdiNodeRadius017P3(viewport.zoom,isSel,isHov)+2} fill="#1e1b4b" stroke={isSel?"#facc15":"#a78bfa"} strokeWidth={2}/>
+                        {nativePorts.length?nativePorts.map(port=>(<line key={`te-branche-${port.id}`} x1="0" y1="0" x2={port.sx} y2={port.sy} stroke="#a78bfa" strokeWidth="2.5" strokeLinecap="round"/>)):(<path d="M -10 0 L 10 0 M 0 0 L 0 -12" stroke="#a78bfa" strokeWidth="2.5" strokeLinecap="round"/>)}
+                        {nativePorts.map(port=>(<g key={port.id} data-iso-port="true" data-port-node-id={n.id} data-port-idx={String(port.index)} className="cursor-crosshair"><circle cx={port.sx} cy={port.sy} r={port.role==="branch"?4:3} fill={port.role==="branch"?"#22c55e":"#8b5cf6"} stroke="#ffffff" strokeWidth={port.role==="branch"?1.5:1}/></g>))}
                       </g>
                     ) : (
-                      <circle r={isSel?7:isHov?6:5} fill={fill} stroke={isSel?"#facc15":"#e0f2fe"} strokeWidth={isSel?2:1.5}/>
+                      <circle r={pdiNodeRadius017P3(viewport.zoom,isSel,isHov)} fill={fill} stroke={isSel?"#facc15":"#e0f2fe"} strokeWidth={isSel?2:1.5}/>
                     )}
                     {showLabels&&(viewport.zoom>=0.5||isEquip||isSel)&&(()=>{
                           const fullLabel=`${isEquip?equipmentLabel(n):n.name}${n.z?` (Z=${n.z}m)`:""}`;
@@ -7396,7 +7467,7 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                 })()}
               </g>
 
-              <g transform="translate(550 45)"><circle r="22" fill="#0f172a" stroke="#0072bc"/><line x1="0" y1="-18" x2="0" y2="18" stroke="#38bdf8"/><line x1="-18" y1="0" x2="18" y2="0" stroke="#38bdf8"/><text y="-24" fill="#38bdf8" fontSize="9" textAnchor="middle">N</text><text x="24" y="3" fill="#cbd5e1" fontSize="8">E</text><text x="-24" y="3" fill="#cbd5e1" fontSize="8">O</text><text y="30" fill="#cbd5e1" fontSize="8" textAnchor="middle">S</text></g>
+              <g transform="translate(566 44)">{pdiIsoAxisDirs017P3(PDI_ISO_COS_017I2,PDI_ISO_SIN_017I2).map(a=>(<g key={a.key}><line x1="0" y1="0" x2={a.sx*24} y2={a.sy*24} stroke={a.color} strokeWidth="1.8" strokeLinecap="round"/><text x={a.sx*34} y={a.sy*34+3} fill={a.color} fontSize="9" fontWeight="bold" textAnchor="middle">{a.key}</text></g>))}<circle r="2.2" fill="#e2e8f0"/></g>
             </svg>
 
             {/* Interactive CAD Context Menu & Floating PROPS */}
@@ -8142,6 +8213,7 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                         <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 text-center">
                           <span className="text-[10px] text-slate-400 block font-bold uppercase">Longueur Totale Tube</span>
                           <strong className="text-lg font-mono text-cyan-300">{totalLength.toFixed(2)} m</strong>
+                          <span data-pdi-metre="017p3-bom" className="text-[8px] text-slate-500 block normal-case leading-tight mt-1">{PDI_METRE_CONVENTION_017P3}</span>
                         </div>
                         <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 text-center">
                           <span className="text-[10px] text-slate-400 block font-bold uppercase">Poids Acier Estim√©</span>
@@ -8286,6 +8358,7 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                 <div className="bg-slate-950 border border-slate-800 rounded-xl p-2 text-center">
                   <span className="text-[8px] font-bold text-slate-400 uppercase block">Longueur totale</span>
                   <strong className="text-cyan-300 font-mono text-sm">{totalLength.toFixed(2)} m</strong>
+                  <span data-pdi-metre="017p3-panneau" className="text-[7px] text-slate-500 block normal-case leading-tight">{PDI_METRE_CONVENTION_017P3}</span>
                 </div>
                 <div className="bg-slate-950 border border-slate-800 rounded-xl p-2 text-center">
                   <span className="text-[8px] font-bold text-slate-400 uppercase block">Poids acier</span>
@@ -9074,9 +9147,6 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
     {/* PATCH 017D : bouton de restauration de la ligne de commande */}
     {!propertiesModalOpen && commandPromptHidden && <button type="button" onClick={() => setCommandPromptHidden(false)} className="pdi-cmd-restore-017d fixed left-[92px] bottom-2 z-[10030] rounded-lg border border-cyan-500/40 bg-slate-950/95 px-3 py-1.5 text-[11px] font-black text-cyan-200 shadow-xl" title="Afficher la ligne de commande (HIDE)">‚å® Commande</button>}
 
-    <div className={`hidden pdi-status-docked ${workspaceFullscreen?"fixed bottom-0 left-[92px] right-0 z-[10008] rounded-none":"sticky bottom-2 z-40 rounded-xl"} bg-slate-950 text-slate-200 border border-slate-800 px-3 py-2 flex flex-wrap items-center justify-between gap-2 text-[10px] shadow-lg`}><div className="flex gap-4"><b className="text-emerald-400">‚óè {statusMessage}</b><span className={saveState==="error"?"text-red-400":saveState==="modified"?"text-amber-300":"text-cyan-300"}>{saveState==="modified"?"Modifications non sauvegard√©es":saveState==="autosaved"?`Autosauvegard√©${lastSavedAt?` √† ${lastSavedAt}`:""}`:saveState==="error"?"Erreur de sauvegarde":""}</span><span>{nodes.length} n≈ìuds</span><span>{segments.length} tron√ßons</span><span>{selectedCount} s√©lectionn√©(s)</span><span>{selectedCad2dIds.length} objet(s) 2D</span><span className={graphErrorCount?"text-red-400":"text-emerald-400"}>{graphErrorCount?`${graphErrorCount} erreur(s) r√©seau`:"Graphe valide"}</span><span>{projectJoints.length} joints</span></div><div className="flex gap-3"><span>Outil: <b>{interactionMode==="main"?"MAIN":isoDrawMode.toUpperCase()}</b></span><span>Snap {isoSnapStep} m</span><span>Zoom {Math.round(viewport.zoom*100)}%</span><span>Ctrl+K commandes ¬∑ ? aide</span></div></div>
-  </div>;
-}
-
-export { IsometrieModule };
-export default IsometrieModule;
+    <div className={`hidden pdi-status-docked ${workspaceFullscreen?"fixed bottom-0 left-[92px] right-0 z-[10008] rounded-none":"sticky bottom-2 z-40 rounded-xl"} bg-slate-950 text-slate-200 xútS¡n”@ΩÁ+FVëZêS”ˆÄ“$U’V®†ñCƒÑîqv‚ldÔZª„$≈Ú7p‡¿ï p'‚G¯vmJC/ÎŸô˜f<ofcmàÎOhSd
+_D‰´Úª¶)≠Í#\ÃA2e6úêbGõñÂÙ.åâóD
+ÃÉi≈·˚ÁQæ˙ vÜB/√4W√æêò§hÌ-f4ÍÃûr˚Òv§Œ@LExE¡◊óOPZF.ÏYã	U˝√xÿ∑9™-fiqA#£¡`ê1⁄gM:CM™ﬁ$”BN%â{f±”·ÿ„«‰U}ØÜÂcÃõ⁄ú K≠,(≠¿b±†çÿ¨…∂Jb¡⁄;s|^€±{•ÎÑG>xŒgcÿ|ÖW5ÓÅ;˛€Âï1TÙPùèÔzï≠Ü•“Çl7%ï¨ıÛs!Ï.¬Ríπ˘>Äÿhµ˘Êzk„Rö0â](Æ¿n÷˛Ó4Põıæ=xå‚H\ãá‰:û;8]n3∂áö∏≈õ]˘6ÎRÌÅ˛ª.nVmŒxØÌ™Äj≈|m≥Y[¬¬…˚“ÉòJ'_Kª‹ËπÎ‚ïñ€ÚÃÎÎ=Ú–m˘„´~¸…ı¶`ôˆ†KÈﬂ÷ πMjñ•Úãu~}Ù§’óó>÷e˝6œ…\†•˝ÉÊ	lˇ·Hπ'Z:Ç7FLyŸ‡ù÷î7»≥Æq"à˝Ö§eÆw?∫»”ÁQtP=Ÿa\∞IüΩÜâŒ2Tnu‡«w8tÍÏv\üÄ∆8ÌTù≠|f(·⁄ÍåÿHr=)Auz4≈"Â6‚¥Û  ˇˇ û´©Â

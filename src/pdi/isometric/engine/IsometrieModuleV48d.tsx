@@ -22,6 +22,7 @@ import {
 } from "./pdiPrecision017P";
 import { pdiReorientPorts, pdiTolViewBox } from "./pdiPorts017P2";
 import { pdiIsoAxisDirs017P3, pdiNodeRadius017P3, pdiNodeHasFaceOffset017P3, PDI_METRE_CONVENTION_017P3 } from "./pdiAxes017P3";
+import { pdiGlyphScale017P5 } from "./pdiGlyphes017P5";
 import { auth } from "../../../lib/firebase";
 import {
   PDI_LOGO_HORIZONTAL_SRC,
@@ -6986,6 +6987,8 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                   const p0=nativePorts.find(port=>port.index===0),p1=nativePorts.find(port=>port.index===1);
                   const angle=p0&&p1?Math.atan2(p1.sy-p0.sy,p1.sx-p0.sx)*180/Math.PI:(n.rotation||0);
                   const isBend=!!n.equipmentType&&elbowAngle(n.equipmentType)>0;
+                  const kGlyph=pdiGlyphScale017P5(nativePorts);
+                  const branchPort=nativePorts.find(port=>port.role==="branch");
                   const nodeAnnotation=editorAnnotationMap.get(`node:${n.id}`);
                   return <g key={n.id} data-iso-object="true" data-iso-node="true" data-node-id={n.id} transform={`translate(${p.x} ${p.y})`}
                     onClick={e=>{e.stopPropagation()}}
@@ -6999,9 +7002,9 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                     }}>
                     {isEquip ? (
                       <g>
-                        {isSel&&<rect x="-15" y="-15" width="30" height="30" rx="5" fill="none" stroke="#facc15" strokeWidth="1.5" strokeDasharray="4 2"/>}
-                        {isHov&&!isSel&&<rect x="-14" y="-14" width="28" height="28" rx="4" fill="none" stroke="#67e8f9" strokeWidth="1" strokeDasharray="2 2"/>}
-                        {isBend&&p0&&p1?<path d={`M ${p0.sx} ${p0.sy} Q 0 0 ${p1.sx} ${p1.sy}`} stroke="#f59e0b" strokeWidth="4" fill="none" strokeLinecap="round"/>:<g transform={`rotate(${angle}) scale(1.3 ${n.mirrored?-1.3:1.3})`} dangerouslySetInnerHTML={{__html:getFittingSvgGraphic(n.equipmentType!,false)}}/>}
+                        {isSel&&<rect x={-11.5*kGlyph} y={-11.5*kGlyph} width={23*kGlyph} height={23*kGlyph} rx="5" fill="none" stroke="#facc15" strokeWidth="1.5" strokeDasharray="4 2"/>}
+                        {isHov&&!isSel&&<rect x={-10.8*kGlyph} y={-10.8*kGlyph} width={21.6*kGlyph} height={21.6*kGlyph} rx="4" fill="none" stroke="#67e8f9" strokeWidth="1" strokeDasharray="2 2"/>}
+                        {isBend&&p0&&p1?<path d={`M ${p0.sx} ${p0.sy} Q 0 0 ${p1.sx} ${p1.sy}`} stroke="#f59e0b" strokeWidth="4" fill="none" strokeLinecap="round"/>:branchPort&&p0&&p1?<g data-pdi-te="017p6"><line x1={p0.sx} y1={p0.sy} x2={p1.sx} y2={p1.sy} stroke="#22c55e" strokeWidth="3.5" strokeLinecap="round"/><line x1="0" y1="0" x2={branchPort.sx} y2={branchPort.sy} stroke="#22c55e" strokeWidth="3.5" strokeLinecap="round"/><circle cx={branchPort.sx} cy={branchPort.sy} r="2.5" fill="#22c55e"/></g>:<g>{nativePorts.map(port=>(<line key={`patte-${port.id}`} x1="0" y1="0" x2={port.sx} y2={port.sy} stroke="#64748b" strokeWidth="1.6" strokeLinecap="round"/>))}<g transform={`rotate(${angle}) scale(${kGlyph} ${n.mirrored?-kGlyph:kGlyph})`} dangerouslySetInnerHTML={{__html:getFittingSvgGraphic(n.equipmentType!,false)}}/></g>}
                         {nativePorts.map(port=>{
                           const joint=projectJoints.find(item=>item.nodeId===n.id&&item.portId===port.id);
                           const connected=!!joint;
@@ -9139,14 +9142,6 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
           step="0.05"
           value={pipeStrokeScale}
           onChange={(e) => setPipeStrokeScale(Number(e.target.value))}
-          className="w-16 accent-cyan-400"
-        />
-        <span className="w-8 text-right text-cyan-300 text-[10px]">{pipeStrokeScale.toFixed(2)}Ã—</span>
-      </label>
-    </div>}
-    {/* PATCH 017D : bouton de restauration de la ligne de commande */}
-    {!propertiesModalOpen && commandPromptHidden && <button type="button" onClick={() => setCommandPromptHidden(false)} className="pdi-cmd-restore-017d fixed left-[92px] bottom-2 z-[10030] rounded-lg border border-cyan-500/40 bg-slate-950/95 px-3 py-1.5 text-[11px] font-black text-cyan-200 shadow-xl" title="Afficher la ligne de commande (HIDE)">âŒ¨ Commande</button>}
-
-    <div className={`hidden pdi-status-docked ${workspaceFullscreen?"fixed bottom-0 left-[92px] right-0 z-[10008] rounded-none":"sticky bottom-2 z-40 rounded-xl"} bg-slate-950 text-slate-200 xœtSÁnÓ@½ç+FV‘ZSÓö€Ò$UÕV¨ –CÄ„”qvâldïZ»ã$Åò7pàÀ•Êp'âGøvmJC/ëÙ™÷f<ofcmˆëOhSd
-_Dä«ğò»ğ¦)­ê#\ÌA2e6œbG›–åô.Œ‰—D
-ÌƒiÅáûçQ¾ú v†B/Ã4WÃ¾˜¤hí-f4êÌrûñv¤Î@LExEÁğ×—OPZF.ìY‹	UıÃxØ·9ª-fiqA#£Á`1ÚgM:CMªŞ$ÓBN%‰{f±ÓáØãÇäU}¯†åcÌ›Úœ K­,(­Àb± Ø¬É¶JbÁÚ;s|^Û±{¥ë„G>xÎgcØ|…W5î;şÛå•1TôPïz•­†¥Ò‚l7%•ğ¬õós!ì.ÂR’¹ù>€ØhµùæzkãRš0‰](®ÀnÖşî4P›õ¾=xŒâH\‹‡ä:;8]n3¶‡š¸Å›]ù6ëRíş».nVmÎx¯íª€jÅ|m³Y[ÂÂÉûÒƒ˜J'_K»Üè¹ëâ•–ÛòÌëë=òĞmùã«~üÉõ¦`™ö KéßÖÊ¹Mj–¥ò‹u~}ô¤Õ——>Öeı6ÏÉ\ ¥ıƒæ	lÿáH¹'Z:‚7FLyÙàÖ”7È³®q"ˆı…¤e®w?ºÈÓçQtP=Ùa\°IŸ½†‰Î2TnuàÇw8têìv\Ÿ€Æ8íT­|f(áÚêŒØHr=)Auz4Å"å6â´ó  ÿÿ «©å
+          className="w-16 accent-cyxœt•Ínã6€ïyŠ©.ìŠ'AÇV8ÙMZdw´—˜Ç2JH*vVĞè¡‡½öÖæ	z¯ÑÙ'éP²Ù»ñA’3CÍ7?b©Ş,ğIì›Œ¥IfÌ[–àÀ›ùG`qn}-â©­Åè¥ş~Ô«_÷‚lşÁ‹LdxcµºÃ›ˆIÜµêµ˜#ouÛåâS¿ã<¯.êw$£¬—ı÷aYÉEgŞŸı4¼„`ïûsèÁXåV¥À4ËrÍ¬¨×’qŠNT’°”„ÎÒÏ7™Vj+Ğ\+Îä»Sxõj¥ù^«$³—‚óz»?Î­»Ç>dt½ğ@¥C)¢»AÑjÃ ƒvø¥ykÂ¤ÁvÙ¤–qáG	÷İ;+>Ãaâh€Ä	1;î3
+îIü.|tƒıàh•SÜ—1jzùWC?‚ÎA ãØ7’YôƒÎñ!ds²o÷p•“=ç¢Rë%‹î‰ëRâÌ”q5óçÒ+¬¤7>›LD4¥ë¾Šµuyu~ÑöÂÏ¿ıKØïÔ˜(su)‹ÅhZÓu,(s67>WÑ!Ø.fJßQ=Dø:—ÒD1=õj>K&Á¨ªøh¯æ=sJUŠ^Ï3–òôĞJ˜V:f¹Æ¬¦Q/uÒõşí¯¸va"q^=ü™f‹‰ñ#L-™İætûäÁ£Q ³Œ,½±Â-ãQn`ò*ÏÎäÀûãæIåÔLòªaÃÏŸ~‡¢fyÆ°KÊB¸Ù´…a÷Ô‰Å`0ğPk¥½ÓÚÆÚUoM%Q\Lò•KÆÄaßéykï•añ’åu%FU ¼€aù=ÆLóÅ#š+µµÛ ËÑY%?én‰½q‡göt‹?am«õ<_òBkÌµ+Ş'®>¼r9€*Va‘*fWbÛi	éäÜ¬kŒÊï³M¶tñÅ¶©'1²È‡Tl¶³xtkb.[¦ı‚2ã]~ÅŸ«ñ-ZR‡îyÓ¢™Ô˜
+ozáÂ¬®ÚLè—åB¹Ú´mon•€1w·^<d9á}ã”î™„oƒMÖ[Šâ%šxn«åJ³é/–ú¾·ôõ.·Böhú†…p½Ä*rTIuq1‘ºÂ:»zëõ„QçšÍÜ}Y~Îh¸™ÁV»næŞ¤Ô¢8áÆbVB²¦ğ‹R	×ÌNw«Ñº8Ë”¶»éd‡FL»üvÍbhµüîÇ§hàßà˜pc°qõÜZ}ÓN¶h6âÜy†®ŒJĞjC.Ê“ÕÇ	Ë¥İÔ8Ùú  ÿÿ ‰å¬
