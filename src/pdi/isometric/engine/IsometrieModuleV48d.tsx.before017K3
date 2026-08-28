@@ -30,7 +30,6 @@ import { pdiUnifyAnomalies017P9, pdiAnomalieKind017P9, pdiAnomalieLibelle017P9 }
 import { pdiValiderLongueur017P10, pdiValiderDn017P10, pdiEcartAccrochage017P10 } from "./pdiSaisie017P10";
 // PATCH 017M : registre unique des commandes, source du ruban.
 import { PDI_ONGLETS_RUBAN_017M, PDI_INVITE_COMMANDE_017M, pdiGroupesOnglet017M, pdiEntreesGroupe017M } from "./pdiRegistreCommandes.v1";
-import { PDI_CLASSES_B165_017K3, PDI_DESIGNATIONS_PN_017K3, PDI_CLASSE_PAR_DEFAUT_017K3, pdiClasseDeSpec017K3, pdiMateriauDeSpec017K3, pdiClasseConforme017K3, pdiMessageDerogation017K3 } from "./pdiClassePression017K3";
 import type { PdiEntreeRuban017M } from "./pdiRegistreCommandes.v1";
 import { auth } from "../../../lib/firebase";
 import {
@@ -964,7 +963,7 @@ function migrateProjectFileV474(value:unknown, fallbackOwnerUid = ""):IsoProject
     : [];
   const legacy=migrateLegacyFittings(sourceNodes,sourceSegments);
   const normalized=normalizedGraphPorts(legacy.nodes,legacy.segments);
-  const fallbackLine:PipingLine={id:DEFAULT_LINE_ID,lineNumber:'8" Constantine',service:"Gaz naturel",dn:200,nps:'8"',material:"Acier API 5L Gr. B",pressureClass:PDI_CLASSE_PAR_DEFAUT_017K3,schedule:"40",designPressure:40,color:"#9CA3AF"};
+  const fallbackLine:PipingLine={id:DEFAULT_LINE_ID,lineNumber:'8" Constantine',service:"Gaz naturel",dn:200,nps:'8"',material:"Acier API 5L Gr. B",pressureClass:"Class 600",schedule:"40",designPressure:40,color:"#9CA3AF"};
   let sourceLines:Array<PipingLine>=Array.isArray(sourceModel.lines)&&sourceModel.lines.length?sourceModel.lines:[fallbackLine];
   if(normalized.segments.some(segment=>(segment.lineId||DEFAULT_LINE_ID)===DEFAULT_LINE_ID)&&!sourceLines.some(line=>line.id===DEFAULT_LINE_ID))sourceLines=[...sourceLines,fallbackLine];
   const sourceWorkspace=raw.workspace||raw.settings||{};
@@ -1039,7 +1038,7 @@ function IsometrieModule(props: { projectId?: string }) {
   // IMPORTANT: aucun P01/P02/P03 par dÃ©faut.
   const [nodes,setNodesRaw]=useState<IsoNode[]>([]);
   const [segments,setSegmentsRaw]=useState<IsoSegment[]>([]);
-  const [lines,setLinesRaw]=useState<PipingLine[]>([{id:DEFAULT_LINE_ID,lineNumber:'8" Constantine',service:"Gaz naturel",dn:200,nps:'8"',material:"Acier API 5L Gr. B",pressureClass:PDI_CLASSE_PAR_DEFAUT_017K3,schedule:"40",designPressure:40,color:"#9CA3AF"}]);
+  const [lines,setLinesRaw]=useState<PipingLine[]>([{id:DEFAULT_LINE_ID,lineNumber:'8" Constantine',service:"Gaz naturel",dn:200,nps:'8"',material:"Acier API 5L Gr. B",pressureClass:"Class 600",schedule:"40",designPressure:40,color:"#9CA3AF"}]);
   const importProjectRef=useRef<HTMLInputElement>(null);
   const [dimensions, setDimensionsRaw] = useState<IsoDimension[]>([]);
 
@@ -1852,9 +1851,9 @@ function IsometrieModule(props: { projectId?: string }) {
   const [fromNode,setFromNode]=useState("");
   const [toNode,setToNode]=useState("");
   const [newDN,setNewDN]=useState(150);
-  const [newPN,setNewPN]=useState(()=>pdiClasseDeSpec017K3(projectSetup));  // 017K3 : la spec fixe la classe, pas une valeur en dur.
+  const [newPN,setNewPN]=useState("Class 600");
   const [newLength,setNewLength]=useState(3);
-  const [newMaterial,setNewMaterial]=useState(()=>pdiMateriauDeSpec017K3(projectSetup));  // 017K3 : materiau lu dans la spec.
+  const [newMaterial,setNewMaterial]=useState("Acier API 5L Gr. B");
   const [newSegmentColor,setNewSegmentColor]=useState("#0284c7");
   const [newSourceName,setNewSourceName]=useState('8" Constantine');
 
@@ -4695,17 +4694,6 @@ function IsometrieModule(props: { projectId?: string }) {
     setStatusMessage("Orientation Ã©quipement inversÃ©e");
   };
 
-  // PATCH 017K3 : signaler une classe qui s ecarte de la spec du projet.
-  // On n interdit pas la derogation : une rupture de spec est legitime dans
-  // un projet reel. On la rend visible, conformement au principe des
-  // specifications de tuyauterie ou la classe appartient a la ligne.
-  const pdiSignalerClasse017K3 = (classe: string) => {
-    if (pdiClasseConforme017K3(classe, projectSetup)) return;
-    setStatusMessage(
-      pdiMessageDerogation017K3(classe, pdiClasseDeSpec017K3(projectSetup)),
-    );
-  };
-
   const addSegment=()=>{
     if(!fromNode||!toNode||fromNode===toNode)return;
     const a=nodes.find(n=>n.id===fromNode),b=nodes.find(n=>n.id===toNode);
@@ -6677,15 +6665,11 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                       onChange={e => setSegments(prev => prev.map(s => s.id === selectedSeg.id ? { ...s, pn: e.target.value } : s))}
                       className="w-full bg-slate-800 border border-slate-700 rounded px-1.5 py-1 text-[10px] font-bold text-white outline-none"
                     >
-                      <option>Class 150</option>
-                      <option>Class 300</option>
-                      <option>Class 400</option>
-                      <option>Class 600</option>
-                      <option>Class 900</option>
-                      <option>Class 1500</option>
-                      <option>Class 2500</option>
                       <option>PN16</option>
                       <option>PN40</option>
+                      <option>Class 150</option>
+                      <option>Class 300</option>
+                      <option>Class 600</option>
                     </select>
                   </div>
                   <div>
@@ -6930,7 +6914,7 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
             <select value={toNode} onChange={e=>setToNode(e.target.value)} className="border rounded-lg px-2 py-2 text-[11px] font-bold"><option value="">NÅ“ud extrÃ©mitÃ©</option>{nodes.map(n=><option key={n.id} value={n.id}>{n.name}</option>)}</select>
             <select value={newDN} onChange={e=>setNewDN(Number(e.target.value))} className="border rounded-lg px-2 py-2 text-[11px] font-bold">{DIAMETERS.map(([dn,inch,od])=><option key={dn} value={dn}>DN{dn} â€” {inch} â€” Ã˜ {od} mm</option>)}</select>
             <input type="number" min=".05" step=".05" value={newLength} onChange={e=>setNewLength(Number(e.target.value)||.05)} className="border rounded-lg px-2 py-2 text-[11px] font-mono font-bold"/>
-            <select value={newPN} onChange={e=>{setNewPN(e.target.value);pdiSignalerClasse017K3(e.target.value);}} className="border rounded-lg px-2 py-2 text-[11px] font-bold"><option>Class 150</option><option>Class 300</option><option>Class 400</option><option>Class 600</option><option>Class 900</option><option>Class 1500</option><option>Class 2500</option><option>PN16</option><option>PN40</option></select>
+            <select value={newPN} onChange={e=>setNewPN(e.target.value)} className="border rounded-lg px-2 py-2 text-[11px] font-bold"><option>PN16</option><option>PN40</option><option>Class 150</option><option>Class 300</option><option>Class 600</option></select>
             <select value={newMaterial} onChange={e=>setNewMaterial(e.target.value)} className="border rounded-lg px-2 py-2 text-[11px] font-bold"><option>Acier API 5L Gr. B</option><option>Acier API 5L X42</option><option>Acier API 5L X52</option><option>PE100 SDR11</option></select>
             <label className="flex items-center gap-2 border rounded-lg px-2 py-2 text-[11px] font-bold"><span>Couleur</span><input type="color" value={newSegmentColor} onChange={e=>setNewSegmentColor(e.target.value)} className="h-6 w-8 p-0 border-0 bg-transparent"/></label>
           </div>
@@ -8276,15 +8260,11 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                                       onChange={e => setSegments(prev => prev.map(x => x.id === s.id ? { ...x, pn: e.target.value } : x))}
                                       className="bg-slate-900 border border-slate-700 rounded px-1.5 py-1 text-xs text-white outline-none"
                                     >
-                                      <option>Class 150</option>
-                                      <option>Class 300</option>
-                                      <option>Class 400</option>
-                                      <option>Class 600</option>
-                                      <option>Class 900</option>
-                                      <option>Class 1500</option>
-                                      <option>Class 2500</option>
                                       <option>PN16</option>
                                       <option>PN40</option>
+                                      <option>Class 150</option>
+                                      <option>Class 300</option>
+                                      <option>Class 600</option>
                                     </select>
                                   </td>
                                   <td className="p-2 font-sans text-[10px] text-slate-300">
@@ -9144,12 +9124,27 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
 
     {/* PATCH 017C : Data Manager - vue tabulaire des elements tagges */}
     {dataManagerOpen && <div className="fixed inset-0 z-[10065] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-6" onClick={() => setDataManagerOpen(false)}>
-      <div className="w-full max-w-5xl max-h-[86vh] overflow-auto rounded-2xl border border-cyan-600/50 bg-slate-950 p-5 space-y-3" onClick={e => e.sxœìZ[oãÆ~ß_1!Ò@J–mÙ»^¯¥…#ïvİÆÎ¢NûĞ`‘#‰k’ÃÌ}‰" ¯
-ô¡òÚ·vAßkôä—ôœ’"‡”/{IÒ¢~É¹3çœï\†Š§/OéŒª'îrtä{AxFüˆJyLc6t¦» ¡b±t}–(&ÈëLªpzéN˜:g,!.&ÜIñ #ª˜»ãy$¸›Îji³xõ½¹bÊ•1™òD¹“ˆú§D7ù—4q°f–¦LøT2gt@%G4¡3 êÅÁ'4Nîõo·Ç×^zñÒ,n(Şò<g´lŸ²7#à¶#ÉpDdOÑY·±d¦æËşjPŞB”à‰')»FÎ>üëŸd/‡RfL.	MxL£°èšrSEÔWáûŠÎé†^$.L4nÓŒ¦ÖéÃ¬I¦OˆºLayqOÆQèŸ4S(Ù¢“œÁeuôÂôÒİ ‚gIÀ7š‘ÉÌ¥ñÄşhÛë?ôÈœŸ1±»j‘½(ÔÃ´?ôôh}ü¦eÓË_sÉ¬4À}…g*ˆâ™Úë²ïÄX§‹R,Ép+XMvi˜°à>ÙèŞŠM£%ÈPÉãJÕë<šö‡Gæõ:ƒ¤1ÁApïÀ d
-m"7‰/S–t¦4’ìÇáopÏ˜ˆÛY³4Û~µÔ	›FüÜEU-é¿ˆZéÛAƒ®n¥è$bÕåÎİiEÕ@µm0jÎhPR;(=jsq¶°›ô’0ŠØTË¦–Ko»
-%àåd>ÒT‚ïõÕüC-pü!W?aâ,ôÙİ"eş‡\ÿd.Bš}È=Æ¸ÂNI„³ù·ø‚'³Œe‚tânÛFĞf©0“°ÍdÂƒK{òÊMÆ45´ÓÂˆ §ìr¸½0X6º‰q@¹ˆù*÷P¿ÛÚêàÌûÄ İãõ ø˜,ÛÖ¯Ú¶AÕŒd,D|d¼—Ÿ	É…›ò=nÃü{…½F8F41Ox.$Uo80ÁÆä»ïˆã:¨àN[Ô}5,$o¹P•ôj¥±å÷AdÁ³Û}ëåhŸ¶Õè}®™
-q`ÚFßmac¶¶°"ºÄÕ½nOñgá:ƒîš}š¶JH·k«¼»’ápH<òÉ'í¶9Ò´óè$¥ÉpñĞ$4[¹‚˜¸³ÂÈ62²ŸùYRÈ$ ‰$à„Óˆ&=ÍG+ÙKsl|&tæ·ÖÄüšBÄÂ$YÂHÎàw7G™IÎJêqPA<3¥ MuLÁ¤"%Ä× 0“á¼i¦`»H¹Päó/z5*+/æqyO¿,úŸ’û_Ÿoãáç@KÌĞ^ÈØ^ÃÂä„©,…`6å2D\š‘²ø'¨A-ù´¿l.µKÕ¤ép565}ºq•¢‘g ’0”u=ò-©÷À{Y‰!Øx|N )&xŸLè„nm™¿¦îƒ¶€ö…ETÑ–‡h˜‡t1½pÏİÁ…yš»_ï<8›¿$íñãf#€Ô`÷ P~Û«±Tn™RŸ¹ ÷z’ËzRıOdÖ-yÇÔZ›™^TİÏ3_I4Ù}’{I˜"ı’üğ‡¿æ¦”¡Õ`<n‘ß2MZ§U·Ï“Z¢‚õùŞÆmó¡œ¡µ:3a@ğÇL– ¿˜åêšÑ	‹ª“
-}İ°“èHšÒ{T'Öò~U59æ1
-Fã$æ¸œµC˜¤™"g4ÊØ°†/½ü7^¢€æ4™±Ü,uR:.H¯×Kï“ÊÌ]09EÅŒ©Şƒ,»uæhPKÚÖ¥²¹”‰åkÒ+£´ó9X.á™Š nİ„'Ì!ıºjj9üD’s°®w‘.ğvrÁ™?¶\Úâè×~¾BŠBÀı;ÊÇ×“î(3éÿÖ²F'Š&A«(L Ø*™Ï»£4ŠiyPIœıã“C‡@>qpxìü¤jÔxªãas†ĞşîõMÏ¡ü´‡³×}­VÜä×WEçZ@ï0¦”1]3ªZŞØšUæíUÍ2Eı<Ô!XëŸ¾¯Rş5z©ŠÛ„·ğ®µ¹7"ÆO¢ˆufópR×˜¦š•BïtYijnTŠsÊ_GÅC©Œv¦Ü¦-P³r?U¬kJÅÄfÅ¾şI©ÈyÑböBİŞk&‡8ä3bO‘&QÅôÁˆ&¦İ¨€×İ=½`qa‚|ÓQ¬ì¡Â>d‹îó±ëyîøúrêŞÖ&HªšŞà¿ş$²¨9È5÷Aí>¯=ózÛKM¤H^sy£n½tæ¶¿Â›|·uä¸ŞÌI<Áêzy!IŸL£,˜¼EŠ\F1yebk§^•¸îŠlÙÔÔÏÖÕqOSU?ëù:”¿Sáa2Zî¸Z•±%(w ì¹Œ XNäb—hÒà‰,:ÛB°ë4¾V•=ëéxaí"-Òi–Hï~÷ş³RI]@QÙ%¨!ûw4Ú˜Ş¨éÏDëçˆº“¾ıKË«†¥FM™Öï	t+ŞÂÀÀ09H–®™sq|X½{Ùù <¼)…Cìêó8†”E?€²(vTE~“éÒ7äùáÁÓUù#ĞĞK2y„•ë¢–üQ¾DŸqª‡AĞ^cNƒĞõãÀ¸ê-1Ug¼A…´nõ@_š€«pğ1xSŠx/× Å±?¨uû¶‰œÓ ôçÔ*×q5l½)2o‹ZĞ¬ÂÄ=w«Êº7¦ÁØÆæ~NEEv:÷7ŠÃâàª‡şĞ‚§ıõãR}ĞåRæÜ«xñœH‘3\tààu‘”å%¡º§:V<t
-0 %DĞÃ…ÕPßhLŸEºGâË8_¸Ÿ¦Ñå1~ú9—´Ò¤gXœö[T»­€07*ÍvÛ%‰WæÕ°¯ı›’zö]h‡sçîÃ5á}½GT¨À:WLi(%ŞÀÏMçá7Zœ4¶gjä%–Wèz0ªİñÃ=]L©rî&Z˜&:•fPİ¡ãõÛµFz1tÕ©XŠã¼Ú¸"5SvÑì);ñiÄ,µÈ3Ó+KóõácıÍV§ˆÖ°V Ùx 
-ÕØ;BsSQZNğÜİiÜÇ–¶"U z‹£òjv³»¼ú¾~ÔµF·øÜ@Û	ä¼xÛÈ¸E3AÍí#Ã‹Å&ßˆ¶ëÀö–7$ãæôÖK’«‘f.Ø:¸¾¦†VÂôV¦Ëô¬­ın¥"8Ì¶J\/Mn:ı9l×z¬te]gôÃŸşAò#`e–;Jæ¯r\Á³ É©Lj×Gğñâœ‹S`=Ë¢Húâ™'ù%j~&^‹_+nV½Õ9éRÈ®¡‘zY=Ğ-¯âòœeı¾ÒºZiÅ¹n§×9 Òõ™ÉÁ«ˆ—w4{µµæğ8eËíMàÅ Şi˜Xê‡ïÿá“>Ë#ğ&t†‘ÙddíBÒ3°Dàb8:L.œ'ùÇPÌ,µ[ó œ†,(F­>¶Ùuê!!æ$kféG_Û§$	~@³36£"¸zÃ¤µ%:_l€™¯öõs9öãp¢N°s_=yE®şFjMËW»?­\>İèl¹"ê‡SD’ú¬F‹¢ÚUJŸüû/Y ë#Z?f¾ú».=ÔÇa=ŒA<á„¼z“!‘\½YìÁ4ØƒÕâ|òš)üzó :£*Tí	Ÿ"›z+[ MuYÙs^}l7-	Ó'†{‹«7’Ñ÷—8ˆ¡«‚ôİ>»<Ïù~ßµâàµ~­U®Öª:dyf­/3F»€¾£…şXŒê“M2ÊEÃkÿğØÙ%‡ çûÀ³üS¼1¤x®1*…'	˜è&àÃ	8á%‰k~ÏyLGTÍ{#:g!;Ç¯QzßBÏ§ 1İå/j3ÆJDŸıºD]şyBhˆ0Xå¸ˆ´ÌÃã{€ùw.r(yÌD,ÀC)ÂòqÑ°)Í"ex|ï?   ÿÿ oú<Š
+      <div className="w-full max-w-5xl max-h-[86vh] overflow-auto rounded-2xl border border-cyan-600/50 bg-slate-950 p-5 space-y-3" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+          <div>
+            <div className="text-sm font-black text-cyan-300 uppercase">Data Manager PD&amp;I</div>
+            <div className="text-[10px] text-slate-400">{segments.filter(s => s.tag).length}/{segments.length} troncon(s) tagge(s) Â· {tagIssues} anomalie(s) Â· format {activeTagFormat.name}</div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={autoTagAllSegments} className="px-3 py-1 rounded-lg bg-amber-950/70 hover:bg-amber-900 border border-amber-700/70 text-amber-200 text-[10px] font-black">Tagger tout</button>
+            <button type="button" onClick={() => renumberTags(undefined, 1)} className="px-3 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 text-[10px] font-black">Renumeroter</button>
+            <button type="button" onClick={() => setDataManagerOpen(false)} className="px-3 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 text-[10px] font-black">Fermer</button>
+          </div>
+        </div>
+        <div className="overflow-auto rounded-xl border border-slate-800">
+          <table className="w-full text-[11px]">
+            <thead className="bg-slate-900 text-slate-400">
+              <tr>
+                <th className="text-left px-2 py-1.5 font-black uppercase text-[9px]">Tag</th>
+                <th className="text-left xœìZ[oÛÈ~Ï¯˜%Ò…”%úî8–GJ6n×N mûĞ @FäHbLr¸3CÙ^­€¾(Ğ‡Ø×¾µù}¯Ñ?’_ÒsfHŠ7Ùq6Ùä¡~É¹9—ï\†ñ…½IâK{£³C&<Rö8 îIâ˜	—JF»PöËñÅ+«?<=ìªYÿ©üªq*å)YÏÒS6Q$¾Íê#&æ¾Ë>é1s?åú'T1áÓäSî1ÀnÁ%áOg·Üâ;M–Ò
+ÛMA›(·á(F½J£sï²:y!Ù4d‘’Æ-Iz}Òj8ˆ gì²·ß[Öº	áÑ ğİ³Ş¢ÕÆD²€¹jdÖşÃövgŞ'HÖ~İjH=¡2ñ<fQ+ëZ6­_àâ˜	[‘ôA e{ßqÈŒÏ™8OÓ¦Óİsˆ›É…s?m°êRÂãyÅráÑ„<â©xàÉĞp[o9Õ(:%?ıD,ÛZç½[m¡—3oârÃSXĞ‹>p!÷’FHÖŠ^M 4¶ü1ˆÌÎ,Áv?ÆzÛéz¡±Õàc®&e"˜¶Ñ_¶°1Ûª° Ö‹¦`ç°ºÓî(şÔ¿`^k«½fŸº­ÒnWU~e”éê½^8äë¯›m³¯içÁ(¦Qo±·l:Çvª ­ x<ÈQâ&Q‚G.ˆG#IFâ€F}F²—UÌ©â4ÑqÀVM‡]ÏŸ^á­/7@½…ˆ/„I’ˆ‘ÀŸÂïAŠ2>’œäÔã Œx2`Jš"„IEJÆˆ¯/`&Ãy“DÁvs¡Èãç'•…ó¸¼£_İ{äÅÑ÷ƒgÄÙØ{´„Üí}!øX˜Œ˜Jb"XÌ¥¹4!‘?gğOP×‡†{İe}©#Xª¼È‹á×Ç«±±éÓ]ˆ›¨U>NP‰ÊÚùYêì:¯È
+wœî¾œpÏ<Ácğ>	 iH&» ¾b¡ÌåM"•?¹Ì^c{×ª‚=ìò¢BT
+æËœ‰ÏíI$¤ö¹½uaföËıİùìAŸüÜ¦‰âDğ$ò˜goÂ0ùòk°Û”ßqJG*wˆŒ©ËlĞû½Ée©xÇtJQ4­uJ×sdÌÔ9ş§ÄŒëş(Û›%sXÒşµ€‚XÅe\Ï#«_ÓÆ+&v[3Ó‹*pÔ\ "Kâ¡ñLï“ÔƒHÂAè—äİŸşšR‚Vƒğ´5¬Po'J¡ªËı¹~¹VUàmËÀt¦'Át¥QÁ4•a<µ66+Æ[ı§L„Lv…5[«3Sá{lÀd	ğ;¥±½UÖ„€YPœ”éëF%B9„¨.½eb+Ş¯¨&§<DÁhÜP‡]\®²ƒÅ‰"s$¬WÂ—Nú‚/Q@3MYjGµb:.H§Ó‰ï“ÂÌ09EÅ”©Şƒ,Ûe¦hPÜ*–¾]*eRqÏ%éåQÚù,—ğD ·vÄ#f‘nY5µ>“d¬ë—Èø0¹àÌ_[.Mqtk_®pÿ–òqõ¤[ŠÆLú¿µ¬ÄHÑÈ£Âk…	e!Óy·”F6­&*‰ut::¶äÃãSë³J¨Và±‡'¡}ü=ìš&àúğÓ<x¯}­VÜä3G]‹çLR½Wèà}cº­<¦«GUëÂ›ªfåy{Q³êX'u…„bRYnŒÑÉoÖ”~½^Â^fãğ®¥¹7"ÆgQÄòaÓpR×˜&ú(™Şé²Ò¤i&¤|J_ûÙC®ŒÕL¹I få~Šg*(Äf¹bR=
+ªÄœ}Ÿ1½S‘E‹ç³ÀkwŞp?jYÄ"ßêÉ`U\@Œ¨Ÿ£‚i7*àš ^—>\°00A¾‰+{(²EûÙÀvœ{0‚¾”ºµ	«º7¸>ÀÄxwiQ¾WĞoNƒÉí^!îO[kº¿‚›=§ªÍbõ¨)–Ox‚™Õd=IhTÄë2¯UÍgâÀ<S‹ÕÅÅvZZv«…¡%BÁùÏ¿É¥L0‹F<¤O´dûFİúéÌûBü
+oğ½ª#·Àõz~LÂ1V×ó{Iºd$¾Çä{¤Èy“V&¶÷ËU‰à.Ë–MM}¾¦¨{šªú¼ãêPşV…‡5Ê¤´MõÍõP°²}{.@à–¹8 š4x"K€ãŒÎ¦ì:/Ueç/¬]¤A:õé{¾d•Ô•\‚*1á³_A!qG£ñÚ!ÚXæ#êNüô/Î¯–5e\¾'Ğ­xıh-m3çb}Z½}ÙyŞ”Â!vuyBÊ¢@Y»ª"Hté‚òìxødUGş
+ôôRùL`å:«%•®Ñg«g¾ç5×˜cÏ·İĞ³=îÙ@‹GLÕoP!­ÛD=Ğ—&àªÇ|cÃ”¢·œWd­9jqƒCìn•‹ºİ;DÎ¨úsJ•ë°¶Ş™7E-hV~dŸÛEe=Po`˜ñ„¹©(ÈNçş&PqaXècCQàÁ›Ağt´~\¬/eø^À#ˆç\@Š”˜Ş¢Œ×ER–vä„êâdXq(è`@Jˆ {‹JCy£\è~‰/ƒt|yàQ—§Ivä¦§¤…&=£rÒnƒj7fFå‚éA³$ñÊ¼ö5€ù~Ìsíp`îÌŞ[ŞU¯÷ˆò8CëêÏ1õ¥Äø© ñÌÿ!A‹“ÆöL<Çò¢]F¥;~Ø£SES`*ğİDËÓD«ĞªÛ³œÎÖN©‘^ô¬­b‹T,ÆqNi\–šú1A4{ÆF.XE-ÒÌ´ÅòÒ|yxä¡s«œˆ–°T ÙØ…	…jì¡¹®(<·÷k÷±¹£-H€¾r¢üjv³½¼ú¹ÌêR	#ƒ[|®¡ír^¼md\†¢‰ æö‘áÅbŠoDÛu`û7$ƒúôÆK’«‘f.Ø:¸¾¦k†–Ãôv¦óô¬­ùn¥ 8Ì¶r\ÏMîh2ñİl×ÈÖº²¶Õ÷—‘”,ÏÀRGYùÅëW 9•Híº€wç\œé ëiÒÏ<J/QS8~-»YuöW|Ò¥B#÷ì²ÈĞm§àò¬eù¾²rµÒ2¾n§×9 Òõ™ÉÁ‹ˆ—²;˜¾^ösxœ²mõÇ5ğb ï4ğL,õîç¿Bø¤yyŞ„N12÷«F»t–§èõz‚ëQú13K”†„Üó'>ó²Q«m¬rHˆ9Éš™'úÑÕö)I„ßĞdÎ¦TxWo™¬l‰Î`æë#ıœ½»€“¨v©G¯ÉÕ?H©iùúÀ²à§ñ”O„@·:›¯ˆúae‘¤æUAT»Jé£ÿş-ñdyD=ï<ºú§.=”Ça=ŒA<à„¼z›~!]½]ªƒ©·é{«ÅùøS0œl‹3ŠBÕğ	SoUh]]@VÕ9¯ïV›–„iáŞâê­d4ö~‹ƒº*Hß«¼Kóœßâ÷]«¼Ñ¯¥ÊÕZU‡,Ï¬õ<Q~p èÛ_èÅ¨æh’Q.êG¨XGÇ§Ö/99çØå÷˜â Åkµ	)E`¢˜€#pÂK–ü‘ó,N¨šu4F´æ>;Ç¯Q:?BÏ=€˜öò7¥%‚o~—¢.ÿ<"ÔG,8‹´ÌÃÃ;€éw.r,yÈD,p†R„åÃ¬Ïcšª:âáÿ  ÿÿ <oX¹
