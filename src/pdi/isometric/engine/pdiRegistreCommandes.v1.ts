@@ -68,6 +68,13 @@ export interface PdiEntreeRuban017M {
   suivreLibelle?: boolean;
   /** Pour les grisees : jalon qui activera la commande. */
   jalon?: string;
+  /**
+   * PATCH 017M2 : commande equivalente au clavier. Quand ce champ est
+   * renseigne, le ruban appelle executeCadCommand(commande) : le bouton
+   * emprunte exactement le chemin de la ligne de commande. Une seule voie
+   * d execution, donc aucune divergence possible (regle R8).
+   */
+  commande?: string;
 }
 
 export const PDI_ONGLETS_RUBAN_017M: Array<{
@@ -99,7 +106,7 @@ export const PDI_REGISTRE_RUBAN_017M: PdiEntreeRuban017M[] = [
   { id:"fichier.exemple.poste", nomFr:"Exemple poste", nomEn:"Station sample", aliases:["EXEMPLEPOSTE"], icone:"\u25a6", onglet:"fichier", groupe:"Exemples", ordre:1, portee:"projet", etat:"actif", source:{menu:"Fichier",index:3} },
   { id:"fichier.exemple.gare", nomFr:"Exemple gare racleur", nomEn:"Pig trap sample", aliases:["EXEMPLEGARE"], icone:"\u25a7", onglet:"fichier", groupe:"Exemples", ordre:2, portee:"projet", etat:"actif", source:{menu:"Fichier",index:4} },
   { id:"fichier.sauver", nomFr:"Sauver JSON", nomEn:"Save JSON", aliases:["SAUVER","SAVE","EXPORT"], icone:"\u{1F4BE}", raccourci:"Ctrl+S", onglet:"fichier", groupe:"Enregistrement", ordre:1, portee:"projet", etat:"actif", source:{menu:"Fichier",index:7} },
-  { id:"fichier.planche", nomFr:"Planche ISO A3", nomEn:"ISO sheet A3", aliases:["PLANCHE","A3"], icone:"\u25a4", raccourci:"A3", onglet:"fichier", groupe:"Impression et export", ordre:1, portee:"document", etat:"actif", source:{menu:"Impression",index:0} },
+  { id:"fichier.planche", nomFr:"Planche ISO A3", nomEn:"ISO sheet A3", aliases:["PLANCHE","A3","PLANTISOVIEW","PLANTISOQUICK","ISOVIEW"], icone:"\u25a4", raccourci:"A3", onglet:"fichier", groupe:"Impression et export", ordre:1, portee:"document", etat:"actif", source:{menu:"Impression",index:0} },
   { id:"fichier.imprimer", nomFr:"Imprimer", nomEn:"Print", aliases:["IMPRIMER","PRINT","PLOT"], icone:"\u2399", raccourci:"P", onglet:"fichier", groupe:"Impression et export", ordre:2, portee:"document", etat:"actif", source:{menu:"Impression",index:1} },
   { id:"fichier.export.pdf", nomFr:"Export PDF A5 a A0", nomEn:"Export PDF A5-A0", aliases:["PDF","EXPORTPDF"], icone:"\u{1F5CE}", onglet:"fichier", groupe:"Impression et export", ordre:3, portee:"document", etat:"grise", jalon:"020F - impression et export" },
   { id:"fichier.export.dxf", nomFr:"Export DXF", nomEn:"Export DXF", aliases:["DXF","EXPORTDXF"], icone:"\u25f1", onglet:"fichier", groupe:"Impression et export", ordre:4, portee:"document", etat:"grise", jalon:"020F - impression et export" },
@@ -108,9 +115,9 @@ export const PDI_REGISTRE_RUBAN_017M: PdiEntreeRuban017M[] = [
   // ================= 2. EDITION =================
   { id:"edition.annuler", nomFr:"Annuler", nomEn:"Undo", aliases:["ANNULER","UNDO","U"], icone:"\u21b6", raccourci:"Ctrl+Z", onglet:"edition", groupe:"Annulation", ordre:1, portee:"projet", etat:"actif", source:{menu:"\u00c9dition",index:0} },
   { id:"edition.retablir", nomFr:"Retablir", nomEn:"Redo", aliases:["RETABLIR","REDO"], icone:"\u21b7", raccourci:"Ctrl+Y", onglet:"edition", groupe:"Annulation", ordre:2, portee:"projet", etat:"actif", source:{menu:"\u00c9dition",index:1} },
-  { id:"edition.copier", nomFr:"Copier", nomEn:"Copy", aliases:["CO","CP","COPY","COPIER"], icone:"\u29c9", raccourci:"Ctrl+C", onglet:"edition", groupe:"Presse-papiers", ordre:1, portee:"selection", etat:"actif", source:{menu:"\u00c9dition",index:2} },
-  { id:"edition.couper", nomFr:"Couper", nomEn:"Cut", aliases:["COUPER","CUT"], icone:"\u2702", raccourci:"Ctrl+X", onglet:"edition", groupe:"Presse-papiers", ordre:2, portee:"selection", etat:"actif", source:{menu:"\u00c9dition",index:3} },
-  { id:"edition.coller", nomFr:"Coller", nomEn:"Paste", aliases:["PA","PASTE","COLLER"], icone:"\u{1F4CB}", raccourci:"Ctrl+V", onglet:"edition", groupe:"Presse-papiers", ordre:3, portee:"selection", etat:"actif", source:{menu:"\u00c9dition",index:4} },
+  { id:"edition.copier", nomFr:"Copier", nomEn:"Copy", aliases:["CO","CP","COPY","COPIER","COPYCLIP","COPYBASE"], icone:"\u29c9", raccourci:"Ctrl+C", onglet:"edition", groupe:"Presse-papiers", ordre:1, portee:"selection", etat:"actif", source:{menu:"\u00c9dition",index:2} },
+  { id:"edition.couper", nomFr:"Couper", nomEn:"Cut", aliases:["COUPER","CUT","CUTCLIP"], icone:"\u2702", raccourci:"Ctrl+X", onglet:"edition", groupe:"Presse-papiers", ordre:2, portee:"selection", etat:"actif", source:{menu:"\u00c9dition",index:3} },
+  { id:"edition.coller", nomFr:"Coller", nomEn:"Paste", aliases:["PA","PASTE","COLLER","PASTECLIP","PASTEBLOCK","PASTEORIG"], icone:"\u{1F4CB}", raccourci:"Ctrl+V", onglet:"edition", groupe:"Presse-papiers", ordre:3, portee:"selection", etat:"actif", source:{menu:"\u00c9dition",index:4} },
   { id:"edition.dupliquer", nomFr:"Dupliquer", nomEn:"Duplicate", aliases:["DUPLIQUER","DUP"], icone:"\u29c9", raccourci:"Ctrl+D", onglet:"edition", groupe:"Presse-papiers", ordre:4, portee:"selection", etat:"actif", source:{menu:"\u00c9dition",index:5} },
   { id:"edition.tout", nomFr:"Tout selectionner", nomEn:"Select all", aliases:["TOUT","SELECTALL"], icone:"\u2b1a", raccourci:"Ctrl+A", onglet:"edition", groupe:"Selection", ordre:1, portee:"selection", etat:"actif", source:{menu:"\u00c9dition",index:6} },
   { id:"edition.deselectionner", nomFr:"Deselectionner", nomEn:"Deselect", aliases:["DESELECT"], icone:"\u2b1c", raccourci:"Esc", onglet:"edition", groupe:"Selection", ordre:2, portee:"selection", etat:"actif", source:{menu:"\u00c9dition",index:8} },
@@ -121,7 +128,7 @@ export const PDI_REGISTRE_RUBAN_017M: PdiEntreeRuban017M[] = [
 
   // ================= 3. DESSIN =================
   { id:"dessin.selection", nomFr:"Selection", nomEn:"Select", aliases:["SELECTION","SELECT"], icone:"\u2196", raccourci:"V", onglet:"dessin", groupe:"Outils de pointage", ordre:1, portee:"vue", etat:"actif", source:{menu:"Dessin",index:0} },
-  { id:"dessin.main", nomFr:"Main / Pan", nomEn:"Pan", aliases:["MAIN","PAN"], icone:"\u270b", raccourci:"H", onglet:"dessin", groupe:"Outils de pointage", ordre:2, portee:"vue", etat:"actif", source:{menu:"Dessin",index:1} },
+  { id:"dessin.main", nomFr:"Main / Pan", nomEn:"Pan", aliases:["MAIN","PAN","P"], icone:"\u270b", raccourci:"H", onglet:"dessin", groupe:"Outils de pointage", ordre:2, portee:"vue", etat:"actif", source:{menu:"Dessin",index:1} },
   { id:"dessin.noeud", nomFr:"Noeud", nomEn:"Node", aliases:["NOEUD","NODE","POINT"], icone:"\u25cf", raccourci:"N", onglet:"dessin", groupe:"Elements tuyauterie", ordre:1, portee:"projet", etat:"actif", source:{menu:"Dessin",index:2} },
   { id:"dessin.tube", nomFr:"Tube", nomEn:"Pipe", aliases:["TUBE","PIPE","TRONCON"], icone:"\u2571", raccourci:"T", onglet:"dessin", groupe:"Elements tuyauterie", ordre:2, portee:"projet", etat:"actif", source:{menu:"Dessin",index:3} },
   { id:"dessin.te", nomFr:"Te de derivation", nomEn:"Branch tee", aliases:["TE","TEE","PIQUAGE"], icone:"\u22a5", raccourci:"E", onglet:"dessin", groupe:"Elements tuyauterie", ordre:3, portee:"projet", etat:"actif", source:{menu:"Dessin",index:4} },
@@ -157,9 +164,9 @@ export const PDI_REGISTRE_RUBAN_017M: PdiEntreeRuban017M[] = [
 
   // ================= 7. 3D =================
   { id:"trois_d.vue", nomFr:"Vue 3D", nomEn:"3D view", aliases:["VUE3D","3D"], icone:"\u25f0", onglet:"trois_d", groupe:"Navigation", ordre:1, portee:"vue", etat:"grise", jalon:"019C - passage volumique" },
-  { id:"trois_d.profile", nomFr:"Profile metallique", nomEn:"Steel member", aliases:["PROFIL","STEELMEMBER"], icone:"\u2b12", onglet:"trois_d", groupe:"Structure et genie civil", ordre:1, portee:"projet", etat:"grise", jalon:"019S+ - Eurocode 3, AISC 360" },
+  { id:"trois_d.profile", nomFr:"Profile metallique", nomEn:"Steel member", aliases:["PROFIL","STEELMEMBER","PLANTSTEELMEMBER"], icone:"\u2b12", onglet:"trois_d", groupe:"Structure et genie civil", ordre:1, portee:"projet", etat:"grise", jalon:"019S+ - Eurocode 3, AISC 360" },
   { id:"trois_d.dalle", nomFr:"Dalle et fondation", nomEn:"Slab and footing", aliases:["DALLE","FOOTING"], icone:"\u25a4", onglet:"trois_d", groupe:"Structure et genie civil", ordre:2, portee:"projet", etat:"grise", jalon:"019S+ - EN 1992-1-1, ACI 318" },
-  { id:"trois_d.gardecorps", nomFr:"Garde-corps et escalier", nomEn:"Handrail and stair", aliases:["GARDECORPS","ESCALIER"], icone:"\u2591", onglet:"trois_d", groupe:"Structure et genie civil", ordre:3, portee:"projet", etat:"grise", jalon:"019S+ - ASCE 7, RPA 99 v2003" },
+  { id:"trois_d.gardecorps", nomFr:"Garde-corps et escalier", nomEn:"Handrail and stair", aliases:["GARDECORPS","ESCALIER","PLANTSTEELHANDRAIL"], icone:"\u2591", onglet:"trois_d", groupe:"Structure et genie civil", ordre:3, portee:"projet", etat:"grise", jalon:"019S+ - ASCE 7, RPA 99 v2003" },
   { id:"trois_d.rendu", nomFr:"Rendu", nomEn:"Render", aliases:["RENDU","RENDER"], icone:"\u25d1", onglet:"trois_d", groupe:"Rendu", ordre:1, portee:"document", etat:"grise", jalon:"018G - rendu et presentation" },
 
   // ================= 8. DONNEES =================
@@ -172,10 +179,87 @@ export const PDI_REGISTRE_RUBAN_017M: PdiEntreeRuban017M[] = [
   // ================= 9. AFFICHAGE =================
   { id:"affichage.zoomplus", nomFr:"Zoom +", nomEn:"Zoom in", aliases:["ZOOM+"], icone:"\u2295", raccourci:"+", onglet:"affichage", groupe:"Zoom", ordre:1, portee:"vue", etat:"actif", source:{menu:"Affichage",index:0} },
   { id:"affichage.zoommoins", nomFr:"Zoom -", nomEn:"Zoom out", aliases:["ZOOM-"], icone:"\u2296", raccourci:"-", onglet:"affichage", groupe:"Zoom", ordre:2, portee:"vue", etat:"actif", source:{menu:"Affichage",index:1} },
-  { id:"affichage.ajuster", nomFr:"Ajuster", nomEn:"Zoom fit", aliases:["AJUSTER","FIT"], icone:"\u26f6", raccourci:"0", onglet:"affichage", groupe:"Zoom", ordre:3, portee:"vue", etat:"actif", source:{menu:"Affichage",index:2} },
+  { id:"affichage.ajuster", nomFr:"Ajuster", nomEn:"Zoom fit", aliases:["AJUSTER","FIT","ZOOM","REGEN","ZOOM_ALL"], icone:"\u26f6", raccourci:"0", onglet:"affichage", groupe:"Zoom", ordre:3, portee:"vue", etat:"actif", source:{menu:"Affichage",index:2} },
   { id:"affichage.grille", nomFr:"Afficher grille", nomEn:"Show grid", aliases:["GRILLE","GRID"], icone:"\u25a6", raccourci:"G", onglet:"affichage", groupe:"Reperes", ordre:1, portee:"vue", etat:"actif", source:{menu:"Affichage",index:3}, suivreLibelle:true },
   { id:"affichage.palette", nomFr:"Palette commandes", nomEn:"Command palette", aliases:["PALETTE"], icone:"\u2318", raccourci:"Ctrl+K", onglet:"affichage", groupe:"Outils", ordre:1, portee:"session", etat:"actif", source:{menu:"Outils",index:2} },
   { id:"affichage.raccourcis", nomFr:"Raccourcis clavier", nomEn:"Keyboard shortcuts", aliases:["RACCOURCIS"], icone:"?", raccourci:"?", onglet:"affichage", groupe:"Outils", ordre:2, portee:"session", etat:"actif", source:{menu:"Outils",index:3} },
+
+  // ==================================================
+  // PATCH 017M2 : les commandes des deux tables du moteur.
+  // etat "actif" = verifie comme agissant dans
+  // executeCadCommand. etat "grise" = declaree mais le code
+  // ne fait qu annoncer la commande : pas de bouton actif.
+  // ==================================================
+  // ---- onglet fichier ----
+  { id:"fichier.reglages", nomFr:"Reglages du projet", nomEn:"Project setup", aliases:["PROJECTSETUP","PS","SETUP","PROJET"], icone:"\u2692", onglet:"fichier", groupe:"Projet", ordre:51, portee:"projet", etat:"actif", commande:"PROJECTSETUP" },
+  { id:"fichier.restaurer", nomFr:"Restaurer une sauvegarde", nomEn:"Restore", aliases:["RESTAURER","RESTORE"], icone:"\u21ba", onglet:"fichier", groupe:"Enregistrement", ordre:51, portee:"projet", etat:"actif", commande:"RESTAURER" },
+  { id:"fichier.gestionprojets", nomFr:"Gestion des projets", nomEn:"Project manager", aliases:["PROJECTMANAGER"], icone:"\u2263", onglet:"fichier", groupe:"Projet", ordre:52, portee:"session", etat:"actif", commande:"PROJECTMANAGER" },
+  { id:"fichier.compacter", nomFr:"Compacter le projet", nomEn:"Compress project", aliases:["COMPRESSPROJECT"], icone:"\u2b0c", onglet:"fichier", groupe:"Projet", ordre:53, portee:"projet", etat:"grise", jalon:"018" },
+  // ---- onglet edition ----
+  { id:"edition.deplacer", nomFr:"Deplacer", nomEn:"Move", aliases:["DEPLACER","MOVE","M","TRANSLATION","DEPLACE"], icone:"\u2725", onglet:"edition", groupe:"Transformer", ordre:51, portee:"selection", etat:"actif", commande:"DEPLACER" },
+  { id:"edition.rotation", nomFr:"Rotation", nomEn:"Rotate", aliases:["ROTATION","ROTATE","RO","TOURNER"], icone:"\u21bb", onglet:"edition", groupe:"Transformer", ordre:52, portee:"selection", etat:"actif", commande:"ROTATION" },
+  { id:"edition.miroir", nomFr:"Miroir", nomEn:"Mirror", aliases:["MIROIR","MIRROR","MI"], icone:"\u21c4", onglet:"edition", groupe:"Transformer", ordre:53, portee:"selection", etat:"actif", commande:"MIROIR" },
+  { id:"edition.effacer", nomFr:"Effacer", nomEn:"Erase", aliases:["EFFACER","ERASE","E"], icone:"\u2327", onglet:"edition", groupe:"Transformer", ordre:54, portee:"selection", etat:"actif", commande:"EFFACER" },
+  { id:"edition.echelle", nomFr:"Echelle", nomEn:"Scale", aliases:["SCALE","ECHELLE"], icone:"\u2921", onglet:"edition", groupe:"Modifier la geometrie", ordre:51, portee:"selection", etat:"grise", jalon:"019B" },
+  { id:"edition.ajuster2d", nomFr:"Ajuster", nomEn:"Trim", aliases:["TRIM","AJUSTER"], icone:"\u2702", onglet:"edition", groupe:"Modifier la geometrie", ordre:52, portee:"selection", etat:"grise", jalon:"019B" },
+  { id:"edition.prolonger", nomFr:"Prolonger", nomEn:"Extend", aliases:["EXTEND","PROLONGER"], icone:"\u27f6", onglet:"edition", groupe:"Modifier la geometrie", ordre:53, portee:"selection", etat:"grise", jalon:"019B" },
+  { id:"edition.raccord", nomFr:"Raccord", nomEn:"Fillet", aliases:["FILLET","RACCORD"], icone:"\u25e0", onglet:"edition", groupe:"Modifier la geometrie", ordre:54, portee:"selection", etat:"grise", jalon:"019B" },
+  { id:"edition.chanfrein", nomFr:"Chanfrein", nomEn:"Chamfer", aliases:["CHAMFER","CHANFREIN"], icone:"\u25e2", onglet:"edition", groupe:"Modifier la geometrie", ordre:55, portee:"selection", etat:"grise", jalon:"019B" },
+  { id:"edition.decaler", nomFr:"Decaler", nomEn:"Offset", aliases:["OFFSET","DECALER"], icone:"\u2016", onglet:"edition", groupe:"Modifier la geometrie", ordre:56, portee:"selection", etat:"grise", jalon:"019B" },
+  { id:"edition.etirer", nomFr:"Etirer", nomEn:"Stretch", aliases:["STRETCH","ETIRER"], icone:"\u2194", onglet:"edition", groupe:"Modifier la geometrie", ordre:57, portee:"selection", etat:"grise", jalon:"019B" },
+  { id:"edition.reseau", nomFr:"Reseau", nomEn:"Array", aliases:["ARRAY","RESEAU"], icone:"\u2237", onglet:"edition", groupe:"Modifier la geometrie", ordre:58, portee:"selection", etat:"grise", jalon:"019B" },
+  { id:"edition.decomposer", nomFr:"Decomposer", nomEn:"Explode", aliases:["EXPLODE","DECOMPOSER"], icone:"\u2604", onglet:"edition", groupe:"Modifier la geometrie", ordre:59, portee:"selection", etat:"grise", jalon:"019B" },
+  // ---- onglet dessin ----
+  { id:"dessin.ligne", nomFr:"Ligne", nomEn:"Line", aliases:["LIGNE","LINE","L"], icone:"\u2571", onglet:"dessin", groupe:"Dessin 2D", ordre:51, portee:"document", etat:"actif", commande:"LIGNE" },
+  { id:"dessin.polyligne", nomFr:"Polyligne", nomEn:"Polyline", aliases:["POLYLIGNE","POLYLINE"], icone:"\u2934", onglet:"dessin", groupe:"Dessin 2D", ordre:52, portee:"document", etat:"actif", commande:"POLYLIGNE" },
+  { id:"dessin.rectangle", nomFr:"Rectangle", nomEn:"Rectangle", aliases:["RECTANGLE","RECT"], icone:"\u25ad", onglet:"dessin", groupe:"Dessin 2D", ordre:53, portee:"document", etat:"actif", commande:"RECTANGLE" },
+  { id:"dessin.triangle", nomFr:"Triangle", nomEn:"Triangle", aliases:["TRIANGLE"], icone:"\u25b3", onglet:"dessin", groupe:"Dessin 2D", ordre:54, portee:"document", etat:"actif", commande:"TRIANGLE" },
+  { id:"dessin.polygone", nomFr:"Polygone", nomEn:"Polygon", aliases:["POLYGONE","POLYGON"], icone:"\u2b20", onglet:"dessin", groupe:"Dessin 2D", ordre:55, portee:"document", etat:"actif", commande:"POLYGONE" },
+  { id:"dessin.cercle", nomFr:"Cercle", nomEn:"Circle", aliases:["CERCLE","CIRCLE","C"], icone:"\u25cb", onglet:"dessin", groupe:"Dessin 2D", ordre:56, portee:"document", etat:"actif", commande:"CERCLE" },
+  { id:"dessin.arc", nomFr:"Arc", nomEn:"Arc", aliases:["ARC"], icone:"\u25e1", onglet:"dessin", groupe:"Dessin 2D", ordre:57, portee:"document", etat:"actif", commande:"ARC" },
+  // ---- onglet precision ----
+  { id:"precision.specviewer", nomFr:"Visionneuse de spec", nomEn:"Spec viewer", aliases:["PLANTSPECVIEWER"], icone:"\u2637", onglet:"precision", groupe:"Verification", ordre:51, portee:"projet", etat:"actif", commande:"PLANTSPECVIEWER" },
+  { id:"precision.plantvalidate", nomFr:"Valider la tuyauterie", nomEn:"Validate piping", aliases:["PLANTVALIDATE"], icone:"\u2714", onglet:"precision", groupe:"Verification", ordre:52, portee:"projet", etat:"grise", jalon:"018" },
+  { id:"precision.plantaudit", nomFr:"Audit tuyauterie", nomEn:"Piping audit", aliases:["PLANTAUDIT"], icone:"\u2691", onglet:"precision", groupe:"Verification", ordre:53, portee:"projet", etat:"grise", jalon:"018" },
+  { id:"precision.auditproject", nomFr:"Audit du projet", nomEn:"Project audit", aliases:["AUDITPROJECT"], icone:"\u2690", onglet:"precision", groupe:"Verification", ordre:54, portee:"projet", etat:"grise", jalon:"018" },
+  { id:"precision.specupdatecheck", nomFr:"Controle de mise a jour spec", nomEn:"Spec update check", aliases:["PLANTSPECUPDATECHECK"], icone:"\u2691", onglet:"precision", groupe:"Verification", ordre:55, portee:"projet", etat:"grise", jalon:"018" },
+  // ---- onglet trois_d ----
+  { id:"trois_d.orbite", nomFr:"Orbite 3D", nomEn:"3D orbit", aliases:["3DORBIT","ORBITE"], icone:"\u25d4", onglet:"trois_d", groupe:"Navigation", ordre:51, portee:"vue", etat:"grise", jalon:"019C" },
+  { id:"trois_d.pointvue", nomFr:"Point de vue", nomEn:"View point", aliases:["VPOINT"], icone:"\u25d5", onglet:"trois_d", groupe:"Navigation", ordre:52, portee:"vue", etat:"grise", jalon:"019C" },
+  { id:"trois_d.pipeadd", nomFr:"Ajouter tube 3D", nomEn:"Add pipe", aliases:["PLANTPIPEADD"], icone:"\u2b1a", onglet:"trois_d", groupe:"Tuyauterie 3D", ordre:51, portee:"document", etat:"grise", jalon:"019C" },
+  { id:"trois_d.nozzle", nomFr:"Ajouter piquage", nomEn:"Add nozzle", aliases:["PLANTNOZZLEADD"], icone:"\u22c8", onglet:"trois_d", groupe:"Tuyauterie 3D", ordre:52, portee:"document", etat:"grise", jalon:"019C" },
+  { id:"trois_d.equipcreate", nomFr:"Creer equipement", nomEn:"Create equipment", aliases:["PLANTEQUIPMENTCREATE"], icone:"\u2b1c", onglet:"trois_d", groupe:"Equipements", ordre:51, portee:"document", etat:"grise", jalon:"019C" },
+  { id:"trois_d.equipconvert", nomFr:"Convertir en equipement", nomEn:"Convert equipment", aliases:["PLANTEQUIPMENTCONVERT"], icone:"\u2b1b", onglet:"trois_d", groupe:"Equipements", ordre:52, portee:"selection", etat:"grise", jalon:"019C" },
+  { id:"trois_d.convertline", nomFr:"Convertir en ligne", nomEn:"Convert line", aliases:["PLANTCONVERTLINE"], icone:"\u2500", onglet:"trois_d", groupe:"Tuyauterie 3D", ordre:53, portee:"selection", etat:"grise", jalon:"019C" },
+  { id:"trois_d.fittingmove", nomFr:"Deplacer un raccord", nomEn:"Move fitting", aliases:["PLANTFITTINGMOVE"], icone:"\u2b83", onglet:"trois_d", groupe:"Tuyauterie 3D", ordre:54, portee:"selection", etat:"grise", jalon:"019C" },
+  { id:"trois_d.flipfitting", nomFr:"Retourner un raccord", nomEn:"Flip fitting", aliases:["PLANTFLIPFITTING"], icone:"\u2b82", onglet:"trois_d", groupe:"Tuyauterie 3D", ordre:55, portee:"selection", etat:"grise", jalon:"019C" },
+  { id:"trois_d.connect", nomFr:"Connecter", nomEn:"Connect", aliases:["PLANTCONNECT"], icone:"\u22c4", onglet:"trois_d", groupe:"Tuyauterie 3D", ordre:56, portee:"selection", etat:"grise", jalon:"019C" },
+  { id:"trois_d.platine_acier", nomFr:"Platine acier", nomEn:"Steel plate", aliases:["PLANTSTEELPLATE"], icone:"\u25ac", onglet:"trois_d", groupe:"Structure et genie civil", ordre:51, portee:"document", etat:"grise", jalon:"019S+" },
+  { id:"trois_d.semelle", nomFr:"Semelle", nomEn:"Footing", aliases:["PLANTSTEELFOOTING"], icone:"\u2b1f", onglet:"trois_d", groupe:"Structure et genie civil", ordre:52, portee:"document", etat:"grise", jalon:"019S+" },
+  { id:"trois_d.escalier", nomFr:"Escalier", nomEn:"Stair", aliases:["PLANTSTEELSTAIR"], icone:"\u2b67", onglet:"trois_d", groupe:"Structure et genie civil", ordre:53, portee:"document", etat:"grise", jalon:"019S+" },
+  { id:"trois_d.rack", nomFr:"Rack a tuyaux", nomEn:"Pipe rack", aliases:["PLANTSTEELRACK"], icone:"\u2263", onglet:"trois_d", groupe:"Structure et genie civil", ordre:54, portee:"document", etat:"grise", jalon:"019S+" },
+  { id:"trois_d.rail", nomFr:"Rail", nomEn:"Rail", aliases:["PLANTSTEELRAIL"], icone:"\u2550", onglet:"trois_d", groupe:"Structure et genie civil", ordre:55, portee:"document", etat:"grise", jalon:"019S+" },
+  { id:"trois_d.support_ajout", nomFr:"Ajouter un support", nomEn:"Add support", aliases:["PLANTSUPPORTADD"], icone:"\u2534", onglet:"trois_d", groupe:"Supports", ordre:51, portee:"document", etat:"grise", jalon:"019S+" },
+  { id:"trois_d.support_convert", nomFr:"Convertir en support", nomEn:"Convert support", aliases:["PLANTSUPPORTCONVERT"], icone:"\u252c", onglet:"trois_d", groupe:"Supports", ordre:52, portee:"selection", etat:"grise", jalon:"019S+" },
+  // ---- onglet donnees ----
+  { id:"donnees.tag", nomFr:"Tag du troncon", nomEn:"Segment tag", aliases:["TAG"], icone:"\u25a3", onglet:"donnees", groupe:"Tags", ordre:51, portee:"selection", etat:"actif", commande:"TAG" },
+  { id:"donnees.tagformat", nomFr:"Format de tag", nomEn:"Tag format", aliases:["TAGFORMAT","TF"], icone:"\u2263", onglet:"donnees", groupe:"Tags", ordre:52, portee:"projet", etat:"actif", commande:"TAGFORMAT" },
+  { id:"donnees.tagdisplay", nomFr:"Afficher les tags", nomEn:"Show tags", aliases:["TAGDISPLAY","TD","AFFICHETAG","TAGON"], icone:"\u25a4", onglet:"donnees", groupe:"Tags", ordre:53, portee:"vue", etat:"actif", commande:"TAGDISPLAY" },
+  { id:"donnees.autotag", nomFr:"Tag automatique", nomEn:"Auto tag", aliases:["AUTOTAG"], icone:"\u2699", onglet:"donnees", groupe:"Tags", ordre:54, portee:"projet", etat:"actif", commande:"AUTOTAG" },
+  { id:"donnees.renumber", nomFr:"Renumeroter", nomEn:"Renumber", aliases:["RENUMBER","RN","RENUMEROTER"], icone:"\u2116", onglet:"donnees", groupe:"Tags", ordre:55, portee:"projet", etat:"actif", commande:"RENUMBER" },
+  { id:"donnees.service", nomFr:"Service / fluide", nomEn:"Service", aliases:["SERVICE","FLUIDE"], icone:"\u2708", onglet:"donnees", groupe:"Tags", ordre:56, portee:"selection", etat:"actif", commande:"SERVICE" },
+  { id:"donnees.datamanager", nomFr:"Gestionnaire de donnees", nomEn:"Data manager", aliases:["DATAMANAGER","DM","TABLEAU"], icone:"\u2338", onglet:"donnees", groupe:"Tables", ordre:51, portee:"projet", etat:"actif", commande:"DATAMANAGER" },
+  { id:"donnees.proprietes", nomFr:"Inspecteur de proprietes", nomEn:"Properties", aliases:["PROPRIETES","PROPS","PR","PROPERTIES"], icone:"\u2261", onglet:"donnees", groupe:"Tables", ordre:52, portee:"selection", etat:"actif", commande:"PROPRIETES" },
+  { id:"donnees.orthocreate", nomFr:"Creer vue ortho", nomEn:"Create ortho", aliases:["PLANTORTHOCREATE"], icone:"\u25f0", onglet:"donnees", groupe:"Production", ordre:51, portee:"document", etat:"grise", jalon:"020F" },
+  { id:"donnees.orthoupdate", nomFr:"Mettre a jour ortho", nomEn:"Update ortho", aliases:["PLANTORTHOUPDATE"], icone:"\u25f1", onglet:"donnees", groupe:"Production", ordre:52, portee:"document", etat:"grise", jalon:"020F" },
+  { id:"donnees.isoproduction", nomFr:"Production iso", nomEn:"Iso production", aliases:["PLANTISOPRODUCTION"], icone:"\u25f2", onglet:"donnees", groupe:"Production", ordre:53, portee:"document", etat:"grise", jalon:"020F" },
+  // ---- onglet affichage ----
+  { id:"affichage.epaisseur", nomFr:"Epaisseur de trait", nomEn:"Line weight", aliases:["EPAISSEUR","LW","LINEWEIGHT"], icone:"\u2501", onglet:"affichage", groupe:"Apparence", ordre:51, portee:"vue", etat:"actif", commande:"EPAISSEUR" },
+  { id:"affichage.couleur", nomFr:"Couleur", nomEn:"Color", aliases:["COULEUR","COLOR"], icone:"\u25c9", onglet:"affichage", groupe:"Apparence", ordre:52, portee:"vue", etat:"actif", commande:"COULEUR" },
+  { id:"affichage.couleurservice", nomFr:"Couleur par service", nomEn:"Color by service", aliases:["COULEURSERVICE","COLORBYSERVICE","CBS"], icone:"\u25d1", onglet:"affichage", groupe:"Apparence", ordre:53, portee:"vue", etat:"actif", commande:"COULEURSERVICE" },
+  { id:"affichage.style", nomFr:"Style actif", nomEn:"Active style", aliases:["STYLE"], icone:"\u2712", onglet:"affichage", groupe:"Apparence", ordre:54, portee:"vue", etat:"actif", commande:"STYLE" },
+  { id:"affichage.perf", nomFr:"Performance", nomEn:"Performance", aliases:["PERF"], icone:"\u23f1", onglet:"affichage", groupe:"Outils", ordre:51, portee:"session", etat:"actif", commande:"PERF" },
+  { id:"affichage.masquer", nomFr:"Masquer", nomEn:"Hide", aliases:["HIDE","MASQUER"], icone:"\u25cc", onglet:"affichage", groupe:"Apparence", ordre:55, portee:"vue", etat:"grise", jalon:"019C" },
 ];
 
 /** Groupes d un onglet, dans l ordre de premiere apparition. */
