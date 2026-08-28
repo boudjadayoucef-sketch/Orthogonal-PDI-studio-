@@ -204,7 +204,7 @@ Voici votre base de connaissances officielle du document :
 `;
 
 // AI Assistant chat route
-app.post("/api/gemini/chat", requireAuth, async (req: AuthRequest, res) => {
+app.post("/api/gemini/chat", async (req, res) => {
   try {
     const { history } = req.body;
 
