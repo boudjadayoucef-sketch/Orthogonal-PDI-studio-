@@ -259,6 +259,16 @@ export interface CadCommandItem {
 }
 
 export const AUTOCAD_COMMANDS: CadCommandItem[] = [
+  // PROJET & DÉMONSTRATION INDUSTRIELLE
+  {
+    id: "demo",
+    name: "DEMO",
+    aliases: ["EXEMPLE", "COMPLEXE", "SAMPLE", "PROJET_DEMO"],
+    description: "Charge la démo industrielle complète (Réseau 3D, By-Pass, Raccords, Supports MSS SP-58, GC, Cotations)",
+    category: "Tuyauterie",
+    shortcut: "DEMO",
+    icon: "Sparkles",
+  },
   // ÉDITION & PRESSE-PAPIERS
   {
     id: "copy",

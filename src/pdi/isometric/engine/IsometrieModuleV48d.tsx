@@ -89,8 +89,9 @@ import {
   ChevronLeft, ChevronRight, SlidersHorizontal, Disc, CornerDownRight, GitFork, ArrowRightLeft,
   Eye, EyeOff, Crosshair, Check, Copy, Scissors, RotateCw, RotateCcw, PanelRightClose, PanelRightOpen,
   Circle, Spline, FolderOpen, Download, LayoutGrid, Magnet, Type, Square, Hexagon, Slash, Disc3,
-  Minimize2, Triangle, Clipboard, CopyPlus, Terminal, CornerDownLeft, ChevronDown, Anchor
+  Minimize2, Triangle, Clipboard, CopyPlus, Terminal, CornerDownLeft, ChevronDown, Anchor, Sparkles
 } from "lucide-react";
+import { generateComplexIndustrialIsoDemo } from "../demo/pdiComplexIsoDemo";
 
 import {
   TriangleType,
@@ -3602,6 +3603,10 @@ function IsometrieModule(props: { projectId?: string }) {
       startGuidedCommand("rotate");
       return;
     }
+    if (["demo", "complexe", "exemple", "sample", "projet_demo", "modele"].includes(rawVerb)) {
+      loadPresetDemoComplexe();
+      return;
+    }
 
     // PALIER 2B : Commandes de modification géométrique transactionnelle (TRIM, EXTEND, OFFSET, FILLET, SCALE, CHAMFER, HATCH)
     if (["echelle", "scale", "sc"].includes(rawVerb)) {
@@ -3800,7 +3805,10 @@ function IsometrieModule(props: { projectId?: string }) {
     setAutocadCmdInput("");
     setAutocadSuggestions([]);
 
-    if (cmdId === "copy") {
+    if (cmdId === "demo") {
+      loadPresetDemoComplexe();
+      return;
+    } else if (cmdId === "copy") {
       const hasCad = copyCad2dSelection();
       const sub = selectionSubGraph();
       if (sub.nodes.length) {
@@ -6061,6 +6069,26 @@ function IsometrieModule(props: { projectId?: string }) {
     setSelectedSegmentId(s1.id);resetView();
   };
 
+  const loadPresetDemoComplexe = () => {
+    const demo = generateComplexIndustrialIsoDemo();
+    setLines(demo.lines);
+    setNodes(demo.nodes);
+    setSegments(demo.segments);
+    setDimensions(demo.dimensions);
+    setSupports(demo.supports);
+    setCad2dEntities(demo.cad2dEntities);
+    setCad2dLayers(demo.cad2dLayers);
+    setFromNode(demo.nodes[0]?.id || "");
+    setToNode(demo.nodes[demo.nodes.length - 1]?.id || "");
+    setSelectedSegmentId(demo.segments[0]?.id || null);
+    setSelectedSupportId(demo.supports[0]?.id || null);
+    setStatusMessage("✨ Démo Industrielle Complète chargée : Réseau 3D, By-Pass, 26 raccords, 10 supports MSS SP-58 / GC, cotations et cartouche.");
+    setAutocadPrompt("COMMANDE [DEMO] : Réseau complet chargé (ASME B31.3 / MSS SP-58). Inspectez les onglets BOM, Supports & GC.");
+    setTimeout(() => {
+      resetView();
+    }, 60);
+  };
+
   const printIso=()=>{
     const w=window.open("","_blank");if(!w)return;
     const rows=segments.map((s,i)=>`<tr>
@@ -6385,6 +6413,7 @@ function IsometrieModule(props: { projectId?: string }) {
         { label: "✦ Nouveau projet", hint: "Choix", run: () => window.dispatchEvent(new CustomEvent("pdi:navigate", { detail: "launcher" })) },
         { label: "⌂ Retour Accueil", hint: "Home", run: () => window.dispatchEvent(new CustomEvent("pdi:navigate", { detail: "home" })) },
         { label: "◈ Présentation Landing", hint: "Ouverture", run: () => window.dispatchEvent(new CustomEvent("pdi:navigate", { detail: "landing" })) },
+        { label: "✨ Démo Industrielle Complète (ASME/MSS)", hint: "DEMO", run: loadPresetDemoComplexe },
         { label: "Exemple poste", hint: "charger", run: loadPresetPoste },
         { label: "Exemple gare racleur", hint: "charger", run: loadPresetGare },
         { label: "📋 BOM / Tableau global", hint: "BOM", run: () => { setRightPanelOpen(true); setRightPanelTab("bom"); } },
@@ -6695,8 +6724,18 @@ function IsometrieModule(props: { projectId?: string }) {
                 {rubanReplie017M ? "\u25be" : "\u25b4"}
               </button>
             </nav>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <div className="hidden xl:flex items-center gap-3 text-[10px] text-zinc-400 font-medium"><span>{nodes.length} nœuds</span><span>{segments.length} tronçons</span><button type="button" title={graphIssues.length?graphIssues.slice(0,8).map(issue=>(issue.severity==="error"?"ERREUR : ":"ALERTE : ")+issue.message).join("\n"):"Aucune anomalie de reseau detectee."} onClick={()=>{setStudioLayout("control");setLeftPanelOpen(true);setStatusMessage(graphErrorCount?`CONTROLE RESEAU : ${graphErrorCount} erreur(s) - ${graphIssues.filter(issue=>issue.severity==="error").slice(0,3).map(issue=>issue.message).join(" ; ")}`:graphWarningCount?`CONTROLE RESEAU : ${graphWarningCount} alerte(s) - ${graphIssues.slice(0,3).map(issue=>issue.message).join(" ; ")}`:"CONTROLE RESEAU : graphe valide, aucune anomalie.");}} className={graphErrorCount?"text-red-400 underline decoration-dotted cursor-pointer":graphWarningCount?"text-amber-300 underline decoration-dotted cursor-pointer":"text-zinc-300 cursor-pointer"}>{graphErrorCount?`${graphErrorCount} erreur(s)`:graphWarningCount?`${graphWarningCount} alerte(s)`:"Graphe valide"}</button></div>
+            {/* Bouton DÉMO INDUSTRIELLE 3D (Réseau 3D & Supports MSS SP-58 / GC) */}
+            <button
+              type="button"
+              onClick={loadPresetDemoComplexe}
+              className="h-8 px-2.5 rounded-md bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white text-xs font-black shadow-md flex items-center gap-1.5 transition-all border border-purple-400/40 active:scale-95 shrink-0"
+              title="Charger la Démo Industrielle Complète (Réseau 3D, By-Pass, 26 Raccords, 10 Supports MSS SP-58, GC, Cotations)"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-yellow-300 animate-pulse" />
+              <span className="font-bold tracking-tight">Démo 3D</span>
+            </button>
             {/* Commutateur Universel d'Unités Bi-Système (019U) */}
             <button
               type="button"
@@ -6709,7 +6748,7 @@ function IsometrieModule(props: { projectId?: string }) {
                     : "SYSTÈME MÉTRIQUE ACTIVÉ (ISO 80000 / SI : m, mm, bar, kg, °C)"
                 );
               }}
-              className={`h-8 px-2.5 rounded-md border text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm ${
+              className={`h-8 px-2.5 rounded-md border text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm shrink-0 ${
                 unitSystem === "imperial"
                   ? "bg-amber-950/80 border-amber-500 text-amber-300 hover:bg-amber-900"
                   : "bg-cyan-950/80 border-cyan-500 text-cyan-300 hover:bg-cyan-900"
@@ -6720,27 +6759,44 @@ function IsometrieModule(props: { projectId?: string }) {
                 {unitSystem === "imperial" ? "US (ft/psi)" : "SI (m/bar)"}
               </span>
             </button>
-            <button onClick={()=>setCommandPaletteOpen(true)} className="h-8 px-2.5 rounded-md border border-zinc-800 bg-zinc-900 text-zinc-300 hover:text-white hover:border-zinc-700 text-[10px] font-black" title="Palette commandes">⌘K</button>
-            <div className="relative">
+            <button onClick={()=>setCommandPaletteOpen(true)} className="h-8 px-2.5 rounded-md border border-zinc-800 bg-zinc-900 text-zinc-300 hover:text-white hover:border-zinc-700 text-[10px] font-black shrink-0" title="Palette commandes">⌘K</button>
+            <div className="relative shrink-0">
               <button
                 type="button"
                 onClick={() => setTopbarProfileOpen(v => !v)}
-                className="h-8 px-2.5 rounded-md border border-white/15 bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm"
-                title="Menu Profil & Session"
+                className="h-8 px-2.5 rounded-md border border-emerald-500/40 bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-bold flex items-center gap-2 transition-all shadow-sm shrink-0"
+                title={`Version active : Patch ${PDI_PATCH_VERSION} • Profil Youcef (Tout implémenté)`}
               >
-                <span className="text-[9px] font-mono text-zinc-300 border border-white/15 rounded px-1 py-0.5">{PDI_PATCH_VERSION}</span>
-                <span>Youcef</span>
-                <span className="text-[10px] opacity-70">▾</span>
+                <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-mono font-black tracking-tight flex items-center gap-1 shadow-inner">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
+                  Patch {PDI_PATCH_VERSION}
+                </span>
+                <span className="font-bold text-slate-100">Youcef</span>
+                <span className="text-[10px] text-zinc-400">▾</span>
               </button>
               {topbarProfileOpen && (
                 <div
-                  className="fixed right-3 top-[50px] z-[10010] w-56 rounded-xl border border-white/15 bg-[#0D0D10]/98 backdrop-blur-md p-1.5 shadow-2xl text-xs flex flex-col gap-0.5"
+                  className="fixed right-3 top-[50px] z-[10010] w-64 rounded-xl border border-white/15 bg-[#0D0D10]/98 backdrop-blur-md p-1.5 shadow-2xl text-xs flex flex-col gap-0.5"
                   onClick={() => setTopbarProfileOpen(false)}
                 >
                   <div className="px-3 py-2 border-b border-zinc-800 mb-1">
-                    <p className="font-bold text-white truncate flex items-center justify-between"><span>Youcef</span><span className="text-[9px] font-mono text-zinc-300 border border-white/15 rounded px-1 py-0.5">{PDI_PATCH_VERSION}</span></p>
-                    <p className="text-[10px] text-zinc-400 font-mono mt-0.5">Patch {PDI_PATCH_VERSION} • Session active</p>
+                    <p className="font-bold text-white truncate flex items-center justify-between">
+                      <span>Youcef</span>
+                      <span className="text-[10px] font-mono font-black text-emerald-300 bg-emerald-500/20 border border-emerald-500/40 rounded px-1.5 py-0.5">Patch {PDI_PATCH_VERSION}</span>
+                    </p>
+                    <p className="text-[10px] text-emerald-400 font-mono mt-0.5">Version active • Tout implémenté</p>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      loadPresetDemoComplexe();
+                      setTopbarProfileOpen(false);
+                    }}
+                    className="w-full text-left px-3 py-2 rounded-lg bg-gradient-to-r from-purple-950 via-indigo-950 to-purple-900 border border-purple-500/50 text-white hover:border-purple-400 font-bold transition-all flex items-center justify-between shadow-sm mb-1"
+                  >
+                    <span className="flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5 text-yellow-300 animate-pulse"/> Démo 3D Industrielle</span>
+                    <span className="text-[9px] bg-purple-500/30 text-purple-200 px-1.5 py-0.5 rounded border border-purple-400/40 font-mono">ASME/MSS</span>
+                  </button>
                   <button
                     type="button"
                     onClick={() => window.dispatchEvent(new CustomEvent("pdi:navigate", { detail: "launcher" }))}
@@ -6802,6 +6858,16 @@ function IsometrieModule(props: { projectId?: string }) {
           onExecute={(name) => setStatusMessage(name)}
         />
         <aside className="pdi-studio-rail fixed bottom-0 left-0 top-[54px] z-[10005] w-[86px] py-2 px-1.5 flex flex-col items-center gap-1.5 overflow-y-auto">
+          {/* Bouton DÉMO RAPIDE dans le rail */}
+          <button
+            type="button"
+            title="✨ Charger la Démo Industrielle Complète (Réseau 3D, By-Pass, MSS SP-58, GC)"
+            onClick={loadPresetDemoComplexe}
+            className="w-full py-1 px-1 rounded-lg bg-gradient-to-r from-purple-700 via-indigo-700 to-pink-700 hover:from-purple-600 hover:to-pink-600 text-white flex items-center justify-center gap-1 shadow-md border border-purple-400/50 text-[10px] font-black transition-all active:scale-95"
+          >
+            <Sparkles className="w-3 h-3 text-yellow-300 animate-pulse" />
+            <span>DÉMO 3D</span>
+          </button>
           {/* Grille 2 colonnes : Symboles Tuyauterie & Outils de base */}
           <div className="w-full grid grid-cols-2 gap-1">
             <button
@@ -7195,7 +7261,27 @@ applyProjectSnapshot(recoveryCandidate,recoverySource==="previous"?"Sauvegarde p
 const restoredTime=new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
 setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null);setRecoverySource(null);}catch(error){void pdiAlert(error instanceof Error?error.message:"Restauration impossible")}}} className="px-4 py-2 rounded-lg bg-blue-600 text-white text-xs font-black">Restaurer</button></div></div></div>}
     {recoveryFailure&&<div className="fixed inset-0 z-[10021] bg-slate-950/75 flex items-center justify-center p-4"><div className="w-[min(520px,94vw)] bg-white rounded-2xl border shadow-2xl p-5"><div className="text-[10px] font-black uppercase text-red-600">Récupération bloquée</div><h3 className="text-lg font-black mt-1">Archives locales illisibles</h3><p className="text-xs text-slate-600 mt-2">{recoveryFailure} Une copie de la sauvegarde actuelle a été placée en quarantaine. Aucune autosauvegarde ne sera écrite avant ton choix.</p><div className="flex flex-wrap justify-end gap-2 mt-5"><button onClick={()=>{autosaveBaselineRef.current=persistenceFingerprint(buildProjectFileV474());setRecoveryFailure(null);setStatusMessage("Nouvelle session autorisée")}} className="px-3 py-2 rounded-lg bg-slate-100 text-xs font-bold">Continuer sans restaurer</button><button onClick={()=>{localStorage.removeItem(AUTOSAVE_CURRENT_KEY);localStorage.removeItem(AUTOSAVE_PREVIOUS_KEY);localStorage.removeItem(AUTOSAVE_LEGACY_KEY);localStorage.removeItem(AUTOSAVE_CORRUPT_KEY);setRecoveryFailure(null);setStatusMessage("Archives locales supprimées")}} className="px-3 py-2 rounded-lg bg-red-600 text-white text-xs font-black">Supprimer les archives</button></div></div></div>}
-    {commandPaletteOpen&&<div className="fixed inset-0 z-[10000] bg-slate-950/60 backdrop-blur-sm flex justify-center pt-[12vh]" onMouseDown={()=>setCommandPaletteOpen(false)}><div className="w-[min(560px,92vw)] h-fit bg-slate-900 text-slate-100 rounded-2xl border border-slate-700 shadow-2xl overflow-hidden" onMouseDown={e=>e.stopPropagation()}><div className="px-4 py-3 border-b border-slate-700"><div className="text-[10px] font-black text-cyan-400 uppercase">Palette de commandes · Ctrl+K</div><div className="text-sm font-bold mt-1 text-slate-100">Choisir une action</div></div><div className="p-2 grid grid-cols-2 gap-2 text-xs"><button onClick={()=>runWorkspaceCommand(()=>setIsoDrawMode("segment"),"Outil Tube")} className="p-3 text-left rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700"><b>T</b> · Nouveau tube</button><button onClick={()=>runWorkspaceCommand(()=>setIsoDrawMode("node"),"Outil Nœud")} className="p-3 text-left rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700"><b>N</b> · Nouveau nœud</button><button onClick={()=>runWorkspaceCommand(resetView,"Vue recentrée")} className="p-3 text-left rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700"><b>F</b> · Recentrer</button><button onClick={()=>runWorkspaceCommand(exportProjectJson,"Projet exporté")} className="p-3 text-left rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700"><b>Ctrl+S</b> · Export JSON</button><button onClick={()=>runWorkspaceCommand(()=>setShortcutsOpen(true),"Aide raccourcis")} className="p-3 text-left rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700"><b>?</b> · Raccourcis</button><button onClick={()=>runWorkspaceCommand(printPlanSheet,"Impression A3")} className="p-3 text-left rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700"><b>P</b> · Imprimer</button>
+    {commandPaletteOpen&&<div className="fixed inset-0 z-[10000] bg-slate-950/60 backdrop-blur-sm flex justify-center pt-[12vh]" onMouseDown={()=>setCommandPaletteOpen(false)}><div className="w-[min(560px,92vw)] h-fit bg-slate-900 text-slate-100 rounded-2xl border border-slate-700 shadow-2xl overflow-hidden" onMouseDown={e=>e.stopPropagation()}><div className="px-4 py-3 border-b border-slate-700"><div className="text-[10px] font-black text-cyan-400 uppercase">Palette de commandes · Ctrl+K</div><div className="text-sm font-bold mt-1 text-slate-100">Choisir une action</div></div><div className="p-2 grid grid-cols-2 gap-2 text-xs">
+              <button
+                onClick={() => runWorkspaceCommand(loadPresetDemoComplexe, "Démo Industrielle Complète")}
+                className="col-span-2 p-3 text-left rounded-xl bg-gradient-to-r from-purple-900 via-indigo-900 to-pink-900 hover:from-purple-800 hover:to-indigo-800 text-white border border-purple-400/50 shadow-lg flex items-center justify-between transition-all active:scale-[0.99]"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Sparkles className="w-4 h-4 text-yellow-300 animate-pulse shrink-0" />
+                  <div>
+                    <div className="font-bold text-sm flex items-center gap-1.5">
+                      <span className="text-yellow-300">DEMO</span> · Démo Industrielle Complète 3D
+                    </div>
+                    <div className="text-[10px] text-purple-200/80 font-normal mt-0.5">
+                      Réseau 3D, By-Pass, 26 raccords, 10 supports MSS SP-58 &amp; GC, cotations
+                    </div>
+                  </div>
+                </div>
+                <span className="text-[10px] bg-purple-500/30 text-purple-200 px-2 py-0.5 rounded border border-purple-400/40 font-mono font-bold shrink-0">
+                  ASME / MSS
+                </span>
+              </button>
+              <button onClick={()=>runWorkspaceCommand(()=>setIsoDrawMode("segment"),"Outil Tube")} className="p-3 text-left rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700"><b>T</b> · Nouveau tube</button><button onClick={()=>runWorkspaceCommand(()=>setIsoDrawMode("node"),"Outil Nœud")} className="p-3 text-left rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700"><b>N</b> · Nouveau nœud</button><button onClick={()=>runWorkspaceCommand(resetView,"Vue recentrée")} className="p-3 text-left rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700"><b>F</b> · Recentrer</button><button onClick={()=>runWorkspaceCommand(exportProjectJson,"Projet exporté")} className="p-3 text-left rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700"><b>Ctrl+S</b> · Export JSON</button><button onClick={()=>runWorkspaceCommand(()=>setShortcutsOpen(true),"Aide raccourcis")} className="p-3 text-left rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700"><b>?</b> · Raccourcis</button><button onClick={()=>runWorkspaceCommand(printPlanSheet,"Impression A3")} className="p-3 text-left rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700"><b>P</b> · Imprimer</button>
               <button
                 onClick={() =>
                   runWorkspaceCommand(
@@ -7265,6 +7351,14 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={loadPresetDemoComplexe}
+            className="px-3.5 py-2 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-500 hover:to-pink-500 text-white rounded-xl text-xs font-black shadow-md flex items-center gap-1.5 transition-all border border-purple-400/30 active:scale-95"
+            title="Charger un réseau complet avec 3D, By-Pass, 26 Raccords, 10 Supports MSS SP-58, Génie Civil et Cotations"
+          >
+            <Sparkles className="w-4 h-4 text-yellow-300 animate-pulse"/> Démo Complexe (3D & Supports)
+          </button>
           <button type="button" onClick={loadPresetPoste} className="px-3 py-2 bg-blue-600 rounded-xl text-xs font-black">
             <Flame className="inline w-4 h-4 mr-1"/> Exemple poste
           </button>

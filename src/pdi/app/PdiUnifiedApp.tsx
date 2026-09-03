@@ -762,8 +762,10 @@ export default function PdiUnifiedApp() {
             ★ Retour Expérience
           </button>
           <span className="pdi-auth-badge">{authMode.toUpperCase()}</span>
-          <button className="pdi-account" onClick={() => setAccountMenuOpen(v=>!v)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 9, fontFamily: 'monospace', color: '#FFFFFF', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 4, padding: '1px 4px' }}>{PDI_PATCH_VERSION}</span>
+          <button className="pdi-account" onClick={() => setAccountMenuOpen(v=>!v)} style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 10, fontFamily: 'monospace', fontWeight: 900, color: '#6EE7B7', background: 'rgba(16, 185, 129, 0.15)', border: '1px solid rgba(16, 185, 129, 0.4)', borderRadius: 4, padding: '2px 6px', letterSpacing: '0.02em' }}>
+              Patch {PDI_PATCH_VERSION}
+            </span>
             <span>{pdiUserProfile.name.split(" ")[0]}</span> 
             <span style={{ fontSize: 10, opacity: 0.7 }}>▾</span>
           </button>
@@ -772,9 +774,9 @@ export default function PdiUnifiedApp() {
               <div style={{ padding: '6px 10px', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: 4 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontWeight: 900, color: '#FFFFFF' }}>
                   <span>{pdiUserProfile.name}</span>
-                  <span style={{ fontSize: 9, fontFamily: 'monospace', color: '#A1A1AA', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 4, padding: '1px 4px' }}>{PDI_PATCH_VERSION}</span>
+                  <span style={{ fontSize: 10, fontFamily: 'monospace', fontWeight: 900, color: '#6EE7B7', background: 'rgba(16, 185, 129, 0.15)', border: '1px solid rgba(16, 185, 129, 0.4)', borderRadius: 4, padding: '2px 6px' }}>Patch {PDI_PATCH_VERSION}</span>
                 </div>
-                <div style={{ color: '#A1A1AA', fontSize: 10, fontFamily: 'monospace', marginTop: 2 }}>{pdiUserProfile.email} • {pdiUserProfile.role}</div>
+                <div style={{ color: '#A1A1AA', fontSize: 10, fontFamily: 'monospace', marginTop: 2 }}>{pdiUserProfile.email} • Version active • Tout implémenté</div>
               </div>
               <button onClick={()=>{setActiveModule("home"); setAccountMenuOpen(false);}}>Accueil</button>
               {(authMode === "super_admin" || pdiUserProfile.email.includes("boudjada")) && (
