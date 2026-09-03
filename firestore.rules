@@ -2,52 +2,60 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Helper function to check if the user is an admin
-    function isAdmin() {
+    // Helper function to check if the user is a super admin
+    function isSuperAdmin() {
       return request.auth != null && (
         request.auth.token.email == 'boudjada.youcef@gmail.com' || 
         request.auth.token.email == 'Boudjada.youcef@gmail.com' ||
         (exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) && 
-         (get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'Administrateur' || 
+         (get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'super_admin' || 
           get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'Super Administrateur'))
       );
     }
 
-    // Helper function to check if the user has a registered profile
-    function isRegistered() {
-      return request.auth != null && exists(/databases/$(database)/documents/profiles/$(request.auth.uid));
-    }
-
     // Profiles collection rules
     match /profiles/{userId} {
-      // Allow read/write for all users to support both standard Auth and virtual/sandbox sessions (where request.auth is null)
+      allow read, write: if true;
+    }
+
+    // Connection logs collection rules
+    match /connection_logs/{logId} {
+      allow read, write: if true;
+    }
+
+    // Commercial visits collection rules
+    match /commercial_visits/{visitId} {
+      allow read, write: if true;
+    }
+
+    // User feedbacks collection rules
+    match /user_feedbacks/{feedbackId} {
+      allow read, write: if true;
+    }
+
+    // Subscriber usage tracking collection rules
+    match /subscriber_usage/{usageId} {
       allow read, write: if true;
     }
 
     // Projects collection rules
     match /projects/{projectId} {
-      // Allow read/write for all users to support both standard Auth and virtual/sandbox users
       allow read, write: if true;
     }
 
     // Plans collection rules
     match /plans/{planId} {
-      // Allow everyone to read plans (loaded on initial mount)
-      allow read: if true;
-      allow write: if true;
+      allow read, write: if true;
     }
 
     // Settings collection rules
     match /settings/{docId} {
-      // Allow everyone to read settings (branding/logo/welcome background)
-      allow read: if true;
-      allow write: if true;
+      allow read, write: if true;
     }
 
     // Admins collection rules
     match /admins/{userId} {
-      allow read: if true;
-      allow write: if true;
+      allow read, write: if true;
     }
 
     // Notifications collection rules
@@ -60,8 +68,22 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
-    // Connection logs collection rules
-    match /connection_logs/{logId} {
+    // License keys collection rules
+    match /license_keys/{keyId} {
+      allow read, write: if true;
+    }
+
+    // Auth credentials and system config collection rules
+    match /auth_credentials/{credId} {
+      allow read, write: if true;
+    }
+
+    match /system_config/{configId} {
+      allow read, write: if true;
+    }
+
+    // Payment transactions collection rules
+    match /payment_transactions/{txId} {
       allow read, write: if true;
     }
 

@@ -1,3 +1,9 @@
+/**
+ * ORTHOGONAL - ENG ¬∑ PIPING DESIGN & ISOMETRICS (PD&I)
+ * COPYRIGHT (C) 2026 ORTHOGONAL - ENG. ALL RIGHTS RESERVED.
+ * PROPRIETARY INDUSTRIAL PIPING CAD & ISOMETRIC ENGINE.
+ * UNAUTHORIZED COPYING, REVERSE ENGINEERING OR DISTRIBUTION IS STRICTLY PROHIBITED.
+ */
 // PATCH 012 ‚Äî grid metrics cleanup
 // PATCH 011 ‚Äî neutral CAD colors infinite grid no bottom metrics
 // PATCH 007e ‚Äî compact floating props landing restore
@@ -32,6 +38,40 @@ import { pdiValiderLongueur017P10, pdiValiderDn017P10, pdiEcartAccrochage017P10 
 import { PDI_ONGLETS_RUBAN_017M, PDI_INVITE_COMMANDE_017M, pdiGroupesOnglet017M, pdiEntreesGroupe017M } from "./pdiRegistreCommandes.v1";
 import { PDI_CLASSES_B165_017K3, PDI_DESIGNATIONS_PN_017K3, PDI_CLASSE_PAR_DEFAUT_017K3, pdiClasseDeSpec017K3, pdiMateriauDeSpec017K3, pdiClasseConforme017K3, pdiMessageDerogation017K3 } from "./pdiClassePression017K3";
 import type { PdiEntreeRuban017M } from "./pdiRegistreCommandes.v1";
+import { pdiSignExportData } from "../../core/pdiWatermark";
+import { IsoPrintModal } from "../../impression/IsoPrintModal";
+import type { BomRow } from "../../impression/isoSvgGenerator";
+import {
+  UnitSystem,
+  formatLength,
+  formatPressure,
+  formatMass,
+  formatTemperature,
+  parsePdiValue,
+} from "../../units/pdiUnitSystem";
+import {
+  LineSegment2D,
+  intersectSegments2D,
+  intersectRayWithSegment,
+  cad2dTrimLine,
+  cad2dExtendLine,
+  cad2dOffsetLine,
+  cad2dOffsetCircle,
+  cad2dOffsetPolygon,
+  cad2dFilletLines,
+  cad2dScaleEntity,
+  cad2dScaleNodes,
+} from "../../cad2d/cad2dModifyEngine";
+import {
+  IsoPipingSupport,
+  MssSupportCode,
+  MSS_SUPPORT_CATALOG,
+  projectSupportOnSegment,
+  computeCivilMto,
+  verifyPipingSpans,
+} from "../supports/pdiMssSupportEngine";
+import { IsoSupportRenderer } from "../supports/IsoSupportRenderer";
+import { PdiSupportCivilPanel } from "../supports/PdiSupportCivilPanel";
 import { auth } from "../../../lib/firebase";
 import {
   PDI_LOGO_HORIZONTAL_SRC,
@@ -49,7 +89,7 @@ import {
   ChevronLeft, ChevronRight, SlidersHorizontal, Disc, CornerDownRight, GitFork, ArrowRightLeft,
   Eye, EyeOff, Crosshair, Check, Copy, Scissors, RotateCw, RotateCcw, PanelRightClose, PanelRightOpen,
   Circle, Spline, FolderOpen, Download, LayoutGrid, Magnet, Type, Square, Hexagon, Slash, Disc3,
-  Minimize2, Triangle, Clipboard, CopyPlus, Terminal, CornerDownLeft, ChevronDown
+  Minimize2, Triangle, Clipboard, CopyPlus, Terminal, CornerDownLeft, ChevronDown, Anchor
 } from "lucide-react";
 
 import {
@@ -69,6 +109,8 @@ import {
   cadAngleDeg,
 } from "./CadAutocadEngine";
 import { CadCommandLineBar } from "../components/CadCommandLineBar";
+import { IsoRibbonBar } from "../ui/IsoRibbonBar";
+import { IsoCommandDock } from "../ui/IsoCommandDock";
 import { CadShapeToolbar } from "../components/CadShapeToolbar";
 import {
   PDI_DEFAULT_PROJECT_SETUP,
@@ -200,6 +242,7 @@ export type Cad2dEntity = {
   closed?: boolean;
   fill?: string;
   fillOpacity?: number;
+  hatchPattern?: "none" | "ansi31" | "ansi32" | "dots" | "solid";
   lineWeight?: number;
   lineType?: "continuous" | "dashed" | "center" | "hidden";
   opacity?: number;
@@ -294,7 +337,7 @@ export interface IsoDimension {
   b: IsoDimensionAnchor;
   label?: string;
   offset?: { x: number; y: number };
-  unit: "m" | "mm";
+  unit: "m" | "mm" | "ft-in" | "in";
   locked?: boolean;
 }
 
@@ -304,8 +347,9 @@ export interface IsoProjectFileV474 {
   project: {
     id: string; ownerUid: string; name: string; wilaya: string; pressDesign: number;
     createdAt: string; updatedAt: string;
+    unitSystem?: UnitSystem;
   };
-  model: { lines: PipingLine[]; nodes: IsoNode[]; segments: IsoSegment[]; dimensions?: IsoDimension[]; cad2d?: { layers: Cad2dLayer[]; entities: Cad2dEntity[]; }; };
+  model: { lines: PipingLine[]; nodes: IsoNode[]; segments: IsoSegment[]; dimensions?: IsoDimension[]; supports?: IsoPipingSupport[]; cad2d?: { layers: Cad2dLayer[]; entities: Cad2dEntity[]; }; };
   workspace: {
     showGrid:boolean; showDimensions:boolean; showPipeLabels:boolean;
     showLabels:boolean; showWelds:boolean; isoSnapStep:number;
@@ -971,7 +1015,7 @@ function migrateProjectFileV474(value:unknown, fallbackOwnerUid = ""):IsoProject
   const now=new Date().toISOString();
   return {
     schemaVersion:"4.7.4",exportedAt:raw.exportedAt||now,
-    project:{id:raw.project?.id||uid("project"),ownerUid:String(raw.project?.ownerUid||fallbackOwnerUid||""),name:raw.project?.name||"Projet isom√©trique",wilaya:raw.project?.wilaya||"",pressDesign:Number(raw.project?.pressDesign)||40,createdAt:raw.project?.createdAt||now,updatedAt:now},
+    project:{id:raw.project?.id||uid("project"),ownerUid:String(raw.project?.ownerUid||fallbackOwnerUid||""),name:raw.project?.name||"Projet isom√©trique",wilaya:raw.project?.wilaya||"",pressDesign:Number(raw.project?.pressDesign)||40,createdAt:raw.project?.createdAt||now,updatedAt:now,unitSystem:raw.project?.unitSystem==="imperial"?"imperial":"metric"},
     model:{lines:sourceLines.map(line=>({...line})),nodes: normalized.nodes, segments: normalized.segments, dimensions: sourceDimensions },
     workspace:{showGrid:sourceWorkspace.showGrid!==false,showDimensions:sourceWorkspace.showDimensions!==false,showPipeLabels:sourceWorkspace.showPipeLabels!==false,showLabels:sourceWorkspace.showLabels!==false,showWelds:sourceWorkspace.showWelds!==false,isoSnapStep:Number(sourceWorkspace.isoSnapStep)||.5,viewport:{zoom:Number(sourceWorkspace.viewport?.zoom)||1,panX:Number(sourceWorkspace.viewport?.panX)||0,panY:Number(sourceWorkspace.viewport?.panY)||0}}
   };
@@ -1062,6 +1106,30 @@ function IsometrieModule(props: { projectId?: string }) {
     base?: { x: number; y: number; z: number };
     preview?: { x: number; y: number; z: number };
   }>(null);
+
+  // PALIER 2B : session de commande g√©om√©trique interactive (TRIM, EXTEND, OFFSET, FILLET, SCALE, CHAMFER)
+  const [cad2dModifySession, setCad2dModifySession] = useState<null | {
+    mode: "trim" | "extend" | "offset" | "fillet" | "chamfer" | "scale";
+    step: number;
+    offsetDist: number;
+    filletRadius: number;
+    scaleFactor: number;
+    basePoint?: Cad2dPoint;
+    firstEntityId?: string;
+    firstSegmentId?: string;
+    firstLine?: LineSegment2D;
+  }>(null);
+  const cad2dModifySessionRef = useRef(cad2dModifySession);
+  useEffect(() => {
+    cad2dModifySessionRef.current = cad2dModifySession;
+  }, [cad2dModifySession]);
+  const applyScaleWithFactorRef = useRef<(factor: number, bp?: Cad2dPoint) => void>(() => {});
+  const handleCad2dModifyPointerDownRef = useRef<(clickPt: Cad2dPoint, target?: Element) => boolean>(() => false);
+
+  // PALIER 2C : SUPPORTS NORMALIS√âS MSS SP-58 & G√âNIE CIVIL
+  const [supports, setSupportsRaw] = useState<IsoPipingSupport[]>([]);
+  const [selectedSupportId, setSelectedSupportId] = useState<string | null>(null);
+  const [activeSupportTypeToPlace, setActiveSupportTypeToPlace] = useState<MssSupportCode | null>(null);
 
   const [autocadCmdInput, setAutocadCmdInput] = useState("");
   const [autocadCmdHistory, setAutocadCmdHistory] = useState<string[]>([]);
@@ -1244,11 +1312,31 @@ function IsometrieModule(props: { projectId?: string }) {
   const cancelCadDraft = () => {
     setCadDraftSession(null);
     setCad2dDraftTool(null);
+    setCad2dModifySession(null);
     setAutocadPrompt("Pr√™t. " + PDI_INVITE_COMMANDE_017M);
     setStatusMessage("Action CAO r√©initialis√©e");
   };
 
   const applyNumericDraftInput = (val1: number, val2?: number) => {
+    if (cad2dModifySession) {
+      if (cad2dModifySession.mode === "offset") {
+        setCad2dModifySession({ ...cad2dModifySession, offsetDist: val1 });
+        setAutocadPrompt(`D√âCALER : Distance r√©gl√©e √† ${val1} m. Cliquez l'√©l√©ment √† d√©caler.`);
+        setStatusMessage(`Distance de d√©calage fix√©e √† ${val1} m`);
+        return;
+      }
+      if (cad2dModifySession.mode === "fillet" || cad2dModifySession.mode === "chamfer") {
+        setCad2dModifySession({ ...cad2dModifySession, filletRadius: val1 });
+        const lbl = cad2dModifySession.mode === "fillet" ? "RACCORD" : "CHANFREIN";
+        setAutocadPrompt(`${lbl} : Rayon r√©gl√© √† ${val1} m. Cliquez le premier segment.`);
+        setStatusMessage(`Rayon fix√© √† ${val1} m`);
+        return;
+      }
+      if (cad2dModifySession.mode === "scale") {
+        applyScaleWithFactorRef.current?.(val1, cad2dModifySession.basePoint);
+        return;
+      }
+    }
     if (!cadDraftSession) return;
     const sess = cadDraftSession;
     if (sess.tool === "rectangle") {
@@ -1457,6 +1545,12 @@ function IsometrieModule(props: { projectId?: string }) {
   };
 
   const startCad2dPointer = (event: React.PointerEvent, entityId: string, grip: string = "body") => {
+    if (cad2dModifySessionRef.current) {
+      event.stopPropagation();
+      const w = screenToIsoWorld(event as unknown as React.PointerEvent<SVGSVGElement>);
+      handleCad2dModifyPointerDownRef.current({ x: w.x, y: w.y }, event.target as Element);
+      return;
+    }
     event.stopPropagation();
     pushHistory();
     const w = screenToIsoWorld(event as unknown as React.PointerEvent<SVGSVGElement>);
@@ -1626,6 +1720,7 @@ function IsometrieModule(props: { projectId?: string }) {
     dimensions: IsoDimension[];
     cad2dEntities?: Cad2dEntity[];
     cad2dLayers?: Cad2dLayer[];
+    supports?: IsoPipingSupport[];
   };
 
   const cloneGraph = (
@@ -1635,6 +1730,7 @@ function IsometrieModule(props: { projectId?: string }) {
     ds: IsoDimension[] = dimensions,
     c2d: Cad2dEntity[] = cad2dEntities,
     c2dLayers: Cad2dLayer[] = cad2dLayers,
+    sups: IsoPipingSupport[] = supports,
   ): IsoHistorySnapshot => ({
     nodes: ns.map((n) => ({
       ...n,
@@ -1658,6 +1754,11 @@ function IsometrieModule(props: { projectId?: string }) {
       metadata: ent.metadata ? { ...ent.metadata } : undefined,
     })),
     cad2dLayers: c2dLayers.map((l) => ({ ...l })),
+    supports: sups.map((sup) => ({
+      ...sup,
+      civilSpec: { ...sup.civilSpec },
+      customLoads: sup.customLoads ? { ...sup.customLoads } : undefined,
+    })),
   });
   const historyRef = useRef<IsoHistorySnapshot[]>([]);
   const redoRef = useRef<IsoHistorySnapshot[]>([]);
@@ -1665,7 +1766,7 @@ function IsometrieModule(props: { projectId?: string }) {
 
   const pushHistory = () => {
     if (historyBusyRef.current) return;
-    const snap = cloneGraph(nodes, segments, lines, dimensions, cad2dEntities, cad2dLayers);
+    const snap = cloneGraph(nodes, segments, lines, dimensions, cad2dEntities, cad2dLayers, supports);
     const h = historyRef.current;
     const last = h[h.length - 1];
     if (last && JSON.stringify(last) === JSON.stringify(snap)) return;
@@ -1705,6 +1806,12 @@ function IsometrieModule(props: { projectId?: string }) {
     if (!historyBusyRef.current) pushHistory();
     setCad2dLayersRaw(next);
   };
+  const setSupports = (
+    next: IsoPipingSupport[] | ((prev: IsoPipingSupport[]) => IsoPipingSupport[]),
+  ) => {
+    if (!historyBusyRef.current) pushHistory();
+    setSupportsRaw(next);
+  };
   const commitGraph = (
     nextNodes: IsoNode[],
     nextSegments: IsoSegment[],
@@ -1712,6 +1819,7 @@ function IsometrieModule(props: { projectId?: string }) {
     nextDimensions: IsoDimension[] = dimensions,
     nextCad2d: Cad2dEntity[] = cad2dEntities,
     nextCad2dLayers: Cad2dLayer[] = cad2dLayers,
+    nextSupports: IsoPipingSupport[] = supports,
   ) => {
     if (!historyBusyRef.current) pushHistory();
     historyBusyRef.current = true;
@@ -1724,6 +1832,7 @@ function IsometrieModule(props: { projectId?: string }) {
     setDimensionsRaw(nextDimensions);
     setCad2dEntitiesRaw(nextCad2d);
     setCad2dLayersRaw(nextCad2dLayers);
+    setSupportsRaw(nextSupports);
     setTimeout(() => {
       historyBusyRef.current = false;
     }, 0);
@@ -1766,6 +1875,7 @@ function IsometrieModule(props: { projectId?: string }) {
   const [shortcutsOpen,setShortcutsOpen]=useState(false);
   const [commandPaletteOpen,setCommandPaletteOpen]=useState(false);
   const [aboutOpen,setAboutOpen]=useState(false);
+  const [printModalOpen,setPrintModalOpen]=useState(false);
   const [libraryQuery,setLibraryQuery]=useState("");
   const [draggedEquipmentType,setDraggedEquipmentType]=useState<IsoFittingType|null>(null);
   const [statusMessage,setStatusMessage]=useState("Pr√™t");
@@ -1814,6 +1924,7 @@ function IsometrieModule(props: { projectId?: string }) {
   const [projectName,setProjectName]=useState("Sch√©ma isom√©trique tuyauterie gaz");
   const [wilaya,setWilaya]=useState("Alger / GRTG Region Centre");
   const [pressDesign,setPressDesign]=useState(40);
+  const [unitSystem, setUnitSystem] = useState<UnitSystem>("metric");
   const [showGrid,setShowGrid]=useState(true);
   const [showDimensions,setShowDimensions]=useState(true);
   // V4.7.3b_PIPE_LABEL_LAYER : calque ind√©pendant des cartouches pipeline.
@@ -1887,7 +1998,7 @@ function IsometrieModule(props: { projectId?: string }) {
     try{window.localStorage.setItem("pdi.rightPanelOpen.v1",rightPanelOpen?"1":"0");}catch{}
   },[rightPanelOpen]);
   const [rightPanelHovered, setRightPanelHovered] = useState(false);
-  const [rightPanelTab, setRightPanelTab] = useState<"properties" | "bom" | "dimensions" | "snap" | "layers">("properties");
+  const [rightPanelTab, setRightPanelTab] = useState<"properties" | "bom" | "dimensions" | "snap" | "layers" | "supports">("properties");
   const [selectedDimensionId, setSelectedDimensionId] = useState<string | null>(null);
   // PATCH 004b : selection multiple de cotations. selectedDimensionId reste la
   // cotation ACTIVE (aucun panneau existant n'est casse) ; selectedDimensionIds
@@ -2259,7 +2370,7 @@ function IsometrieModule(props: { projectId?: string }) {
     return { zoom: Number(nextZoom.toFixed(3)), panX: Math.round(panX), panY: Math.round(panY) };
   });
 
-  // PATCH 004 : application d'un instantane, partagee par undo et redo (incluant √©l√©ments 2D).
+  // PATCH 004 : application d'un instantane, partagee par undo et redo (incluant √©l√©ments 2D et supports).
   const applyGraphSnapshot=(snap: IsoHistorySnapshot)=>{
     historyBusyRef.current=true;
     setNodesRaw(snap.nodes);
@@ -2272,10 +2383,14 @@ function IsometrieModule(props: { projectId?: string }) {
     if (snap.cad2dLayers !== undefined) {
       setCad2dLayersRaw(snap.cad2dLayers);
     }
+    if (snap.supports !== undefined) {
+      setSupportsRaw(snap.supports);
+    }
     setSelectedNodeIds([]);
     setSelectedSegmentIds([]);
     setSelectedFittingIds([]);
     setSelectedCad2dIds([]);
+    setSelectedSupportId(null);
     setSelectedNodeId(null);
     setSelectedSegmentId(null);
     setSelectedFitting(null);
@@ -2292,7 +2407,7 @@ function IsometrieModule(props: { projectId?: string }) {
     const snap=h.pop();
     if(!snap)return;
     // On memorise l'etat courant pour pouvoir refaire.
-    redoRef.current.push(cloneGraph(nodes,segments,lines,dimensions,cad2dEntities,cad2dLayers));
+    redoRef.current.push(cloneGraph(nodes,segments,lines,dimensions,cad2dEntities,cad2dLayers,supports));
     if(redoRef.current.length>60)redoRef.current.shift();
     applyGraphSnapshot(snap);
     setStatusMessage("Annulation effectu√©e (Ctrl+Z)");
@@ -2306,7 +2421,7 @@ function IsometrieModule(props: { projectId?: string }) {
     }
     const snap=r.pop();
     if(!snap)return;
-    historyRef.current.push(cloneGraph(nodes,segments,lines,dimensions,cad2dEntities,cad2dLayers));
+    historyRef.current.push(cloneGraph(nodes,segments,lines,dimensions,cad2dEntities,cad2dLayers,supports));
     applyGraphSnapshot(snap);
     setStatusMessage("R√©tablissement effectu√© (Ctrl+Y)");
   };
@@ -2903,6 +3018,543 @@ function IsometrieModule(props: { projectId?: string }) {
     return seg.color || workspaceVisualStyle.defaultPipeColor;
   };
 
+  // =========================================================================
+  // PALIER 2B : G√âOM√âTRIE TRANSACTIONNELLE 2D CAD (TRIM, EXTEND, OFFSET, FILLET, SCALE, CHAMFER, HACHURE)
+  // =========================================================================
+
+  const distPointToSegment = (p: Cad2dPoint, a: Cad2dPoint, b: Cad2dPoint): number => {
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const len2 = dx * dx + dy * dy;
+    if (len2 < 1e-6) return Math.hypot(p.x - a.x, p.y - a.y);
+    const t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / len2));
+    return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
+  };
+
+  const findNearestLineOrSegment = (clickPt: Cad2dPoint, maxDist: number = 0.8) => {
+    let bestEntity: { ent: Cad2dEntity; line: LineSegment2D; dist: number } | null = null;
+    let bestPipe: { seg: IsoSegment; fn: IsoNode; tn: IsoNode; line: LineSegment2D; dist: number } | null = null;
+
+    // 1. Chercher dans cad2dEntities
+    for (const ent of cad2dEntities) {
+      if (ent.visible === false) continue;
+      if (ent.type === "line" && ent.points && ent.points.length >= 2) {
+        const lineSeg: LineSegment2D = { p1: ent.points[0], p2: ent.points[1] };
+        const d = distPointToSegment(clickPt, lineSeg.p1, lineSeg.p2);
+        if (d <= maxDist && (!bestEntity || d < bestEntity.dist)) {
+          bestEntity = { ent, line: lineSeg, dist: d };
+        }
+      } else if ((ent.type === "polyline" || ent.type === "polygon" || ent.type === "rectangle" || ent.type === "triangle") && ent.points && ent.points.length >= 2) {
+        for (let i = 0; i < ent.points.length - 1; i++) {
+          const lineSeg: LineSegment2D = { p1: ent.points[i], p2: ent.points[i + 1] };
+          const d = distPointToSegment(clickPt, lineSeg.p1, lineSeg.p2);
+          if (d <= maxDist && (!bestEntity || d < bestEntity.dist)) {
+            bestEntity = { ent, line: lineSeg, dist: d };
+          }
+        }
+      }
+    }
+
+    // 2. Chercher dans les tron√ßons de tuyauterie ISO
+    for (const seg of segments) {
+      const fn = nodes.find((n) => n.id === seg.fromNodeId);
+      const tn = nodes.find((n) => n.id === seg.toNodeId);
+      if (!fn || !tn) continue;
+      const lineSeg: LineSegment2D = { p1: { x: fn.x, y: fn.y }, p2: { x: tn.x, y: tn.y } };
+      const d = distPointToSegment(clickPt, lineSeg.p1, lineSeg.p2);
+      if (d <= maxDist && (!bestPipe || d < bestPipe.dist)) {
+        bestPipe = { seg, fn, tn, line: lineSeg, dist: d };
+      }
+    }
+
+    if (bestEntity && bestPipe) {
+      return bestEntity.dist <= bestPipe.dist ? { type: "cad2d" as const, ...bestEntity } : { type: "pipe" as const, ...bestPipe };
+    }
+    if (bestEntity) return { type: "cad2d" as const, ...bestEntity };
+    if (bestPipe) return { type: "pipe" as const, ...bestPipe };
+    return null;
+  };
+
+  const collectAllDrawingSegments = (excludeId?: string): LineSegment2D[] => {
+    const list: LineSegment2D[] = [];
+    // 2D entities
+    for (const ent of cad2dEntities) {
+      if (ent.id === excludeId || ent.visible === false) continue;
+      if (ent.type === "line" && ent.points && ent.points.length >= 2) {
+        list.push({ p1: ent.points[0], p2: ent.points[1] });
+      } else if (ent.points && ent.points.length >= 2) {
+        for (let i = 0; i < ent.points.length - 1; i++) {
+          list.push({ p1: ent.points[i], p2: ent.points[i + 1] });
+        }
+        if (ent.closed || ent.type !== "polyline") {
+          list.push({ p1: ent.points[ent.points.length - 1], p2: ent.points[0] });
+        }
+      }
+    }
+    // ISO piping segments
+    for (const seg of segments) {
+      if (seg.id === excludeId) continue;
+      const fn = nodes.find((n) => n.id === seg.fromNodeId);
+      const tn = nodes.find((n) => n.id === seg.toNodeId);
+      if (fn && tn) {
+        list.push({ p1: { x: fn.x, y: fn.y }, p2: { x: tn.x, y: tn.y } });
+      }
+    }
+    return list;
+  };
+
+  const applyScaleWithFactor = (factor: number, basePoint?: Cad2dPoint) => {
+    pushHistory();
+    let bp = basePoint;
+    if (!bp) {
+      let sumX = 0, sumY = 0, count = 0;
+      for (const id of selectedCad2dIds) {
+        const ent = cad2dEntities.find((e) => e.id === id);
+        if (ent?.points) {
+          for (const p of ent.points) { sumX += p.x; sumY += p.y; count++; }
+        } else if (ent?.center) {
+          sumX += ent.center.x; sumY += ent.center.y; count++;
+        }
+      }
+      for (const id of selectedNodeIds) {
+        const n = nodes.find((node) => node.id === id);
+        if (n) { sumX += n.x; sumY += n.y; count++; }
+      }
+      bp = count > 0 ? { x: sumX / count, y: sumY / count } : { x: 0, y: 0 };
+    }
+
+    if (selectedCad2dIds.length > 0) {
+      const selSet = new Set(selectedCad2dIds);
+      setCad2dEntities((prev) =>
+        prev.map((ent) => (selSet.has(ent.id) ? cad2dScaleEntity(ent, bp!, factor) : ent))
+      );
+    }
+
+    if (selectedNodeIds.length > 0) {
+      const nextNodes = cad2dScaleNodes(nodes, selectedNodeIds, bp, factor, isoSnapStep);
+      commitGraph(nextNodes, recalcSegmentLengths(nextNodes, segments));
+    }
+
+    setCad2dModifySession(null);
+    setStatusMessage(`√âchelle ${factor}√ó appliqu√©e`);
+    setAutocadPrompt(`√âCHELLE : Facteur ${factor}√ó appliqu√© par rapport au point (${bp.x.toFixed(2)}, ${bp.y.toFixed(2)}).`);
+  };
+  applyScaleWithFactorRef.current = applyScaleWithFactor;
+
+  const startCad2dScaleCommand = (arg?: string) => {
+    const factor = arg ? Number(arg) : undefined;
+    const hasSelection = selectedCad2dIds.length > 0 || selectedNodeIds.length > 0;
+
+    if (!hasSelection) {
+      setAutocadPrompt("√âCHELLE (SCALE) : S√©lectionnez d'abord un ou plusieurs √©l√©ments sur le plan.");
+      setStatusMessage("S√©lectionnez des √©l√©ments avant d'appliquer l'√©chelle");
+      return;
+    }
+
+    if (factor && Number.isFinite(factor) && factor > 0) {
+      applyScaleWithFactor(factor);
+      return;
+    }
+
+    setCad2dModifySession({
+      mode: "scale",
+      step: 0,
+      offsetDist: 0.5,
+      filletRadius: 0.5,
+      scaleFactor: 1.5,
+    });
+    setAutocadPrompt("√âCHELLE (SCALE) : Cliquez le point de base pour l'homoth√©tie (ou tapez le facteur ex: 1.5).");
+    setStatusMessage("√âchelle : point de base attendu");
+  };
+
+  const startCad2dModifyCommand = (mode: "trim" | "extend" | "offset" | "fillet" | "chamfer", arg?: string) => {
+    let dist = 0.5;
+    let rad = 0.5;
+
+    if (arg) {
+      const parsed = parsePdiValue(arg, "length", unitSystem);
+      const val = parsed.valid && parsed.valueInMeters > 0 ? parsed.valueInMeters : Number(arg);
+      if (Number.isFinite(val) && val > 0) {
+        if (mode === "offset") dist = val;
+        if (mode === "fillet" || mode === "chamfer") rad = val;
+      }
+    }
+
+    setCad2dModifySession({
+      mode,
+      step: 0,
+      offsetDist: dist,
+      filletRadius: rad,
+      scaleFactor: 1.5,
+    });
+
+    if (mode === "trim") {
+      setAutocadPrompt("AJUSTER (TRIM) : Cliquez sur le segment √† d√©couper √† l'intersection avec une fronti√®re. [√âchap pour quitter]");
+      setStatusMessage("Ajuster : cliquez sur le segment √† tronquer");
+    } else if (mode === "extend") {
+      setAutocadPrompt("PROLONGER (EXTEND) : Cliquez vers l'extr√©mit√© du segment √† prolonger vers la limite la plus proche. [√âchap pour quitter]");
+      setStatusMessage("Prolonger : cliquez le segment √† √©tendre");
+    } else if (mode === "offset") {
+      setAutocadPrompt(`D√âCALER (OFFSET) : Distance = ${dist} m. Cliquez l'√©l√©ment √† d√©caler.`);
+      setStatusMessage(`D√©caler : distance ${dist} m`);
+    } else if (mode === "fillet" || mode === "chamfer") {
+      const lbl = mode === "fillet" ? "RACCORD" : "CHANFREIN";
+      setAutocadPrompt(`${lbl} : Rayon = ${rad} m. Cliquez le premier segment.`);
+      setStatusMessage(`${lbl} : premier segment attendu`);
+    }
+  };
+
+  const applyHatchToSelection = (patternArg?: string) => {
+    const allowed = ["ansi31", "ansi32", "dots", "solid", "none"];
+    const targetPattern = patternArg && allowed.includes(patternArg.toLowerCase())
+      ? (patternArg.toLowerCase() as any)
+      : undefined;
+
+    const closedSelected = cad2dEntities.filter((e) =>
+      selectedCad2dIds.includes(e.id) && ["rectangle", "polygon", "triangle", "circle"].includes(e.type)
+    );
+
+    if (closedSelected.length === 0) {
+      setAutocadPrompt("HACHURE (HATCH) : S√©lectionnez d'abord un rectangle, polygone ou cercle ferm√©.");
+      setStatusMessage("S√©lectionnez un contour ferm√© pour hachurer");
+      return;
+    }
+
+    pushHistory();
+    setCad2dEntities((prev) =>
+      prev.map((ent) => {
+        if (!selectedCad2dIds.includes(ent.id)) return ent;
+        const current = ent.hatchPattern || "none";
+        const nextPat = targetPattern || (current === "none" ? "ansi31" : current === "ansi31" ? "ansi32" : current === "ansi32" ? "dots" : current === "dots" ? "solid" : "none");
+        return { ...ent, hatchPattern: nextPat };
+      })
+    );
+
+    setStatusMessage("Motif de hachure appliqu√©");
+    setAutocadPrompt("HACHURE : Motif appliqu√© aux formes ferm√©es s√©lectionn√©es.");
+  };
+
+  const handleCad2dModifyPointerDown = (clickPt: Cad2dPoint, target?: Element): boolean => {
+    const sess = cad2dModifySessionRef.current;
+    if (!sess) return false;
+
+    const nearest = findNearestLineOrSegment(clickPt, 0.8);
+
+    // 1. TRIM
+    if (sess.mode === "trim") {
+      if (!nearest) {
+        setAutocadPrompt("AJUSTER (TRIM) : Cliquez sur un segment de tuyauterie ou ligne 2D √† d√©couper.");
+        return true;
+      }
+
+      const allCutters = collectAllDrawingSegments(nearest.type === "cad2d" ? nearest.ent.id : nearest.seg.id);
+      if (allCutters.length === 0) {
+        setAutocadPrompt("AJUSTER : Aucune fronti√®re de coupe pr√©sente dans le plan.");
+        setStatusMessage("Aucun couteau disponible");
+        return true;
+      }
+
+      if (nearest.type === "cad2d") {
+        const ent = nearest.ent;
+        if (ent.type === "line" && ent.points && ent.points.length >= 2) {
+          const lineSeg = { p1: ent.points[0], p2: ent.points[1] };
+          const trimmed = cad2dTrimLine(lineSeg, allCutters, clickPt);
+          if (!trimmed || trimmed.length === 0) {
+            setAutocadPrompt("AJUSTER : Ce segment ne croise aucune fronti√®re de coupe au point cliqu√©.");
+            setStatusMessage("Aucune intersection s√©cante trouv√©e");
+            return true;
+          }
+          pushHistory();
+          updateCad2dEntity(ent.id, { points: [trimmed[0].p1, trimmed[0].p2] });
+          for (let i = 1; i < trimmed.length; i++) {
+            const { id: _ignoredId, ...restEnt } = ent;
+            addCad2dEntity({
+              ...restEnt,
+              points: [trimmed[i].p1, trimmed[i].p2],
+            });
+          }
+          setAutocadPrompt("AJUSTER : Segment ajust√©. Cliquez un autre segment ou √âchap pour terminer.");
+          setStatusMessage("Segment 2D ajust√© √† l'intersection");
+          return true;
+        } else {
+          setAutocadPrompt("AJUSTER : Seuls les segments lin√©aires peuvent √™tre ajust√©s.");
+          return true;
+        }
+      } else {
+        const { seg, fn, tn } = nearest;
+        const lineSeg = { p1: { x: fn.x, y: fn.y }, p2: { x: tn.x, y: tn.y } };
+        const trimmed = cad2dTrimLine(lineSeg, allCutters, clickPt);
+        if (!trimmed || trimmed.length === 0) {
+          setAutocadPrompt("AJUSTER : Ce tron√ßon ne croise aucune ar√™te s√©cante.");
+          setStatusMessage("Aucune intersection s√©cante");
+          return true;
+        }
+        pushHistory();
+        const cutPoint = trimmed[0].p2;
+        const newNodeId = uid("node");
+        const newNode: IsoNode = {
+          id: newNodeId,
+          name: `N-TRIM-${nodes.length + 1}`,
+          x: Number(cutPoint.x.toFixed(3)),
+          y: Number(cutPoint.y.toFixed(3)),
+          z: fn.z,
+          type: "normal",
+          ports: [],
+        };
+        const nextNodes = [...nodes, newNode];
+        const nextSegments = segments.map((s) =>
+          s.id === seg.id ? { ...s, toNodeId: newNodeId } : s
+        );
+        commitGraph(nextNodes, recalcSegmentLengths(nextNodes, nextSegments));
+        setAutocadPrompt("AJUSTER : Tron√ßon de tuyauterie ajust√©. Cliquez un autre segment ou √âchap.");
+        setStatusMessage("Tron√ßon de tuyauterie ajust√©");
+        return true;
+      }
+    }
+
+    // 2. EXTEND
+    if (sess.mode === "extend") {
+      if (!nearest) {
+        setAutocadPrompt("PROLONGER (EXTEND) : Cliquez vers l'extr√©mit√© d'un segment √† prolonger.");
+        return true;
+      }
+
+      const boundaries = collectAllDrawingSegments(nearest.type === "cad2d" ? nearest.ent.id : nearest.seg.id);
+      if (boundaries.length === 0) {
+        setAutocadPrompt("PROLONGER : Aucune limite de fronti√®re pr√©sente dans le plan.");
+        return true;
+      }
+
+      if (nearest.type === "cad2d") {
+        const ent = nearest.ent;
+        if (ent.type === "line" && ent.points && ent.points.length >= 2) {
+          const lineSeg = { p1: ent.points[0], p2: ent.points[1] };
+          const res = cad2dExtendLine(lineSeg, boundaries, clickPt);
+          if (!res) {
+            setAutocadPrompt("PROLONGER : Aucune ar√™te fronti√®re trouv√©e dans la direction du segment.");
+            setStatusMessage("Aucune limite s√©cante");
+            return true;
+          }
+          pushHistory();
+          updateCad2dEntity(ent.id, { points: [res.updatedLine.p1, res.updatedLine.p2] });
+          setAutocadPrompt("PROLONGER : Segment prolong√©. Cliquez un autre segment ou √âchap.");
+          setStatusMessage("Segment 2D prolong√© jusqu'√† la limite");
+          return true;
+        } else {
+          setAutocadPrompt("PROLONGER : Seuls les segments lin√©aires peuvent √™tre prolong√©s.");
+          return true;
+        }
+      } else {
+        const { seg, fn, tn } = nearest;
+        const lineSeg = { p1: { x: fn.x, y: fn.y }, p2: { x: tn.x, y: tn.y } };
+        const res = cad2dExtendLine(lineSeg, boundaries, clickPt);
+        if (!res) {
+          setAutocadPrompt("PROLONGER : Aucune ar√™te fronti√®re dans l'axe de ce tron√ßon.");
+          return true;
+        }
+        pushHistory();
+        const extendedEnd = res.extendedEnd;
+        const targetNodeId = extendedEnd === "p1" ? fn.id : tn.id;
+        const newCoord = extendedEnd === "p1" ? res.updatedLine.p1 : res.updatedLine.p2;
+        const nextNodes = nodes.map((n) =>
+          n.id === targetNodeId
+            ? { ...n, x: Number(newCoord.x.toFixed(3)), y: Number(newCoord.y.toFixed(3)) }
+            : n
+        );
+        commitGraph(nextNodes, recalcSegmentLengths(nextNodes, segments));
+        setAutocadPrompt("PROLONGER : Tron√ßon prolong√©. Cliquez un autre segment ou √âchap.");
+        setStatusMessage("Tron√ßon de tuyauterie prolong√©");
+        return true;
+      }
+    }
+
+    // 3. OFFSET
+    if (sess.mode === "offset") {
+      if (sess.step === 0) {
+        if (!nearest) {
+          const closedEnt = cad2dEntities.find((e) => {
+            if (e.visible === false) return false;
+            if (e.type === "circle" && e.center) {
+              return cadDist(e.center, clickPt) <= (e.radius || 1) + 0.5;
+            }
+            return false;
+          });
+          if (closedEnt) {
+            setCad2dModifySession({ ...sess, step: 1, firstEntityId: closedEnt.id });
+            setAutocadPrompt(`D√âCALER : Cliquez du c√¥t√© o√π d√©caler (int√©rieur ou ext√©rieur, distance ${sess.offsetDist} m).`);
+            setStatusMessage(`Cercle s√©lectionn√© ¬∑ Distance ${sess.offsetDist} m`);
+            return true;
+          }
+          setAutocadPrompt("D√âCALER (OFFSET) : Cliquez sur l'√©l√©ment (ligne, cercle ou tube) √† d√©caler.");
+          return true;
+        }
+        if (nearest.type === "cad2d") {
+          setCad2dModifySession({ ...sess, step: 1, firstEntityId: nearest.ent.id });
+          setAutocadPrompt(`D√âCALER : Cliquez du c√¥t√© o√π d√©caler la parall√®le (distance active : ${sess.offsetDist} m).`);
+          setStatusMessage(`√âl√©ment 2D s√©lectionn√© ¬∑ Distance ${sess.offsetDist} m`);
+          return true;
+        } else {
+          setCad2dModifySession({ ...sess, step: 1, firstSegmentId: nearest.seg.id });
+          setAutocadPrompt(`D√âCALER : Cliquez du c√¥t√© o√π d√©caler la tuyauterie (distance active : ${sess.offsetDist} m).`);
+          setStatusMessage(`Tron√ßon s√©lectionn√© ¬∑ Distance ${sess.offsetDist} m`);
+          return true;
+        }
+      } else {
+        if (sess.firstEntityId) {
+          const ent = cad2dEntities.find((e) => e.id === sess.firstEntityId);
+          if (!ent) {
+            setCad2dModifySession(null);
+            return true;
+          }
+          pushHistory();
+          const { id: _ignoredId, ...restEnt } = ent;
+          if (ent.type === "line" && ent.points && ent.points.length >= 2) {
+            const off = cad2dOffsetLine(ent.points[0], ent.points[1], sess.offsetDist, clickPt);
+            addCad2dEntity({
+              ...restEnt,
+              points: [off.p1, off.p2],
+            });
+            setStatusMessage(`Parall√®le cr√©√©e √† ${sess.offsetDist} m`);
+          } else if (ent.type === "circle" && ent.center) {
+            const off = cad2dOffsetCircle(ent.center, ent.radius || 1, sess.offsetDist, clickPt);
+            addCad2dEntity({
+              ...restEnt,
+              center: off.center,
+              radius: off.radius,
+            });
+            setStatusMessage(`Cercle concentrique cr√©√©`);
+          } else if ((ent.type === "rectangle" || ent.type === "polygon" || ent.type === "triangle") && ent.points) {
+            const offPoints = cad2dOffsetPolygon(ent.points, sess.offsetDist, clickPt);
+            addCad2dEntity({
+              ...restEnt,
+              points: offPoints,
+            });
+            setStatusMessage(`Polygone d√©cal√© cr√©√©`);
+          }
+          setCad2dModifySession({ ...sess, step: 0, firstEntityId: undefined, firstSegmentId: undefined });
+          setAutocadPrompt("D√âCALER : √âl√©ment d√©cal√©. Cliquez un autre objet √† d√©caler ou √âchap pour quitter.");
+          return true;
+        } else if (sess.firstSegmentId) {
+          const seg = segments.find((s) => s.id === sess.firstSegmentId);
+          const fn = seg ? nodes.find((n) => n.id === seg.fromNodeId) : null;
+          const tn = seg ? nodes.find((n) => n.id === seg.toNodeId) : null;
+          if (!seg || !fn || !tn) {
+            setCad2dModifySession(null);
+            return true;
+          }
+          pushHistory();
+          const off = cad2dOffsetLine({ x: fn.x, y: fn.y }, { x: tn.x, y: tn.y }, sess.offsetDist, clickPt);
+          const newFnId = uid("node");
+          const newTnId = uid("node");
+          const newFn: IsoNode = {
+            id: newFnId,
+            name: `${fn.name}-OFF`,
+            x: Number(off.p1.x.toFixed(3)),
+            y: Number(off.p1.y.toFixed(3)),
+            z: fn.z,
+            type: fn.type,
+            ports: [],
+          };
+          const newTn: IsoNode = {
+            id: newTnId,
+            name: `${tn.name}-OFF`,
+            x: Number(off.p2.x.toFixed(3)),
+            y: Number(off.p2.y.toFixed(3)),
+            z: tn.z,
+            type: tn.type,
+            ports: [],
+          };
+          const newSeg: IsoSegment = {
+            ...seg,
+            id: uid("seg"),
+            fromNodeId: newFnId,
+            toNodeId: newTnId,
+            length: seg.length,
+            fittings: [],
+          };
+          const nextNodes = [...nodes, newFn, newTn];
+          const nextSegments = [...segments, newSeg];
+          commitGraph(nextNodes, recalcSegmentLengths(nextNodes, nextSegments));
+          setCad2dModifySession({ ...sess, step: 0, firstEntityId: undefined, firstSegmentId: undefined });
+          setAutocadPrompt("D√âCALER : Tron√ßon de tuyauterie parall√®le cr√©√©. Cliquez un autre objet ou √âchap.");
+          setStatusMessage(`Tuyauterie parall√®le cr√©√©e √† ${sess.offsetDist} m`);
+          return true;
+        }
+      }
+    }
+
+    // 4. FILLET / CHAMFER
+    if (sess.mode === "fillet" || sess.mode === "chamfer") {
+      if (sess.step === 0) {
+        if (!nearest) {
+          setAutocadPrompt("RACCORD : Cliquez sur le premier segment √† raccorder.");
+          return true;
+        }
+        setCad2dModifySession({
+          ...sess,
+          step: 1,
+          firstEntityId: nearest.type === "cad2d" ? nearest.ent.id : undefined,
+          firstSegmentId: nearest.type === "pipe" ? nearest.seg.id : undefined,
+          firstLine: nearest.line,
+        });
+        setAutocadPrompt(`RACCORD : Premier segment s√©lectionn√©. Cliquez sur le deuxi√®me segment (Rayon: ${sess.filletRadius} m).`);
+        setStatusMessage(`Premier segment s√©lectionn√© ¬∑ Rayon ${sess.filletRadius} m`);
+        return true;
+      } else {
+        if (!nearest || !sess.firstLine) {
+          setAutocadPrompt("RACCORD : Cliquez sur le deuxi√®me segment √† raccorder.");
+          return true;
+        }
+        const res = cad2dFilletLines(sess.firstLine, nearest.line, sess.filletRadius);
+        if (!res) {
+          setAutocadPrompt("RACCORD : Impossible de raccorder ces deux segments (lignes parall√®les ou sans intersection).");
+          setStatusMessage("Raccordement impossible");
+          return true;
+        }
+        pushHistory();
+        if (sess.firstEntityId) {
+          updateCad2dEntity(sess.firstEntityId, { points: [res.trimmedSeg1.p1, res.trimmedSeg1.p2] });
+        }
+        if (nearest.type === "cad2d") {
+          updateCad2dEntity(nearest.ent.id, { points: [res.trimmedSeg2.p1, res.trimmedSeg2.p2] });
+        }
+        addCad2dEntity({
+          type: "arc",
+          layerId: "axes_tuyauterie",
+          color: "#38bdf8",
+          center: res.arc.center,
+          radius: res.arc.radius,
+          startAngle: res.arc.startAngle,
+          endAngle: res.arc.endAngle,
+          metadata: { intent: "draft", source: "fillet" },
+        });
+        setCad2dModifySession(null);
+        setAutocadPrompt("RACCORD : Raccordement tangentiel cr√©√© avec succ√®s.");
+        setStatusMessage(`Raccord tangentiel R=${sess.filletRadius} m cr√©√©`);
+        return true;
+      }
+    }
+
+    // 5. SCALE
+    if (sess.mode === "scale") {
+      if (sess.step === 0) {
+        setCad2dModifySession({ ...sess, step: 1, basePoint: clickPt });
+        setAutocadPrompt(`√âCHELLE : Point de base fix√© √† (${clickPt.x.toFixed(2)}, ${clickPt.y.toFixed(2)}). Tapez le facteur (ex: 2) puis Entr√©e, ou cliquez un point de r√©f√©rence.`);
+        setStatusMessage("Point de base fix√© ¬∑ Entrez le facteur d'√©chelle");
+        return true;
+      } else {
+        const bp = sess.basePoint || { x: 0, y: 0 };
+        const d = Math.hypot(clickPt.x - bp.x, clickPt.y - bp.y);
+        const factor = Math.max(0.1, Number((d / 1.0).toFixed(2)));
+        applyScaleWithFactor(factor, bp);
+        return true;
+      }
+    }
+
+    return false;
+  };
+  handleCad2dModifyPointerDownRef.current = handleCad2dModifyPointerDown;
+
   const executeCadCommand = (cmdInput: CadCommandItem | string) => {
 
     // PATCH 016A style commands : LW/EPAISSEUR/COLOR/STYLE + raccourcis ON/OFF.
@@ -2948,6 +3600,104 @@ function IsometrieModule(props: { projectId?: string }) {
     }
     if (["rotation", "rotate", "ro", "tourner"].includes(rawVerb)) {
       startGuidedCommand("rotate");
+      return;
+    }
+
+    // PALIER 2B : Commandes de modification g√©om√©trique transactionnelle (TRIM, EXTEND, OFFSET, FILLET, SCALE, CHAMFER, HATCH)
+    if (["echelle", "scale", "sc"].includes(rawVerb)) {
+      startCad2dScaleCommand(rawArg);
+      return;
+    }
+    if (["ajuster", "trim", "tr", "couper"].includes(rawVerb)) {
+      startCad2dModifyCommand("trim");
+      return;
+    }
+    if (["prolonger", "extend", "ex"].includes(rawVerb)) {
+      startCad2dModifyCommand("extend");
+      return;
+    }
+    if (["decaler", "offset", "o"].includes(rawVerb)) {
+      startCad2dModifyCommand("offset", rawArg);
+      return;
+    }
+    if (["raccord", "fillet", "f", "conge"].includes(rawVerb)) {
+      startCad2dModifyCommand("fillet", rawArg);
+      return;
+    }
+    if (["chanfrein", "chamfer", "cha"].includes(rawVerb)) {
+      startCad2dModifyCommand("chamfer", rawArg);
+      return;
+    }
+    if (["hachure", "hatch", "h"].includes(rawVerb)) {
+      applyHatchToSelection(rawArg);
+      return;
+    }
+    if (["text", "texte", "mtext", "dt"].includes(rawVerb)) {
+      startCadDraft("text");
+      return;
+    }
+
+    // PALIER 2C : Commandes de supportage MSS SP-58 et G√©nie Civil
+    if (["support", "sup", "mss"].includes(rawVerb)) {
+      setActiveSupportTypeToPlace("mss_type_35");
+      setRightPanelOpen(true);
+      setRightPanelTab("supports");
+      setAutocadPrompt("COMMANDE [SUPPORT] : Cliquez sur un tron√ßon pour ins√©rer un support MSS SP-58 (√âchap pour annuler).");
+      setStatusMessage("Cliquez un tron√ßon pour placer le support MSS SP-58");
+      return;
+    }
+    if (["pointfixe", "anchor", "ancrage"].includes(rawVerb)) {
+      setActiveSupportTypeToPlace("mss_type_57");
+      setRightPanelOpen(true);
+      setRightPanelTab("supports");
+      setAutocadPrompt("COMMANDE [POINT FIXE] : Cliquez un tron√ßon pour placer un point fixe rigide MSS Type 57.");
+      setStatusMessage("Cliquez un tron√ßon pour placer le point fixe");
+      return;
+    }
+    if (["guide", "glissiere"].includes(rawVerb)) {
+      setActiveSupportTypeToPlace("mss_type_35");
+      setRightPanelOpen(true);
+      setRightPanelTab("supports");
+      setAutocadPrompt("COMMANDE [GUIDE] : Cliquez un tron√ßon pour placer un guide coulissant MSS Type 35.");
+      setStatusMessage("Cliquez un tron√ßon pour placer le guide coulissant");
+      return;
+    }
+    if (["pendard", "hanger", "tige"].includes(rawVerb)) {
+      setActiveSupportTypeToPlace("mss_type_1");
+      setRightPanelOpen(true);
+      setRightPanelTab("supports");
+      setAutocadPrompt("COMMANDE [PENDARD] : Cliquez un tron√ßon pour placer un pendard simple r√©glable MSS Type 1.");
+      setStatusMessage("Cliquez un tron√ßon pour placer le pendard");
+      return;
+    }
+    if (["patin", "shoe"].includes(rawVerb)) {
+      setActiveSupportTypeToPlace("mss_type_39");
+      setRightPanelOpen(true);
+      setRightPanelTab("supports");
+      setAutocadPrompt("COMMANDE [PATIN] : Cliquez un tron√ßon pour placer un patin soud√© MSS Type 39.");
+      setStatusMessage("Cliquez un tron√ßon pour placer le patin soud√©");
+      return;
+    }
+    if (["ressort", "spring"].includes(rawVerb)) {
+      setActiveSupportTypeToPlace("mss_type_51");
+      setRightPanelOpen(true);
+      setRightPanelTab("supports");
+      setAutocadPrompt("COMMANDE [RESSORT] : Cliquez un tron√ßon pour placer un support √† ressort variable MSS Type 51.");
+      setStatusMessage("Cliquez un tron√ßon pour placer la bo√Æte √† ressort");
+      return;
+    }
+    if (["verifspan", "span", "portee", "port√©es"].includes(rawVerb)) {
+      setRightPanelOpen(true);
+      setRightPanelTab("supports");
+      setAutocadPrompt("V√âRIFICATION DES PORT√âES : calcul ASME B31.3 Table 321.1.3 ex√©cut√© sur tous les tron√ßons.");
+      setStatusMessage("Port√©es ASME B31.3 v√©rifi√©es");
+      return;
+    }
+    if (["gc", "geniecivil", "mto_gc"].includes(rawVerb)) {
+      setRightPanelOpen(true);
+      setRightPanelTab("supports");
+      setAutocadPrompt("G√âNIE CIVIL : r√©capitulatif platines, ancrages EN 1992-4 et massifs b√©ton.");
+      setStatusMessage("Panneau G√©nie Civil affich√©");
       return;
     }
 
@@ -3115,6 +3865,20 @@ function IsometrieModule(props: { projectId?: string }) {
       }
       setAutocadPrompt("COMMANDE [MIROIR] : Sym√©trie miroir appliqu√©e.");
       setStatusMessage("Sym√©trie miroir appliqu√©e");
+    } else if (cmdId === "scale") {
+      startCad2dScaleCommand();
+    } else if (cmdId === "trim") {
+      startCad2dModifyCommand("trim");
+    } else if (cmdId === "extend") {
+      startCad2dModifyCommand("extend");
+    } else if (cmdId === "offset") {
+      startCad2dModifyCommand("offset");
+    } else if (cmdId === "fillet") {
+      startCad2dModifyCommand("fillet");
+    } else if (cmdId === "chamfer") {
+      startCad2dModifyCommand("chamfer");
+    } else if (cmdId === "hatch") {
+      applyHatchToSelection();
     } else if (cmdId === "undo") {
       undoGraph();
       setAutocadPrompt("COMMANDE [ANNULER] : Action annul√©e.");
@@ -3515,9 +4279,25 @@ function IsometrieModule(props: { projectId?: string }) {
         cancelGuidedCommand();
         return;
       }
+      // PALIER 2B : Echap annule la commande de modification g√©om√©trique active.
+      if (e.key === "Escape" && cad2dModifySession) {
+        e.preventDefault();
+        setCad2dModifySession(null);
+        setAutocadPrompt("Pr√™t. " + PDI_INVITE_COMMANDE_017M);
+        setStatusMessage("Commande g√©om√©trique annul√©e");
+        return;
+      }
+      // PALIER 2C : Echap annule le placement de support MSS SP-58 actif.
+      if (e.key === "Escape" && activeSupportTypeToPlace) {
+        e.preventDefault();
+        setActiveSupportTypeToPlace(null);
+        setStatusMessage("Placement de support annul√©");
+        return;
+      }
       // ESC: Global Escape closes all panels, modals, context menus, and resets active operations
       if (e.key === "Escape") {
         e.preventDefault();
+        setActiveSupportTypeToPlace(null);
         setPropertiesModalOpen(false);
         setRightPanelOpen(false);
         setLeftPanelOpen(false);
@@ -3760,6 +4540,16 @@ function IsometrieModule(props: { projectId?: string }) {
       }
     }
 
+    // PALIER 2B : la commande g√©om√©trique interactive (TRIM, EXTEND, OFFSET, FILLET, SCALE, CHAMFER) capture le clic.
+    if (cad2dModifySession) {
+      const modifyWorld = isoUnprojectV4(sx, sy, viewport.zoom, viewport.panX, viewport.panY, nodeZ || 0);
+      if (handleCad2dModifyPointerDown({ x: modifyWorld.x, y: modifyWorld.y }, target)) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+    }
+
     // MODE MAIN : uniquement d√©placement de la feuille.
     if(interactionMode==="main"){
       e.currentTarget.setPointerCapture(e.pointerId);
@@ -3813,6 +4603,65 @@ function IsometrieModule(props: { projectId?: string }) {
         selectFittingV44(segmentId,fittingId,additive);
         e.currentTarget.setPointerCapture(e.pointerId);
         e.stopPropagation();
+        return;
+      }
+    }
+
+    // PALIER 2C : Support MSS SP-58 s√©lectionnable
+    const supEl = target.closest("[data-iso-support='true']");
+    if (supEl) {
+      const supId = supEl.getAttribute("data-support-id");
+      if (supId) {
+        setSelectedSupportId(supId);
+        setRightPanelOpen(true);
+        setRightPanelTab("supports");
+        const supObj = supports.find((s) => s.id === supId);
+        if (supObj) {
+          setStatusMessage(`Support s√©lectionn√© : ${supObj.tag} (${MSS_SUPPORT_CATALOG[supObj.type]?.labelFr || supObj.type})`);
+        }
+        e.stopPropagation();
+        return;
+      }
+    }
+
+    // PALIER 2C : Placement interactif de support MSS SP-58 sur tron√ßon
+    if (activeSupportTypeToPlace) {
+      const segEl = target.closest("[data-iso-segment='true']");
+      const clickedSegId = segEl?.getAttribute("data-segment-id");
+      let targetSegment = segments.find((s) => s.id === clickedSegId);
+      if (!targetSegment) {
+        const hit = findSegmentAtScreen(sx, sy);
+        if (hit) {
+          targetSegment = segments.find((s) => s.id === hit.id);
+        }
+      }
+
+      if (targetSegment) {
+        const fromNode = nodes.find((n) => n.id === targetSegment.fromNodeId);
+        const toNode = nodes.find((n) => n.id === targetSegment.toNodeId);
+        if (fromNode && toNode) {
+          const worldPos = isoUnprojectV4(sx, sy, viewport.zoom, viewport.panX, viewport.panY, nodeZ || 0);
+          const newSup = projectSupportOnSegment(
+            targetSegment,
+            fromNode,
+            toNode,
+            { x: worldPos.x, y: worldPos.y },
+            activeSupportTypeToPlace,
+            supports.length
+          );
+          setSupports((prev) => [...prev, newSup]);
+          setSelectedSupportId(newSup.id);
+          setRightPanelOpen(true);
+          setRightPanelTab("supports");
+          setStatusMessage(`Support ${newSup.tag} plac√© avec succ√®s`);
+          setAutocadPrompt(`Support ${newSup.tag} ins√©r√© sur tron√ßon DN${targetSegment.dn} √† ${newSup.distanceFromFromNodeM.toFixed(2)}m.`);
+          setActiveSupportTypeToPlace(null);
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
+      } else {
+        setStatusMessage("Cliquez directement sur un tron√ßon de tuyauterie pour y ancrer le support.");
         return;
       }
     }
@@ -4846,7 +5695,9 @@ function IsometrieModule(props: { projectId?: string }) {
           const displayValue =
             dimension.unit === "mm"
               ? `${Math.round(value * 1000)} mm`
-              : `${value.toFixed(2)} m`;
+              : dimension.unit === "in" || dimension.unit === "ft-in"
+                ? formatLength(value, "imperial")
+                : formatLength(value, unitSystem);
           return {
             ...dimension,
             p1,
@@ -5237,8 +6088,8 @@ function IsometrieModule(props: { projectId?: string }) {
       <h1>${pdiCompanyName()} ‚Äî SCH√âMA ISOM√âTRIQUE M√âCANIQUE</h1>
       <div class="meta">
         <div><b>Projet :</b> ${projectName} | <b>R√©gion :</b> ${wilaya}</div>
-        <div><b>Pression :</b> ${pressDesign} bar | <b>√âpreuve :</b> ${hydrotest.toFixed(1)} bar</div>
-        <div><b>Longueur totale :</b> ${totalLength.toFixed(2)} m | <b>Poids :</b> ${totalWeight.toFixed(1)} kg | <b>Convention :</b> ${PDI_METRE_CONVENTION_017P3}</div>
+        <div><b>Pression :</b> ${formatPressure(pressDesign, unitSystem)} | <b>√âpreuve :</b> ${formatPressure(hydrotest, unitSystem)}</div>
+        <div><b>Longueur totale :</b> ${formatLength(totalLength, unitSystem)} | <b>Poids :</b> ${formatMass(totalWeight, unitSystem)} | <b>Convention :</b> ${PDI_METRE_CONVENTION_017P3}</div>
       </div>
       <table><thead><tr><th>N¬∞</th><th>Liaison / Tron√ßon</th><th>Diam√®tre</th><th>Classe</th><th>Mat√©riau</th><th>Longueur</th><th>Poids</th></tr></thead><tbody>${rows}</tbody></table>
       <script>onload=()=>setTimeout(()=>print(),300)</script></body></html>`);
@@ -5286,181 +6137,27 @@ function IsometrieModule(props: { projectId?: string }) {
   };
   const planRows = useMemo(()=>materialRows(nodes,segments),[nodes,segments]);
 
+  const printBomRows: BomRow[] = useMemo(() => {
+    return planRows.map((r, i) => ({
+      index: i + 1,
+      designation: r.designation,
+      dn: r.dn,
+      inch: r.inch,
+      qty: r.qty,
+      unit: r.unit,
+      length: r.length || 0,
+      reference: r.source || "STD",
+    }));
+  }, [planRows]);
+
   const printPlanSheet = () => {
-    const title = projectName || "PLAN ISOM√âTRIQUE GAZODUC";
-    const totalSheets = planRows.length > 18 ? 2 : 1;
-    const printAnnotationMap=buildIsoAnnotationLayout(nodes,segments,projectJoints,viewport);
-    const rows = planRows.slice((planPage - 1) * 18, planPage * 18).map((r, i) =>
-      `<tr><td style="font-weight:bold;color:#0284c7;">${(planPage - 1) * 18 + i + 1}</td><td><b>${r.designation}</b></td><td>DN${r.dn}</td><td>${r.inch}</td><td style="font-weight:bold;">${r.qty}</td><td>${r.unit}</td><td style="font-weight:bold;">${r.length ? r.length.toFixed(2) + " m" : "-"}</td><td style="font-size:6px;color:#475569;">${r.source}</td></tr>`
-    ).join("");
-
-    let drawingMarkup = "";
-    // Background Isometric Reference Lines
-    drawingMarkup += `<g opacity="0.15">`;
-    for (let i = 0; i < 25; i++) {
-      drawingMarkup += `<line x1="${i * 35 - 250}" y1="0" x2="${i * 35 + 50}" y2="520" stroke="#0284c7" stroke-width="1"/>`;
-      drawingMarkup += `<line x1="${i * 35 + 250}" y1="0" x2="${i * 35 - 50}" y2="520" stroke="#0284c7" stroke-width="1"/>`;
-    }
-    drawingMarkup += `</g>`;
-
-    // Render Segments & Fittings
-    segments.forEach(s => {
-      const a = nodes.find(n => n.id === s.fromNodeId);
-      const b = nodes.find(n => n.id === s.toNodeId);
-      if (!a || !b) return;
-
-      const endpoints=segmentEndpoints(s,nodes);
-      const p1=endpoints?isoProjectV4(endpoints.from.x,endpoints.from.y,endpoints.from.z,viewport.zoom,viewport.panX,viewport.panY):iso(a);
-      const p2=endpoints?isoProjectV4(endpoints.to.x,endpoints.to.y,endpoints.to.z,viewport.zoom,viewport.panX,viewport.panY):iso(b);
-      const strokeColor = s.color || (s.pn.includes("600") ? "#d97706" : "#0284c7");
-      const pipeWidth = Math.max(3, Math.min(10, s.dn / 30));
-
-      const pts = isoPolylineV4(s, a, b, viewport.zoom, viewport.panX, viewport.panY);
-      const pathStr = isoPathV4(pts);
-
-      drawingMarkup += `<path d="${pathStr}" stroke="${strokeColor}" stroke-width="${pipeWidth}" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`;
-
-      // Dimension badge
-      const mx = (p1.x + p2.x) / 2;
-      const my = (p1.y + p2.y) / 2;
-      const dimensionAnnotation=printAnnotationMap.get(`segment:${s.id}`);
-      const labelX=dimensionAnnotation?.x??mx,labelY=dimensionAnnotation?.y??my-12;
-      if(showPipeLabels){
-        drawingMarkup += `<g transform="translate(${labelX.toFixed(2)}, ${labelY.toFixed(2)})">` +
-          `<rect x="-55" y="-9" width="110" height="16" rx="4" fill="#0f172a" stroke="#0284c7" stroke-width="1"/>` +
-          `<text x="0" y="3" fill="#ffffff" font-size="8" font-weight="bold" text-anchor="middle">${s.sourceName||(`Pipeline ${dia(s.dn).inch}`)} ¬∑ L=${s.length.toFixed(2)}m</text>` +
-          `</g>`;
-      }
-
-      // V4.6.1b : les anciens fittings sont migr√©s en n≈ìuds techniques.
-      false && s.fittings.forEach(f => {
-        const fx = p1.x + (p2.x - p1.x) * f.localPosition;
-        const fy = p1.y + (p2.y - p1.y) * f.localPosition;
-        const fittingGraphic = getFittingSvgGraphic(f.type, true);
-        const fitAngle = Math.atan2(p2.y-p1.y,p2.x-p1.x)*180/Math.PI;
-        const prot=((f.orientation??0)%360+360)%360 + fitAngle;
-         drawingMarkup += `<g transform="translate(${fx.toFixed(2)}, ${fy.toFixed(2)})">` +
-          `<circle r="16" fill="#ffffff" stroke="#ffffff" stroke-width="5"/>` +
-          `<circle r="11" fill="#ffffff" stroke="#0369a1" stroke-width="1.5"/>` +
-          `<g transform="rotate(${prot})">${fittingGraphic}</g>` +
-          `<text x="0" y="20" fill="#0f172a" font-size="7.5" font-weight="bold" text-anchor="middle" paint-order="stroke" stroke="#ffffff" stroke-width="2">${f.label}</text>` +
-          `</g>`;
-      });
-    });
-
-    // Render Nodes / √©quipements natifs du r√©seau
-    nodes.forEach(n => {
-      const p = iso(n);
-      const isEquip=!!n.equipmentType;
-      const isTee=n.type === "tee" && !isEquip;
-      const nodeColor=n.type === "entree_poste" ? "#16a34a" : n.type === "sortie_poste" ? "#dc2626" : isTee ? "#7c3aed" : "#0284c7";
-      if(isEquip){
-        const graphic=getFittingSvgGraphic(n.equipmentType!,true);
-        const ports=(n.ports||[]).map(port=>{const w=portWorldPosition(n,port.id),sp=isoProjectV4(w.x,w.y,w.z,viewport.zoom,viewport.panX,viewport.panY);return {...port,x:sp.x-p.x,y:sp.y-p.y};});
-        const p0=ports.find(port=>port.index===0),p1=ports.find(port=>port.index===1);
-        const screenAngle=p0&&p1?Math.atan2(p1.y-p0.y,p1.x-p0.x)*180/Math.PI:0;
-        const native=elbowAngle(n.equipmentType!)&&p0&&p1?`<path d="M ${p0.x.toFixed(2)} ${p0.y.toFixed(2)} Q 0 0 ${p1.x.toFixed(2)} ${p1.y.toFixed(2)}" stroke="#d97706" stroke-width="4" fill="none" stroke-linecap="round"/>`:`<g transform="rotate(${screenAngle}) scale(1.25 ${n.mirrored?-1.25:1.25})">${graphic}</g>`;
-        const label=printAnnotationMap.get(`node:${n.id}`),lx=(label?.x??p.x+12)-p.x,ly=(label?.y??p.y-10)-p.y;
-        drawingMarkup += `<g transform="translate(${p.x.toFixed(2)}, ${p.y.toFixed(2)})">${native}<line x1="0" y1="0" x2="${lx.toFixed(2)}" y2="${ly.toFixed(2)}" stroke="#94a3b8" stroke-width=".6"/><text x="${lx.toFixed(2)}" y="${ly.toFixed(2)}" fill="#0f172a" font-size="7.5" font-weight="bold" paint-order="stroke" stroke="#ffffff" stroke-width="2">${equipmentLabel(n)}</text></g>`;
-      }else if(isTee){
-        drawingMarkup += `<g transform="translate(${p.x.toFixed(2)}, ${p.y.toFixed(2)})"><path d="M -9 0 H 9 M 0 0 V -10" stroke="#7c3aed" stroke-width="3" fill="none"/><text x="12" y="3" fill="#0f172a" font-size="8" font-weight="bold">${n.name}</text></g>`;
-      }else{
-        drawingMarkup += `<g transform="translate(${p.x.toFixed(2)}, ${p.y.toFixed(2)})"><circle r="4" fill="${nodeColor}"/><text x="8" y="3" fill="#0f172a" font-size="8" font-weight="bold">${n.name}${n.z ? ` (Z=${n.z}m)` : ""}</text></g>`;
-      }
-    });
-
-    // Soudures et rep√®res : m√™mes ancrages que dans l'√©diteur.
-    projectJoints.filter(joint=>joint.weldNumber).forEach(joint=>{
-      const node=nodes.find(item=>item.id===joint.nodeId);if(!node)return;
-      const anchorWorld=portWorldPosition(node,joint.portId),anchor=isoProjectV4(anchorWorld.x,anchorWorld.y,anchorWorld.z,viewport.zoom,viewport.panX,viewport.panY),label=printAnnotationMap.get(`weld:${joint.id}`);
-      const lx=label?.x??anchor.x+8,ly=label?.y??anchor.y-8;
-      drawingMarkup+=`<g><line x1="${anchor.x.toFixed(2)}" y1="${anchor.y.toFixed(2)}" x2="${lx.toFixed(2)}" y2="${ly.toFixed(2)}" stroke="#b45309" stroke-width=".8"/><circle cx="${anchor.x.toFixed(2)}" cy="${anchor.y.toFixed(2)}" r="3" fill="#fff" stroke="#b45309" stroke-width="1.2"/><text x="${lx.toFixed(2)}" y="${ly.toFixed(2)}" fill="#92400e" font-size="7" font-weight="900" paint-order="stroke" stroke="#fff" stroke-width="2">${joint.weldNumber}</text></g>`;
-    });
-
-        // Cotations utilisateur V4.8d : m√™mes ancrages que l‚Äô√©diteur.
-    if (showDimensions) {
-      dimensions.forEach((dimension) => {
-        const aNode = nodes.find((node) => node.id === dimension.a.nodeId);
-        const bNode = nodes.find((node) => node.id === dimension.b.nodeId);
-        if (!aNode || !bNode) return;
-        const aw = dimension.a.kind === "port" && dimension.a.portId ? portWorldPosition(aNode, dimension.a.portId) : aNode;
-        const bw = dimension.b.kind === "port" && dimension.b.portId ? portWorldPosition(bNode, dimension.b.portId) : bNode;
-        const p1 = isoProjectV4(aw.x, aw.y, aw.z, viewport.zoom, viewport.panX, viewport.panY);
-        const p2 = isoProjectV4(bw.x, bw.y, bw.z, viewport.zoom, viewport.panX, viewport.panY);
-        const offset = dimension.offset || { x: 0, y: -24 };
-        const q1 = { x: p1.x + offset.x, y: p1.y + offset.y };
-        const q2 = { x: p2.x + offset.x, y: p2.y + offset.y };
-        const mx = (q1.x + q2.x) / 2, my = (q1.y + q2.y) / 2;
-        const value = Math.hypot(bw.x - aw.x, bw.y - aw.y, bw.z - aw.z);
-        const label = dimension.label || (dimension.unit === "mm" ? `${Math.round(value * 1000)} mm` : `${value.toFixed(2)} m`);
-        drawingMarkup += `<g><line x1="${p1.x.toFixed(2)}" y1="${p1.y.toFixed(2)}" x2="${q1.x.toFixed(2)}" y2="${q1.y.toFixed(2)}" stroke="#64748b" stroke-width=".6" stroke-dasharray="2 2"/><line x1="${p2.x.toFixed(2)}" y1="${p2.y.toFixed(2)}" x2="${q2.x.toFixed(2)}" y2="${q2.y.toFixed(2)}" stroke="#64748b" stroke-width=".6" stroke-dasharray="2 2"/><line x1="${q1.x.toFixed(2)}" y1="${q1.y.toFixed(2)}" x2="${q2.x.toFixed(2)}" y2="${q2.y.toFixed(2)}" stroke="#0891b2" stroke-width="1.1"/><circle cx="${q1.x.toFixed(2)}" cy="${q1.y.toFixed(2)}" r="2.4" fill="#fff" stroke="#0891b2"/><circle cx="${q2.x.toFixed(2)}" cy="${q2.y.toFixed(2)}" r="2.4" fill="#fff" stroke="#0891b2"/><rect x="${(mx - 22).toFixed(2)}" y="${(my - 12).toFixed(2)}" width="44" height="14" rx="3" fill="#ffffff" stroke="#0891b2"/><text x="${mx.toFixed(2)}" y="${(my - 2).toFixed(2)}" text-anchor="middle" fill="#0e7490" font-size="7" font-weight="900">${label}</text></g>`;
-      });
-    }
-
-    // Compass Rose
-    drawingMarkup += `<g transform="translate(560, 45)">` +
-      `<circle r="18" fill="#0f172a" stroke="#0284c7" stroke-width="1.5"/>` +
-      `<line x1="0" y1="-14" x2="0" y2="14" stroke="#38bdf8" stroke-width="1.5"/>` +
-      `<line x1="-14" y1="0" x2="14" y2="0" stroke="#38bdf8" stroke-width="1.5"/>` +
-      `<text y="-20" fill="#0284c7" font-size="9" font-weight="bold" text-anchor="middle">N</text>` +
-      `<text x="20" y="3" fill="#334155" font-size="8" font-weight="bold">E</text>` +
-      `<text x="-20" y="3" fill="#334155" font-size="8" font-weight="bold">O</text>` +
-      `<text y="26" fill="#334155" font-size="8" font-weight="bold" text-anchor="middle">S</text>` +
-      `</g>`;
-
-    const w = window.open("", "_blank"); if (!w) return;
-    w.document.write(`<!doctype html><html><head><title>${title} ‚Äî Planche ${planPage}/${totalSheets}</title><style>
-      @page{size:A3 landscape;margin:6mm}
-      @media print {
-        * {
-          -webkit-print-color-adjust: exact !important;
-          print-color-adjust: exact !important;
-          color-adjust: exact !important;
-        }
-      }
-      *{box-sizing:border-box}
-      body{margin:0;font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#ffffff;-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;}
-      .sheet{position:relative;width:100%;height:100vh;border:2px solid #0284c7;background:#ffffff;padding:8px;}
-      .legend{position:absolute;left:10px;top:10px;width:270px;border:1.5px solid #0284c7;border-radius:6px;background:#f0f9ff;padding:8px;font-size:8px;}
-      .legend-title{font-weight:900;color:#0369a1;border-bottom:1px solid #0284c7;padding-bottom:3px;margin-bottom:5px;}
-      .legend-item{display:flex;align-items:center;gap:6px;margin-top:3px;font-size:7.5px;font-weight:600;}
-      .bom{position:absolute;left:10px;top:175px;width:270px;border:1.5px solid #0284c7;border-radius:6px;background:#ffffff;overflow:hidden;}
-      .bom h3{text-align:center;font-size:9px;margin:0;padding:5px;background:#0369a1;color:#ffffff;font-weight:900;}
-      .bom table{width:100%;border-collapse:collapse;font-size:7px;}
-      .bom td,.bom th{border:1px solid #cbd5e1;padding:3px 4px;}
-      .bom th{background:#0284c7;color:#ffffff;font-weight:bold;}
-      .bom tr:nth-child(even){background:#f8fafc;}
-      .drawing{position:absolute;left:290px;right:240px;top:10px;bottom:10px;border:1px solid #e2e8f0;border-radius:6px;background:#f8fafc;}
-      .drawing svg{width:100%;height:100%;}
-      .cartouche{position:absolute;right:10px;top:10px;width:220px;border:2px solid #0369a1;border-radius:6px;background:#ffffff;overflow:hidden;}
-      .cartouche-header{background:#0f172a;color:#ffffff;padding:8px;text-align:center;}
-      .cartouche-title{font-weight:900;font-size:11px;color:#38bdf8;}
-      .cartouche-sub{background:#e0f2fe;color:#0369a1;padding:5px;text-align:center;font-weight:800;font-size:8.5px;border-top:1px solid #0284c7;border-bottom:1px solid #0284c7;}
-      .notes{font-size:7.5px;padding:8px;line-height:1.6;color:#1e293b;}
-      .footer{position:absolute;right:10px;bottom:6px;font-size:6.5px;color:#64748b;font-weight:600;}
-    </style></head><body><div class="sheet">
-      <div class="legend">
-        <div class="legend-title">L√âGENDE TECHNIQUE ISOM√âTRIQUE</div>
-        <div class="legend-item"><span style="display:inline-block;width:18px;height:3px;background:#0284c7;"></span> Tube principal PN16 / PN40</div>
-        <div class="legend-item"><span style="display:inline-block;width:18px;height:3px;background:#d97706;"></span> Tube Haute Pression (Class 600)</div>
-        <div class="legend-item"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#16a34a;"></span> Entr√©e poste gaz</div>
-        <div class="legend-item"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#dc2626;"></span> Sortie poste gaz</div>
-        <div class="legend-item"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#7c3aed;"></span> T√© de d√©rivation / Piquage</div>
-        <div class="legend-item"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;border:1.5px solid #0369a1;background:#ffffff;"></span> Organe / Vanne / Robinetterie</div>
-        <div class="legend-item"><span style="display:inline-block;width:12px;height:6px;border-bottom:2px solid #d97706;"></span> Coude 90¬∞ / 45¬∞</div>
-        <div class="legend-item"><span style="display:inline-block;width:8px;height:8px;border-left:2px solid #b45309;border-right:2px solid #b45309;"></span> Joint Isolant (JMI) / Bride</div>
-      </div>
-      <div class="bom"><h3>NOMENCLATURE MAT√âRIEL</h3><table><thead><tr><th>RP</th><th>D√âSIGNATION</th><th>DN</th><th>"</th><th>Qt√©</th><th>U</th><th>L</th><th>R√âF.</th></tr></thead><tbody>${rows}</tbody></table></div>
-      <div class="drawing"><svg viewBox="0 0 620 420"><text x="310" y="26" text-anchor="middle" font-size="13" font-weight="bold" fill="#0369a1">${title}</text>${gcUnderlay ? `<image href="${gcUnderlay}" x="${60 + gcX}" y="${65 + gcY}" width="${500 * gcScale}" height="${300 * gcScale}" opacity="${gcOpacity}" preserveAspectRatio="none"/>` : ""}<g transform="translate(0,35)">${drawingMarkup}</g></svg></div>
-      <div class="cartouche"><div class="cartouche-header"><div class="cartouche-title">${pdiCompanyName()}</div><div style="font-size:9px;margin-top:2px;color:#93c5fd;">${dia(segments[0]?.dn || 150).inch} ‚Äî ${wilaya}</div></div><div class="cartouche-sub">PLAN ISOM√âTRIQUE M√âCANIQUE</div><div class="notes"><b>Projet :</b> ${title}<br/><b>Pression service :</b> <span style="color:#0284c7;font-weight:bold;">${pressDesign} bar</span><br/><b>Pression √©preuve :</b> <span style="color:#dc2626;font-weight:bold;">${hydrotest.toFixed(1)} bar</span><br/><b>M√©tr√© total :</b> <span style="color:#0f172a;font-weight:bold;">${totalLength.toFixed(2)} m</span><br/><span style="font-size:7px;color:#64748b;">${PDI_METRE_CONVENTION_017P3}</span><br/><b>Poids acier :</b> <span style="color:#d97706;font-weight:bold;">${totalWeight.toFixed(1)} kg</span><br/><b>Feuille :</b> ${planPage}/${totalSheets}</div></div>
-      <div class="footer">√âditeur isom√©trique tuyauterie ¬∑ ${pdiStandardsNote()} ¬∑ Format A3 paysage</div>
-    </div><div style="position:fixed;right:10mm;bottom:5mm;font:8px Arial;color:#64748b">Generated with PD & I ¬∑ ¬© 2026 DZ-YSB-DEV</div><script>onload=()=>setTimeout(()=>print(),400)</script></body></html>`); w.document.close();
+    setPrintModalOpen(true);
   };
 
 
   const buildProjectFileV474=():IsoProjectFileV474=>{
     const now=new Date().toISOString();
-    return {schemaVersion:"4.7.4",exportedAt:now,project:{id:projectIdRef.current,ownerUid:userUid||"",name:projectName,wilaya,pressDesign,createdAt:projectCreatedAtRef.current,updatedAt:now},model:{lines,nodes,segments,dimensions,cad2d:{layers:cad2dLayers,entities:cad2dEntities}},workspace:{showGrid,showDimensions,showPipeLabels,showLabels,showWelds,isoSnapStep,viewport}};
+    return {schemaVersion:"4.7.4",exportedAt:now,project:{id:projectIdRef.current,ownerUid:userUid||"",name:projectName,wilaya,pressDesign,createdAt:projectCreatedAtRef.current,updatedAt:now,unitSystem},model:{lines,nodes,segments,dimensions,supports,cad2d:{layers:cad2dLayers,entities:cad2dEntities}},workspace:{showGrid,showDimensions,showPipeLabels,showLabels,showWelds,isoSnapStep,viewport}};
   };
 
   const applyProjectSnapshot=(snapshot:IsoProjectFileV474,label:string)=>{
@@ -5470,6 +6167,8 @@ function IsometrieModule(props: { projectId?: string }) {
     historyBusyRef.current=true;
     setNodesRaw(snapshot.model.nodes);setSegmentsRaw(snapshot.model.segments);setLinesRaw(snapshot.model.lines);
     setDimensionsRaw(snapshot.model.dimensions || []);
+    setSupportsRaw(snapshot.model.supports || []);
+    setSelectedSupportId(null);
     setCad2dLayers(snapshot.model.cad2d?.layers || [
       { id: "axes_tuyauterie", name: "Axes tuyauterie", color: "#9CA3AF", visible: true, locked: false },
       { id: "annotations", name: "Annotations", color: "#9CA3AF", visible: true, locked: false },
@@ -5479,12 +6178,36 @@ function IsometrieModule(props: { projectId?: string }) {
     setSelectedCad2dIds([]);
     projectIdRef.current=snapshot.project.id;projectCreatedAtRef.current=snapshot.project.createdAt;
     setProjectName(snapshot.project.name);setWilaya(snapshot.project.wilaya);setPressDesign(snapshot.project.pressDesign);
+    if (snapshot.project.unitSystem) setUnitSystem(snapshot.project.unitSystem);
     setShowGrid(snapshot.workspace.showGrid);setShowDimensions(snapshot.workspace.showDimensions);setShowPipeLabels(snapshot.workspace.showPipeLabels);setShowLabels(snapshot.workspace.showLabels);setShowWelds(snapshot.workspace.showWelds);setIsoSnapStep(snapshot.workspace.isoSnapStep);setViewport(snapshot.workspace.viewport);
     clearSelection();setTimeout(()=>{historyBusyRef.current=false;},0);setStatusMessage(label);
   };
 
+  const exportCivilMtoCsv=()=>{
+    if (!supports.length) {
+      void pdiAlert("Aucun support n'est actuellement pr√©sent sur le plan.");
+      return;
+    }
+    const headers = "TAG,TYPE_MSS,STANDARD,DN_TUBE,DISTANCE_M,ELEVATION_Z_M,PLATINE_L_MM,PLATINE_W_MM,PLATINE_T_MM,NUANCE_ACIER,POIDS_PLATINE_KG,GOUJONS_TYPE,DIAMETRE_ANCRAGE,NB_GOUJONS,PROFONDEUR_MM,MASSIF_TYPE,BETON_L_M,BETON_W_M,BETON_H_M,VOL_BETON_M3,CLASSE_BETON\n";
+    const rows = supports.map((s) => {
+      const def = MSS_SUPPORT_CATALOG[s.type];
+      const seg = segments.find((sg) => sg.id === s.segmentId);
+      const c = s.civilSpec;
+      return `"${s.tag}","${def?.labelFr || s.type}","MSS SP-58 Type ${def?.mssStandardNumber || 0}",${seg?.dn || 100},${s.distanceFromFromNodeM.toFixed(2)},${s.elevationZ.toFixed(2)},${c.basePlateLengthMm},${c.basePlateWidthMm},${c.basePlateThicknessMm},"${c.steelGrade}",${c.calculatedPlateWeightKg.toFixed(2)},"${c.anchorType}","${c.anchorDiameter}",${c.anchorCount},${c.anchorEmbedmentDepthMm},"${c.foundationType}",${c.foundationLengthM.toFixed(2)},${c.foundationWidthM.toFixed(2)},${c.foundationHeightM.toFixed(2)},${c.calculatedConcreteVolumeM3.toFixed(3)},"${c.concreteGrade}"`;
+    }).join("\n");
+
+    const blob = new Blob([headers + rows], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `pdi_supports_gc_${projectName.replace(/[^a-z0-9]+/gi, "_").toLowerCase() || "projet"}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setStatusMessage("MTO Supportage & G√©nie Civil export√© en CSV");
+  };
+
   const exportProjectJson=()=>{
-    const payload=buildProjectFileV474();
+    const payload=pdiSignExportData(buildProjectFileV474());
     const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
     const url=URL.createObjectURL(blob),a=document.createElement("a");
     a.href=url;a.download=`${projectName.replace(/[^a-z0-9]+/gi,"_").toLowerCase()||"projet_iso"}_v474.json`;a.click();URL.revokeObjectURL(url);
@@ -5733,6 +6456,17 @@ function IsometrieModule(props: { projectId?: string }) {
       ],
     },
     {
+      title: "Supportage",
+      items: [
+        { label: "Panneau Supports & GC", hint: "SUP", run: () => { setRightPanelOpen(true); setRightPanelTab("supports"); } },
+        { label: "Placer Guide MSS Type 35", hint: "GUIDE", run: () => { setActiveSupportTypeToPlace("mss_type_35"); setRightPanelOpen(true); setRightPanelTab("supports"); setStatusMessage("Cliquez un tron√ßon pour placer le guide coulissant"); } },
+        { label: "Placer Point Fixe Type 57", hint: "ANCHOR", run: () => { setActiveSupportTypeToPlace("mss_type_57"); setRightPanelOpen(true); setRightPanelTab("supports"); setStatusMessage("Cliquez un tron√ßon pour placer le point fixe"); } },
+        { label: "Placer Pendard MSS Type 1", hint: "HANGER", run: () => { setActiveSupportTypeToPlace("mss_type_1"); setRightPanelOpen(true); setRightPanelTab("supports"); setStatusMessage("Cliquez un tron√ßon pour placer le pendard"); } },
+        { label: "Placer Patin MSS Type 39", hint: "SHOE", run: () => { setActiveSupportTypeToPlace("mss_type_39"); setRightPanelOpen(true); setRightPanelTab("supports"); setStatusMessage("Cliquez un tron√ßon pour placer le patin soud√©"); } },
+        { label: "Exporter MTO G√©nie Civil (CSV)", hint: "CSV", run: exportCivilMtoCsv, disabled: supports.length === 0 },
+      ],
+    },
+    {
       title: "Impression",
       items: [
         { label: "Planche ISO A3", hint: "A3", run: () => setIsoMode((v) => (v === "editor" ? "planche" : "editor")) },
@@ -5811,82 +6545,79 @@ function IsometrieModule(props: { projectId?: string }) {
 
   return <div
       data-pdi-studio="v4.8d1"
-      className={`${workspaceFullscreen ? "fixed inset-0 z-[9999] overflow-hidden bg-[#0B0F14] px-2 pb-2 pt-[56px] pl-[92px]" : "w-full"} pdi-studio-root ${workspaceFullscreen ? "h-screen" : "space-y-3"} animate-fade-in`} style={{ "--pdi-command-reserved-bottom": (!propertiesModalOpen && !commandPromptHidden) ? "44px" : "0px" } as React.CSSProperties} /* PATCH 017D */
+      className={`${workspaceFullscreen ? "fixed inset-0 z-[9999] overflow-hidden bg-[#000000] px-2 pb-2 pt-[56px] pl-[92px]" : "w-full"} pdi-studio-root ${workspaceFullscreen ? "h-screen" : "space-y-3"} animate-fade-in`} style={{ "--pdi-command-reserved-bottom": (!propertiesModalOpen && !commandPromptHidden) ? "44px" : "0px" } as React.CSSProperties} /* PATCH 017D */
     >
       <style>{`
-        [data-pdi-studio]{--pdi-bg:#0B0F14;--pdi-panel:#161B22;--pdi-panel2:#1C222B;--pdi-line:#30363D;--pdi-text:#E6EDF3;--pdi-muted:#8B949E;--pdi-blue:#2F81F7;--pdi-cyan:#22D3EE;--pdi-select:#F59E0B;background:var(--pdi-bg)!important;color:var(--pdi-text);font-family:Inter,ui-sans-serif,system-ui,sans-serif}
+        [data-pdi-studio]{--pdi-bg:#000000;--pdi-panel:#0E0E12;--pdi-panel2:#18181B;--pdi-line:#27272A;--pdi-text:#FFFFFF;--pdi-muted:#A1A1AA;--pdi-blue:#3F3F46;--pdi-cyan:#FFFFFF;--pdi-select:#F59E0B;background:var(--pdi-bg)!important;color:var(--pdi-text);font-family:Inter,ui-sans-serif,system-ui,sans-serif}
         [data-pdi-studio] .bg-white,[data-pdi-studio] .bg-slate-50,[data-pdi-studio] .bg-slate-100{background-color:var(--pdi-panel)!important;color:var(--pdi-text)!important}
         [data-pdi-studio] .border-slate-200,[data-pdi-studio] .border-slate-300{border-color:var(--pdi-line)!important}
         [data-pdi-studio] .text-slate-900,[data-pdi-studio] .text-slate-800,[data-pdi-studio] .text-slate-700{color:var(--pdi-text)!important}
         [data-pdi-studio] .text-slate-600,[data-pdi-studio] .text-slate-500{color:var(--pdi-muted)!important}
-        [data-pdi-studio] .pdi-library-card{background:#161B22!important;color:#E6EDF3!important;border-color:#30363D!important}
-        [data-pdi-studio] .pdi-library-card:hover{background:#243044!important;color:#fff!important;border-color:#38BDF8!important}
-        [data-pdi-studio] .pdi-library-card.active{background:#12345A!important;color:#fff!important;border-color:#22D3EE!important;box-shadow:0 0 0 1px #22D3EE}
+        [data-pdi-studio] .pdi-library-card{background:#0E0E12!important;color:#FFFFFF!important;border-color:#27272A!important}
+        [data-pdi-studio] .pdi-library-card:hover{background:#18181B!important;color:#fff!important;border-color:rgba(255,255,255,.3)!important}
+        [data-pdi-studio] .pdi-library-card.active{background:#27272A!important;color:#fff!important;border-color:#71717A!important;box-shadow:0 0 0 1px #71717A}
         [data-pdi-studio] .pdi-brand-logo{display:block;height:40px;width:auto;max-width:280px;object-fit:contain;object-position:left center;filter:drop-shadow(0 2px 8px rgba(0,0,0,.6))}
-        [data-pdi-studio] .pdi-about-logo{display:block;width:min(280px,76vw);height:min(280px,76vw);max-width:100%;margin:0 auto;border-radius:18px;object-fit:contain;background:#02070D;border:1px solid rgba(34,211,238,.3);padding:10px;box-shadow:0 20px 50px rgba(0,0,0,.6),0 0 30px rgba(34,211,238,.12)}
+        [data-pdi-studio] .pdi-about-logo{display:block;width:min(280px,76vw);height:min(280px,76vw);max-width:100%;margin:0 auto;border-radius:18px;object-fit:contain;background:#050507;border:1px solid rgba(255,255,255,.15);padding:10px;box-shadow:0 20px 50px rgba(0,0,0,.8)}
         @media(max-width:900px){[data-pdi-studio] .pdi-brand-logo{height:32px;max-width:180px}}
-        [data-pdi-studio] .pdi-library-card.dragging{background:#4A2C0A!important;border-color:#F59E0B!important}
-        [data-pdi-studio] .pdi-status-docked{backdrop-filter:blur(12px);background:rgba(2,6,23,.96)!important}
+        [data-pdi-studio] .pdi-library-card.dragging{background:#27272A!important;border-color:#F59E0B!important}
+        [data-pdi-studio] .pdi-status-docked{backdrop-filter:blur(12px);background:rgba(0,0,0,.96)!important}
         @media(max-width:900px){[data-pdi-studio] .pdi-status-docked{left:0!important}[data-pdi-studio] .pdi-brand-logo{width:170px;height:42px;min-width:170px}[data-pdi-studio] .pdi-brand-subtitle{display:none}}
-        [data-pdi-studio] input,[data-pdi-studio] select,[data-pdi-studio] textarea{background:#0F141B!important;color:var(--pdi-text)!important;border-color:var(--pdi-line)!important}
+        [data-pdi-studio] input,[data-pdi-studio] select,[data-pdi-studio] textarea{background:#09090B!important;color:var(--pdi-text)!important;border-color:var(--pdi-line)!important}
         [data-pdi-studio] button{transition:background-color .15s ease,border-color .15s ease,color .15s ease,transform .08s ease}
         [data-pdi-studio] button:active{transform:translateY(1px)}
-        [data-pdi-studio] .pdi-studio-topbar{background:#11151B;border-bottom:1px solid var(--pdi-line);box-shadow:0 8px 24px rgba(0,0,0,.28)}
-        [data-pdi-studio] .pdi-studio-rail{background:#11151B;border-right:1px solid var(--pdi-line);box-shadow:8px 0 24px rgba(0,0,0,.2)}
+        [data-pdi-studio] .pdi-studio-topbar{background:#08080A;border-bottom:1px solid rgba(255,255,255,.08);box-shadow:0 8px 24px rgba(0,0,0,.45)}
+        [data-pdi-studio] .pdi-studio-rail{background:#050507;border-right:1px solid rgba(255,255,255,.08);box-shadow:8px 0 24px rgba(0,0,0,.4)}
         [data-pdi-studio] .pdi-cad-menubar{display:flex;align-items:center;gap:2px;min-width:0;overflow:visible}
         [data-pdi-studio] .pdi-cad-menu{position:relative}
-        [data-pdi-studio] .pdi-cad-menu-trigger{height:28px;padding:0 10px;border-radius:6px;color:#D1D5DB;background:transparent;font-size:11px;font-weight:900;white-space:nowrap}
-        [data-pdi-studio] .pdi-cad-menu:hover .pdi-cad-menu-trigger{background:#1F2937;color:white}
-        [data-pdi-studio] .pdi-cad-menu-panel{display:none;position:absolute;top:30px;left:0;min-width:210px;max-height:70vh;overflow:auto;z-index:10050;background:#0F141B;border:1px solid #30363D;border-radius:10px;padding:6px;box-shadow:0 18px 45px rgba(0,0,0,.45)}
-        [data-pdi-studio] .pdi-cad-float-props{position:fixed;width:218px;z-index:10070;background:#111317;border:1px solid #2d333b;border-radius:8px;box-shadow:0 18px 44px rgba(0,0,0,.55);color:#d1d5db;font-size:10px;overflow:hidden;user-select:none}
-        [data-pdi-studio] .pdi-cad-float-head{height:27px;display:flex;align-items:center;gap:7px;background:#0b0d10;border-bottom:1px solid #2d333b;padding:0 7px;cursor:move;color:#e5e7eb;letter-spacing:.08em}
-        [data-pdi-studio] .pdi-cad-float-head b{font-size:9px}.pdi-cad-float-head span{margin-left:auto;color:#8b949e;font-size:9px;text-transform:uppercase}.pdi-cad-float-head button{width:18px;height:18px;border:0;background:#22272e;color:#8b949e;border-radius:4px;cursor:pointer}
-        [data-pdi-studio] .pdi-cad-float-body{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:7px;background:#161b22;max-height:210px;overflow:auto}
-        [data-pdi-studio] .pdi-cad-float-body label{display:flex;flex-direction:column;gap:2px;color:#8b949e;font-size:8px;font-weight:800;text-transform:uppercase}.pdi-cad-float-body label.wide{grid-column:1/-1}
-        [data-pdi-studio] .pdi-cad-float-body input,[data-pdi-studio] .pdi-cad-float-body select{height:22px;min-width:0;border-radius:4px;background:#0d1117!important;border:1px solid #30363d!important;color:#e6edf3!important;font-size:10px;padding:0 5px}
-        [data-pdi-studio] .pdi-cad-float-actions{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:6px;background:#0f141b;border-top:1px solid #2d333b}.pdi-cad-float-actions button,.pdi-cad-props-tab{height:22px;border-radius:4px;border:1px solid #30363d;background:#21262d;color:#c9d1d9;font-size:9px;font-weight:900;cursor:pointer}.pdi-cad-float-actions button:hover,.pdi-cad-props-tab:hover{background:#30363d;color:white}.pdi-cad-props-tab{position:fixed;z-index:10069;width:62px;background:#111317}
+        [data-pdi-studio] .pdi-cad-menu-trigger{height:28px;padding:0 10px;border-radius:6px;color:#A1A1AA;background:transparent;font-size:11px;font-weight:900;white-space:nowrap}
+        [data-pdi-studio] .pdi-cad-menu:hover .pdi-cad-menu-trigger{background:#18181B;color:white}
+        [data-pdi-studio] .pdi-cad-menu-panel{display:none;position:absolute;top:30px;left:0;min-width:210px;max-height:70vh;overflow:auto;z-index:10050;background:#09090B;border:1px solid #27272A;border-radius:10px;padding:6px;box-shadow:0 18px 45px rgba(0,0,0,.6)}
+        [data-pdi-studio] .pdi-cad-float-props{position:fixed;width:218px;z-index:10070;background:#0E0E12;border:1px solid #27272A;border-radius:8px;box-shadow:0 18px 44px rgba(0,0,0,.7);color:#A1A1AA;font-size:10px;overflow:hidden;user-select:none}
+        [data-pdi-studio] .pdi-cad-float-head{height:27px;display:flex;align-items:center;gap:7px;background:#050507;border-bottom:1px solid #27272A;padding:0 7px;cursor:move;color:#FFFFFF;letter-spacing:.08em}
+        [data-pdi-studio] .pdi-cad-float-head b{font-size:9px}.pdi-cad-float-head span{margin-left:auto;color:#71717A;font-size:9px;text-transform:uppercase}.pdi-cad-float-head button{width:18px;height:18px;border:0;background:#18181B;color:#A1A1AA;border-radius:4px;cursor:pointer}
+        [data-pdi-studio] .pdi-cad-float-body{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:7px;background:#0E0E12;max-height:210px;overflow:auto}
+        [data-pdi-studio] .pdi-cad-float-body label{display:flex;flex-direction:column;gap:2px;color:#71717A;font-size:8px;font-weight:800;text-transform:uppercase}.pdi-cad-float-body label.wide{grid-column:1/-1}
+        [data-pdi-studio] .pdi-cad-float-body input,[data-pdi-studio] .pdi-cad-float-body select{height:22px;min-width:0;border-radius:4px;background:#050507!important;border:1px solid #27272A!important;color:#FFFFFF!important;font-size:10px;padding:0 5px}
+        [data-pdi-studio] .pdi-cad-float-actions{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:6px;background:#09090B;border-top:1px solid #27272A}.pdi-cad-float-actions button,.pdi-cad-props-tab{height:22px;border-radius:4px;border:1px solid #27272A;background:#18181B;color:#FFFFFF;font-size:9px;font-weight:900;cursor:pointer}.pdi-cad-float-actions button:hover,.pdi-cad-props-tab:hover{background:#27272A;color:white}.pdi-cad-props-tab{position:fixed;z-index:10069;width:62px;background:#09090B}
 
         [data-pdi-studio] .pdi-cad-menu:hover .pdi-cad-menu-panel{display:block}
-        [data-pdi-studio] .pdi-cad-menu-item{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;border-radius:7px;padding:7px 8px;color:#E5E7EB;background:transparent;text-align:left;font-size:11px;font-weight:800}
-        [data-pdi-studio] .pdi-cad-menu-item:hover:not(:disabled){background:#1D4ED8;color:white}
+        [data-pdi-studio] .pdi-cad-menu-item{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;border-radius:7px;padding:7px 8px;color:#FFFFFF;background:transparent;text-align:left;font-size:11px;font-weight:800}
+        [data-pdi-studio] .pdi-cad-menu-item:hover:not(:disabled){background:#27272A;color:white}
         [data-pdi-studio] .pdi-cad-menu-item:disabled{opacity:.38;cursor:not-allowed}
-        [data-pdi-studio] .pdi-cad-menu-hint{font-size:9px;color:#94A3B8;font-weight:900}
-        [data-pdi-studio] .pdi-cad-props-mini{background:#11151B;border:1px solid #30363D;border-left:3px solid #4DB8D4;border-radius:8px;color:#D1D5DB;font-size:10px;box-shadow:0 8px 22px rgba(0,0,0,.28);overflow:hidden}
-        [data-pdi-studio] .pdi-cad-props-head{height:30px;display:flex;align-items:center;justify-content:space-between;padding:0 9px;background:#151B24;border-bottom:1px solid #30363D;color:#E6EDF3;font-size:10px;letter-spacing:.08em}
-        [data-pdi-studio] .pdi-cad-props-mini details{border-bottom:1px solid #242B36}
-        [data-pdi-studio] .pdi-cad-props-mini summary{cursor:pointer;padding:7px 9px;color:#9CA3AF;font-weight:900;text-transform:uppercase;letter-spacing:.12em;font-size:8px;background:#0F141B}
+        [data-pdi-studio] .pdi-cad-menu-hint{font-size:9px;color:#71717A;font-weight:900}
+        [data-pdi-studio] .pdi-cad-props-mini{background:#0E0E12;border:1px solid #27272A;border-left:3px solid #71717A;border-radius:8px;color:#A1A1AA;font-size:10px;box-shadow:0 8px 22px rgba(0,0,0,.5);overflow:hidden}
+        [data-pdi-studio] .pdi-cad-props-head{height:30px;display:flex;align-items:center;justify-content:space-between;padding:0 9px;background:#09090B;border-bottom:1px solid #27272A;color:#FFFFFF;font-size:10px;letter-spacing:.08em}
+        [data-pdi-studio] .pdi-cad-props-mini details{border-bottom:1px solid #18181B}
+        [data-pdi-studio] .pdi-cad-props-mini summary{cursor:pointer;padding:7px 9px;color:#71717A;font-weight:900;text-transform:uppercase;letter-spacing:.12em;font-size:8px;background:#050507}
         [data-pdi-studio] .pdi-props-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:8px}
-        [data-pdi-studio] .pdi-props-grid label{display:flex;flex-direction:column;gap:3px;color:#7D8590;font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:.08em}
+        [data-pdi-studio] .pdi-props-grid label{display:flex;flex-direction:column;gap:3px;color:#71717A;font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:.08em}
         [data-pdi-studio] .pdi-props-grid label.wide{grid-column:1/-1}
-        [data-pdi-studio] .pdi-props-grid input,[data-pdi-studio] .pdi-props-grid select{height:24px;border-radius:4px;padding:0 6px;font-size:10px;background:#0B0F14!important;border:1px solid #30363D!important;color:#E6EDF3!important}
+        [data-pdi-studio] .pdi-props-grid input,[data-pdi-studio] .pdi-props-grid select{height:24px;border-radius:4px;padding:0 6px;font-size:10px;background:#050507!important;border:1px solid #27272A!important;color:#FFFFFF!important}
         [data-pdi-studio] .pdi-props-actions{display:grid;grid-template-columns:repeat(2,1fr);gap:5px;padding:8px}
-        [data-pdi-studio] .pdi-props-actions button{height:24px;border-radius:4px;background:#1F2937;color:#D1D5DB;border:1px solid #30363D;font-size:9px;font-weight:900}
-        [data-pdi-studio] .pdi-props-actions button:hover{background:#2563EB;color:white}
+        [data-pdi-studio] .pdi-props-actions button{height:24px;border-radius:4px;background:#18181B;color:#FFFFFF;border:1px solid #27272A;font-size:9px;font-weight:900}
+        [data-pdi-studio] .pdi-props-actions button:hover{background:#27272A;color:white}
         [data-pdi-studio] .pdi-props-actions button.danger{background:#7F1D1D;color:#FECACA;border-color:#B91C1C}
 
-        [data-pdi-studio] .pdi-studio-rail{background:#11151B;border-right:1px solid var(--pdi-line);box-shadow:8px 0 24px rgba(0,0,0,.2)}
-        [data-pdi-studio] .pdi-rail-button{width:38px;height:38px;border:1px solid rgba(255,255,255,0.06);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#9CA3AF;background:#161B22;font-weight:700;font-size:13px;cursor:pointer}
-        [data-pdi-studio] .pdi-rail-button:hover{border-color:#3B82F6;color:#E6EDF3;background:#1C2735}
-        [data-pdi-studio] .pdi-rail-button.active{color:white;background:#2563EB;border-color:#60A5FA;box-shadow:0 0 12px rgba(37,99,235,0.4)}
-        [data-pdi-studio] .pdi-cad-ribbon{background:#151B24;border-bottom:1px solid #30363D;box-shadow:0 8px 20px rgba(0,0,0,.25)}
-        [data-pdi-studio] .pdi-ribbon-group{height:40px;display:flex;align-items:center;gap:4px;border-right:1px solid #30363D;padding-right:10px;flex-shrink:0}
-        [data-pdi-studio] .pdi-ribbon-group span{font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:#7D8590;font-weight:900;margin-right:3px}
-        [data-pdi-studio] .pdi-ribbon-group button{height:30px;padding:0 9px;border-radius:6px;border:1px solid #30363D;background:#1F2937;color:#D1D5DB;font-size:10px;font-weight:900;white-space:nowrap}
-        [data-pdi-studio] .pdi-ribbon-group button:hover{background:#2563EB;color:white;border-color:#60A5FA}
-        /* PATCH 017M : ruban a 9 onglets. Les classes .pdi-cad-ribbon et
-           .pdi-ribbon-group existaient deja mais n etaient utilisees nulle
-           part : elles sont enfin branchees, sans style en double. */
-        [data-pdi-studio] .pdi-ruban-onglet{height:26px;padding:0 11px;border-radius:6px 6px 0 0;color:#9CA3AF;background:transparent;font-size:11px;font-weight:900;white-space:nowrap;border:1px solid transparent;border-bottom:0}
-        [data-pdi-studio] .pdi-ruban-onglet:hover{background:#1F2937;color:#E6EDF3}
-        [data-pdi-studio] .pdi-ruban-onglet.actif{background:#151B24;color:#22D3EE;border-color:#30363D}
+        [data-pdi-studio] .pdi-studio-rail{background:#050507;border-right:1px solid rgba(255,255,255,.08);box-shadow:8px 0 24px rgba(0,0,0,.4)}
+        [data-pdi-studio] .pdi-rail-button{width:38px;height:38px;border:1px solid rgba(255,255,255,0.08);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#A1A1AA;background:#0E0E12;font-weight:700;font-size:13px;cursor:pointer}
+        [data-pdi-studio] .pdi-rail-button:hover{border-color:rgba(255,255,255,.3);color:#FFFFFF;background:#18181B}
+        [data-pdi-studio] .pdi-rail-button.active{color:white;background:#27272A;border-color:#71717A;box-shadow:0 0 12px rgba(0,0,0,0.6)}
+        [data-pdi-studio] .pdi-cad-ribbon{background:#09090B;border-bottom:1px solid #27272A;box-shadow:0 8px 20px rgba(0,0,0,.45)}
+        [data-pdi-studio] .pdi-ribbon-group{height:40px;display:flex;align-items:center;gap:4px;border-right:1px solid #27272A;padding-right:10px;flex-shrink:0}
+        [data-pdi-studio] .pdi-ribbon-group span{font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:#71717A;font-weight:900;margin-right:3px}
+        [data-pdi-studio] .pdi-ribbon-group button{height:30px;padding:0 9px;border-radius:6px;border:1px solid #27272A;background:#141418;color:#E4E4E7;font-size:10px;font-weight:900;white-space:nowrap}
+        [data-pdi-studio] .pdi-ribbon-group button:hover{background:#27272A;color:white;border-color:rgba(255,255,255,.3)}
+        /* PATCH 017M : ruban a 9 onglets. */
+        [data-pdi-studio] .pdi-ruban-onglet{height:26px;padding:0 11px;border-radius:6px 6px 0 0;color:#71717A;background:transparent;font-size:11px;font-weight:900;white-space:nowrap;border:1px solid transparent;border-bottom:0}
+        [data-pdi-studio] .pdi-ruban-onglet:hover{background:#141418;color:#FFFFFF}
+        [data-pdi-studio] .pdi-ruban-onglet.actif{background:#09090B;color:#FFFFFF;border-color:#27272A}
         [data-pdi-studio] .pdi-cad-ribbon{display:flex;align-items:stretch;gap:10px;padding:5px 10px;min-height:64px;overflow-x:auto}
         [data-pdi-studio] .pdi-ribbon-group{height:auto;flex-direction:column;align-items:flex-start;justify-content:space-between;gap:3px}
         [data-pdi-studio] .pdi-ruban-boutons{display:flex;align-items:center;gap:4px}
-        [data-pdi-studio] .pdi-ribbon-group button:disabled{opacity:.42;cursor:not-allowed;background:#161B22;color:#7D8590;border-color:#262C36}
+        [data-pdi-studio] .pdi-ribbon-group button:disabled{opacity:.42;cursor:not-allowed;background:#0E0E12;color:#71717A;border-color:#18181B}
         @media(max-width:900px){[data-pdi-studio] .pdi-cad-ribbon{display:none!important}}
 
-
-        [data-pdi-studio] ::-webkit-scrollbar{width:8px;height:8px}[data-pdi-studio] ::-webkit-scrollbar-track{background:#0B0F14}[data-pdi-studio] ::-webkit-scrollbar-thumb{background:#374151;border:2px solid #0B0F14;border-radius:8px}
+        [data-pdi-studio] ::-webkit-scrollbar{width:8px;height:8px}[data-pdi-studio] ::-webkit-scrollbar-track{background:#000000}[data-pdi-studio] ::-webkit-scrollbar-thumb{background:#27272A;border:2px solid #000000;border-radius:8px}
         @media(max-width:900px){
           [data-pdi-studio].pdi-studio-root{padding-left:8px!important;padding-right:8px!important;padding-top:116px!important}
           [data-pdi-studio] .pdi-studio-rail{display:none!important}
@@ -5916,7 +6647,7 @@ function IsometrieModule(props: { projectId?: string }) {
         [data-pdi-studio] .pdi-v48d-primary-workspace{border-width:1px!important}
         [data-pdi-studio] .pdi-v48d-primary-workspace{padding-bottom:var(--pdi-command-reserved-bottom,0px)!important}
         @media(max-width:900px){[data-pdi-studio] .pdi-command-dock-015{left:8px!important;right:8px!important;bottom:8px!important}.pdi-command-dock-015 label{display:none!important}}
-        [data-pdi-studio] svg{background-color:#0b0f14!important;background-image:radial-gradient(circle at center,rgba(148,163,184,.09) 0,transparent 55%)!important}
+        [data-pdi-studio] svg{background-color:#000000!important;background-image:radial-gradient(circle at center,rgba(255,255,255,.04) 0,transparent 55%)!important}
       `}</style>
       {workspaceFullscreen&&<>
         <header className="pdi-studio-topbar fixed left-0 right-0 top-0 z-[10008] h-[54px] px-3 flex items-center justify-between gap-3 text-white">
@@ -5924,27 +6655,25 @@ function IsometrieModule(props: { projectId?: string }) {
             <button
               type="button"
               onClick={() => window.dispatchEvent(new CustomEvent("pdi:navigate", { detail: "home" }))}
-              className="shrink-0 rounded-lg border border-cyan-500/50 bg-gradient-to-r from-cyan-950/80 to-blue-900/60 px-3 py-1.5 text-xs font-black text-cyan-200 hover:border-cyan-300 hover:text-white flex items-center gap-1.5 shadow-sm transition-all"
+              className="shrink-0 rounded-lg border border-white/15 bg-zinc-900 px-3 py-1.5 text-xs font-black text-white hover:border-white/30 hover:bg-zinc-800 flex items-center gap-1.5 shadow-sm transition-all"
               title="Retour √† l'accueil PD&I"
             >
               <span className="text-base leading-none">‚åÇ</span>
               <span className="font-bold">Accueil</span>
             </button>
-            <div className="h-6 w-px bg-slate-700/80"/>
+            <div className="h-6 w-px bg-zinc-800"/>
             <button
               type="button"
               onClick={() => setAboutOpen(true)}
-              className="shrink-0 rounded-lg border border-cyan-500/25 bg-black/50 px-2 py-1 transition-all hover:border-cyan-400/50 hover:bg-black/70 flex items-center"
+              className="shrink-0 rounded-lg border border-white/10 bg-black/60 px-2 py-1 transition-all hover:border-white/25 hover:bg-black/90 flex items-center"
               title="√Ä propos de PD&I"
             >
               <PdiBrandMark variant="horizontal" size="sm" maxHeight={36} />
             </button>
-            <div className="hidden lg:block h-7 w-px bg-slate-700"/>
-            <div className="hidden lg:block min-w-0"><div className="text-[9px] uppercase text-slate-500">Projet actif</div><div className="max-w-[220px] truncate text-xs font-bold">{projectName}</div></div>
+            <div className="hidden lg:block h-7 w-px bg-zinc-800"/>
+            <div className="hidden lg:block min-w-0"><div className="text-[9px] uppercase text-zinc-500 font-bold">Projet actif</div><div className="max-w-[220px] truncate text-xs font-bold text-white">{projectName}</div></div>
           </div>
-            {/* PATCH 017M : bande d onglets. Les anciens menus deroulants ne
-                sont plus affiches ; ils restent la source des actions du
-                ruban, donc il n existe qu une seule surface cliquable. */}
+            {/* PATCH 017M : bande d onglets. */}
             <nav className="pdi-cad-menubar hidden md:flex" aria-label="Onglets du ruban PD & I">
               {PDI_ONGLETS_RUBAN_017M.map((onglet) => (
                 <button
@@ -5967,65 +6696,88 @@ function IsometrieModule(props: { projectId?: string }) {
               </button>
             </nav>
           <div className="flex items-center gap-2">
-    {/* PATCH 016A: bouton BOM & M√©tr√© topbar supprim√© */}
-            <div className="hidden xl:flex items-center gap-3 text-[10px] text-slate-400"><span>{nodes.length} n≈ìuds</span><span>{segments.length} tron√ßons</span><button type="button" title={graphIssues.length?graphIssues.slice(0,8).map(issue=>(issue.severity==="error"?"ERREUR : ":"ALERTE : ")+issue.message).join("\n"):"Aucune anomalie de reseau detectee."} onClick={()=>{setStudioLayout("control");setLeftPanelOpen(true);setStatusMessage(graphErrorCount?`CONTROLE RESEAU : ${graphErrorCount} erreur(s) - ${graphIssues.filter(issue=>issue.severity==="error").slice(0,3).map(issue=>issue.message).join(" ; ")}`:graphWarningCount?`CONTROLE RESEAU : ${graphWarningCount} alerte(s) - ${graphIssues.slice(0,3).map(issue=>issue.message).join(" ; ")}`:"CONTROLE RESEAU : graphe valide, aucune anomalie.");}} className={graphErrorCount?"text-red-400 underline decoration-dotted cursor-pointer":graphWarningCount?"text-amber-300 underline decoration-dotted cursor-pointer":"text-emerald-400 cursor-pointer"}>{graphErrorCount?`${graphErrorCount} erreur(s)`:graphWarningCount?`${graphWarningCount} alerte(s)`:"Graphe valide"}</button></div>
-            <button onClick={()=>setCommandPaletteOpen(true)} className="h-8 px-2 rounded-md border border-slate-700 bg-slate-800 text-[10px] font-black" title="Palette commandes">‚åòK</button>
+            <div className="hidden xl:flex items-center gap-3 text-[10px] text-zinc-400 font-medium"><span>{nodes.length} n≈ìuds</span><span>{segments.length} tron√ßons</span><button type="button" title={graphIssues.length?graphIssues.slice(0,8).map(issue=>(issue.severity==="error"?"ERREUR : ":"ALERTE : ")+issue.message).join("\n"):"Aucune anomalie de reseau detectee."} onClick={()=>{setStudioLayout("control");setLeftPanelOpen(true);setStatusMessage(graphErrorCount?`CONTROLE RESEAU : ${graphErrorCount} erreur(s) - ${graphIssues.filter(issue=>issue.severity==="error").slice(0,3).map(issue=>issue.message).join(" ; ")}`:graphWarningCount?`CONTROLE RESEAU : ${graphWarningCount} alerte(s) - ${graphIssues.slice(0,3).map(issue=>issue.message).join(" ; ")}`:"CONTROLE RESEAU : graphe valide, aucune anomalie.");}} className={graphErrorCount?"text-red-400 underline decoration-dotted cursor-pointer":graphWarningCount?"text-amber-300 underline decoration-dotted cursor-pointer":"text-zinc-300 cursor-pointer"}>{graphErrorCount?`${graphErrorCount} erreur(s)`:graphWarningCount?`${graphWarningCount} alerte(s)`:"Graphe valide"}</button></div>
+            {/* Commutateur Universel d'Unit√©s Bi-Syst√®me (019U) */}
+            <button
+              type="button"
+              onClick={() => {
+                const next = unitSystem === "metric" ? "imperial" : "metric";
+                setUnitSystem(next);
+                setStatusMessage(
+                  next === "imperial"
+                    ? "SYST√àME IMP√âRIAL ACTIV√â (ASME / US Customary : ft-in, psi, lbs, ¬∞F)"
+                    : "SYST√àME M√âTRIQUE ACTIV√â (ISO 80000 / SI : m, mm, bar, kg, ¬∞C)"
+                );
+              }}
+              className={`h-8 px-2.5 rounded-md border text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm ${
+                unitSystem === "imperial"
+                  ? "bg-amber-950/80 border-amber-500 text-amber-300 hover:bg-amber-900"
+                  : "bg-cyan-950/80 border-cyan-500 text-cyan-300 hover:bg-cyan-900"
+              }`}
+              title="Basculer le syst√®me d'unit√©s (M√©trique SI ‚Üî Imp√©rial US Customary - ISO 80000 / IEEE SI 10)"
+            >
+              <span className="text-[10px] font-mono font-black">
+                {unitSystem === "imperial" ? "US (ft/psi)" : "SI (m/bar)"}
+              </span>
+            </button>
+            <button onClick={()=>setCommandPaletteOpen(true)} className="h-8 px-2.5 rounded-md border border-zinc-800 bg-zinc-900 text-zinc-300 hover:text-white hover:border-zinc-700 text-[10px] font-black" title="Palette commandes">‚åòK</button>
             <div className="relative">
               <button
                 type="button"
                 onClick={() => setTopbarProfileOpen(v => !v)}
-                className="h-8 px-2.5 rounded-md border border-cyan-500/40 bg-slate-900 hover:bg-cyan-950/50 text-cyan-200 text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm"
+                className="h-8 px-2.5 rounded-md border border-white/15 bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm"
                 title="Menu Profil & Session"
               >
+                <span className="text-[9px] font-mono text-zinc-300 border border-white/15 rounded px-1 py-0.5">{PDI_PATCH_VERSION}</span>
                 <span>Youcef</span>
                 <span className="text-[10px] opacity-70">‚ñæ</span>
               </button>
               {topbarProfileOpen && (
                 <div
-                  className="fixed right-3 top-[50px] z-[10010] w-56 rounded-xl border border-cyan-500/40 bg-[#0B111A]/95 backdrop-blur-md p-1.5 shadow-2xl text-xs flex flex-col gap-0.5"
+                  className="fixed right-3 top-[50px] z-[10010] w-56 rounded-xl border border-white/15 bg-[#0D0D10]/98 backdrop-blur-md p-1.5 shadow-2xl text-xs flex flex-col gap-0.5"
                   onClick={() => setTopbarProfileOpen(false)}
                 >
-                  <div className="px-3 py-2 border-b border-slate-700/50 mb-1">
-                    <p className="font-bold text-slate-200 truncate"><span className="text-[9px] font-mono text-cyan-300 border border-cyan-500/40 rounded px-1 py-0.5 mr-1.5 align-middle">{PDI_PATCH_VERSION}</span>Youcef</p>
-                    <p className="text-[10px] text-cyan-400 uppercase font-mono">Session active</p>
+                  <div className="px-3 py-2 border-b border-zinc-800 mb-1">
+                    <p className="font-bold text-white truncate flex items-center justify-between"><span>Youcef</span><span className="text-[9px] font-mono text-zinc-300 border border-white/15 rounded px-1 py-0.5">{PDI_PATCH_VERSION}</span></p>
+                    <p className="text-[10px] text-zinc-400 font-mono mt-0.5">Patch {PDI_PATCH_VERSION} ‚Ä¢ Session active</p>
                   </div>
                   <button
                     type="button"
                     onClick={() => window.dispatchEvent(new CustomEvent("pdi:navigate", { detail: "launcher" }))}
-                    className="w-full text-left px-3 py-2 rounded-lg text-slate-200 hover:bg-cyan-950/60 hover:text-cyan-200 font-bold transition-all flex items-center justify-between"
+                    className="w-full text-left px-3 py-2 rounded-lg text-zinc-200 hover:bg-zinc-800 hover:text-white font-bold transition-all flex items-center justify-between"
                   >
                     <span>‚ú¶ Nouveau projet</span>
-                    <span className="text-[10px] text-slate-400">Choix</span>
+                    <span className="text-[10px] text-zinc-400">Choix</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => window.dispatchEvent(new CustomEvent("pdi:navigate", { detail: "home" }))}
-                    className="w-full text-left px-3 py-2 rounded-lg text-slate-200 hover:bg-slate-800 font-bold transition-all"
+                    className="w-full text-left px-3 py-2 rounded-lg text-zinc-200 hover:bg-zinc-800 hover:text-white font-bold transition-all"
                   >
                     ‚åÇ Accueil PD&I
                   </button>
                   <button
                     type="button"
                     onClick={() => window.dispatchEvent(new CustomEvent("pdi:navigate", { detail: "profile" }))}
-                    className="w-full text-left px-3 py-2 rounded-lg text-slate-200 hover:bg-slate-800 font-bold transition-all"
+                    className="w-full text-left px-3 py-2 rounded-lg text-zinc-200 hover:bg-zinc-800 hover:text-white font-bold transition-all"
                   >
                     üë§ Voir mon profil
                   </button>
                   <button
                     type="button"
                     onClick={() => window.dispatchEvent(new CustomEvent("pdi:navigate", { detail: "projects" }))}
-                    className="w-full text-left px-3 py-2 rounded-lg text-slate-200 hover:bg-slate-800 font-bold transition-all"
+                    className="w-full text-left px-3 py-2 rounded-lg text-zinc-200 hover:bg-zinc-800 hover:text-white font-bold transition-all"
                   >
                     üìÅ Mes projets
                   </button>
                   <button
                     type="button"
                     onClick={() => window.dispatchEvent(new CustomEvent("pdi:navigate", { detail: "landing" }))}
-                    className="w-full text-left px-3 py-2 rounded-lg text-slate-200 hover:bg-slate-800 font-bold transition-all"
+                    className="w-full text-left px-3 py-2 rounded-lg text-zinc-200 hover:bg-zinc-800 hover:text-white font-bold transition-all"
                   >
                     ‚óà Pr√©sentation Landing
                   </button>
-                  <div className="h-px bg-red-500/20 my-1" />
+                  <div className="h-px bg-zinc-800 my-1" />
                   <button
                     type="button"
                     onClick={() => window.dispatchEvent(new CustomEvent("pdi:navigate", { detail: "logout" }))}
@@ -6042,33 +6794,13 @@ function IsometrieModule(props: { projectId?: string }) {
         {/* PATCH 017M : rangee de groupes du ruban, lue depuis
             pdiRegistreCommandes.v1. Une commande grisee est visible mais non
             cliquable : son infobulle annonce le jalon qui l activera. */}
-        {!rubanReplie017M && (
-          <div className="pdi-cad-ribbon" data-pdi-ruban="017m">
-            {pdiGroupesOnglet017M(rubanOnglet017M).map((groupe) => (
-              <div key={groupe} className="pdi-ribbon-group">
-                <div className="pdi-ruban-boutons">
-                  {pdiEntreesGroupe017M(rubanOnglet017M, groupe).map((entree) => {
-                    const cible = pdiCibleRuban017M(entree);
-                    const inactif = entree.etat === "grise" || !cible || !!cible.disabled;
-                    const libelle = entree.suivreLibelle && cible ? cible.label : entree.nomFr;
-                    return (
-                      <button
-                        key={entree.id}
-                        type="button"
-                        disabled={inactif}
-                        title={pdiInfobulleRuban017M(entree, cible ? cible.hint : undefined)}
-                        onClick={() => { if (cible) { cible.run(); setStatusMessage(entree.nomFr); } }}
-                      >
-                        {entree.icone ? entree.icone + " " : ""}{libelle}
-                      </button>
-                    );
-                  })}
-                </div>
-                <span>{groupe}</span>
-              </div>
-            ))}
-          </div>
-        )}
+        <IsoRibbonBar
+          collapsed={rubanReplie017M}
+          activeTab={rubanOnglet017M}
+          resolveTarget={pdiCibleRuban017M}
+          resolveTooltip={pdiInfobulleRuban017M}
+          onExecute={(name) => setStatusMessage(name)}
+        />
         <aside className="pdi-studio-rail fixed bottom-0 left-0 top-[54px] z-[10005] w-[86px] py-2 px-1.5 flex flex-col items-center gap-1.5 overflow-y-auto">
           {/* Grille 2 colonnes : Symboles Tuyauterie & Outils de base */}
           <div className="w-full grid grid-cols-2 gap-1">
@@ -6130,6 +6862,24 @@ function IsometrieModule(props: { projectId?: string }) {
               className={`pdi-rail-button ${isoDrawMode === "dimension" ? "active" : ""}`}
             >
               <Ruler className="w-4 h-4" />
+            </button>
+            <button
+              title="Supportage MSS SP-58 & G√©nie Civil (SUP / ANCHOR)"
+              onClick={() => {
+                setRightPanelOpen(true);
+                setRightPanelTab("supports");
+                if (!activeSupportTypeToPlace) {
+                  setActiveSupportTypeToPlace("mss_type_35");
+                  setStatusMessage("Mode placement actif : cliquez un tron√ßon pour implanter un support");
+                  setAutocadPrompt("COMMANDE [SUPPORT] : Cliquez un tron√ßon de tuyauterie pour y ancrer le support (√âchap pour annuler).");
+                } else {
+                  setActiveSupportTypeToPlace(null);
+                  setStatusMessage("Mode placement de support d√©sactiv√©");
+                }
+              }}
+              className={`pdi-rail-button ${rightPanelTab === "supports" || activeSupportTypeToPlace ? "active bg-indigo-900/70 text-indigo-300 ring-1 ring-indigo-400" : ""}`}
+            >
+              <Anchor className="w-4 h-4" />
             </button>
             <button
               title="Pivoter √©quipement s√©lectionn√© (R / Maj+R)"
@@ -6429,8 +7179,8 @@ function IsometrieModule(props: { projectId?: string }) {
               <PdiBrandMark variant="square" size="lg" className="pdi-about-logo flex items-center justify-center" />
             </div>
             <h3 className="mt-3 text-lg font-black text-white">PD &amp; I ‚Äî Pipeline Design &amp; Isometrics</h3>
-            <p className="mt-1 text-xs font-semibold text-cyan-300">Powered by DZ-YSB-DEV</p>
-            <p className="mt-4 text-[11px] text-slate-400">¬© 2026 DZ-YSB-DEV. All rights reserved.</p>
+            <p className="mt-1 text-xs font-bold text-white tracking-wide">Powered by ORTHOGONAL - ENG</p>
+            <p className="mt-4 text-[11px] text-slate-400">¬© 2026 ORTHOGONAL - ENG. All rights reserved.</p>
             <p className="text-[10px] text-slate-500">Version 4.8d1</p>
             <button onClick={() => setAboutOpen(false)} className="mt-5 rounded-lg bg-blue-600 px-6 py-2 text-xs font-black text-white hover:bg-blue-500 transition-colors">
               Fermer
@@ -6461,6 +7211,22 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
               >
                 <b>M</b> ¬∑ Cotation 2 ancrages
               </button>
+              <button
+                onClick={() =>
+                  runWorkspaceCommand(
+                    () => {
+                      setActiveSupportTypeToPlace("mss_type_35");
+                      setRightPanelOpen(true);
+                      setRightPanelTab("supports");
+                      setStatusMessage("Cliquez sur un tron√ßon pour implanter le support");
+                    },
+                    "Placer support MSS SP-58",
+                  )
+                }
+                className="p-3 text-left rounded-xl bg-indigo-950 hover:bg-indigo-900 text-indigo-100 border border-indigo-800"
+              >
+                <b>SUP</b> ¬∑ Support MSS SP-58 / GC
+              </button>
               <button onClick={() => runWorkspaceCommand(() => alignSelectedNodesAxis("x"), "Alignement X")} className="p-3 text-left rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700"><b>AX</b> ¬∑ Aligner X</button>
               <button onClick={() => runWorkspaceCommand(() => alignSelectedNodesAxis("y"), "Alignement Y")} className="p-3 text-left rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700"><b>AY</b> ¬∑ Aligner Y</button>
               <button onClick={() => runWorkspaceCommand(() => alignSelectedNodesAxis("z"), "Alignement Z")} className="p-3 text-left rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700"><b>AZ</b> ¬∑ Aligner Z</button>
@@ -6469,6 +7235,21 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
               <button onClick={() => runWorkspaceCommand(redressIsoSelection, "Redresser ISO")} className="p-3 text-left rounded-xl bg-emerald-950 hover:bg-emerald-900 text-emerald-100 border border-emerald-800"><b>ISO</b> ¬∑ Redresser ISO</button>
               <button onClick={() => runWorkspaceCommand(removeSelectedDimensions, "Cotation supprim√©e")} className="p-3 text-left rounded-xl bg-red-950 hover:bg-red-900 text-red-100 border border-red-800"><b>‚å´</b> ¬∑ Suppr. derni√®re cote</button></div></div></div>}
     {shortcutsOpen&&<div className="fixed inset-0 z-[10001] bg-slate-950/60 flex items-center justify-center p-4" onMouseDown={()=>setShortcutsOpen(false)}><div className="bg-slate-900 text-slate-100 rounded-2xl shadow-2xl border border-slate-700 w-[min(720px,95vw)] p-5" onMouseDown={e=>e.stopPropagation()}><div className="flex justify-between"><h3 className="font-black">Raccourcis V4.6</h3><button onClick={()=>setShortcutsOpen(false)} className="text-slate-300 hover:text-white">‚úï</button></div><div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-4 text-xs">{[["V","S√©lection"],["H / Espace","Main"],["N","N≈ìud"],["T","Tube"],["E","T√©"],["C","Coude"],["R / Shift+R","Rotation ¬±15¬∞"],["G","Grille"],["D","Afficher/Masquer cotations"],["M","Cr√©er cotation"],["L","Labels"],["F / 0","Recentrer"],["+ / ‚àí","Zoom"],["Suppr","Supprimer"],["Ctrl+Z","Annuler"],["Ctrl+S","Exporter JSON"],["Ctrl+K","Commandes"],["P","Imprimer"],["√âchap","Annuler l‚Äôoutil"]].map(([k,v])=><div key={k} className="flex items-center gap-2 p-2 rounded-lg bg-slate-800 border border-slate-700"><kbd className="px-2 py-1 bg-slate-950 border border-slate-700 text-cyan-300 rounded font-mono font-black">{k}</kbd><span>{v}</span></div>)}</div></div></div>}
+
+    <IsoPrintModal
+      isOpen={printModalOpen}
+      onClose={() => setPrintModalOpen(false)}
+      projectName={projectName}
+      wilaya={wilaya}
+      pressDesign={pressDesign}
+      hydrotest={hydrotest}
+      nodes={nodes}
+      segments={segments}
+      dimensions={dimensions}
+      joints={projectJoints}
+      bomRows={printBomRows}
+      initialUnitSystem={unitSystem}
+    />
 
     <div className={`${workspaceFullscreen?"hidden":""} bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3 text-white shadow-lg`}>
       <div className="flex flex-col lg:flex-row justify-between gap-4">
@@ -7047,7 +7828,21 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
               onContextMenu={openIsoContextMenu}
               onDragOver={e=>{e.preventDefault();e.dataTransfer.dropEffect="copy"}} onDrop={dropEquipmentOnCanvas}>
               {draggedEquipmentType&&<g pointerEvents="none"><rect x="8" y="8" width="250" height="28" rx="7" fill="#052e16" stroke="#22c55e"/><text x="20" y="26" fill="#86efac" fontSize="10" fontWeight="bold">D√©poser sur un tube pour l‚Äôint√©grer ¬∑ ailleurs pour le placer</text></g>}
-              <defs><marker id="isoArrowV2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="#38bdf8"/></marker></defs>
+              <defs>
+                <marker id="isoArrowV2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="#38bdf8"/></marker>
+                {/* PALIER 2B ‚Äî Hachures normalis√©es ISO / ASME ANSI31, ANSI32, DOTS */}
+                <pattern id="cadHatchAnsi31" width="10" height="10" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
+                  <line x1="0" y1="0" x2="0" y2="10" stroke="#94a3b8" strokeWidth="1.2" />
+                </pattern>
+                <pattern id="cadHatchAnsi32" width="12" height="12" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
+                  <line x1="0" y1="0" x2="0" y2="12" stroke="#94a3b8" strokeWidth="1" />
+                  <line x1="0" y1="0" x2="12" y2="0" stroke="#94a3b8" strokeWidth="1" />
+                </pattern>
+                <pattern id="cadHatchDots" width="8" height="8" patternUnits="userSpaceOnUse">
+                  <circle cx="2" cy="2" r="1" fill="#94a3b8" />
+                  <circle cx="6" cy="6" r="1" fill="#94a3b8" />
+                </pattern>
+              </defs>
               {gcVisibleEditor && gcUnderlay && <g pointerEvents="none"><image href={gcUnderlay} x={60+gcX} y={45+gcY} width={500*gcScale} height={300*gcScale} opacity={gcOpacity} preserveAspectRatio="none"/></g>}
 
               {/* PATCH 012 ‚Äî Stable AutoCAD-like infinite grid */}
@@ -7266,12 +8061,29 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                         const pp = isoProjectV4(p.x, p.y, entity.metadata?.elevationZ || 0, viewport.zoom, viewport.panX, viewport.panY);
                         return `${i ? "L" : "M"} ${pp.x} ${pp.y}`;
                       }).join(" ") + (entity.closed || entity.type !== "polyline" ? " Z" : "");
-                      const fill = entity.fill || (entity.type !== "polyline" && selected ? "#fbbf2415" : "none");
-                      return <path key={entity.id} d={d} {...common} fill={fill} />;
+                      const hatchFill = entity.hatchPattern === "ansi31"
+                        ? "url(#cadHatchAnsi31)"
+                        : entity.hatchPattern === "ansi32"
+                        ? "url(#cadHatchAnsi32)"
+                        : entity.hatchPattern === "dots"
+                        ? "url(#cadHatchDots)"
+                        : entity.hatchPattern === "solid"
+                        ? (entity.fill || (selected ? "#fbbf2433" : "#38bdf833"))
+                        : (entity.fill || (entity.type !== "polyline" && selected ? "#fbbf2415" : "none"));
+                      return <path key={entity.id} d={d} {...common} fill={hatchFill} />;
                     }
                     if (entity.type === "circle" && entity.center && entity.radius) {
                       const c = isoProjectV4(entity.center.x, entity.center.y, entity.metadata?.elevationZ || 0, viewport.zoom, viewport.panX, viewport.panY);
-                      return <circle key={entity.id} cx={c.x} cy={c.y} r={entity.radius * 18 * viewport.zoom} {...common} />;
+                      const hatchFill = entity.hatchPattern === "ansi31"
+                        ? "url(#cadHatchAnsi31)"
+                        : entity.hatchPattern === "ansi32"
+                        ? "url(#cadHatchAnsi32)"
+                        : entity.hatchPattern === "dots"
+                        ? "url(#cadHatchDots)"
+                        : entity.hatchPattern === "solid"
+                        ? (entity.fill || (selected ? "#fbbf2433" : "#38bdf833"))
+                        : (entity.fill || "none");
+                      return <circle key={entity.id} cx={c.x} cy={c.y} r={entity.radius * 18 * viewport.zoom} {...common} fill={hatchFill} />;
                     }
                     if (entity.type === "arc" && entity.center && entity.radius) {
                       const c = isoProjectV4(entity.center.x, entity.center.y, entity.metadata?.elevationZ || 0, viewport.zoom, viewport.panX, viewport.panY);
@@ -7375,7 +8187,13 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                   const q2 = { x: p2.x + offset.x, y: p2.y + offset.y };
                   const mx = (q1.x + q2.x) / 2, my = (q1.y + q2.y) / 2;
                   const distValue = Math.hypot(bw.x - aw.x, bw.y - aw.y, bw.z - aw.z);
-                  const label = dimension.label || (dimension.unit === "mm" ? `${Math.round(distValue * 1000)} mm` : `${distValue.toFixed(2)} m`);
+                  const label =
+                    dimension.label ||
+                    (dimension.unit === "mm"
+                      ? `${Math.round(distValue * 1000)} mm`
+                      : dimension.unit === "in" || dimension.unit === "ft-in"
+                        ? formatLength(distValue, "imperial")
+                        : formatLength(distValue, unitSystem));
                   const isDimSel = selectedDimensionId === dimension.id || selectedDimensionIds.includes(dimension.id);
 
                   return (
@@ -7422,6 +8240,19 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                     </g>
                   );
                 })}
+
+                {/* PALIER 2C : Rendu des supports industriels MSS SP-58 / SP-69 */}
+                <IsoSupportRenderer
+                  supports={supports}
+                  selectedSupportId={selectedSupportId}
+                  onSelectSupport={(id) => {
+                    setSelectedSupportId(id);
+                    setRightPanelOpen(true);
+                    setRightPanelTab("supports");
+                  }}
+                  projectFn={(x, y, z) => isoProjectV4(x, y, z, viewport.zoom, viewport.panX, viewport.panY)}
+                  zoom={viewport.zoom}
+                />
 
                 {/* Active Snap Reticle Indicator */}
                 {activeSnap && (
@@ -7623,6 +8454,17 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
 
                   return null;
                 })()}
+
+                {/* Palier 2B : Indicateur visuel de modification g√©om√©trique active */}
+                {cad2dModifySession && (
+                  <g pointerEvents="none" transform="translate(20 30)">
+                    <rect x="0" y="0" width="340" height="26" rx="6" fill="#0f172a" fillOpacity="0.92" stroke="#f59e0b" strokeWidth="1.2" />
+                    <circle cx="14" cy="13" r="4" fill="#f59e0b" />
+                    <text x="26" y="17" fill="#fef3c7" fontSize="9.5" fontWeight="bold" fontFamily="monospace">
+                      MODIF 2D [{cad2dModifySession.mode.toUpperCase()}] : √âtape {cad2dModifySession.step} (√âchap pour annuler)
+                    </text>
+                  </g>
+                )}
               </g>
 
               <g transform="translate(566 44)">{pdiIsoAxisDirs017P3(PDI_ISO_COS_017I2,PDI_ISO_SIN_017I2).map(a=>(<g key={a.key}><line x1="0" y1="0" x2={a.sx*24} y2={a.sy*24} stroke={a.color} strokeWidth="1.8" strokeLinecap="round"/><text x={a.sx*34} y={a.sy*34+3} fill={a.color} fontSize="9" fontWeight="bold" textAnchor="middle">{a.key}</text></g>))}<circle r="2.2" fill="#e2e8f0"/></g>
@@ -8374,12 +9216,12 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                         <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 text-center">
                           <span className="text-[10px] text-slate-400 block font-bold uppercase">Longueur Totale Tube</span>
-                          <strong className="text-lg font-mono text-cyan-300">{totalLength.toFixed(2)} m</strong>
+                          <strong className="text-lg font-mono text-cyan-300">{formatLength(totalLength, unitSystem)}</strong>
                           <span data-pdi-metre="017p3-bom" className="text-[8px] text-slate-500 block normal-case leading-tight mt-1">{PDI_METRE_CONVENTION_017P3}</span>
                         </div>
                         <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 text-center">
                           <span className="text-[10px] text-slate-400 block font-bold uppercase">Poids Acier Estim√©</span>
-                          <strong className="text-lg font-mono text-amber-300">{totalWeight.toFixed(1)} kg</strong>
+                          <strong className="text-lg font-mono text-amber-300">{formatMass(totalWeight, unitSystem)}</strong>
                         </div>
                         <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 text-center">
                           <span className="text-[10px] text-slate-400 block font-bold uppercase">Volume d'√âpreuve</span>
@@ -8387,7 +9229,7 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                         </div>
                         <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 text-center">
                           <span className="text-[10px] text-slate-400 block font-bold uppercase">Pression d'√âpreuve</span>
-                          <strong className="text-lg font-mono text-red-400">{hydrotest.toFixed(1)} bar</strong>
+                          <strong className="text-lg font-mono text-red-400">{formatPressure(hydrotest, unitSystem)}</strong>
                         </div>
                       </div>
                     </div>
@@ -8487,6 +9329,13 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
               >
                 Propri√©t√©s
               </button>
+              <button
+                type="button"
+                onClick={() => setRightPanelTab("supports")}
+                className={`px-2 py-1 rounded-lg text-[10px] font-black transition-all ${rightPanelTab === "supports" ? "bg-indigo-600 text-white shadow-sm ring-1 ring-indigo-400/50" : "bg-slate-800 text-slate-300 hover:bg-slate-700"}`}
+              >
+                Supports ({supports.length})
+              </button>
             </div>
             <div className="flex items-center gap-1">
               <button
@@ -8519,12 +9368,12 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
               <div className="grid grid-cols-2 gap-1.5">
                 <div className="bg-slate-950 border border-slate-800 rounded-xl p-2 text-center">
                   <span className="text-[8px] font-bold text-slate-400 uppercase block">Longueur totale</span>
-                  <strong className="text-cyan-300 font-mono text-sm">{totalLength.toFixed(2)} m</strong>
+                  <strong className="text-cyan-300 font-mono text-sm">{formatLength(totalLength, unitSystem)}</strong>
                   <span data-pdi-metre="017p3-panneau" className="text-[7px] text-slate-500 block normal-case leading-tight">{PDI_METRE_CONVENTION_017P3}</span>
                 </div>
                 <div className="bg-slate-950 border border-slate-800 rounded-xl p-2 text-center">
                   <span className="text-[8px] font-bold text-slate-400 uppercase block">Poids acier</span>
-                  <strong className="text-amber-300 font-mono text-sm">{totalWeight.toFixed(1)} kg</strong>
+                  <strong className="text-amber-300 font-mono text-sm">{formatMass(totalWeight, unitSystem)}</strong>
                 </div>
                 <div className="bg-slate-950 border border-slate-800 rounded-xl p-2 text-center">
                   <span className="text-[8px] font-bold text-slate-400 uppercase block">Vol. √©preuve</span>
@@ -8622,7 +9471,13 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                               type="button"
                               onClick={e => {
                                 e.stopPropagation();
-                                setDimensions(prev => prev.map(d => d.id === dim.id ? { ...d, unit: d.unit === "mm" ? "m" : "mm" } : d));
+                                const cycleUnits: Array<"m" | "mm" | "ft-in" | "in"> = ["m", "mm", "ft-in", "in"];
+                                setDimensions(prev => prev.map(d => {
+                                  if (d.id !== dim.id) return d;
+                                  const curIdx = cycleUnits.indexOf(d.unit || "m");
+                                  const nextUnit = cycleUnits[(curIdx + 1) % cycleUnits.length];
+                                  return { ...d, unit: nextUnit };
+                                }));
                               }}
                               className="px-1.5 py-0.5 bg-slate-800 text-[8px] font-bold rounded text-slate-300 uppercase"
                             >
@@ -9117,6 +9972,33 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
               })()}
             </div>
           )}
+
+          {/* TAB: SUPPORTS MSS SP-58 & G√âNIE CIVIL */}
+          {rightPanelTab === "supports" && (
+            <PdiSupportCivilPanel
+              supports={supports}
+              segments={segments}
+              selectedSupportId={selectedSupportId}
+              unitSystem={unitSystem}
+              onSelectSupport={(id) => setSelectedSupportId(id)}
+              onUpdateSupport={(id, patch) => {
+                setSupports((prev) =>
+                  prev.map((s) => (s.id === id ? { ...s, ...patch } : s))
+                );
+              }}
+              onDeleteSupport={(id) => {
+                setSupports((prev) => prev.filter((s) => s.id !== id));
+                if (selectedSupportId === id) setSelectedSupportId(null);
+                setStatusMessage("Support supprim√©");
+              }}
+              onAddSupportClick={() => {
+                setActiveSupportTypeToPlace("mss_type_35");
+                setStatusMessage("Cliquez sur un tron√ßon pour implanter le support MSS SP-58");
+                setAutocadPrompt("COMMANDE [SUPPORT] : Cliquez un tron√ßon de tuyauterie pour y ancrer le support (√âchap pour annuler).");
+              }}
+              onExportCivilCsv={exportCivilMtoCsv}
+            />
+          )}
         </div>
       </div>
     </div>
@@ -9145,12 +10027,152 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
     {/* PATCH 017C : Data Manager - vue tabulaire des elements tagges */}
     {dataManagerOpen && <div className="fixed inset-0 z-[10065] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-6" onClick={() => setDataManagerOpen(false)}>
       <div className="w-full max-w-5xl max-h-[86vh] overflow-auto rounded-2xl border border-cyan-600/50 bg-slate-950 p-5 space-y-3" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between border-b border-slate-800 pxúÏZ€n€»æœSÃÈB⁄%Ÿ≤«±xÂ§qªvÇ:ÌE2"Gcí√ù˙∞ZΩ-P†-∞∑ΩkÛΩØ—…ìÙˇgHäR>$q≤‘29ú˛«Ô?«Ó∫3ºCäø?8)ﬂõ‚ÖT C±Å£ÿôreD&<VÓ8§ﬁ1—Cﬁ9ç›~ØG“$a¬£í9√=™(9†1ù2A^Ï}I£‰—˛N˜zÔ¯n≠óúΩ2õÀê*ÊnÙzŒp.Ÿ4b±íùI*&ZíÜDvù∂;!ãßj∂Ë.'e#D	{<n…6ÅôSÜˇ˘7ô√Õæî)ìBc—0»M∏à®"sÍ©‡ÑΩ§”ßz†âãıãßI»ŒH†X$](ÅLibIVçS•xL‘ykÃçCx<
-Ôx0ß©‚@…ne. ÔHŒ‹>IŒ›5"x˚Ãw√)O]çôpnˆ∫zd∆Oòÿ^éÇ ∆\¯@ê˘óç?ËÈŸZ¸fdΩó›föYZÄ3|â2DÒTÌtŸ7b¨’F-
-ß¯*ÿM∂êÅI3ˇYk_ãMc%»P¡£⁄™Òh∆‰ô€À¸í∆≈} Éí)ÙâÃ%û',nMh(Ÿß·Ø	OôàöY≥,€æµÃ	õÑ¸‘ES-Ë?È€Bá.øJ—q» €ù∫ì4s™◊Äj€a‘åQøº§"(=*kqµ∞áÙñ50
-ŸD–À∫÷Kg≥‡ed>‘TÇÔt’Ï∂∂ﬂ;ºÕ›èò8	<v´ØHòwõ˚ÄŒE@”€|«w∏ÅîD0ù›ﬂÚxö≤TêV‘nzåY&å≥¿%l7sˇ‹^ºìML m50"»1;Ãe'µ«ƒ∆∏9†\»<ïE®?ll¥pÂ=bêÓ—j|DM˚ó}€†á™¡àçàMÙÚR!πp`ƒ≠πøaœ∑∞◊(«®&‚1œîƒCø˚&¡ºÉ¸¯#q\íÂﬂË’ÿÉN˙Ò{nTd`Ωö@i|˘côÛ,¡w?∆~YB÷ß}5¸ò{&ÇA^'òˆ—€ÿ∏≠≠¨y+œ.q˜^ª£¯”‡å˘≠~{≈{ÍæJHªmõºùªí¡`@z‰À/õ}s®iÁ·QB„¡¸ÅùHh>621ygâëMdd7ı“8OêâOcI '!ç;öèF≤6Êÿ¯CÃØù8¨»˘5Öà/îI“òë0ò¬ÔvÜ2íú‘„§úx2bJöÍúÇIEBJ∆àØ~ `%√uìT¡
-vñp°»7œ:*K7ÊrqGﬂÃª_ëª/GœHoÌ¡7@Kƒ}∞ﬁÇøÅç…Si…l¬eÄπ4%1TOPíZÚUwQﬂj∂™nE”˛rnbûÈGàõhµ:mê1†¨€#?†H{˜{ØJ˘#î[ê/BÃÒO ˙§BtµÂM*U09œo˜~SB˚¬"*œh!Zf)]Dœ‹S∑fÆfÓw[˜OfØHs˛∏^K 5ÿ›îﬂÏUX*7âL®«\∞˚Ω…e©x'tJQ5≠%ù◊)Ÿrâåô:e ˇåòq=%„[≠¨kVÚÅ•µv3Ω©∫óUæí¯Ë<”{$ã í0E˙%y˜ßøgÆî¢◊‡∏ÍÔ]£,æfô¥ ™Æ_'5d´ÎΩµÎ÷CC+mf*ü‡èò,~± ÔW-!§cñÂˆ∫f7 ÆkÔaïX+˙ïÕ‰êG®çPò„v÷Ç8I9°a |Èd7¯‚*hF„)À¸»RP+—©„út:ù‰)≠‹óSTLôÍËwêEª™√*E€™R6”2±¬sE{Eñv:œ%<U!¿≠Ûò9§[5M≠áœ§ôÔ˙Ω‡Ôß\˘©ı“îG∏ˆÛUR ÓﬂP?û^tC’òEˇ˜ñä8R4ˆ©Ua¡F]»l›µë/´ÈÉJ‚ÏÌ;ÍâΩ˝CÁ≥j®÷‡âŒáç$°C¸›Èö'W,@ÜÜ”<dØ}©U\W6óMÁJB˜˜1ßÎ9]=´ZïﬁÿñU‘ÌeÀ2M˝,’!ÿÎü|¨V˛%v©Ú”Ñ˜àÆïµW"∆g1ƒ*≥Y:©{LÕJnw∫≠41'*πú≤€a~Q£])7Ÿc‘,√Oô'ÎX£‘1±Y±è*2^¥ZÄΩÄÖ~ªÛÜqÀ!˘öÿK$ÉETqœ`Fù”Æ4¿ÀŒ«ûú±(	±@æJK(±’¢˚l‰ˆzkÓËûe‘ΩØOêD’£¡/˛å$2Ô9»ÁAÕ1ØπÚzﬂCM§H^réy•m}årÊ∫øƒõ|∑m‰∏^ØèI4∆Ózqé!IóL¬4ôºFâ\d1Ygbc´⁄ï∏ÓÚjŸÙ‘OV4’Òù¶´~“Òt*£∆√
-cÍ7úq5cCRÓ@⁄sœ±ù»≈6—§¡Y Át6•`óY|•+{“—˘¬ M¥Soëﬁ¸Ï˝geí∫Å¢“s0%&ˆ	ﬂh¨1π“ìüâ5VÂà∂ì|˚Kä£ÜÖFMôTœ	Ù(û¬¿ƒ ﬁãÆYs∂ﬂÆÕﬁºÌºﬁ¥¬!wıxA…¢/¿Xª¶"øOuÎíÚlÔ…≤è¸ÿÿ•
-ò<¿ŒuﬁK˛"€≤œ(QœﬂoÓ1'~‡zëÔ˙‹;vÅüòÆ3û†BY∑év†M Tè9ƒ∆"áiE˜{ØV†’±€Ø6uª7âúQÏ◊T:◊Q9mΩ*3o Z–≠Çÿ=uÀ∆∫3¢˛»„[Hsø°¢§;]˚õD≈ÉiëøèeÖCøo&¡’ÓÍyât±ïë{yè!üÛ )2bÛ^7IYˆ† T?)/Ü˜ù H	Ù`nT_4¢±«B˝g‚Õ(õ_ù∏õ$·˘!~xó¥4§WXúvLª©Å03&N∑õ5âGÊÂ¥Ø˘õíjıù[G÷Œ‹+“;˚xè®@A0t.˛ú–@J<Åü
-öÃÇÔSÙ8i|œÙ»,/–Â`T9„áwtlt1¶í‹M∂,∞LtJ√`∫ß◊ÈoVÈŸ¿ÈóG§b	ŒÎUÊÂ•iê∞#»fèŸëGCfôEVô∂X—öØNoÍo∂Z’B¥
-Äï…⁄}®êP©∆ﬂöÎÜ“ ¡Sw´v[⁄íVË-éä£Ÿıˆ‚‚ß™®+-ånÒ∫Ü∂c®yÒ¥ëä¶Çö”GÜãu(æmWÅÌ5OHFıÂçá$V#Õ\∞Up}	L◊≠ÄÈç:LÂx[ÛŸJIqXm∏^∏‹Ódx3x]£X[ ⁄Œ›_˛E2∞¢À•ÛÛ◊Æ†,@s*ï:tÅÓŒOπ8÷	÷”4•' üyú¢f2È5ƒµ¸dµ∑µîìnÖl;êy«ÁeÅnÙJ!œYTœ+≠Û®UêñÀu›ƒ8∏Nê.OÃL^FºL‹·ÙıbÿX√„íg∏3ÆÅxß°or©w?˝“'-Àà&täôŸxh;Ì\“D‡b08L.ú«Ÿ«PÃlµ]ôq?òÃœg-?∂Ÿv™)!÷$+VËKO˚ß$1~@”6•¬øxÀ§ıJæ8 +_ÔÍÎbÓ›9p¢é·Æz¸ö\¸ÉTÜØ∑~π|"Ü∞ŸbG¥'œ$µ¨ÜÛ≤⁄eIˇ˜o©/´3?fæ¯ßn=TÁa?åA>ê‚Ñºxõ}!_º]6Ï…‘_˜˜˝ÂÊ|¸Ü)¸z}Øº¢¨T	ü õ˙U∂BÎÊ∫≤◊ºæk-”√wãã∑í—ƒ˚kúƒ0TA˘nÀ.´s~Éﬂw-9x£o+ù´ï¶UûŸÎy™Çp–w8◊ãQ-9∞$c\4à—∞v˜ùÌ@rHrNÒDñﬂcâ7ÇØ’6.P¶(ù√º8Ç º Qe¬9è»¸Ä™YGcDÎ$`ß¯5JÁxÚ@L{Ò´ äë·◊ø- Q∑ ñ9Œ3-sÒË`cˆùÀúÏK1êBâ∞xî?ÛŸÑ¶°≤g<∫Û?   ˇˇ ´ñæ
+        <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+          <div>
+            <div className="text-sm font-black text-cyan-300 uppercase">Data Manager PD&amp;I</div>
+            <div className="text-[10px] text-slate-400">{segments.filter(s => s.tag).length}/{segments.length} troncon(s) tagge(s) ¬∑ {tagIssues} anomalie(s) ¬∑ format {activeTagFormat.name}</div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={autoTagAllSegments} className="px-3 py-1 rounded-lg bg-amber-950/70 hover:bg-amber-900 border border-amber-700/70 text-amber-200 text-[10px] font-black">Tagger tout</button>
+            <button type="button" onClick={() => renumberTags(undefined, 1)} className="px-3 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 text-[10px] font-black">Renumeroter</button>
+            <button type="button" onClick={() => setDataManagerOpen(false)} className="px-3 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 text-[10px] font-black">Fermer</button>
+          </div>
+        </div>
+        <div className="overflow-auto rounded-xl border border-slate-800">
+          <table className="w-full text-[11px]">
+            <thead className="bg-slate-900 text-slate-400">
+              <tr>
+                <th className="text-left px-2 py-1.5 font-black uppercase text-[9px]">Tag</th>
+                <th className="text-left px-2 py-1.5 font-black uppercase text-[9px]">DN</th>
+                <th className="text-left px-2 py-1.5 font-black uppercase text-[9px]">Service</th>
+                <th className="text-left px-2 py-1.5 font-black uppercase text-[9px]">Spec</th>
+                <th className="text-left px-2 py-1.5 font-black uppercase text-[9px]">Materiau</th>
+                <th className="text-left px-2 py-1.5 font-black uppercase text-[9px]">Classe</th>
+                <th className="text-right px-2 py-1.5 font-black uppercase text-[9px]">Longueur (m)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {segments.map(s => (
+                <tr key={s.id}
+                  onClick={() => { selectSegmentV44(s.id, false); setDataManagerOpen(false); }}
+                  className="border-t border-slate-800 hover:bg-slate-900/70 cursor-pointer">
+                  <td className="px-2 py-1 font-mono font-bold text-amber-300">{s.tag || "-"}</td>
+                  <td className="px-2 py-1 text-slate-200">DN{s.dn}</td>
+                  <td className="px-2 py-1 text-cyan-300 font-bold">{s.service || "-"}</td>
+                  <td className="px-2 py-1 text-slate-300">{s.spec || "-"}</td>
+                  <td className="px-2 py-1 text-slate-400">{s.material || "-"}</td>
+                  <td className="px-2 py-1 text-slate-400">{s.pressureClass || "-"}</td>
+                  <td className="px-2 py-1 text-right text-slate-200">{(s.length || 0).toFixed(3)}</td>
+                </tr>
+              ))}
+              {segments.length === 0 && (
+                <tr><td colSpan={7} className="px-2 py-4 text-center text-slate-500">Aucun troncon dans le plan.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+        <div className="text-[10px] text-slate-500">Clic sur une ligne : selection du troncon sur le plan. Cette table est la base directe du futur export BOM.</div>
+      </div>
+    </div>}
+
+    {/* PATCH 017B : modal Project Setup repositionne au niveau racine */}
+    {/* PATCH 017A : Project Setup PD&I */}
+    {projectSetupOpen && <div className="fixed inset-0 z-[10060] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-6" onClick={() => setProjectSetupOpen(false)}>
+      <div className="w-full max-w-3xl max-h-[86vh] overflow-auto rounded-2xl border border-cyan-600/50 bg-slate-950 p-5 space-y-4" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+          <div>
+            <div className="text-sm font-black text-cyan-300 uppercase">Project Setup PD&amp;I</div>
+            <div className="text-[10px] text-slate-500">Projet, formats de tag, services et specs ‚Äî base du BOM et du 3D</div>
+          </div>
+          <button type="button" onClick={() => setProjectSetupOpen(false)} className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-black">Fermer</button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <label className="space-y-1">
+            <span className="text-[9px] font-black text-slate-400 uppercase">Nom du projet</span>
+            <input value={projectSetup.projectName} onChange={e => setProjectSetup(p => ({ ...p, projectName: e.target.value }))} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[11px] font-bold text-white outline-none" />
+          </label>
+          <label className="space-y-1">
+            <span className="text-[9px] font-black text-slate-400 uppercase">Code projet</span>
+            <input value={projectSetup.projectCode} onChange={e => setProjectSetup(p => ({ ...p, projectCode: e.target.value }))} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[11px] font-mono font-bold text-cyan-300 outline-none" />
+          </label>
+          <label className="space-y-1">
+            <span className="text-[9px] font-black text-slate-400 uppercase">Client</span>
+            <input value={projectSetup.client} onChange={e => setProjectSetup(p => ({ ...p, client: e.target.value }))} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[11px] font-bold text-white outline-none" />
+          </label>
+          <label className="space-y-1">
+            <span className="text-[9px] font-black text-slate-400 uppercase">Standard</span>
+            <select value={projectSetup.standard} onChange={e => setProjectSetup(p => ({ ...p, standard: e.target.value as "ANSI" | "DIN" }))} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[11px] font-bold text-white outline-none">
+              <option value="ANSI">ANSI</option>
+              <option value="DIN">DIN</option>
+            </select>
+          </label>
+        </div>
+
+        <div className="rounded-xl border border-amber-700/50 bg-slate-900/60 p-3 space-y-2">
+          <div className="text-[10px] font-black text-amber-300 uppercase">Format de tag actif</div>
+          <div className="flex items-center gap-2">
+            <select value={projectSetup.tagFormatName} onChange={e => setProjectSetup(p => ({ ...p, tagFormatName: e.target.value }))} className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[11px] font-bold text-white outline-none">
+              {projectSetup.formats.map(f => (<option key={f.name} value={f.name}>{f.name}</option>))}
+            </select>
+            <span className="font-mono text-[11px] text-amber-200 font-bold">
+              {activeTagFormat.parts.map(p => p.field).join(" " + activeTagFormat.separator + " ")}
+            </span>
+          </div>
+          <div className="text-[10px] text-slate-400">Exemple : <span className="font-mono text-amber-300 font-bold">100-HC-001-CS300</span></div>
+          <div className="flex items-center gap-2 pt-1">
+            <button type="button" onClick={autoTagAllSegments} className="px-3 py-1 rounded-lg bg-amber-950/70 hover:bg-amber-900 border border-amber-700/70 text-amber-200 text-[10px] font-black">Tagger tous les troncons</button>
+            <span className="text-[10px] text-slate-500">{segments.filter(s => s.tag).length}/{segments.length} tagges ¬∑ {tagIssues} anomalie(s)</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-xl border border-slate-700 bg-slate-900/60 p-3">
+            <div className="text-[10px] font-black text-cyan-300 uppercase mb-1.5">Services / fluides</div>
+            <div className="space-y-1 max-h-48 overflow-auto">
+              {projectSetup.services.map(sv => (
+                <div key={sv.code} className="flex items-center justify-between text-[10px] text-slate-300">
+                  <span className="font-mono font-bold" style={{ color: sv.color }}>{sv.code}</span>
+                  <span className="text-slate-400">{sv.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="rounded-xl border border-slate-700 bg-slate-900/60 p-3">
+            <div className="text-[10px] font-black text-cyan-300 uppercase mb-1.5">Specs tuyauterie</div>
+            <div className="space-y-1 max-h-48 overflow-auto">
+              {projectSetup.specs.map(sp => (
+                <div key={sp.code} className="flex items-center justify-between text-[10px] text-slate-300">
+                  <span className="font-mono font-bold text-cyan-300">{sp.code}</span>
+                  <span className="text-slate-400">{sp.material} ¬∑ {sp.pressureClass} ¬∑ DN{sp.minDn}-{sp.maxDn}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>}
+
+    {/* PATCH 017D / PALIER 0 : ligne de commande compacte isol√©e */}
+    <IsoCommandDock
+      hidden={commandPromptHidden}
+      modalOpen={propertiesModalOpen}
+      cmdInput={autocadCmdInput}
+      setCmdInput={setAutocadCmdInput}
+      prompt={autocadPrompt}
+      onExecuteCommand={(cmd) => executeCadCommand(cmd)}
+      cadDraftSession={cadDraftSession}
+      onCancelDraft={cancelCadDraft}
+      onApplyNumericInput={applyNumericDraftInput}
+      pipeStrokeScale={pipeStrokeScale}
+      setPipeStrokeScale={setPipeStrokeScale}
+    />
+    {/* PATCH 017D : bouton de restauration de la ligne de commande */}
+    {!propertiesModalOpen && commandPromptHidden && <button type="button" onClick={() => setCommandPromptHidden(false)} className="pdi-cmd-restore-017d fixed left-[92px] bottom-2 z-[10030] rounded-lg border border-cyan-500/40 bg-slate-950/95 px-3 py-1.5 text-[11px] font-black text-cyan-200 shadow-xl" title="Afficher la ligne de commande (HIDE)">‚å® Commande</button>}
+
+    <div className={`hidden pdi-status-docked ${workspaceFullscreen?"fixed bottom-0 left-[92px] right-0 z-[10008] rounded-none":"sticky bottom-2 z-40 rounded-xl"} bg-slate-950 text-slate-200 border border-slate-800 px-3 py-2 flex flex-wrap items-center justify-between gap-2 text-[10px] shadow-lg`}><div className="flex gap-4"><b className="text-emerald-400">‚óè {statusMessage}</b><span className={saveState==="error"?"text-red-400":saveState==="modified"?"text-amber-300":"text-cyan-300"}>{saveState==="modified"?"Modifications non sauvegard√©es":saveState==="autosaved"?`Autosauvegard√©${lastSavedAt?` √† ${lastSavedAt}`:""}`:saveState==="error"?"Erreur de sauvegarde":""}</span><span>{nodes.length} n≈ìuds</span><span>{segments.length} tron√ßons</span><span>{selectedCount} s√©lectionn√©(s)</span><span>{selectedCad2dIds.length} objet(s) 2D</span><span className={graphErrorCount?"text-red-400":"text-emerald-400"}>{graphErrorCount?`${graphErrorCount} erreur(s) r√©seau`:"Graphe valide"}</span><span>{projectJoints.length} joints</span></div><div className="flex gap-3"><span>Outil: <b>{interactionMode==="main"?"MAIN":isoDrawMode.toUpperCase()}</b></span><span>Snap {isoSnapStep} m</span><span>Zoom {Math.round(viewport.zoom*100)}%</span><span>Ctrl+K commandes ¬∑ ? aide</span></div></div>
+  </div>;
+}
+
+export { IsometrieModule };
+export default IsometrieModule;

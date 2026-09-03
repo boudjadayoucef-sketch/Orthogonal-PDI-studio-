@@ -1,0 +1,7849 @@
+# 017Q1 — Audit sélection / ancrages / Align / Parallèle / Grouper / Associer
+
+> Audit préparatoire. Aucun moteur PDI n'est modifié par ce script.
+
+## Résultat
+
+- Fichiers inspectés : **244**
+- Fichiers avec occurrences : **233**
+- Occurrences trouvées : **13610**
+
+## Règle d'interprétation
+
+Une occurrence textuelle ne prouve pas qu'une fonction fonctionne.
+AI Studio doit suivre le code jusqu'au handler réellement exécuté.
+
+## Occurrences par fichier
+
+### `001_bootstrap_pdi_shell.py`
+- L9 — `point` — `- replaces src/App.tsx with the autonomous PD&I entry point;`
+- L13 — `snap` — `The script is idempotent: it refuses to overwrite the legacy snapshot or the`
+- L14 — `point` — `new App entry point if they already exist, so a second run cannot destroy work.`
+- L17 — `port` — `from pathlib import Path`
+- L18 — `port` — `import shutil`
+- L19 — `port` — `import textwrap`
+- L45 — `port` — `# existing relative imports remain valid for later migration/reference work.`
+- L51 — `port` — `import React, { useState } from "react";`
+- L52 — `port` — `import type { LicensePlan } from "../saas/types";`
+- L53 — `port` — `import { getDefaultEntitlements } from "../saas/entitlements";`
+- L62 — `port` — `export default function PdiApp() {`
+- L125 — `port` — `<div>{entitlements.dxfImport ? "DXF import enabled" : "DXF import locked"}</div>`
+- L139 — `port` — `'export { default as PdiApp } from "./PdiApp";\n',`
+- L147 — `point` — `* PD&I autonomous SaaS entry point.`
+- L152 — `port` — `import React from "react";`
+- L153 — `port` — `import { PdiApp } from "./pdi/app";`
+- L155 — `port` — `export default function App() {`
+- L167 — `point` — `print("Replaced: src/App.tsx with autonomous PD&I entry point")`
+### `002_saas_dashboard_navigation (1).py`
+- L7 — `port` — `Portée :`
+- L19 — `port` — `from pathlib import Path`
+- L20 — `port` — `import textwrap`
+- L36 — `port` — `import React, { useState } from "react";`
+- L37 — `port` — `import type { LicensePlan } from "../saas/types";`
+- L38 — `port` — `import { getDefaultEntitlements } from "../saas/entitlements";`
+- L92 — `port` — `text: "L’import/export DXF et les échanges avec le modèle Piping JSON canonique seront connectés dans les prochains patches.",`
+- L112 — `port` — `export default function PdiApp() {`
+- L200 — `port` — `{entitlements.dxfImport ? "Import DXF activé" : "Import DXF verrouillé"}`
+### `002_saas_dashboard_navigation.py`
+- L18 — `port` — `from pathlib import Path`
+- L19 — `port` — `import textwrap`
+- L35 — `port` — `import React, { useState } from "react";`
+- L36 — `port` — `import type { LicensePlan } from "../saas/types";`
+- L37 — `port` — `import { getDefaultEntitlements } from "../saas/entitlements";`
+- L91 — `port` — `text: "DXF import/export and canonical Piping JSON exchange will be connected in later patches.",`
+- L111 — `port` — `export default function PdiApp() {`
+- L199 — `port` — `{entitlements.dxfImport ? "DXF import enabled" : "DXF import locked"}`
+### `003_restore_pdi_v48d_engine.py`
+- L10 — `port` — `adapts only its relative imports, and exposes it through the PD&I navigation.`
+- L16 — `port` — `from pathlib import Path`
+- L17 — `port` — `from urllib.request import Request, urlopen`
+- L18 — `port` — `import hashlib`
+- L19 — `port` — `import re`
+- L55 — `port` — `# The original module has only two project-relative imports. Relocate them`
+- L71 — `port` — `import React from "react";`
+- L72 — `port` — `import IsometrieModuleV48d from "./engine/IsometrieModuleV48d";`
+- L76 — `port` — `* The editor is now owned by PD&I and is no longer imported from the Guide.`
+- L78 — `port` — `export default function PdiIsometricEditor() {`
+- L87 — `anchor` — `import_anchor = 'import { getDefaultEntitlements } from "../saas/entitlements";'`
+- L87 — `port` — `import_anchor = 'import { getDefaultEntitlements } from "../saas/entitlements";'`
+- L88 — `anchor` — `if import_anchor not in pdi:`
+- L88 — `port` — `if import_anchor not in pdi:`
+- L89 — `anchor` — `raise SystemExit("ERROR: expected Patch 002 import anchor not found in PdiApp.tsx. No App.tsx changes made.")`
+- L89 — `port` — `raise SystemExit("ERROR: expected Patch 002 import anchor not found in PdiApp.tsx. No App.tsx changes made.")`
+- L91 — `anchor` — `import_anchor,`
+- L91 — `port` — `import_anchor,`
+- L92 — `anchor` — `import_anchor + '\nimport PdiIsometricEditor from "../isometric/PdiIsometricEditor";\n' + MARKER,`
+- L92 — `port` — `import_anchor + '\nimport PdiIsometricEditor from "../isometric/PdiIsometricEditor";\n' + MARKER,`
+- L96 — `anchor` — `section_anchor = 'function SectionContent({ section }: { section: Section }) {\n'`
+- L97 — `anchor` — `if section_anchor not in pdi:`
+- L98 — `anchor` — `section_anchor = '    function SectionContent({ section }: { section: Section }) {\n'`
+- L99 — `anchor` — `if section_anchor not in pdi:`
+- L100 — `anchor` — `raise SystemExit("ERROR: SectionContent anchor not found. No App.tsx changes made.")`
+- L102 — `anchor` — `section_anchor,`
+- L103 — `anchor` — `section_anchor + '''  if (section === "isometrics") {`
+- L122 — `port` — `print("The Guide App is not imported or executed by this editor boundary.")`
+### `004d_landing_opening_repair_REPORT.md`
+- L32 — `sélection` — `7. Sélection “Nouveau Plan”`
+### `004d_pdi_landing_opening_repair.py`
+- L11 — `port` — `from pathlib import Path`
+- L12 — `port` — `import shutil`
+- L13 — `port` — `import sys`
+- L14 — `port` — `from datetime import datetime`
+- L23 — `port` — `REPORT = ROOT / "004d_landing_opening_repair_REPORT.md"`
+- L24 — `history` — `HISTORY = ROOT / "docs" / "PATCH_HISTORY.md"`
+- L99 — `port` — `// directement vers le module choisi, sans casser le comportement existant.`
+- L133 — `port` — `'import React, { useEffect, useState } from "react";',`
+- L134 — `port` — `'import React, { useEffect, useMemo, useState } from "react";',`
+- L138 — `port` — `'''export type PdiLandingV4Props = {`
+- L142 — `port` — `'''export type PdiLandingV4Props = {`
+- L162 — `point` — `const ENTRY_POINTS = [`
+- L163 — `align` — `{ id: "isometric", title: "Nouveau Plan", sub: "Dessin isométrique manuel", badge: "Recommandé", icon: "ISO", color: "#4db8d4", text: "Démarrer un projet vierge : nœuds, tubes, accessoires, cotations et alignements." },`
+- L167 — `port` — `{ id: "json", title: "Importer JSON", sub: "JSON PD&I existant", badge: "Reprise", icon: "{}", color: "#4caf7d", text: "Reprendre un modèle PD&I : graphe, soudures, cotes et métré restaurés à l’identique." },`
+- L168 — `port` — `{ id: "cad", title: "Importer CAD / PDF", sub: "Import de fond de plan", badge: "Import", icon: "PDF", color: "#4db8d4", text: "Charger un DXF/DWG/PDF comme support de tracé avec mapping des calques." },`
+- L170 — `port` — `{ id: "pdf", title: "Exports & BOM", sub: "PDF / DXF / nomenclature", badge: "Export", icon: "OUT", color: "#4caf7d", text: "Produire planches A4→A1, cartouche, nomenclature matériaux et métré." },`
+- L177 — `port` — `start = src.find("export default function PdiLandingV4")`
+- L181 — `port` — `replacement = r'''export default function PdiLandingV4({ onEnter }: PdiLandingV4Props) {`
+- L186 — `select` — `const [selectedEntry, setSelectedEntry] = useState<string | null>("isometric");`
+- L192 — `move` — `return () => window.removeEventListener("scroll", onScroll);`
+- L243 — `point` — `<p>Choisissez un point d’entrée. Toutes les voies aboutissent au même JSON PD&amp;I — la vérité technique du projet.</p>`
+- L245 — `select` — `{ENTRY_POINTS.map((entry) => <button key={`${entry.id}-${entry.title}`} className={selectedEntry === entry.id ? "pdiL-entry selected" : "pdiL-entry"} style={{ "--entry": entry.color } as React.CSSProperties} onClick={() => setSelectedEntry(`
+- L245 — `point` — `{ENTRY_POINTS.map((entry) => <button key={`${entry.id}-${entry.title}`} className={selectedEntry === entry.id ? "pdiL-entry selected" : "pdiL-entry"} style={{ "--entry": entry.color } as React.CSSProperties} onClick={() => setSelectedEntry(`
+- L247 — `select` — `<div className="pdiL-launch-actions"><button className="pdiL-btn pdiL-btn-primary pdiL-btn-lg" onClick={() => openEntry(selectedEntry)}>Ouvrir · {ENTRY_POINTS.find((x) => x.id === selectedEntry)?.title || "Accueil"}</button><span>Astuce : d`
+- L247 — `point` — `<div className="pdiL-launch-actions"><button className="pdiL-btn pdiL-btn-primary pdiL-btn-lg" onClick={() => openEntry(selectedEntry)}>Ouvrir · {ENTRY_POINTS.find((x) => x.id === selectedEntry)?.title || "Accueil"}</button><span>Astuce : d`
+- L266 — `port` — `<header className="pdiL-homehero"><div><span className="pdiL-kicker">Accueil PD&amp;I</span><h1>Construire vos plans isométriques depuis toutes vos sources.</h1><p>Le logiciel principal : dessin manuel, Vision PD&amp;I photo/croquis, import`
+- L313 — `align` — `.pdiL-hero-shell{position:relative;width:100vw;height:100vh;overflow:hidden;background:radial-gradient(120% 90% at 50% 42%,#15191c,#0b0c0d 58%,#070708);display:flex;align-items:center;justify-content:center;color:#f0f0f0;font-family:Inter,u`
+- L313 — `select` — `.pdiL-hero-shell{position:relative;width:100vw;height:100vh;overflow:hidden;background:radial-gradient(120% 90% at 50% 42%,#15191c,#0b0c0d 58%,#070708);display:flex;align-items:center;justify-content:center;color:#f0f0f0;font-family:Inter,u`
+- L313 — `point` — `.pdiL-hero-shell{position:relative;width:100vw;height:100vh;overflow:hidden;background:radial-gradient(120% 90% at 50% 42%,#15191c,#0b0c0d 58%,#070708);display:flex;align-items:center;justify-content:center;color:#f0f0f0;font-family:Inter,u`
+- L313 — `translate` — `.pdiL-hero-shell{position:relative;width:100vw;height:100vh;overflow:hidden;background:radial-gradient(120% 90% at 50% 42%,#15191c,#0b0c0d 58%,#070708);display:flex;align-items:center;justify-content:center;color:#f0f0f0;font-family:Inter,u`
+- L320 — `port` — `def write_report() -> None:`
+- L352 — `sélection` — `7. Sélection “Nouveau Plan”`
+- L362 — `port` — `write(REPORT, content)`
+- L363 — `port` — `print(f"Rapport écrit : {REPORT}")`
+- L366 — `history` — `def update_history() -> None:`
+- L367 — `history` — `if not HISTORY.exists():`
+- L368 — `history` — `print("PATCH_HISTORY.md absent — historique non mis à jour.")`
+- L371 — `history` — `src = read(HISTORY)`
+- L373 — `history` — `print("PATCH_HISTORY.md déjà mis à jour.")`
+- L387 — `history` — `write(HISTORY, src.rstrip() + "\n" + entry)`
+- L388 — `history` — `print("PATCH_HISTORY.md mis à jour.")`
+- L400 — `port` — `write_report()`
+- L401 — `history` — `update_history()`
+### `005_logiciel_interface_pd_i.py`
+- L24 — `port` — `from pathlib import Path`
+- L25 — `port` — `import textwrap`
+- L40 — `port` — `import React, { useState } from "react";`
+- L41 — `port` — `import PdiIsometricEditor from "../isometric/PdiIsometricEditor";`
+- L81 — `port` — `export default function PdiApp() {`
+- L99 — `move` — `return () => window.removeEventListener("keydown", onKeyDown);`
+- L182 — `group` — `className={`group mb-1 flex w-12 flex-col items-center rounded-md py-2 transition ${active ? "bg-cyan-500/10 text-cyan-300" : "text-slate-600 hover:bg-slate-800 hover:text-slate-300"}`}`
+- L187 — `group` — `<span className="mt-1 hidden text-[8px] leading-3 group-hover:block">{item.label}</span>`
+### `005_opening_flow_stabilization_REPORT.md`
+- L13 — `sélection` — `- Boot réinitialise toujours la sélection sur Nouveau Plan.`
+### `005_pdi_opening_flow_stabilization.py`
+- L10 — `port` — `- Corriger l'entrée ciblée vers ISO / Vision / Croquis / CAO / JSON / Export / IA.`
+- L17 — `port` — `from pathlib import Path`
+- L18 — `port` — `import shutil`
+- L19 — `port` — `import sys`
+- L20 — `port` — `from datetime import datetime`
+- L28 — `port` — `REPORT = ROOT / "005_opening_flow_stabilization_REPORT.md"`
+- L29 — `history` — `HISTORY = ROOT / "docs" / "PATCH_HISTORY.md"`
+- L88 — `move` — `return () => window.removeEventListener("pdi:navigate", onNavigate as EventListener);`
+- L111 — `move` — `return () => window.removeEventListener("pdi:navigate", onNavigate as EventListener);`
+- L158 — `point` — `# Stabiliser openEntry : vérifier que la destination existe dans ENTRY_POINTS.`
+- L162 — `point` — `const known = target === "home" || ENTRY_POINTS.some((entry) => entry.id === target);`
+- L176 — `select` — `setSelectedEntry(PDI_DEFAULT_ENTRY);`
+- L214 — `align` — `align-items: stretch;`
+- L226 — `port` — `def write_report() -> None:`
+- L239 — `sélection` — `- Boot réinitialise toujours la sélection sur Nouveau Plan.`
+- L267 — `port` — `write(REPORT, content)`
+- L268 — `port` — `print(f"Rapport écrit : {REPORT}")`
+- L271 — `history` — `def update_history() -> None:`
+- L272 — `history` — `if not HISTORY.exists():`
+- L273 — `history` — `print("PATCH_HISTORY.md absent — non mis à jour.")`
+- L276 — `history` — `src = read(HISTORY)`
+- L278 — `history` — `print("PATCH_HISTORY.md déjà mis à jour.")`
+- L292 — `history` — `write(HISTORY, src.rstrip() + "\n" + entry)`
+- L293 — `history` — `print("PATCH_HISTORY.md mis à jour.")`
+- L305 — `port` — `write_report()`
+- L306 — `history` — `update_history()`
+### `006_pdi_universal_cad_toolbar.py`
+- L5 — `sélection` — `Ruban CAD universel contrôlé (type AutoCAD) — sans casser la sélection pro existante.`
+- L8 — `sélection` — `- La sélection professionnelle existe déjà : Patch 004 / 004b.`
+- L9 — `select` — `- V4.8d contient déjà selectedNodeIds, selectedSegmentIds, selectedDimensionIds.`
+- L10 — `sélection` — `- Rectangle de sélection, Shift/Ctrl/Cmd, copier/couper/coller/dupliquer, undo/redo existent.`
+- L10 — `undo` — `- Rectangle de sélection, Shift/Ctrl/Cmd, copier/couper/coller/dupliquer, undo/redo existent.`
+- L10 — `redo` — `- Rectangle de sélection, Shift/Ctrl/Cmd, copier/couper/coller/dupliquer, undo/redo existent.`
+- L11 — `sélection` — `- Donc ce patch NE refait PAS la sélection.`
+- L21 — `port` — `from pathlib import Path`
+- L22 — `port` — `import shutil`
+- L23 — `port` — `import sys`
+- L24 — `port` — `from datetime import datetime`
+- L29 — `port` — `REPORT = ROOT / "006_universal_cad_toolbar_REPORT.md"`
+- L30 — `history` — `HISTORY = ROOT / "docs" / "PATCH_HISTORY.md"`
+- L60 — `select` — `"selectedNodeIds",`
+- L61 — `select` — `"selectedSegmentIds",`
+- L62 — `select` — `"selectedDimensionIds",`
+- L63 — `selection` — `"copySelection",`
+- L63 — `select` — `"copySelection",`
+- L64 — `selection` — `"duplicateSelection",`
+- L64 — `select` — `"duplicateSelection",`
+- L65 — `selection` — `"selectionSubGraph",`
+- L65 — `select` — `"selectionSubGraph",`
+- L66 — `select` — `"selectDimensionV44",`
+- L68 — `group` — `"cadMenuGroups",`
+- L73 — `sélection` — `fail("audit sélection / UI incomplet, éléments manquants : " + ", ".join(missing))`
+- L74 — `sélection` — `print("Audit OK : sélection pro existante confirmée, rail/menu CAD présents.")`
+- L86 — `anchor` — `anchor = "  const runWorkspaceCommand=(action:()=>void,label:string)=>{action();setCommandPaletteOpen(false);setStatusMessage(label);};"`
+- L93 — `select` — `setInteractionMode("select");`
+- L94 — `select` — `setIsoDrawMode("select");`
+- L97 — `anchor` — `if anchor in src:`
+- L98 — `anchor` — `src = src.replace(anchor, helper, 1)`
+- L103 — `group` — `old_menu_start = "  const cadMenuGroups: Array<{"`
+- L105 — `group` — `fail("ancre cadMenuGroups introuvable")`
+- L107 — `groupe` — `# Insertion de groupe universel avant le groupe existant via remplacement léger du premier tableau si ancre disponible.`
+- L107 — `group` — `# Insertion de groupe universel avant le groupe existant via remplacement léger du premier tableau si ancre disponible.`
+- L108 — `sélection` — `# On cherche le début du tableau jusqu'à la première occurrence connue d'un item Sélection.`
+- L109 — `anchor` — `menu_anchor = "        { label: \"Sélection (Boîte / Clic)\", hint: \"V\", run: () => { setInteractionMode(\"select\"); setIsoDrawMode(\"select\"); } },"`
+- L109 — `sélection` — `menu_anchor = "        { label: \"Sélection (Boîte / Clic)\", hint: \"V\", run: () => { setInteractionMode(\"select\"); setIsoDrawMode(\"select\"); } },"`
+- L109 — `select` — `menu_anchor = "        { label: \"Sélection (Boîte / Clic)\", hint: \"V\", run: () => { setInteractionMode(\"select\"); setIsoDrawMode(\"select\"); } },"`
+- L111 — `select` — `{ label: "Line / Tube", hint: "L/T", run: () => { setInteractionMode("select"); setIsoDrawMode("segment"); } },`
+- L118 — `anchor` — `if menu_anchor in src and "Polyline" not in src:`
+- L119 — `anchor` — `src = src.replace(menu_anchor, universal_items + menu_anchor, 1)`
+- L122 — `anchor` — `rail_anchor = "        <aside className=\"pdi-studio-rail fixed bottom-0 left-0 top-[54px] z-[10005] w-[62px] py-3 flex flex-col items-center gap-2\">"`
+- L124 — `group` — `<div className="pdi-ribbon-group"><span>Draw</span><button onClick={() => { setInteractionMode("select"); setIsoDrawMode("segment"); setStatusMessage("Line / Tube · V4.8d"); }}>Line</button><button onClick={() => cadToolPrepared("Polyline")`
+- L124 — `select` — `<div className="pdi-ribbon-group"><span>Draw</span><button onClick={() => { setInteractionMode("select"); setIsoDrawMode("segment"); setStatusMessage("Line / Tube · V4.8d"); }}>Line</button><button onClick={() => cadToolPrepared("Polyline")`
+- L125 — `group` — `<div className="pdi-ribbon-group"><span>Annotation</span><button onClick={() => cadToolPrepared("Text")}>Text</button><button onClick={() => { setInteractionMode("select"); setIsoDrawMode("dimension"); setDimensionPick(null); setRightPanelO`
+- L125 — `ancrage` — `<div className="pdi-ribbon-group"><span>Annotation</span><button onClick={() => cadToolPrepared("Text")}>Text</button><button onClick={() => { setInteractionMode("select"); setIsoDrawMode("dimension"); setDimensionPick(null); setRightPanelO`
+- L125 — `select` — `<div className="pdi-ribbon-group"><span>Annotation</span><button onClick={() => cadToolPrepared("Text")}>Text</button><button onClick={() => { setInteractionMode("select"); setIsoDrawMode("dimension"); setDimensionPick(null); setRightPanelO`
+- L126 — `group` — `<div className="pdi-ribbon-group"><span>Modify</span><button onClick={copySelection}>Copy</button><button onClick={duplicateSelection}>Duplicate</button><button onClick={() => rotateSelectedEquipment(15)}>Rotate</button><button onClick={del`
+- L126 — `selection` — `<div className="pdi-ribbon-group"><span>Modify</span><button onClick={copySelection}>Copy</button><button onClick={duplicateSelection}>Duplicate</button><button onClick={() => rotateSelectedEquipment(15)}>Rotate</button><button onClick={del`
+- L126 — `select` — `<div className="pdi-ribbon-group"><span>Modify</span><button onClick={copySelection}>Copy</button><button onClick={duplicateSelection}>Duplicate</button><button onClick={() => rotateSelectedEquipment(15)}>Rotate</button><button onClick={del`
+- L127 — `group` — `<div className="pdi-ribbon-group"><span>Measure</span><button onClick={() => { setRightPanelOpen(true); setRightPanelTab("dimensions"); setStatusMessage("Mesure distance/rayon/angle préparée · cotations actives"); }}>Measure</button><button`
+- L128 — `group` — `<div className="pdi-ribbon-group"><span>Output</span><button onClick={printPlanSheet}>Print</button><button onClick={exportProjectJson}>JSON</button></div>`
+- L128 — `port` — `<div className="pdi-ribbon-group"><span>Output</span><button onClick={printPlanSheet}>Print</button><button onClick={exportProjectJson}>JSON</button></div>`
+- L131 — `anchor` — `if rail_anchor in src:`
+- L132 — `anchor` — `src = src.replace(rail_anchor, ribbon + rail_anchor, 1)`
+- L137 — `anchor` — `style_anchor = "        [data-pdi-studio] .pdi-rail-button.active{color:white;background:#2563EB;border-color:#60A5FA;box-shadow:0 0 12px rgba(37,99,235,0.4)}"`
+- L140 — `align` — `[data-pdi-studio] .pdi-ribbon-group{height:40px;display:flex;align-items:center;gap:4px;border-right:1px solid #30363D;padding-right:10px;flex-shrink:0}`
+- L140 — `group` — `[data-pdi-studio] .pdi-ribbon-group{height:40px;display:flex;align-items:center;gap:4px;border-right:1px solid #30363D;padding-right:10px;flex-shrink:0}`
+- L141 — `group` — `[data-pdi-studio] .pdi-ribbon-group span{font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:#7D8590;font-weight:900;margin-right:3px}`
+- L142 — `group` — `[data-pdi-studio] .pdi-ribbon-group button{height:30px;padding:0 9px;border-radius:6px;border:1px solid #30363D;background:#1F2937;color:#D1D5DB;font-size:10px;font-weight:900;white-space:nowrap}`
+- L143 — `group` — `[data-pdi-studio] .pdi-ribbon-group button:hover{background:#2563EB;color:white;border-color:#60A5FA}`
+- L145 — `anchor` — `if style_anchor in src:`
+- L146 — `anchor` — `src = src.replace(style_anchor, style_patch, 1)`
+- L168 — `sélection` — `print("IsometrieModuleV48d.tsx patché UI 006, sélection pro conservée.")`
+- L171 — `port` — `def write_report() -> None:`
+- L177 — `sélection` — `La sélection professionnelle existe déjà et ne doit pas être recréée.`
+- L179 — `select` — `- `selectedNodeIds`, `selectedSegmentIds`, `selectedDimensionIds` présents.`
+- L180 — `sélection` — `- Rectangle de sélection présent.`
+- L182 — `selection` — `- `copySelection`, `duplicateSelection`, `clipboardRef`, undo/redo présents.`
+- L182 — `select` — `- `copySelection`, `duplicateSelection`, `clipboardRef`, undo/redo présents.`
+- L182 — `undo` — `- `copySelection`, `duplicateSelection`, `clipboardRef`, undo/redo présents.`
+- L182 — `redo` — `- `copySelection`, `duplicateSelection`, `clipboardRef`, undo/redo présents.`
+- L183 — `history` — `- Patch 004 / 004b documentés dans `docs/PATCH_HISTORY.md`.`
+- L216 — `sélection` — `- Sélection pro toujours active.`
+- L220 — `port` — `write(REPORT, content)`
+- L221 — `port` — `print(f"Rapport écrit : {REPORT}")`
+- L224 — `history` — `def update_history() -> None:`
+- L225 — `history` — `if not HISTORY.exists():`
+- L226 — `history` — `print("PATCH_HISTORY.md absent — historique non mis à jour.")`
+- L228 — `history` — `src = read(HISTORY)`
+- L230 — `history` — `print("PATCH_HISTORY.md déjà mis à jour.")`
+- L238 — `sélection` — `- Audit confirmé : la sélection professionnelle existe déjà via Patch 004/004b.`
+- L241 — `sélection` — `- Aucun second moteur 2D, aucune duplication de sélection/topologie/projection.`
+- L243 — `history` — `write(HISTORY, src.rstrip() + "\n" + entry)`
+- L244 — `history` — `print("PATCH_HISTORY.md mis à jour.")`
+- L255 — `port` — `write_report()`
+- L256 — `history` — `update_history()`
+### `006_universal_cad_toolbar_REPORT.md`
+- L6 — `sélection` — `La sélection professionnelle existe déjà et ne doit pas être recréée.`
+- L8 — `select` — `- `selectedNodeIds`, `selectedSegmentIds`, `selectedDimensionIds` présents.`
+- L9 — `sélection` — `- Rectangle de sélection présent.`
+- L11 — `selection` — `- `copySelection`, `duplicateSelection`, `clipboardRef`, undo/redo présents.`
+- L11 — `select` — `- `copySelection`, `duplicateSelection`, `clipboardRef`, undo/redo présents.`
+- L11 — `undo` — `- `copySelection`, `duplicateSelection`, `clipboardRef`, undo/redo présents.`
+- L11 — `redo` — `- `copySelection`, `duplicateSelection`, `clipboardRef`, undo/redo présents.`
+- L12 — `history` — `- Patch 004 / 004b documentés dans `docs/PATCH_HISTORY.md`.`
+- L45 — `sélection` — `- Sélection pro toujours active.`
+### `007_pdi_real_2d_geometry_foundation.py`
+- L12 — `port` — `- Ajouter export/import JSON des entités 2D.`
+- L18 — `port` — `from pathlib import Path`
+- L19 — `port` — `import shutil`
+- L20 — `port` — `import sys`
+- L21 — `port` — `from datetime import datetime`
+- L26 — `port` — `REPORT = ROOT / "007_real_2d_geometry_foundation_REPORT.md"`
+- L27 — `history` — `HISTORY = ROOT / "docs" / "PATCH_HISTORY.md"`
+- L56 — `select` — `required = ["IsometrieModule", "selectedNodeIds", "selectedSegmentIds", "commitGraph", "buildProjectFile", "importProjectJson"]`
+- L56 — `port` — `required = ["IsometrieModule", "selectedNodeIds", "selectedSegmentIds", "commitGraph", "buildProjectFile", "importProjectJson"]`
+- L60 — `sélection` — `print("Audit OK : V4.8d présent, sélection pro présente, export/import JSON présents.")`
+- L60 — `port` — `print("Audit OK : V4.8d présent, sélection pro présente, export/import JSON présents.")`
+- L72 — `anchor` — `type_anchor = "export interface PipingLine {\n  id: string;\n  lineNumber: string;\n  service: string;\n  dn: number;\n  nps: string;\n  material: string;\n  pressureClass: string;\n  schedule?: string;\n  designPressure?: number;\n  design`
+- L72 — `port` — `type_anchor = "export interface PipingLine {\n  id: string;\n  lineNumber: string;\n  service: string;\n  dn: number;\n  nps: string;\n  material: string;\n  pressureClass: string;\n  schedule?: string;\n  designPressure?: number;\n  design`
+- L73 — `anchor` — `type_patch = type_anchor + r'''`
+- L77 — `port` — `export type Cad2dEntityType = "line" | "polyline" | "circle" | "arc" | "text";`
+- L78 — `port` — `export type Cad2dPoint = { x: number; y: number };`
+- L78 — `point` — `export type Cad2dPoint = { x: number; y: number };`
+- L79 — `port` — `export type Cad2dEntity = {`
+- L87 — `point` — `points?: Cad2dPoint[];`
+- L88 — `point` — `center?: Cad2dPoint;`
+- L93 — `rotation` — `rotation?: number;`
+- L103 — `port` — `export type Cad2dLayer = {`
+- L112 — `anchor` — `if type_anchor in src:`
+- L113 — `anchor` — `src = src.replace(type_anchor, type_patch, 1)`
+- L118 — `anchor` — `iso_proj_anchor = "  model: { lines: PipingLine[]; nodes: IsoNode[]; segments: IsoSegment[]; dimensions?: IsoDimension[]; };"`
+- L118 — `IsoNode` — `iso_proj_anchor = "  model: { lines: PipingLine[]; nodes: IsoNode[]; segments: IsoSegment[]; dimensions?: IsoDimension[]; };"`
+- L118 — `IsoSegment` — `iso_proj_anchor = "  model: { lines: PipingLine[]; nodes: IsoNode[]; segments: IsoSegment[]; dimensions?: IsoDimension[]; };"`
+- L119 — `IsoNode` — `iso_proj_patch = "  model: { lines: PipingLine[]; nodes: IsoNode[]; segments: IsoSegment[]; dimensions?: IsoDimension[]; cad2d?: { layers: Cad2dLayer[]; entities: Cad2dEntity[]; }; };"`
+- L119 — `IsoSegment` — `iso_proj_patch = "  model: { lines: PipingLine[]; nodes: IsoNode[]; segments: IsoSegment[]; dimensions?: IsoDimension[]; cad2d?: { layers: Cad2dLayer[]; entities: Cad2dEntity[]; }; };"`
+- L120 — `anchor` — `if iso_proj_anchor in src:`
+- L121 — `anchor` — `src = src.replace(iso_proj_anchor, iso_proj_patch, 1)`
+- L124 — `anchor` — `state_anchor = "  const [dimensions, setDimensionsRaw] = useState<IsoDimension[]>([]);"`
+- L125 — `anchor` — `state_patch = state_anchor + r'''`
+- L132 — `port` — `{ id: "import_cad", name: "Import CAD / fond plan", color: "#888888", visible: true, locked: false },`
+- L134 — `select` — `const [selectedCad2dIds, setSelectedCad2dIds] = useState<string[]>([]);`
+- L141 — `select` — `setSelectedCad2dIds([next.id]);`
+- L146 — `select` — `setInteractionMode("select");`
+- L147 — `select` — `setIsoDrawMode("select");`
+- L152 — `anchor` — `if state_anchor in src:`
+- L153 — `anchor` — `src = src.replace(state_anchor, state_patch, 1)`
+- L157 — `port` — `# 3) Ajouter support export JSON simple.`
+- L158 — `anchor` — `export_anchor = "model:{lines,nodes,segments,dimensions}"`
+- L158 — `port` — `export_anchor = "model:{lines,nodes,segments,dimensions}"`
+- L159 — `anchor` — `if export_anchor in src:`
+- L159 — `port` — `if export_anchor in src:`
+- L160 — `anchor` — `src = src.replace(export_anchor, "model:{lines,nodes,segments,dimensions,cad2d:{layers:cad2dLayers,entities:cad2dEntities}}", 1)`
+- L160 — `port` — `src = src.replace(export_anchor, "model:{lines,nodes,segments,dimensions,cad2d:{layers:cad2dLayers,entities:cad2dEntities}}", 1)`
+- L162 — `port` — `print("Ancre export exacte non trouvée — export 2D non injecté automatiquement.")`
+- L164 — `port` — `# 4) Ajouter support import JSON après dimensions import.`
+- L165 — `anchor` — `import_anchor = "    setDimensionsRaw(snapshot.model.dimensions || []);"`
+- L165 — `snap` — `import_anchor = "    setDimensionsRaw(snapshot.model.dimensions || []);"`
+- L165 — `port` — `import_anchor = "    setDimensionsRaw(snapshot.model.dimensions || []);"`
+- L166 — `snap` — `import_patch = """    setDimensionsRaw(snapshot.model.dimensions || []);`
+- L166 — `port` — `import_patch = """    setDimensionsRaw(snapshot.model.dimensions || []);`
+- L167 — `snap` — `setCad2dLayers(snapshot.model.cad2d?.layers || [`
+- L170 — `port` — `{ id: "import_cad", name: "Import CAD / fond plan", color: "#888888", visible: true, locked: false },`
+- L172 — `snap` — `setCad2dEntities(snapshot.model.cad2d?.entities || []);`
+- L173 — `select` — `setSelectedCad2dIds([]);"""`
+- L174 — `anchor` — `if import_anchor in src:`
+- L174 — `port` — `if import_anchor in src:`
+- L175 — `anchor` — `src = src.replace(import_anchor, import_patch, 1)`
+- L175 — `port` — `src = src.replace(import_anchor, import_patch, 1)`
+- L177 — `port` — `print("Ancre import dimensions non trouvée — import 2D non injecté automatiquement.")`
+- L180 — `anchor` — `svg_anchor = "                {/* User Dimensions (Interactive CAD Cotations) */}"`
+- L184 — `select` — `const selected = selectedCad2dIds.includes(entity.id);`
+- L185 — `select` — `const stroke = selected ? "#fbbf24" : entity.color;`
+- L188 — `select` — `strokeWidth: selected ? 2.5 : (entity.lineWeight || 1.5),`
+- L191 — `point` — `style: { cursor: "pointer" },`
+- L194 — `select` — `setSelectedCad2dIds(event.shiftKey || event.ctrlKey || event.metaKey`
+- L195 — `select` — `? (selected ? selectedCad2dIds.filter((id) => id !== entity.id) : [...selectedCad2dIds, entity.id])`
+- L197 — `sélection` — `setStatusMessage(`Objet 2D sélectionné · ${entity.type} · ${entity.id}`);`
+- L200 — `point` — `if (entity.type === "line" && entity.points && entity.points.length >= 2) {`
+- L201 — `port` — `const a = isoProjectV4(entity.points[0].x, entity.points[0].y, entity.metadata?.elevationZ || 0, viewport.zoom, viewport.panX, viewport.panY);`
+- L201 — `point` — `const a = isoProjectV4(entity.points[0].x, entity.points[0].y, entity.metadata?.elevationZ || 0, viewport.zoom, viewport.panX, viewport.panY);`
+- L202 — `port` — `const b = isoProjectV4(entity.points[1].x, entity.points[1].y, entity.metadata?.elevationZ || 0, viewport.zoom, viewport.panX, viewport.panY);`
+- L202 — `point` — `const b = isoProjectV4(entity.points[1].x, entity.points[1].y, entity.metadata?.elevationZ || 0, viewport.zoom, viewport.panX, viewport.panY);`
+- L205 — `point` — `if (entity.type === "polyline" && entity.points && entity.points.length > 0) {`
+- L206 — `point` — `const d = entity.points.map((p, i) => {`
+- L207 — `port` — `const pp = isoProjectV4(p.x, p.y, entity.metadata?.elevationZ || 0, viewport.zoom, viewport.panX, viewport.panY);`
+- L213 — `port` — `const c = isoProjectV4(entity.center.x, entity.center.y, entity.metadata?.elevationZ || 0, viewport.zoom, viewport.panX, viewport.panY);`
+- L214 — `port` — `return <circle key={entity.id} cx={c.x} cy={c.y} r={entity.radius * 18 * viewport.zoom} {...common} />;`
+- L217 — `port` — `const c = isoProjectV4(entity.center.x, entity.center.y, entity.metadata?.elevationZ || 0, viewport.zoom, viewport.panX, viewport.panY);`
+- L218 — `port` — `const r = entity.radius * 18 * viewport.zoom;`
+- L229 — `point` — `if (entity.type === "text" && entity.points && entity.points[0]) {`
+- L230 — `port` — `const p = isoProjectV4(entity.points[0].x, entity.points[0].y, entity.metadata?.elevationZ || 0, viewport.zoom, viewport.panX, viewport.panY);`
+- L230 — `point` — `const p = isoProjectV4(entity.points[0].x, entity.points[0].y, entity.metadata?.elevationZ || 0, viewport.zoom, viewport.panX, viewport.panY);`
+- L238 — `anchor` — `if svg_anchor in src:`
+- L239 — `anchor` — `src = src.replace(svg_anchor, svg_patch, 1)`
+- L244 — `anchor` — `click_anchor = "    if(isoDrawMode===\"coude\"){"`
+- L247 — `snap` — `const point = { x: snapIsoV4(w.x, isoSnapStep), y: snapIsoV4(w.y, isoSnapStep) };`
+- L247 — `point` — `const point = { x: snapIsoV4(w.x, isoSnapStep), y: snapIsoV4(w.y, isoSnapStep) };`
+- L249 — `point` — `addCad2dEntity({ type: "line", layerId: "axes_tuyauterie", color: "#4db8d4", points: [point, { x: point.x + 2, y: point.y }] });`
+- L251 — `point` — `addCad2dEntity({ type: "polyline", layerId: "axes_tuyauterie", color: "#4db8d4", points: [point, { x: point.x + 1, y: point.y + 1 }, { x: point.x + 2, y: point.y }] });`
+- L253 — `port` — `addCad2dEntity({ type: "circle", layerId: "import_cad", color: "#8b5cf6", center: point, radius: 1 });`
+- L253 — `point` — `addCad2dEntity({ type: "circle", layerId: "import_cad", color: "#8b5cf6", center: point, radius: 1 });`
+- L255 — `port` — `addCad2dEntity({ type: "arc", layerId: "import_cad", color: "#e8a838", center: point, radius: 1, startAngle: 0, endAngle: 90 });`
+- L255 — `point` — `addCad2dEntity({ type: "arc", layerId: "import_cad", color: "#e8a838", center: point, radius: 1, startAngle: 0, endAngle: 90 });`
+- L257 — `point` — `addCad2dEntity({ type: "text", layerId: "annotations", color: "#f0f0f0", points: [point], text: "Texte" });`
+- L265 — `anchor` — `if click_anchor in src:`
+- L266 — `anchor` — `src = src.replace(click_anchor, click_patch, 1)`
+- … 33 occurrences supplémentaires.
+### `007_real_2d_geometry_foundation_REPORT.md`
+- L6 — `sélection` — `- La sélection professionnelle existe déjà : Patch 004 / 004b.`
+- L7 — `select` — `- `selectedNodeIds`, `selectedSegmentIds`, `selectedDimensionIds` présents.`
+- L9 — `sélection` — `- Ce patch ne refait pas la sélection.`
+- L12 — `port` — `Créer une couche 2D réelle, persistante et exportable :`
+- L17 — `select` — `- `selectedCad2dIds``
+- L26 — `port` — `## Important`
+- L29 — `port` — `- Mapping 2D -> piping graph reporté au patch 008/009.`
+- L44 — `sélection` — `- Clic sur objet 2D le sélectionne.`
+- L45 — `port` — `- Export JSON contient `model.cad2d`.`
+- L46 — `port` — `- Import JSON restaure `model.cad2d`.`
+### `007_stabilize_pdi_v48d1_workflow.py`
+- L22 — `port` — `from __future__ import annotations`
+- L24 — `port` — `import datetime as _dt`
+- L25 — `port` — `import hashlib`
+- L26 — `port` — `import os`
+- L27 — `port` — `from pathlib import Path`
+- L28 — `port` — `import re`
+- L29 — `port` — `import shutil`
+- L30 — `port` — `import sys`
+- L31 — `port` — `from typing import Iterable`
+- L42 — `history` — `PATCH_HISTORY = DOCS / "PATCH_HISTORY.md"`
+- L47 — `port` — `REPORT = ROOT / f"patch_{PATCH_ID}_report.txt"`
+- L101 — `move` — `def move_backups() -> list[str]:`
+- L102 — `move` — `moved: list[str] = []`
+- L123 — `move` — `shutil.move(str(p), str(dest))`
+- L124 — `move` — `moved.append(f"{rel} -> {dest.relative_to(ROOT)}")`
+- L125 — `move` — `return moved`
+- L149 — `port` — `# on ne tente pas de reconstruire le patch ici. On le signale dans le rapport.`
+- L150 — `group` — `if "cadMenuGroups" not in text:`
+- L151 — `group` — `changes.append("WARN: cadMenuGroups absent — V4.8d1 menu CAO non détecté dans le moteur.")`
+- L162 — `history` — `def write_patch_history() -> bool:`
+- L202 — `history` — `start = "<!-- PD-I PATCH HISTORY START -->"`
+- L203 — `history` — `end = "<!-- PD-I PATCH HISTORY END -->"`
+- L204 — `history` — `return replace_between_markers(PATCH_HISTORY, start, end, content)`
+- L215 — `port` — `Toutes les sources doivent converger vers le JSON, puis le JSON alimente l'éditeur, le moteur ISO et les exports.`
+- L240 — `point` — `Points à prévoir :`
+- L295 — `port` — `Source → JSON PD&I → Validation → ISO/Exports`
+- L340 — `port` — `report: list[str] = []`
+- L341 — `port` — `report.append(PATCH_NAME)`
+- L342 — `port` — `report.append(f"Root: {ROOT}")`
+- L343 — `port` — `report.append(f"Date: {_dt.datetime.now().isoformat()}")`
+- L344 — `port` — `report.append("")`
+- L346 — `port` — `report.extend(validate_paths())`
+- L347 — `port` — `report.append("")`
+- L349 — `move` — `moved = move_backups()`
+- L350 — `port` — `report.append(f"Backups déplacés: {len(moved)}")`
+- L350 — `move` — `report.append(f"Backups déplacés: {len(moved)}")`
+- L351 — `port` — `report.extend([f"- {m}" for m in moved])`
+- L351 — `move` — `report.extend([f"- {m}" for m in moved])`
+- L352 — `port` — `report.append("")`
+- L355 — `port` — `report.append("Engine changes:")`
+- L356 — `port` — `report.extend([f"- {c}" for c in engine_changes] or ["- Aucun changement moteur nécessaire"])`
+- L357 — `port` — `report.append("")`
+- L360 — `history` — `changed_history = write_patch_history()`
+- L362 — `port` — `report.append(f".gitignore mis à jour: {changed_gitignore}")`
+- L363 — `history` — `report.append(f"PATCH_HISTORY mis à jour: {changed_history}")`
+- L363 — `port` — `report.append(f"PATCH_HISTORY mis à jour: {changed_history}")`
+- L364 — `port` — `report.append(f"WORKFLOW IA/JSON mis à jour: {changed_workflow}")`
+- L365 — `port` — `report.append("")`
+- L370 — `port` — `report.append("Contrôles moteur:")`
+- L371 — `port` — `report.append(f"- Version 4.8d1 count: {t.count('Version 4.8d1')}")`
+- L372 — `port` — `report.append(f"- Version 4.8d11 count: {t.count('Version 4.8d11')}")`
+- L373 — `port` — `report.append(f"- data-pdi-studio v4.8d1 count: {t.count('data-pdi-studio=\"v4.8d1\"')}")`
+- L374 — `group` — `report.append(f"- cadMenuGroups count: {t.count('cadMenuGroups')}")`
+- L374 — `port` — `report.append(f"- cadMenuGroups count: {t.count('cadMenuGroups')}")`
+- L375 — `port` — `report.append(f"- IsoDimension count: {t.count('IsoDimension')}")`
+- L376 — `port` — `report.append("")`
+- L378 — `port` — `report.append("Prochaine étape recommandée:")`
+- L379 — `port` — `report.append("1. npm run build")`
+- L380 — `port` — `report.append("2. npx tsc --noEmit ou npm run typecheck si disponible")`
+- L381 — `port` — `report.append("3. Tester desktop: ouverture isométrie, menus, no-scroll, zoom molette, cotation M")`
+- L382 — `port` — `report.append("4. Tester mobile: pas de débordement horizontal, moteur visible, toolbar utilisable")`
+- L383 — `port` — `report.append("5. Commit: 'Patch 007 stabilize V4.8d1 workflow' ")`
+- L385 — `port` — `REPORT.write_text("\n".join(report) + "\n", encoding="utf-8")`
+- L386 — `port` — `log("\n".join(report))`
+- L387 — `port` — `log(f"\nRapport écrit: {REPORT.relative_to(ROOT)}")`
+### `007a_pdi_shell_branding_fullscreen.py`
+- L18 — `port` — `Ce patch est prudent et idempotent : il évite les doublons et génère un rapport.`
+- L22 — `port` — `from __future__ import annotations`
+- L24 — `port` — `import datetime as dt`
+- L25 — `port` — `import re`
+- L26 — `port` — `import shutil`
+- L27 — `port` — `from pathlib import Path`
+- L33 — `port` — `REPORT = ROOT / f"patch_{PATCH_ID}_report.txt"`
+- L41 — `history` — `PATCH_HISTORY = DOCS / "PATCH_HISTORY.md"`
+- L65 — `port` — `def write_if_changed(path: Path, content: str, report: list[str]) -> bool:`
+- L68 — `port` — `report.append(f"UNCHANGED {rel(path)}")`
+- L73 — `port` — `report.append(f"UPDATED {rel(path)}")`
+- L77 — `port` — `def append_unique_lines(path: Path, lines: list[str], report: list[str]) -> None:`
+- L86 — `port` — `write_if_changed(path, "\n".join(existing).rstrip() + "\n", report)`
+- L88 — `port` — `report.append(f"UNCHANGED {rel(path)}")`
+- L91 — `port` — `def detect_logo_import() -> tuple[str, str]:`
+- L92 — `port` — `"""Return (import_line, usage_jsx_source)."""`
+- L101 — `port` — `'import { PDI_LOGO_HORIZONTAL_SRC, PDI_LOGO_SQUARE_SRC } from "../assets/pdiLogos";',`
+- L104 — `port` — `# Fallback safe: no static asset import if the module does not exist.`
+- L108 — `port` — `def create_brand_component(report: list[str]) -> None:`
+- L109 — `port` — `import_line, mode = detect_logo_import()`
+- L111 — `port` — `body = f'''import React from "react";`
+- L112 — `port` — `{import_line}`
+- L114 — `port` — `export type PdiBrandMarkProps = {{`
+- L120 — `port` — `export default function PdiBrandMark({{`
+- L132 — `align` — `style={{{{ display: "inline-flex", alignItems: "center", gap: 10, minWidth: 0 }}}}`
+- L150 — `port` — `body = '''import React from "react";`
+- L152 — `port` — `export type PdiBrandMarkProps = {`
+- L158 — `port` — `export default function PdiBrandMark({`
+- L170 — `align` — `style={{ display: "inline-flex", alignItems: "center", gap: 10, minWidth: 0 }}`
+- L200 — `port` — `write_if_changed(BRAND, body, report)`
+- L201 — `port` — `report.append(f"Brand component mode: {mode}")`
+- L204 — `port` — `def patch_pdi_app(report: list[str]) -> None:`
+- L206 — `port` — `report.append(f"KO {rel(APP)} absent")`
+- L211 — `port` — `# Import du composant global.`
+- L213 — `port` — `# Placer après les imports React / premiers imports.`
+- L217 — `port` — `if line.startswith("import "):`
+- L219 — `port` — `lines.insert(insert_at, 'import PdiBrandMark from "./PdiBrandMark";')`
+- L221 — `port` — `report.append("PdiApp: import PdiBrandMark ajouté")`
+- L238 — `port` — `report.append("PdiApp: badge texte PD&I remplacé par PdiBrandMark")`
+- L244 — `port` — `report.append("PdiApp: PdiBrandMark inséré dans le premier <header>")`
+- L246 — `port` — `report.append("WARN PdiApp: emplacement logo non trouvé — composant créé mais non inséré automatiquement")`
+- L254 — `port` — `write_if_changed(APP, text, report)`
+- L256 — `port` — `report.append(f"UNCHANGED {rel(APP)}")`
+- L259 — `port` — `def patch_engine_fullscreen(report: list[str]) -> None:`
+- L261 — `port` — `report.append(f"KO {rel(ENGINE)} absent")`
+- L288 — `port` — `write_if_changed(ENGINE, text, report)`
+- L290 — `port` — `report.append(f"UNCHANGED {rel(ENGINE)}")`
+- L293 — `port` — `def patch_wrapper(report: list[str]) -> None:`
+- L295 — `port` — `report.append(f"INFO {rel(WRAPPER)} absent")`
+- L307 — `port` — `write_if_changed(WRAPPER, text, report)`
+- L309 — `port` — `report.append(f"UNCHANGED {rel(WRAPPER)}")`
+- L312 — `port` — `def patch_index(report: list[str]) -> None:`
+- L314 — `port` — `report.append(f"INFO {rel(INDEX_HTML)} absent")`
+- L322 — `port` — `write_if_changed(INDEX_HTML, text, report)`
+- L324 — `port` — `report.append(f"UNCHANGED {rel(INDEX_HTML)}")`
+- L327 — `port` — `def write_docs(report: list[str]) -> None:`
+- L333 — `port` — `Le dépôt **PD-I** contient l'application SaaS, le workspace, le modèle JSON central, les imports/exports et l'interface.`
+- L337 — `port` — `## Règle importante`
+- L354 — `port` — `- validation réseau, ports, soudures ;`
+- L357 — `port` — `- génération PDF/DXF/rapports.`
+- L374 — `port` — `write_if_changed(SKILLS_DOC, skills_doc, report)`
+- L376 — `history` — `history_add = '''`
+- L387 — `history` — `old = read(PATCH_HISTORY)`
+- L389 — `history` — `write_if_changed(PATCH_HISTORY, old.rstrip() + history_add + "\n", report)`
+- L389 — `port` — `write_if_changed(PATCH_HISTORY, old.rstrip() + history_add + "\n", report)`
+- L391 — `history` — `report.append(f"UNCHANGED {rel(PATCH_HISTORY)}")`
+- L391 — `port` — `report.append(f"UNCHANGED {rel(PATCH_HISTORY)}")`
+- L394 — `port` — `def patch_gitignore(report: list[str]) -> None:`
+- L405 — `port` — `], report)`
+- L408 — `port` — `def scan(report: list[str]) -> None:`
+- L409 — `port` — `report.append("\n--- POST-CHECK ---")`
+- L413 — `port` — `report.append(f"OK {rel(p)} size={p.stat().st_size}")`
+- L415 — `port` — `report.append(f"  Version 4.8d1 count={txt.count('Version 4.8d1')}")`
+- L416 — `port` — `report.append(f"  Retour accueil count={txt.count('Retour accueil')}")`
+- L417 — `port` — `report.append(f"  workspaceFullscreen count={txt.count('workspaceFullscreen')}")`
+- L419 — `port` — `report.append(f"  PdiBrandMark count={txt.count('PdiBrandMark')}")`
+- L421 — `port` — `report.append(f"KO {rel(p)} absent")`
+- L425 — `port` — `report: list[str] = []`
+- L426 — `port` — `report.append("PD&I PATCH 007a — Branding global + workspace intégré")`
+- L427 — `port` — `report.append(f"Date: {dt.datetime.now().isoformat()}")`
+- L428 — `port` — `report.append(f"Root: {ROOT}")`
+- L431 — `port` — `report.append("ERREUR: package.json introuvable. Exécuter depuis la racine du dépôt PD-I.")`
+- L432 — `port` — `REPORT.write_text("\n".join(report) + "\n", encoding="utf-8")`
+- L433 — `port` — `print("\n".join(report))`
+- L436 — `port` — `create_brand_component(report)`
+- L437 — `port` — `patch_pdi_app(report)`
+- L438 — `port` — `patch_engine_fullscreen(report)`
+- L439 — `port` — `patch_wrapper(report)`
+- L440 — `port` — `patch_index(report)`
+- L441 — `port` — `write_docs(report)`
+- L442 — `port` — `patch_gitignore(report)`
+- L443 — `port` — `scan(report)`
+- L445 — `port` — `report.append("\n--- TESTS RECOMMANDÉS ---")`
+- L446 — `port` — `report.append("1. npm run build")`
+- L447 — `port` — `report.append("2. npx tsc --noEmit si disponible")`
+- L448 — `port` — `report.append("3. Vérifier logo visible dès l'accueil PD&I")`
+- L449 — `port` — `report.append("4. Vérifier menu Isométrie / workspace ISO")`
+- L450 — `port` — `report.append("5. Vérifier que le bouton ancien plein écran n'affiche plus une logique 'Quitter PD&I' incohérente")`
+- L451 — `port` — `report.append("6. Vérifier mobile : pas de débordement horizontal")`
+- L453 — `port` — `REPORT.write_text("\n".join(report) + "\n", encoding="utf-8")`
+- … 2 occurrences supplémentaires.
+### `007b_2d_objects_manipulation_properties_fix_REPORT.md`
+- L11 — `sélection` — `- Sélection objet 2D fiabilisée.`
+- L12 — `sélection` — `- Déplacement clavier des objets 2D sélectionnés.`
+- L15 — `point` — `- Rendu texte corrigé avec fond et `pointerEvents` contrôlé.`
+- L16 — `sélection` — `- Boutons ruban Duplicate/Delete priorisent les objets 2D sélectionnés.`
+- L24 — `port` — `- Mapping 2D -> piping toujours reporté au patch suivant.`
+### `007b_pdi_2d_objects_manipulation_properties_fix.py`
+- L13 — `sélection` — `- Ajouter sélection fiable des objets 2D.`
+- L21 — `port` — `from pathlib import Path`
+- L22 — `port` — `import shutil`
+- L23 — `port` — `import sys`
+- L24 — `port` — `from datetime import datetime`
+- L29 — `port` — `REPORT = ROOT / "007b_2d_objects_manipulation_properties_fix_REPORT.md"`
+- L30 — `history` — `HISTORY = ROOT / "docs" / "PATCH_HISTORY.md"`
+- L59 — `select` — `required = ["Cad2dEntity", "cad2dEntities", "selectedCad2dIds", "addCad2dEntity"]`
+- L75 — `anchor` — `anchor = '''  const prepareCad2dTool = (tool: Cad2dEntityType) => {`
+- L76 — `select` — `setInteractionMode("select");`
+- L77 — `select` — `setIsoDrawMode("select");`
+- L82 — `anchor` — `patch = anchor + r'''`
+- L85 — `select` — `const selectedCad2dEntity = cad2dEntities.find((entity) => selectedCad2dIds.includes(entity.id)) || null;`
+- L91 — `select` — `const moveSelectedCad2d = (dx: number, dy: number) => {`
+- L91 — `move` — `const moveSelectedCad2d = (dx: number, dy: number) => {`
+- L92 — `select` — `if (!selectedCad2dIds.length) return;`
+- L93 — `select` — `const ids = new Set(selectedCad2dIds);`
+- L98 — `point` — `points: entity.points?.map((point) => ({ x: point.x + dx, y: point.y + dy })),`
+- L102 — `select` — `setStatusMessage(`Déplacement 2D · ${selectedCad2dIds.length} objet(s)`);`
+- L105 — `select` — `const duplicateSelectedCad2d = () => {`
+- L106 — `select` — `if (!selectedCad2dIds.length) return;`
+- L107 — `select` — `const ids = new Set(selectedCad2dIds);`
+- L111 — `snap` — `points: entity.points?.map((point) => ({ x: point.x + isoSnapStep, y: point.y + isoSnapStep })),`
+- L111 — `point` — `points: entity.points?.map((point) => ({ x: point.x + isoSnapStep, y: point.y + isoSnapStep })),`
+- L112 — `snap` — `center: entity.center ? { x: entity.center.x + isoSnapStep, y: entity.center.y + isoSnapStep } : entity.center,`
+- L115 — `select` — `setSelectedCad2dIds(clones.map((entity) => entity.id));`
+- L119 — `select` — `const deleteSelectedCad2d = () => {`
+- L120 — `select` — `if (!selectedCad2dIds.length) return;`
+- L121 — `select` — `const ids = new Set(selectedCad2dIds);`
+- L123 — `select` — `setSelectedCad2dIds([]);`
+- L127 — `anchor` — `if anchor not in src:`
+- L129 — `anchor` — `src = src.replace(anchor, patch, 1)`
+- L132 — `anchor` — `key_anchor = '      if(e.key.startsWith("Arrow") && selectedNodeIds.length && !(e.target as HTMLElement)?.matches("input,textarea,select")){'`
+- L132 — `select` — `key_anchor = '      if(e.key.startsWith("Arrow") && selectedNodeIds.length && !(e.target as HTMLElement)?.matches("input,textarea,select")){'`
+- L133 — `select` — `key_patch = r'''      if(selectedCad2dIds.length && !(e.target as HTMLElement)?.matches("input,textarea,select")){`
+- L136 — `snap` — `const step = isoSnapStep * (e.shiftKey ? 4 : 1);`
+- L137 — `select` — `moveSelectedCad2d(e.key === "ArrowRight" ? step : e.key === "ArrowLeft" ? -step : 0, e.key === "ArrowDown" ? step : e.key === "ArrowUp" ? -step : 0);`
+- L137 — `move` — `moveSelectedCad2d(e.key === "ArrowRight" ? step : e.key === "ArrowLeft" ? -step : 0, e.key === "ArrowDown" ? step : e.key === "ArrowUp" ? -step : 0);`
+- L142 — `select` — `duplicateSelectedCad2d();`
+- L147 — `select` — `deleteSelectedCad2d();`
+- L152 — `select` — `if(e.key.startsWith("Arrow") && selectedNodeIds.length && !(e.target as HTMLElement)?.matches("input,textarea,select")){'''`
+- L153 — `anchor` — `if key_anchor in src:`
+- L154 — `anchor` — `src = src.replace(key_anchor, key_patch, 1)`
+- L160 — `rotation` — `new_text = '''<g key={entity.id} onClick={common.onClick} style={common.style} transform={`translate(${p.x} ${p.y}) rotate(${entity.rotation || 0})`}>`
+- L160 — `translate` — `new_text = '''<g key={entity.id} onClick={common.onClick} style={common.style} transform={`translate(${p.x} ${p.y}) rotate(${entity.rotation || 0})`}>`
+- L161 — `select` — `<rect x="-4" y="-16" width={Math.max(48, (entity.text || "Texte").length * 8)} height="22" rx="3" fill={selected ? "#fbbf24" : "#020617"} fillOpacity={selected ? .18 : .55} stroke={stroke} strokeOpacity=".55" />`
+- L162 — `point` — `<text x="0" y="0" fill={stroke} fontSize="14" fontWeight="900" pointerEvents="none">{entity.text || "Texte"}</text>`
+- L170 — `anchor` — `panel_anchor = '        {/* CAD Property Inspector for active selection */}'`
+- L170 — `selection` — `panel_anchor = '        {/* CAD Property Inspector for active selection */}'`
+- L170 — `select` — `panel_anchor = '        {/* CAD Property Inspector for active selection */}'`
+- L172 — `select` — `{selectedCad2dEntity && (`
+- L176 — `select` — `<span className="text-[10px] font-mono bg-cyan-950 text-cyan-300 px-2 py-0.5 rounded border border-cyan-800 font-bold">{selectedCad2dEntity.type}</span>`
+- L181 — `select` — `<div className="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-[10px] font-mono text-slate-300 truncate">{selectedCad2dEntity.id}</div>`
+- L185 — `select` — `<select value={selectedCad2dEntity.layerId} onChange={(e) => updateCad2dEntity(selectedCad2dEntity.id, { layerId: e.target.value })} className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-white">`
+- L187 — `select` — `</select>`
+- L191 — `select` — `<input type="color" value={selectedCad2dEntity.color} onChange={(e) => updateCad2dEntity(selectedCad2dEntity.id, { color: e.target.value })} className="w-full h-8 bg-slate-800 border border-slate-700 rounded" />`
+- L193 — `select` — `{(selectedCad2dEntity.type === "circle" || selectedCad2dEntity.type === "arc") && (`
+- L196 — `select` — `<input type="number" step="0.1" value={selectedCad2dEntity.radius || 1} onChange={(e) => updateCad2dEntity(selectedCad2dEntity.id, { radius: Number(e.target.value) || 1 })} className="w-full bg-slate-800 border border-slate-700 rounded px-2`
+- L199 — `select` — `{selectedCad2dEntity.type === "text" && (`
+- L202 — `select` — `<input value={selectedCad2dEntity.text || ""} onChange={(e) => updateCad2dEntity(selectedCad2dEntity.id, { text: e.target.value })} className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-white" />`
+- L207 — `select` — `<select value={selectedCad2dEntity.metadata?.intent || "draft"} onChange={(e) => updateCad2dEntity(selectedCad2dEntity.id, { metadata: { ...(selectedCad2dEntity.metadata || {}), intent: e.target.value as any } })} className="w-full bg-slate`
+- L212 — `select` — `</select>`
+- L216 — `select` — `<input type="number" step="0.1" value={selectedCad2dEntity.metadata?.elevationZ || 0} onChange={(e) => updateCad2dEntity(selectedCad2dEntity.id, { metadata: { ...(selectedCad2dEntity.metadata || {}), elevationZ: Number(e.target.value) || 0 `
+- L220 — `snap` — `<button type="button" onClick={() => moveSelectedCad2d(-isoSnapStep, 0)} className="rounded bg-slate-800 py-1 text-[10px] font-black">←</button>`
+- L220 — `select` — `<button type="button" onClick={() => moveSelectedCad2d(-isoSnapStep, 0)} className="rounded bg-slate-800 py-1 text-[10px] font-black">←</button>`
+- L220 — `move` — `<button type="button" onClick={() => moveSelectedCad2d(-isoSnapStep, 0)} className="rounded bg-slate-800 py-1 text-[10px] font-black">←</button>`
+- L221 — `snap` — `<button type="button" onClick={() => moveSelectedCad2d(isoSnapStep, 0)} className="rounded bg-slate-800 py-1 text-[10px] font-black">→</button>`
+- L221 — `select` — `<button type="button" onClick={() => moveSelectedCad2d(isoSnapStep, 0)} className="rounded bg-slate-800 py-1 text-[10px] font-black">→</button>`
+- L221 — `move` — `<button type="button" onClick={() => moveSelectedCad2d(isoSnapStep, 0)} className="rounded bg-slate-800 py-1 text-[10px] font-black">→</button>`
+- L222 — `select` — `<button type="button" onClick={duplicateSelectedCad2d} className="rounded bg-blue-800 py-1 text-[10px] font-black">Dup</button>`
+- L223 — `select` — `<button type="button" onClick={deleteSelectedCad2d} className="rounded bg-red-800 py-1 text-[10px] font-black">Del</button>`
+- L228 — `selection` — `{/* CAD Property Inspector for active selection */}'''`
+- L228 — `select` — `{/* CAD Property Inspector for active selection */}'''`
+- L229 — `anchor` — `if panel_anchor in src:`
+- L230 — `anchor` — `src = src.replace(panel_anchor, panel, 1)`
+- L234 — `sélection` — `# 5) Brancher boutons ruban Copy/Delete/Duplicate : si objet 2D sélectionné prioritaire.`
+- L235 — `selection` — `src = src.replace('<button onClick={duplicateSelection}>Duplicate</button>', '<button onClick={() => selectedCad2dIds.length ? duplicateSelectedCad2d() : duplicateSelection()}>Duplicate</button>', 1)`
+- L235 — `select` — `src = src.replace('<button onClick={duplicateSelection}>Duplicate</button>', '<button onClick={() => selectedCad2dIds.length ? duplicateSelectedCad2d() : duplicateSelection()}>Duplicate</button>', 1)`
+- L236 — `selection` — `src = src.replace('<button onClick={deleteSelection}>Delete</button>', '<button onClick={() => selectedCad2dIds.length ? deleteSelectedCad2d() : deleteSelection()}>Delete</button>', 1)`
+- L236 — `select` — `src = src.replace('<button onClick={deleteSelection}>Delete</button>', '<button onClick={() => selectedCad2dIds.length ? deleteSelectedCad2d() : deleteSelection()}>Delete</button>', 1)`
+- L242 — `port` — `def write_report() -> None:`
+- L253 — `sélection` — `- Sélection objet 2D fiabilisée.`
+- L254 — `sélection` — `- Déplacement clavier des objets 2D sélectionnés.`
+- L257 — `point` — `- Rendu texte corrigé avec fond et `pointerEvents` contrôlé.`
+- L258 — `sélection` — `- Boutons ruban Duplicate/Delete priorisent les objets 2D sélectionnés.`
+- L266 — `port` — `- Mapping 2D -> piping toujours reporté au patch suivant.`
+- L282 — `port` — `write(REPORT, content)`
+- L283 — `port` — `print(f"Rapport écrit : {REPORT}")`
+- L286 — `history` — `def update_history() -> None:`
+- L287 — `history` — `if not HISTORY.exists():`
+- L288 — `history` — `print("PATCH_HISTORY.md absent — historique non mis à jour.")`
+- L290 — `history` — `src = read(HISTORY)`
+- L292 — `history` — `print("PATCH_HISTORY.md déjà mis à jour.")`
+- L306 — `history` — `write(HISTORY, src.rstrip() + "\n" + entry)`
+- L307 — `history` — `print("PATCH_HISTORY.md mis à jour.")`
+- L314 — `port` — `write_report()`
+- L315 — `history` — `update_history()`
+### `007b_pdi_embedded_iso_public_logo.py`
+- L21 — `port` — `- ajoute un rapport patch_007b_report.txt.`
+- L23 — `port` — `IMPORTANT :`
+- L34 — `port` — `from __future__ import annotations`
+- L36 — `port` — `import datetime as dt`
+- L37 — `port` — `import os`
+- L38 — `port` — `import re`
+- L39 — `port` — `import shutil`
+- L40 — `port` — `from pathlib import Path`
+- L46 — `port` — `REPORT = ROOT / f"patch_{PATCH_ID}_report.txt"`
+- L54 — `history` — `PATCH_HISTORY = DOCS / "PATCH_HISTORY.md"`
+- L79 — `port` — `def write_if_changed(path: Path, content: str, report: list[str]) -> bool:`
+- L82 — `port` — `report.append(f"UNCHANGED {rel(path)}")`
+- L87 — `port` — `report.append(f"UPDATED {rel(path)}")`
+- L91 — `port` — `def detect_public_logos(report: list[str]) -> tuple[str, str]:`
+- L154 — `port` — `report.append("Logo public detection:")`
+- L155 — `port` — `report.append(f"- candidates: {len(candidates)}")`
+- L157 — `port` — `report.append(f"  - {rel(p)}")`
+- L158 — `port` — `report.append(f"- horizontal src: {horizontal_src}")`
+- L159 — `port` — `report.append(f"- square src: {square_src}")`
+- L161 — `port` — `report.append("WARN: aucun logo détecté dans /public. Le composant utilisera /pdi-logo-horizontal.png et /pdi-logo-square.png ; copie ces fichiers dans public/.")`
+- L165 — `port` — `def rewrite_brand_mark(horizontal_src: str, square_src: str, report: list[str]) -> None:`
+- L166 — `port` — `content = f'''import React from "react";`
+- L173 — `port` — `export type PdiBrandMarkProps = {{`
+- L179 — `port` — `export default function PdiBrandMark({{`
+- L195 — `align` — `alignItems: "center",`
+- L211 — `drag` — `draggable={{false}}`
+- L217 — `port` — `write_if_changed(BRAND, content, report)`
+- L220 — `port` — `def patch_app_single_logo(report: list[str]) -> None:`
+- L222 — `port` — `report.append(f"KO {rel(APP)} absent")`
+- L231 — `port` — `if line.startswith("import "):`
+- L233 — `port` — `lines.insert(insert_at, 'import PdiBrandMark from "./PdiBrandMark";')`
+- L235 — `port` — `report.append("PdiApp: import PdiBrandMark ajouté")`
+- L245 — `group` — `return m.group(0)`
+- L248 — `port` — `report.append(f"PdiApp: logos PdiBrandMark dédupliqués ({count} -> 1)")`
+- L263 — `port` — `report.append("PdiApp: badge texte PD&I remplacé par logo public")`
+- L268 — `port` — `report.append("PdiApp: logo public inséré dans le premier header")`
+- L270 — `port` — `report.append("WARN: aucun emplacement header trouvé pour insérer PdiBrandMark")`
+- L277 — `port` — `write_if_changed(APP, text, report)`
+- L279 — `port` — `report.append(f"UNCHANGED {rel(APP)}")`
+- L282 — `port` — `def patch_engine_embedded(report: list[str]) -> None:`
+- L284 — `port` — `report.append(f"KO {rel(ENGINE)} absent")`
+- L293 — `point` — `# Le point principal : ne plus ouvrir l'ISO en plein écran par défaut.`
+- L305 — `port` — `report.append(f"Engine: workspaceFullscreen default false changed={changed_fullscreen}")`
+- L325 — `port` — `write_if_changed(ENGINE, text, report)`
+- L327 — `port` — `report.append(f"UNCHANGED {rel(ENGINE)}")`
+- L330 — `port` — `def patch_wrapper_embedded(report: list[str]) -> None:`
+- L332 — `port` — `report.append(f"INFO {rel(WRAPPER)} absent")`
+- L342 — `port` — `write_if_changed(WRAPPER, text, report)`
+- L344 — `port` — `report.append(f"UNCHANGED {rel(WRAPPER)}")`
+- L347 — `port` — `def update_docs_and_ignore(report: list[str]) -> None:`
+- L361 — `history` — `old = read(PATCH_HISTORY)`
+- L363 — `history` — `write_if_changed(PATCH_HISTORY, old.rstrip() + add + "\n", report)`
+- L363 — `port` — `write_if_changed(PATCH_HISTORY, old.rstrip() + add + "\n", report)`
+- L365 — `history` — `report.append(f"UNCHANGED {rel(PATCH_HISTORY)}")`
+- L365 — `port` — `report.append(f"UNCHANGED {rel(PATCH_HISTORY)}")`
+- L385 — `port` — `write_if_changed(GITIGNORE, "\n".join(lines).rstrip() + "\n", report)`
+- L387 — `port` — `report.append(f"UNCHANGED {rel(GITIGNORE)}")`
+- L390 — `port` — `def postcheck(report: list[str]) -> None:`
+- L391 — `port` — `report.append("\n--- POST-CHECK 007b ---")`
+- L394 — `port` — `report.append(f"KO {rel(p)} absent")`
+- L397 — `port` — `report.append(f"OK {rel(p)} size={p.stat().st_size}")`
+- L399 — `port` — `report.append(f"  public horizontal refs={txt.count('/')} img tags={txt.count('<img')} svg refs={txt.lower().count('<svg')}")`
+- L401 — `port` — `report.append(f"  PdiBrandMark count={txt.count('PdiBrandMark')}")`
+- L403 — `port` — `report.append(f"  workspaceFullscreen true count={txt.count('useState(true)')}")`
+- L404 — `port` — `report.append(f"  workspaceFullscreen false count={txt.count('workspaceFullscreen, setWorkspaceFullscreen] = useState(false)')}")`
+- L405 — `port` — `report.append(f"  Retour accueil count={txt.count('Retour accueil')}")`
+- L406 — `port` — `report.append(f"  fixed inset root count={txt.count('fixed inset-0')}")`
+- L410 — `port` — `report: list[str] = []`
+- L411 — `port` — `report.append("PD&I PATCH 007b — ISO intégré + logo public unique")`
+- L412 — `port` — `report.append(f"Date: {dt.datetime.now().isoformat()}")`
+- L413 — `port` — `report.append(f"Root: {ROOT}")`
+- L416 — `port` — `report.append("ERREUR: package.json introuvable. Exécute ce patch depuis la racine du dépôt PD-I.")`
+- L417 — `port` — `REPORT.write_text("\n".join(report) + "\n", encoding="utf-8")`
+- L418 — `port` — `print("\n".join(report))`
+- L421 — `port` — `h, s = detect_public_logos(report)`
+- L422 — `port` — `rewrite_brand_mark(h, s, report)`
+- L423 — `port` — `patch_app_single_logo(report)`
+- L424 — `port` — `patch_engine_embedded(report)`
+- L425 — `port` — `patch_wrapper_embedded(report)`
+- L426 — `port` — `update_docs_and_ignore(report)`
+- L427 — `port` — `postcheck(report)`
+- L429 — `port` — `report.append("\n--- TESTS À FAIRE ---")`
+- L430 — `port` — `report.append("1. Copier les vrais logos dans public/ si le rapport indique aucun logo détecté.")`
+- L431 — `port` — `report.append("2. npm run build")`
+- L432 — `port` — `report.append("3. Ouvrir PD&I : un seul logo global doit apparaître dans le shell.")`
+- L433 — `port` — `report.append("4. Cliquer ISO : l'éditeur doit s'ouvrir intégré, pas en plein écran automatique.")`
+- L434 — `port` — `report.append("5. Le mode focus doit rester volontaire, pas activé au chargement.")`
+- L435 — `port` — `report.append("6. Vérifier mobile : pas de double header, pas de double logo.")`
+- L437 — `port` — `REPORT.write_text("\n".join(report) + "\n", encoding="utf-8")`
+- L438 — `port` — `print("\n".join(report))`
+- L439 — `port` — `print(f"\nRapport écrit: {rel(REPORT)}")`
+### `007c_pdi_unified_shell_home_orchestrator.py`
+- L26 — `port` — `from __future__ import annotations`
+- L28 — `port` — `import datetime as dt`
+- L29 — `port` — `import re`
+- L30 — `port` — `import shutil`
+- L31 — `port` — `from pathlib import Path`
+- L37 — `port` — `REPORT = ROOT / f"patch_{PATCH_ID}_report.txt"`
+- L45 — `history` — `PATCH_HISTORY = DOCS / "PATCH_HISTORY.md"`
+- L68 — `port` — `def write_if_changed(path: Path, content: str, report: list[str]) -> bool:`
+- L71 — `port` — `report.append(f"UNCHANGED {rel(path)}")`
+- L76 — `port` — `report.append(f"UPDATED {rel(path)}")`
+- L80 — `port` — `def ensure_brand(report: list[str]) -> None:`
+- L82 — `port` — `content = '''import React from "react";`
+- L91 — `port` — `export type PdiBrandMarkProps = {`
+- L97 — `port` — `export default function PdiBrandMark({`
+- L116 — `drag` — `draggable={false}`
+- L122 — `port` — `write_if_changed(BRAND, content, report)`
+- L125 — `port` — `def write_unified_app(report: list[str]) -> None:`
+- L126 — `port` — `content = '''import React, { useEffect, useMemo, useState } from "react";`
+- L127 — `port` — `import PdiBrandMark from "./PdiBrandMark";`
+- L128 — `port` — `import PdiIsometricEditor from "../isometric/PdiIsometricEditor";`
+- L142 — `align` — `{ id: "isometric", title: "Dessin isométrique", subtitle: "Créer un projet manuel avec nœuds, tubes, équipements, cotations et alignements.", badge: "V4.8d1", icon: "ISO", ready: true },`
+- L144 — `port` — `{ id: "sketch", title: "Croquis → ISO", subtitle: "Importer un dessin à la main, extraire le réseau, valider le JSON puis générer l’ISO.", badge: "Croquis", icon: "CRQ" },`
+- L145 — `port` — `{ id: "cad", title: "Importer CAO / DXF", subtitle: "Lire un DXF/PDF, extraire calques/lignes/blocs et convertir vers JSON PD&I.", badge: "DXF/PDF", icon: "DX" },`
+- L147 — `port` — `{ id: "pdf", title: "Impression / exports", subtitle: "Préparer PDF, DXF, planches A4/A3/A2/A1, cartouche et nomenclature.", badge: "PDF/DXF", icon: "OUT" },`
+- L155 — `port` — `{ id: "cad", label: "CAO", icon: "DX", title: "Import CAD/DXF/PDF" },`
+- L157 — `port` — `{ id: "pdf", label: "Export", icon: "PDF", title: "PDF / DXF / Impression" },`
+- L171 — `port` — `export default function PdiUnifiedApp() {`
+- L180 — `move` — `return () => window.removeEventListener("pdi:navigate", onNavigate as EventListener);`
+- L195 — `align` — `.pdi-unified-topbar{grid-column:1/3;display:flex;align-items:center;gap:18px;padding:8px 16px;background:linear-gradient(180deg,#111827,#0B1019);border-bottom:1px solid rgba(148,163,184,.22);box-shadow:0 8px 24px rgba(0,0,0,.28);min-width:0`
+- L196 — `align` — `.pdi-unified-brand{display:flex;align-items:center;gap:14px;min-width:260px}`
+- L198 — `align` — `.pdi-top-actions{margin-left:auto;display:flex;align-items:center;gap:8px;color:#93A4BD;font-size:12px}.pdi-search{height:36px;width:min(340px,24vw);border:1px solid rgba(148,163,184,.22);background:#0A1220;color:#E5EDF8;border-radius:10px;`
+- L199 — `align` — `.pdi-main-nav{grid-row:2;display:flex;flex-direction:column;gap:10px;padding:14px 10px;background:linear-gradient(180deg,#0D1420,#090E17);border-right:1px solid rgba(148,163,184,.18);overflow:auto}.pdi-main-nav button{height:58px;border:1px`
+- L199 — `point` — `.pdi-main-nav{grid-row:2;display:flex;flex-direction:column;gap:10px;padding:14px 10px;background:linear-gradient(180deg,#0D1420,#090E17);border-right:1px solid rgba(148,163,184,.18);overflow:auto}.pdi-main-nav button{height:58px;border:1px`
+- L200 — `align` — `.pdi-content{grid-column:2;grid-row:2;min-width:0;min-height:0;overflow:auto;padding:22px;background:radial-gradient(circle at 18% 8%,rgba(14,165,233,.16),transparent 32%),radial-gradient(circle at 86% 12%,rgba(249,115,22,.13),transparent 2`
+- L200 — `point` — `.pdi-content{grid-column:2;grid-row:2;min-width:0;min-height:0;overflow:auto;padding:22px;background:radial-gradient(circle at 18% 8%,rgba(14,165,233,.16),transparent 32%),radial-gradient(circle at 86% 12%,rgba(249,115,22,.13),transparent 2`
+- L200 — `translate` — `.pdi-content{grid-column:2;grid-row:2;min-width:0;min-height:0;overflow:auto;padding:22px;background:radial-gradient(circle at 18% 8%,rgba(14,165,233,.16),transparent 32%),radial-gradient(circle at 86% 12%,rgba(249,115,22,.13),transparent 2`
+- L228 — `port` — `<p>PD&I devient le logiciel principal : dessin manuel, Vision PD&I photo/croquis, import CAO/DXF/PDF, JSON central, exports et validation engineering.</p>`
+- L253 — `port` — `{activeModule === "sketch" && <ComingSoonPanel title="Croquis → JSON / ISO"><p>Import croquis main, reconnaissance lignes/symboles, conversion vers JSON central, validation humaine, puis génération ISO.</p></ComingSoonPanel>}`
+- L254 — `port` — `{activeModule === "cad" && <ComingSoonPanel title="Import CAO / DXF / PDF"><p>Import DXF/PDF, lecture des calques et entités, conversion déterministe Python vers JSON PD&I.</p></ComingSoonPanel>}`
+- L255 — `port` — `{activeModule === "json" && <ComingSoonPanel title="Modèle JSON PD&I"><p>Le JSON devient la source de vérité : lignes, nœuds, équipements, ports, soudures, cotations, niveaux Z, massifs, dalle, exports.</p></ComingSoonPanel>}`
+- L256 — `port` — `{activeModule === "pdf" && <ComingSoonPanel title="Impression / Exports"><p>Préparation V4.8e : A4/A3/A2/A1, portrait/paysage, PDF, DXF/CAD, cartouche, nomenclature.</p></ComingSoonPanel>}`
+- L263 — `port` — `write_if_changed(UNIFIED_APP, content, report)`
+- L266 — `port` — `def patch_src_app(report: list[str]) -> None:`
+- L268 — `port` — `report.append(f"KO {rel(SRC_APP)} absent")`
+- L270 — `port` — `content = '''import React from "react";`
+- L271 — `port` — `import PdiUnifiedApp from "./pdi/app/PdiUnifiedApp";`
+- L273 — `port` — `export default function App() {`
+- L277 — `port` — `write_if_changed(SRC_APP, content, report)`
+- L280 — `port` — `def patch_engine_main_mode(report: list[str]) -> None:`
+- L282 — `port` — `report.append(f"KO {rel(ENGINE)} absent")`
+- L316 — `port` — `report.append(f"Engine: exit actions replaced={replaced}")`
+- L322 — `port` — `write_if_changed(ENGINE, text, report)`
+- L324 — `port` — `report.append(f"UNCHANGED {rel(ENGINE)}")`
+- L327 — `port` — `def patch_wrapper(report: list[str]) -> None:`
+- L329 — `port` — `report.append(f"INFO {rel(WRAPPER)} absent")`
+- L337 — `port` — `write_if_changed(WRAPPER, text, report)`
+- L339 — `port` — `report.append(f"UNCHANGED {rel(WRAPPER)}")`
+- L342 — `port` — `def write_docs(report: list[str]) -> None:`
+- L373 — `port` — `Calculs Python : longueurs, cotes, pentes, coordonnées ISO, DN/NPS, BOM, poids, validation ports/soudures, DXF/PDF.`
+- L391 — `port` — `write_if_changed(ORCHESTRATOR_DOC, orchestrator, report)`
+- L393 — `history` — `history_add = '''`
+- L400 — `port` — `- La page d'accueil propose : nouveau projet, Vision PD&I, croquis, import DXF/PDF/JSON, exports.`
+- L406 — `history` — `old = read(PATCH_HISTORY)`
+- L408 — `history` — `write_if_changed(PATCH_HISTORY, old.rstrip() + history_add + "\n", report)`
+- L408 — `port` — `write_if_changed(PATCH_HISTORY, old.rstrip() + history_add + "\n", report)`
+- L410 — `history` — `report.append(f"UNCHANGED {rel(PATCH_HISTORY)}")`
+- L410 — `port` — `report.append(f"UNCHANGED {rel(PATCH_HISTORY)}")`
+- L413 — `port` — `def update_gitignore(report: list[str]) -> None:`
+- L423 — `port` — `write_if_changed(GITIGNORE, "\n".join(lines).rstrip() + "\n", report)`
+- L425 — `port` — `report.append(f"UNCHANGED {rel(GITIGNORE)}")`
+- L428 — `port` — `def postcheck(report: list[str]) -> None:`
+- L429 — `port` — `report.append("\n--- POST-CHECK 007c ---")`
+- L433 — `port` — `report.append(f"OK {rel(p)} size={p.stat().st_size}")`
+- L435 — `port` — `report.append(f"  workspaceFullscreen true marker={txt.count('workspaceFullscreen, setWorkspaceFullscreen] = useState(true)')}")`
+- L436 — `port` — `report.append(f"  Retour accueil count={txt.count('Retour accueil')}")`
+- L437 — `port` — `report.append(f"  pdi:navigate count={txt.count('pdi:navigate')}")`
+- L439 — `port` — `report.append(f"  Vision PD&I count={txt.count('Vision PD&I')}")`
+- L440 — `port` — `report.append(f"  PdiIsometricEditor count={txt.count('PdiIsometricEditor')}")`
+- L442 — `port` — `report.append(f"KO {rel(p)} absent")`
+- L446 — `port` — `report: list[str] = []`
+- L447 — `port` — `report.append("PD&I PATCH 007c — Shell unifié + accueil + ISO principal")`
+- L448 — `port` — `report.append(f"Date: {dt.datetime.now().isoformat()}")`
+- L449 — `port` — `report.append(f"Root: {ROOT}")`
+- L452 — `port` — `report.append("ERREUR: package.json introuvable. Exécuter depuis la racine du dépôt PD-I.")`
+- L453 — `port` — `REPORT.write_text("\n".join(report) + "\n", encoding="utf-8")`
+- L454 — `port` — `print("\n".join(report))`
+- L457 — `port` — `ensure_brand(report)`
+- L458 — `port` — `write_unified_app(report)`
+- L459 — `port` — `patch_src_app(report)`
+- L460 — `port` — `patch_engine_main_mode(report)`
+- L461 — `port` — `patch_wrapper(report)`
+- L462 — `port` — `write_docs(report)`
+- L463 — `port` — `update_gitignore(report)`
+- L464 — `port` — `postcheck(report)`
+- L466 — `port` — `report.append("\n--- TESTS RECOMMANDÉS ---")`
+- L467 — `port` — `report.append("1. npm run build")`
+- L468 — `port` — `report.append("2. npx tsc --noEmit si disponible")`
+- L469 — `port` — `report.append("3. Ouvrir PD&I : voir l'accueil unique avec les cartes Nouveau projet / Vision / Croquis / DXF / JSON")`
+- L470 — `port` — `report.append("4. Cliquer Dessin isométrique : l'ISO devient le workspace principal plein écran")`
+- L471 — `port` — `report.append("5. Cliquer Retour accueil dans ISO : revenir à l'accueil")`
+- … 5 occurrences supplémentaires.
+### `007d_2d_mouse_resize_modular_properties_REPORT.md`
+- L1 — `drag` — `# PATCH 007d — Drag/resize souris et propriétés CAD compactes`
+- L8 — `point` — `- Redimensionnement souris : endpoints ligne, sommets polyline, centre/rayon cercle, insertion texte.`
+### `007d_pdi_2d_mouse_resize_modular_properties.py`
+- L5 — `drag` — `Correctif unique CAD 2D : drag souris, resize souris, grips, propriétés modulaires compactes.`
+- L8 — `sélection` — `- drag souris global des objets 2D sélectionnés ;`
+- L8 — `drag` — `- drag souris global des objets 2D sélectionnés ;`
+- L12 — `align` — `- champs texte : contenu, taille, police, graisse, style, alignement, rotation ;`
+- L12 — `rotation` — `- champs texte : contenu, taille, police, graisse, style, alignement, rotation ;`
+- L17 — `port` — `from pathlib import Path`
+- L18 — `port` — `import shutil`
+- L19 — `port` — `import sys`
+- L20 — `port` — `from datetime import datetime`
+- L25 — `port` — `REPORT = ROOT / "007d_2d_mouse_resize_modular_properties_REPORT.md"`
+- L26 — `history` — `HISTORY = ROOT / "docs" / "PATCH_HISTORY.md"`
+- L55 — `select` — `required = ["Cad2dEntity", "cad2dEntities", "selectedCad2dIds", "updateCad2dEntity", "moveSelectedCad2d"]`
+- L55 — `move` — `required = ["Cad2dEntity", "cad2dEntities", "selectedCad2dIds", "updateCad2dEntity", "moveSelectedCad2d"]`
+- L70 — `align` — `# 1. Étendre le type Cad2dEntity avec lineType, opacity, fontSize, fontFamily, fontWeight, textAlign`
+- L71 — `port` — `type_old = """export type Cad2dEntity = {`
+- L79 — `point` — `points?: Cad2dPoint[];`
+- L80 — `point` — `center?: Cad2dPoint;`
+- L85 — `rotation` — `rotation?: number;`
+- L88 — `port` — `type_new = """export type Cad2dEntity = {`
+- L98 — `point` — `points?: Cad2dPoint[];`
+- L99 — `point` — `center?: Cad2dPoint;`
+- L107 — `align` — `textAlign?: "left" | "center" | "right";`
+- L108 — `rotation` — `rotation?: number;`
+- L116 — `drag` — `# 2. Ajouter helpers manipulation/drag/actions 2D`
+- L117 — `anchor` — `helpers_anchor = "  const selectedCad2dEntity = cad2dEntities.find((entity) => selectedCad2dIds.includes(entity.id)) || null;"`
+- L117 — `select` — `helpers_anchor = "  const selectedCad2dEntity = cad2dEntities.find((entity) => selectedCad2dIds.includes(entity.id)) || null;"`
+- L118 — `anchor` — `helpers_code = helpers_anchor + r'''`
+- L121 — `point` — `const cad2dPointerRef = useRef<{`
+- L122 — `move` — `mode: "move" | "grip";`
+- L127 — `point` — `startWorld: Cad2dPoint;`
+- L128 — `snap` — `snapshot: Cad2dEntity[];`
+- L135 — `point` — `points: entity.points?.map((p) => ({ x: p.x + dx, y: p.y + dy })),`
+- L139 — `point` — `if (entity.type === "line" && entity.points && entity.points.length >= 2) {`
+- L140 — `point` — `const points = entity.points.map((p) => ({ ...p }));`
+- L141 — `point` — `if (grip === "start") points[0] = { x: points[0].x + dx, y: points[0].y + dy };`
+- L142 — `point` — `if (grip === "end") points[1] = { x: points[1].x + dx, y: points[1].y + dy };`
+- L143 — `point` — `return { ...entity, points };`
+- L145 — `point` — `if (entity.type === "polyline" && entity.points && entity.points.length && grip.startsWith("v:")) {`
+- L147 — `point` — `const points = entity.points.map((p, i) => (i === idx ? { x: p.x + dx, y: p.y + dy } : { ...p }));`
+- L148 — `point` — `return { ...entity, points };`
+- L164 — `point` — `if (entity.type === "text" && entity.points && entity.points[0]) {`
+- L165 — `point` — `return { ...entity, points: [{ x: entity.points[0].x + dx, y: entity.points[0].y + dy }, ...(entity.points.slice(1) || [])] };`
+- L170 — `point` — `const startCad2dPointer = (event: React.PointerEvent, entityId: string, grip: string = "body") => {`
+- L172 — `point` — `const w = screenToIsoWorld(event as unknown as React.PointerEvent<SVGSVGElement>);`
+- L173 — `select` — `const ids = selectedCad2dIds.includes(entityId) ? selectedCad2dIds : [entityId];`
+- L174 — `select` — `setSelectedCad2dIds(ids);`
+- L175 — `point` — `cad2dPointerRef.current = {`
+- L176 — `move` — `mode: grip === "body" ? "move" : "grip",`
+- L182 — `snap` — `snapshot: cad2dEntities.map((entity) => ({`
+- L184 — `point` — `points: entity.points?.map((p) => ({ ...p })),`
+- L188 — `point` — `(event.currentTarget as Element).setPointerCapture?.(event.pointerId);`
+- L192 — `point` — `const updateCad2dPointer = (event: React.PointerEvent<SVGSVGElement>) => {`
+- L193 — `point` — `const drag = cad2dPointerRef.current;`
+- L193 — `drag` — `const drag = cad2dPointerRef.current;`
+- L194 — `drag` — `if (!drag) return false;`
+- L196 — `drag` — `const rawDx = w.x - drag.startWorld.x;`
+- L197 — `drag` — `const rawDy = w.y - drag.startWorld.y;`
+- L198 — `snap` — `const dx = isoSnapStep > 0 ? snapIsoV4(rawDx, isoSnapStep) : rawDx;`
+- L199 — `snap` — `const dy = isoSnapStep > 0 ? snapIsoV4(rawDy, isoSnapStep) : rawDy;`
+- L200 — `drag` — `const ids = new Set(drag.entityIds);`
+- L201 — `snap` — `setCad2dEntities(drag.snapshot.map((entity) => ids.has(entity.id) && !entity.locked ? cad2dApplyDelta(entity, dx, dy, drag.grip) : entity));`
+- L201 — `drag` — `setCad2dEntities(drag.snapshot.map((entity) => ids.has(entity.id) && !entity.locked ? cad2dApplyDelta(entity, dx, dy, drag.grip) : entity));`
+- L205 — `point` — `const endCad2dPointer = () => {`
+- L206 — `point` — `if (!cad2dPointerRef.current) return;`
+- L207 — `point` — `cad2dPointerRef.current = null;`
+- L211 — `select` — `const rotateSelectedCad2d = (angleDeg: number) => {`
+- L212 — `select` — `if (!selectedCad2dIds.length) return;`
+- L213 — `select` — `const ids = new Set(selectedCad2dIds);`
+- L216 — `rotation` — `const rot = ((entity.rotation || 0) + angleDeg) % 360;`
+- L217 — `rotation` — `return { ...entity, rotation: rot };`
+- L219 — `rotation` — `setStatusMessage(`Rotation 2D · ${angleDeg > 0 ? "+" : ""}${angleDeg}°`);`
+- L222 — `select` — `const scaleSelectedCad2d = (factor: number) => {`
+- L223 — `select` — `if (!selectedCad2dIds.length) return;`
+- L224 — `select` — `const ids = new Set(selectedCad2dIds);`
+- L233 — `point` — `if (entity.points && entity.points.length >= 2) {`
+- L234 — `point` — `const cx = entity.points.reduce((sum, p) => sum + p.x, 0) / entity.points.length;`
+- L235 — `point` — `const cy = entity.points.reduce((sum, p) => sum + p.y, 0) / entity.points.length;`
+- L236 — `point` — `const points = entity.points.map((p) => ({`
+- L240 — `point` — `return { ...entity, points };`
+- L247 — `select` — `const mirrorSelectedCad2dX = () => {`
+- L248 — `select` — `if (!selectedCad2dIds.length) return;`
+- L249 — `select` — `const ids = new Set(selectedCad2dIds);`
+- L252 — `point` — `if (entity.points && entity.points.length) {`
+- L253 — `point` — `const cx = entity.points.reduce((sum, p) => sum + p.x, 0) / entity.points.length;`
+- L254 — `point` — `const points = entity.points.map((p) => ({ x: 2 * cx - p.x, y: p.y }));`
+- L255 — `point` — `return { ...entity, points };`
+- L262 — `select` — `const bringSelectedCad2dFront = () => {`
+- L263 — `select` — `if (!selectedCad2dIds.length) return;`
+- L264 — `select` — `const ids = new Set(selectedCad2dIds);`
+- L273 — `select` — `const sendSelectedCad2dBack = () => {`
+- L274 — `select` — `if (!selectedCad2dIds.length) return;`
+- L275 — `select` — `const ids = new Set(selectedCad2dIds);`
+- L284 — `select` — `const setSelectedCad2dLocked = (locked: boolean) => {`
+- L285 — `select` — `if (!selectedCad2dIds.length) return;`
+- L286 — `select` — `const ids = new Set(selectedCad2dIds);`
+- L291 — `anchor` — `if helpers_anchor in src:`
+- L292 — `anchor` — `src = src.replace(helpers_anchor, helpers_code, 1)`
+- L294 — `anchor` — `fail("ancre helpers_anchor introuvable")`
+- L296 — `point` — `# 3. Brancher pointerMove et pointerUp pour updateCad2dPointer et endCad2dPointer`
+- L296 — `move` — `# 3. Brancher pointerMove et pointerUp pour updateCad2dPointer et endCad2dPointer`
+- … 152 occurrences supplémentaires.
+### `007d_pdi_iso_main_workspace_fix.py`
+- L13 — `align` — `- la barre menus Fichier / Édition / Affichage / Dessin / Cotation / Alignement / ... n'apparaît plus ;`
+- L28 — `port` — `from __future__ import annotations`
+- L30 — `port` — `import datetime as dt`
+- L31 — `port` — `import re`
+- L32 — `port` — `import shutil`
+- L33 — `port` — `from pathlib import Path`
+- L39 — `port` — `REPORT = ROOT / f"patch_{PATCH_ID}_report.txt"`
+- L45 — `history` — `PATCH_HISTORY = DOCS / "PATCH_HISTORY.md"`
+- L66 — `port` — `def write_if_changed(path: Path, content: str, report: list[str]) -> bool:`
+- L69 — `port` — `report.append(f"UNCHANGED {rel(path)}")`
+- L74 — `port` — `report.append(f"UPDATED {rel(path)}")`
+- L78 — `port` — `def patch_engine(report: list[str]) -> None:`
+- L80 — `port` — `report.append(f"KO {rel(ENGINE)} absent")`
+- L97 — `port` — `report.append(f"Engine: workspaceFullscreen forced true replacements={n_state}")`
+- L110 — `port` — `report.append(f"Engine: fullscreen exit/toggle actions redirected={repl_count}")`
+- L136 — `port` — `report.append(f"Engine: return button inserted={n_ret}")`
+- L149 — `point` — `[data-pdi-studio] button[title]:hover::after{content:attr(title);position:absolute;left:50%;top:calc(100% + 8px);transform:translateX(-50%);z-index:10080;min-width:max-content;max-width:260px;padding:6px 8px;border-radius:8px;background:#02`
+- L149 — `translate` — `[data-pdi-studio] button[title]:hover::after{content:attr(title);position:absolute;left:50%;top:calc(100% + 8px);transform:translateX(-50%);z-index:10080;min-width:max-content;max-width:260px;padding:6px 8px;border-radius:8px;background:#02`
+- L150 — `point` — `[data-pdi-studio] button[title]:hover::before{content:"";position:absolute;left:50%;top:100%;transform:translateX(-50%);border:5px solid transparent;border-bottom-color:rgba(103,232,249,.35);z-index:10081;pointer-events:none}`
+- L150 — `translate` — `[data-pdi-studio] button[title]:hover::before{content:"";position:absolute;left:50%;top:100%;transform:translateX(-50%);border:5px solid transparent;border-bottom-color:rgba(103,232,249,.35);z-index:10081;pointer-events:none}`
+- L154 — `anchor` — `anchor = '        [data-pdi-studio] ::-webkit-scrollbar{'`
+- L155 — `anchor` — `if anchor in text:`
+- L156 — `anchor` — `text = text.replace(anchor, tooltip_css + anchor, 1)`
+- L159 — `port` — `report.append("Engine: tooltip CSS added")`
+- L162 — `group` — `if "cadMenuGroups" not in text or "pdi-cad-menubar" not in text:`
+- L163 — `group` — `report.append("WARN: cadMenuGroups/pdi-cad-menubar non détectés. La barre Fichier/Édition peut nécessiter restauration depuis le patch 007/4.8d1.")`
+- L163 — `port` — `report.append("WARN: cadMenuGroups/pdi-cad-menubar non détectés. La barre Fichier/Édition peut nécessiter restauration depuis le patch 007/4.8d1.")`
+- L165 — `port` — `report.append("OK: barre menus CAO détectée")`
+- L171 — `port` — `write_if_changed(ENGINE, text, report)`
+- L173 — `port` — `report.append(f"UNCHANGED {rel(ENGINE)}")`
+- L176 — `port` — `def patch_wrapper(report: list[str]) -> None:`
+- L178 — `port` — `report.append(f"INFO {rel(WRAPPER)} absent")`
+- L194 — `port` — `report.append("WARN: impossible d'ajouter classe wrapper anti-scroll automatiquement")`
+- L197 — `port` — `write_if_changed(WRAPPER, text, report)`
+- L199 — `port` — `report.append(f"UNCHANGED {rel(WRAPPER)}")`
+- L202 — `port` — `def patch_unified(report: list[str]) -> None:`
+- L204 — `port` — `report.append(f"INFO {rel(UNIFIED_APP)} absent")`
+- L220 — `port` — `report.append(f"UnifiedApp: isometric direct render normalized={n}")`
+- L226 — `port` — `write_if_changed(UNIFIED_APP, text, report)`
+- L228 — `port` — `report.append(f"UNCHANGED {rel(UNIFIED_APP)}")`
+- L231 — `port` — `def write_docs(report: list[str]) -> None:`
+- L240 — `align` — `- la barre menus Fichier / Édition / Affichage / Dessin / Cotation / Alignement / Insertion / Impression / Export / Outils doit rester visible ;`
+- L240 — `port` — `- la barre menus Fichier / Édition / Affichage / Dessin / Cotation / Alignement / Insertion / Impression / Export / Outils doit rester visible ;`
+- L245 — `history` — `old = read(PATCH_HISTORY)`
+- L247 — `history` — `write_if_changed(PATCH_HISTORY, old.rstrip() + add + "\n", report)`
+- L247 — `port` — `write_if_changed(PATCH_HISTORY, old.rstrip() + add + "\n", report)`
+- L249 — `history` — `report.append(f"UNCHANGED {rel(PATCH_HISTORY)}")`
+- L249 — `port` — `report.append(f"UNCHANGED {rel(PATCH_HISTORY)}")`
+- L252 — `port` — `def postcheck(report: list[str]) -> None:`
+- L253 — `port` — `report.append("\n--- POST-CHECK 007d ---")`
+- L256 — `port` — `report.append(f"workspaceFullscreen true count: {t.count('workspaceFullscreen, setWorkspaceFullscreen] = useState(true)')}")`
+- L257 — `port` — `report.append(f"workspaceFullscreen false count: {t.count('workspaceFullscreen, setWorkspaceFullscreen] = useState(false)')}")`
+- L258 — `group` — `report.append(f"cadMenuGroups count: {t.count('cadMenuGroups')}")`
+- L258 — `port` — `report.append(f"cadMenuGroups count: {t.count('cadMenuGroups')}")`
+- L259 — `port` — `report.append(f"pdi-cad-menubar count: {t.count('pdi-cad-menubar')}")`
+- L260 — `port` — `report.append(f"Retour accueil count: {t.count('Retour accueil')}")`
+- L261 — `port` — `report.append(f"pdi:navigate count: {t.count('pdi:navigate')}")`
+- L262 — `port` — `report.append(f"tooltip CSS count: {t.count('button[title]:hover::after')}")`
+- L264 — `port` — `report.append(f"hidden Concepteur block hints: {hidden_count}")`
+- L267 — `port` — `report.append(f"UnifiedApp direct ISO render: {'OK' if 'return <PdiIsometricEditor />' in u else 'KO'}")`
+- L271 — `port` — `report: list[str] = []`
+- L272 — `port` — `report.append("PD&I PATCH 007d — ISO plein écran = mode principal")`
+- L273 — `port` — `report.append(f"Date: {dt.datetime.now().isoformat()}")`
+- L274 — `port` — `report.append(f"Root: {ROOT}")`
+- L277 — `port` — `report.append("ERREUR: package.json introuvable. Exécuter depuis la racine du dépôt PD-I.")`
+- L278 — `port` — `REPORT.write_text("\n".join(report) + "\n", encoding="utf-8")`
+- L279 — `port` — `print("\n".join(report))`
+- L282 — `port` — `patch_engine(report)`
+- L283 — `port` — `patch_wrapper(report)`
+- L284 — `port` — `patch_unified(report)`
+- L285 — `port` — `write_docs(report)`
+- L286 — `port` — `postcheck(report)`
+- L288 — `port` — `report.append("\n--- TESTS RECOMMANDÉS ---")`
+- L289 — `port` — `report.append("1. npm run build")`
+- L290 — `port` — `report.append("2. Ouvrir PD&I : page accueil unique")`
+- L291 — `port` — `report.append("3. Cliquer ISO / Nouveau projet : l'ISO s'ouvre en workspace plein écran principal")`
+- L292 — `port` — `report.append("4. Vérifier : plus de scroll de page")`
+- L293 — `align` — `report.append("5. Vérifier : barre Fichier / Édition / Affichage / Dessin / Cotation / Alignement visible")`
+- L293 — `port` — `report.append("5. Vérifier : barre Fichier / Édition / Affichage / Dessin / Cotation / Alignement visible")`
+- L294 — `port` — `report.append("6. Vérifier : bouton ⌂ Retour visible et fonctionne")`
+- L295 — `port` — `report.append("7. Vérifier : survol des boutons affiche une info")`
+- L296 — `port` — `report.append("8. Vérifier : le bandeau Concepteur & Schéma ne s'affiche plus dans le workspace")`
+- L298 — `port` — `REPORT.write_text("\n".join(report) + "\n", encoding="utf-8")`
+- L299 — `port` — `print("\n".join(report))`
+- L300 — `port` — `print(f"\nRapport écrit: {rel(REPORT)}")`
+### `007e_compact_floating_props_landing_restore_REPORT.md`
+- L19 — `sélection` — `1. Sélectionner objet 2D : petite palette flottante apparaît.`
+### `007e_pdi_workspace_space_grid_home_fix.py`
+- L24 — `port` — `from __future__ import annotations`
+- L26 — `port` — `import datetime as dt`
+- L27 — `port` — `import re`
+- L28 — `port` — `import shutil`
+- L29 — `port` — `from pathlib import Path`
+- L35 — `port` — `REPORT = ROOT / f"patch_{PATCH_ID}_report.txt"`
+- L41 — `history` — `PATCH_HISTORY = DOCS / "PATCH_HISTORY.md"`
+- L65 — `port` — `def write_if_changed(path: Path, content: str, report: list[str]) -> bool:`
+- L68 — `port` — `report.append(f"UNCHANGED {rel(path)}")`
+- L73 — `port` — `report.append(f"UPDATED {rel(path)}")`
+- L77 — `port` — `def detect_public_logo_paths(report: list[str]) -> tuple[list[str], list[str]]:`
+- L111 — `port` — `report.append("Public logo candidates:")`
+- L112 — `port` — `report.append(f"- detected images: {len(existing)}")`
+- L114 — `port` — `report.append(f"  - {x}")`
+- L115 — `port` — `report.append(f"- horizontal fallback list: {h[:8]}")`
+- L116 — `port` — `report.append(f"- square fallback list: {s[:8]}")`
+- L120 — `port` — `def write_brand(report: list[str]) -> None:`
+- L121 — `port` — `horizontal, square = detect_public_logo_paths(report)`
+- L122 — `port` — `content = f'''import React, {{ useState }} from "react";`
+- L129 — `port` — `export type PdiBrandMarkProps = {{`
+- L135 — `port` — `export default function PdiBrandMark({{`
+- L159 — `drag` — `draggable={{false}}`
+- L165 — `port` — `write_if_changed(BRAND, content, report)`
+- L168 — `port` — `def write_unified_app(report: list[str]) -> None:`
+- L170 — `port` — `report.append(f"WARN {rel(UNIFIED_APP)} absent, création d'une version complète")`
+- L171 — `port` — `content = '''import React, { useEffect, useMemo, useState } from "react";`
+- L172 — `port` — `import PdiBrandMark from "./PdiBrandMark";`
+- L173 — `port` — `import PdiIsometricEditor from "../isometric/PdiIsometricEditor";`
+- L187 — `align` — `{ id: "isometric", title: "Dessin isométrique", subtitle: "Créer un projet manuel avec nœuds, tubes, équipements, cotations et alignements.", badge: "V4.8d1", icon: "ISO", ready: true },`
+- L189 — `port` — `{ id: "sketch", title: "Croquis → ISO", subtitle: "Importer un dessin à la main, extraire le réseau, valider le JSON puis générer l’ISO.", badge: "Croquis", icon: "CRQ" },`
+- L190 — `port` — `{ id: "cad", title: "Importer CAO / DXF", subtitle: "Lire un DXF/PDF, extraire calques/lignes/blocs et convertir vers JSON PD&I.", badge: "DXF/PDF", icon: "DX" },`
+- L192 — `port` — `{ id: "pdf", title: "Impression / exports", subtitle: "Préparer PDF, DXF, planches A4/A3/A2/A1, cartouche et nomenclature.", badge: "PDF/DXF", icon: "OUT" },`
+- L196 — `align` — `{ title: "Dessin isométrique", text: "Workspace plein écran, cotations, alignements et bibliothèque piping.", tag: "ISO", color: "#0ea5e9" },`
+- L199 — `port` — `{ title: "CAO / DXF", text: "Importer dessins techniques et convertir vers JSON.", tag: "DXF", color: "#22c55e" },`
+- L200 — `port` — `{ title: "Exports", text: "PDF, DXF, impression A4/A3/A2/A1 et cartouche.", tag: "PDF", color: "#eab308" },`
+- L209 — `port` — `{ id: "cad", label: "CAO", icon: "DX", title: "Import CAD/DXF/PDF" },`
+- L211 — `port` — `{ id: "pdf", label: "Export", icon: "PDF", title: "PDF / DXF / Impression" },`
+- L219 — `port` — `export default function PdiUnifiedApp() {`
+- L228 — `move` — `return () => window.removeEventListener("pdi:navigate", onNavigate as EventListener);`
+- L238 — `align` — `.pdi-unified-root{height:100vh;width:100vw;overflow:hidden;background:#070B12;color:#E5EDF8;font-family:Inter,ui-sans-serif,system-ui,sans-serif;display:grid;grid-template-columns:96px 1fr;grid-template-rows:72px 1fr}.pdi-unified-topbar{gri`
+- L238 — `point` — `.pdi-unified-root{height:100vh;width:100vw;overflow:hidden;background:#070B12;color:#E5EDF8;font-family:Inter,ui-sans-serif,system-ui,sans-serif;display:grid;grid-template-columns:96px 1fr;grid-template-rows:72px 1fr}.pdi-unified-topbar{gri`
+- L238 — `translate` — `.pdi-unified-root{height:100vh;width:100vw;overflow:hidden;background:#070B12;color:#E5EDF8;font-family:Inter,ui-sans-serif,system-ui,sans-serif;display:grid;grid-template-columns:96px 1fr;grid-template-rows:72px 1fr}.pdi-unified-topbar{gri`
+- L243 — `port` — `{activeModule === "home" && <div className="pdi-home-hero"><section className="pdi-hero-card"><div className="pdi-badge-row"><span className="pdi-badge">SaaS autonome</span><span className="pdi-badge">JSON central</span><span className="pdi`
+- L245 — `port` — `{activeModule === "sketch" && <ComingSoonPanel title="Croquis → JSON / ISO"><p>Import croquis main, reconnaissance lignes/symboles, conversion vers JSON central, validation humaine, puis génération ISO.</p></ComingSoonPanel>}`
+- L246 — `port` — `{activeModule === "cad" && <ComingSoonPanel title="Import CAO / DXF / PDF"><p>Import DXF/PDF, lecture des calques et entités, conversion déterministe Python vers JSON PD&I.</p></ComingSoonPanel>}`
+- L247 — `port` — `{activeModule === "json" && <ComingSoonPanel title="Modèle JSON PD&I"><p>Le JSON devient la source de vérité : lignes, nœuds, équipements, ports, soudures, cotations, niveaux Z, massifs, dalle, exports.</p></ComingSoonPanel>}`
+- L248 — `port` — `{activeModule === "pdf" && <ComingSoonPanel title="Impression / Exports"><p>Préparation V4.8e : A4/A3/A2/A1, portrait/paysage, PDF, DXF/CAD, cartouche, nomenclature.</p></ComingSoonPanel>}`
+- L255 — `port` — `write_if_changed(UNIFIED_APP, content, report)`
+- L258 — `port` — `def patch_engine(report: list[str]) -> None:`
+- L260 — `port` — `report.append(f"KO {rel(ENGINE)} absent")`
+- L271 — `port` — `report.append(f"Engine: return buttons removed={n_return_block+n_return_block2}")`
+- L271 — `move` — `report.append(f"Engine: return buttons removed={n_return_block+n_return_block2}")`
+- L280 — `port` — `report.append(f"Engine: workspaceFullscreen true replacements={n_state}")`
+- L293 — `port` — `report.append(f"Engine: help phrase block removed={n_help}")`
+- L293 — `move` — `report.append(f"Engine: help phrase block removed={n_help}")`
+- L308 — `port` — `↗ Vue isométrique 30° · {Math.round(viewport.zoom * 100)}%`
+- L310 — `anchor` — `anchor = '</div>\n            </div>\n            <nav className="pdi-cad-menubar'`
+- L311 — `anchor` — `if anchor in text:`
+- L313 — `port` — `report.append("Engine: top iso title inserted before menu nav")`
+- L316 — `port` — `report.append(f"Engine: top iso title inserted fallback={n_top}")`
+- L324 — `port` — `[data-pdi-studio] .pdi-compact-metrics, [data-pdi-studio] .pdi-metric-card{min-height:52px!important;padding:8px 10px!important;border-radius:14px!important}`
+- L325 — `port` — `[data-pdi-studio] .pdi-compact-metrics h3, [data-pdi-studio] .pdi-metric-card h3{font-size:9px!important;margin:0!important}`
+- L326 — `port` — `[data-pdi-studio] .pdi-compact-metrics strong, [data-pdi-studio] .pdi-metric-card strong{font-size:18px!important;line-height:1!important}`
+- L328 — `point` — `[data-pdi-studio] button[title]:hover::after{content:attr(title);position:absolute;left:50%;top:calc(100% + 8px);transform:translateX(-50%);z-index:10080;min-width:max-content;max-width:260px;padding:6px 8px;border-radius:8px;background:#02`
+- L328 — `translate` — `[data-pdi-studio] button[title]:hover::after{content:attr(title);position:absolute;left:50%;top:calc(100% + 8px);transform:translateX(-50%);z-index:10080;min-width:max-content;max-width:260px;padding:6px 8px;border-radius:8px;background:#02`
+- L329 — `port` — `[data-pdi-studio] .pdi-status-docked{height:28px!important;min-height:28px!important;padding-top:3px!important;padding-bottom:3px!important}`
+- L333 — `port` — `report.append("Engine: compact workspace CSS added")`
+- L347 — `port` — `write_if_changed(ENGINE, text, report)`
+- L349 — `port` — `report.append(f"UNCHANGED {rel(ENGINE)}")`
+- L352 — `port` — `def write_docs(report: list[str]) -> None:`
+- L368 — `history` — `old = read(PATCH_HISTORY)`
+- L370 — `history` — `write_if_changed(PATCH_HISTORY, old.rstrip() + add + "\n", report)`
+- L370 — `port` — `write_if_changed(PATCH_HISTORY, old.rstrip() + add + "\n", report)`
+- L372 — `history` — `report.append(f"UNCHANGED {rel(PATCH_HISTORY)}")`
+- L372 — `port` — `report.append(f"UNCHANGED {rel(PATCH_HISTORY)}")`
+- L375 — `port` — `def postcheck(report: list[str]) -> None:`
+- L376 — `port` — `report.append("\n--- POST-CHECK 007e ---")`
+- L379 — `port` — `report.append(f"Engine workspaceFullscreen true: {t.count('workspaceFullscreen, setWorkspaceFullscreen] = useState(true)')}")`
+- L380 — `port` — `report.append(f"Engine return buttons: {t.count('pdi-return-home-007d') + t.count('Retour accueil PD&I')}")`
+- L381 — `port` — `report.append(f"Engine help phrase MAIN: {t.count('MAIN = déplacer la feuille')}")`
+- L382 — `port` — `report.append(f"Engine grid length 72: {t.count('Array.from({ length: 72 })')}")`
+- L383 — `port` — `report.append(f"Engine top iso title: {t.count('pdi-top-iso-title-007e')}")`
+- L386 — `port` — `report.append(f"Unified Architecture cible: {u.count('Architecture cible')}")`
+- L387 — `port` — `report.append(f"Unified showcase: {u.count('pdi-showcase')}")`
+- L390 — `port` — `report.append(f"Brand img tags: {b.count('<img')}")`
+- L391 — `port` — `report.append(f"Brand fallback arrays: {b.count('HORIZONTAL_LOGOS')}")`
+- L395 — `port` — `report: list[str] = []`
+- L396 — `port` — `report.append("PD&I PATCH 007e — Optimisation espace ISO + accueil carousel")`
+- L397 — `port` — `report.append(f"Date: {dt.datetime.now().isoformat()}")`
+- L398 — `port` — `report.append(f"Root: {ROOT}")`
+- L401 — `port` — `report.append("ERREUR: package.json introuvable. Exécute ce patch depuis la racine du dépôt PD-I.")`
+- L402 — `port` — `REPORT.write_text("\n".join(report) + "\n", encoding="utf-8")`
+- L403 — `port` — `print("\n".join(report))`
+- L406 — `port` — `write_brand(report)`
+- L407 — `port` — `write_unified_app(report)`
+- L408 — `port` — `patch_engine(report)`
+- L409 — `port` — `write_docs(report)`
+- L410 — `port` — `postcheck(report)`
+- L412 — `port` — `report.append("\n--- TESTS RECOMMANDÉS ---")`
+- L413 — `port` — `report.append("1. npm run build")`
+- … 9 occurrences supplémentaires.
+### `008_pdi_saas_tabs_security_ui_flow.py`
+- L10 — `port` — `from pathlib import Path`
+- L11 — `port` — `import shutil, sys`
+- L12 — `port` — `from datetime import datetime`
+- L17 — `port` — `REPORT=ROOT/'008_saas_tabs_security_ui_flow_REPORT.md'`
+- L18 — `history` — `HISTORY=ROOT/'docs/PATCH_HISTORY.md'`
+- L50 — `anchor` — `anchor='  const [activeModule, setActiveModule] = useState<PdiModule>("home");'`
+- L51 — `anchor` — `if anchor in s:`
+- L52 — `anchor` — `s=s.replace(anchor, anchor+r'''`
+- L72 — `move` — `new='<div className="pdi-top-actions"><input className="pdi-search" placeholder="Rechercher une commande…" /><span className="pdi-auth-badge">{authMode.toUpperCase()}</span><button className="pdi-account" onClick={() => setAccountMenuOpen(v`
+- L78 — `align` — `s=s.replace('@media(max-width:900px)', '.pdi-auth-badge{border:1px solid rgba(103,232,249,.35);background:rgba(14,165,233,.14);color:#67E8F9;border-radius:999px;padding:6px 10px;font-size:10px;font-weight:1000}.pdi-account{position:relative`
+- L78 — `port` — `s=s.replace('@media(max-width:900px)', '.pdi-auth-badge{border:1px solid rgba(103,232,249,.35);background:rgba(14,165,233,.14);color:#67E8F9;border-radius:999px;padding:6px 10px;font-size:10px;font-weight:1000}.pdi-account{position:relative`
+- L78 — `translate` — `s=s.replace('@media(max-width:900px)', '.pdi-auth-badge{border:1px solid rgba(103,232,249,.35);background:rgba(14,165,233,.14);color:#67E8F9;border-radius:999px;padding:6px 10px;font-size:10px;font-weight:1000}.pdi-account{position:relative`
+- L84 — `select` — `s+='''\n/* PATCH 008 buttons animations */\n.pdiL-entry{background:linear-gradient(180deg,#1B2430,#101722)!important;border-color:rgba(77,184,212,.36)!important;box-shadow:0 16px 38px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.04)!impo`
+- L84 — `port` — `s+='''\n/* PATCH 008 buttons animations */\n.pdiL-entry{background:linear-gradient(180deg,#1B2430,#101722)!important;border-color:rgba(77,184,212,.36)!important;box-shadow:0 16px 38px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.04)!impo`
+- L84 — `translate` — `s+='''\n/* PATCH 008 buttons animations */\n.pdiL-entry{background:linear-gradient(180deg,#1B2430,#101722)!important;border-color:rgba(77,184,212,.36)!important;box-shadow:0 16px 38px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.04)!impo`
+- L87 — `port` — `def report():`
+- L89 — `port` — `write(REPORT,txt)`
+- L90 — `history` — `if HISTORY.exists() and 'PATCH 008 — Flux SaaS' not in read(HISTORY):`
+- L91 — `history` — `write(HISTORY, read(HISTORY).rstrip()+'\n\n## PATCH 008 — Flux SaaS + onglets + sécurité\n\n- Onglets projet persistants.\n- Menu compte/profil.\n- Boutons noirs corrigés.\n- Checklist sécurité SaaS ajoutée.\n- Note assets PNG ajoutée.\n')`
+- L95 — `port` — `audit(); patch_app(); patch_css(); report(); print('PATCH 008 terminé')`
+### `008e_pdi_iso_precision_ux_workspace_fix.py`
+- L21 — `port` — `from pathlib import Path`
+- L22 — `port` — `import re`
+- L23 — `port` — `import shutil`
+- L24 — `port` — `from datetime import datetime`
+- L60 — `port` — `def ensure_imports(files):`
+- L66 — `port` — `log("Aucun fichier d'entrée trouvé pour importer le CSS/runtime. Import manuel possible.")`
+- L71 — `port` — `imports = [`
+- L72 — `port` — `'import "./pdiIsoPrecisionUx.css";',`
+- L73 — `port` — `'import "./pdiIsoUxRuntimePatch.js";',`
+- L76 — `port` — `for imp in reversed(imports):`
+- L83 — `port` — `log(f"Imports ajoutés dans {entry}")`
+- L85 — `port` — `log("Imports déjà présents")`
+- L123 — `port` — `min-height: 92px !important;`
+- L124 — `port` — `height: auto !important;`
+- L125 — `port` — `position: relative !important;`
+- L126 — `port` — `z-index: 50 !important;`
+- L127 — `port` — `background: linear-gradient(180deg, rgba(3, 8, 18, 0.98), rgba(5, 12, 24, 0.98)) !important;`
+- L128 — `port` — `border-bottom: 1px solid var(--pdi-border) !important;`
+- L129 — `port` — `box-shadow: 0 10px 28px rgba(0, 0, 0, 0.32) !important;`
+- L130 — `port` — `overflow: visible !important;`
+- L149 — `port` — `min-height: 36px !important;`
+- L150 — `port` — `display: flex !important;`
+- L151 — `align` — `align-items: center !important;`
+- L151 — `port` — `align-items: center !important;`
+- L152 — `port` — `gap: 18px !important;`
+- L153 — `port` — `padding-top: 4px !important;`
+- L154 — `port` — `padding-bottom: 7px !important;`
+- L155 — `port` — `border-top: 1px solid rgba(0, 217, 255, 0.08) !important;`
+- L161 — `port` — `height: 34px !important;`
+- L162 — `port` — `min-width: 88px !important;`
+- L163 — `port` — `padding: 0 14px !important;`
+- L164 — `port` — `border-radius: 10px !important;`
+- L165 — `port` — `border: 1px solid rgba(0, 210, 255, 0.46) !important;`
+- L166 — `port` — `background: rgba(0, 180, 255, 0.10) !important;`
+- L167 — `port` — `color: #dffaff !important;`
+- L168 — `port` — `font-size: 12px !important;`
+- L169 — `port` — `font-weight: 800 !important;`
+- L170 — `port` — `letter-spacing: 0.02em !important;`
+- L171 — `port` — `cursor: pointer !important;`
+- L171 — `point` — `cursor: pointer !important;`
+- L172 — `port` — `white-space: nowrap !important;`
+- L173 — `port` — `transition: background 160ms ease, border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease !important;`
+- L178 — `port` — `background: rgba(0, 210, 255, 0.22) !important;`
+- L179 — `port` — `border-color: rgba(0, 230, 255, 0.82) !important;`
+- L180 — `port` — `box-shadow: 0 0 16px rgba(0, 210, 255, 0.26) !important;`
+- L181 — `port` — `transform: translateY(-1px) !important;`
+- L181 — `translate` — `transform: translateY(-1px) !important;`
+- L189 — `port` — `object-fit: contain !important;`
+- L196 — `port` — `touch-action: none !important;`
+- L197 — `select` — `user-select: none !important;`
+- L197 — `port` — `user-select: none !important;`
+- L208 — `port` — `overscroll-behavior: none !important;`
+- L214 — `port` — `cursor: crosshair !important;`
+- L220 — `port` — `cursor: grab !important;`
+- L226 — `port` — `cursor: grabbing !important;`
+- L232 — `port` — `transition: border-color 140ms ease, background 140ms ease, box-shadow 140ms ease, transform 140ms ease !important;`
+- L238 — `port` — `border-color: rgba(0, 217, 255, 0.65) !important;`
+- L239 — `port` — `box-shadow: 0 0 12px rgba(0, 217, 255, 0.18) !important;`
+- L247 — `port` — `min-height: 42px !important;`
+- L255 — `port` — `font-size: 14px !important;`
+- L256 — `port` — `line-height: 1.05 !important;`
+- L271 — `point` — `pointer-events: none;`
+- L273 — `translate` — `transform: translateY(6px);`
+- L279 — `translate` — `transform: translateY(0);`
+- L306 — `select` — `return Array.from(document.querySelectorAll("button, a, [role='button']")).find((el) => /Accueil/i.test(textOf(el)));`
+- L320 — `select` — `return Array.from(document.querySelectorAll("header, nav, div")).find((el) => {`
+- L328 — `select` — `if (document.querySelector(".pdi-runtime-back-home, .pdi-iso-back-btn")) return;`
+- L342 — `select` — `return document.querySelector("canvas") || Array.from(document.querySelectorAll("div, section, main")).find((el) => {`
+- L349 — `select` — `let b = document.querySelector(".pdi-runtime-zoom-badge");`
+- L363 — `move` — `STATE.timer = setTimeout(() => b.classList.remove("is-visible"), 650);`
+- L372 — `select` — `target.style.userSelect = "none";`
+- L395 — `translate` — `target.style.transform = `translate(${STATE.panX}px, ${STATE.panY}px) scale(${STATE.zoom})`;`
+- L408 — `move` — `window.addEventListener("mousemove", function (event) {`
+- L415 — `translate` — `target.style.transform = `translate(${STATE.panX}px, ${STATE.panY}px) scale(${STATE.zoom})`;`
+- L420 — `move` — `document.body.classList.remove("pdi-panning");`
+- L425 — `select` — `document.querySelectorAll("canvas").forEach((c) => {`
+- L427 — `select` — `c.style.userSelect = "none";`
+- L456 — `port` — `import { useCallback, useEffect, useRef, useState } from "react";`
+- L466 — `port` — `export function usePdiIsoPrecisionViewport(canvasRef, options = {}) {`
+- L517 — `snap` — `const snapPoint = useCallback((point, step = 25) => ({`
+- L517 — `point` — `const snapPoint = useCallback((point, step = 25) => ({`
+- L518 — `point` — `x: Math.round(point.x / step) * step,`
+- L519 — `point` — `y: Math.round(point.y / step) * step,`
+- L539 — `point` — `const handlePointerMove = useCallback((event) => {`
+- L539 — `move` — `const handlePointerMove = useCallback((event) => {`
+- L566 — `move` — `return () => canvas.removeEventListener("wheel", handleWheel);`
+- L572 — `move` — `return () => window.removeEventListener("resize", resizeCanvasForDpr);`
+- L575 — `snap` — `return { zoom, pan, cursorWorld, setZoom, setPan, resizeCanvasForDpr, screenToWorld, worldToScreen, snapPoint, handleWheel, handlePointerMove, startPan, stopPan };`
+- L575 — `point` — `return { zoom, pan, cursorWorld, setZoom, setPan, resizeCanvasForDpr, screenToWorld, worldToScreen, snapPoint, handleWheel, handlePointerMove, startPan, stopPan };`
+- L575 — `move` — `return { zoom, pan, cursorWorld, setZoom, setPan, resizeCanvasForDpr, screenToWorld, worldToScreen, snapPoint, handleWheel, handlePointerMove, startPan, stopPan };`
+- L578 — `port` — `write(SRC / "components" / "usePdiIsoPrecisionViewport.js", hook.strip() + "\n")`
+- L584 — `point` — `function pdiGetCanvasLocalPoint008e(event, canvas) {`
+- L597 — `point` — `if "pdiGetCanvasLocalPoint008e" not in txt:`
+- L598 — `port` — `imports = list(re.finditer(r"^import .*?;\s*$", txt, flags=re.MULTILINE))`
+- L599 — `port` — `if imports:`
+- L600 — `port` — `i = imports[-1].end()`
+- L604 — `point` — `txt = txt.replace("event.offsetX", "(pdiGetCanvasLocalPoint008e(event, event.currentTarget).x)")`
+- L605 — `point` — `txt = txt.replace("event.offsetY", "(pdiGetCanvasLocalPoint008e(event, event.currentTarget).y)")`
+- L606 — `point` — `txt = txt.replace("e.offsetX", "(pdiGetCanvasLocalPoint008e(e, e.currentTarget).x)")`
+- L607 — `point` — `txt = txt.replace("e.offsetY", "(pdiGetCanvasLocalPoint008e(e, e.currentTarget).y)")`
+- … 9 occurrences supplémentaires.
+### `008e_pdi_iso_precision_ux_workspace_fix_REPORT.md`
+- L9 — `port` — `- `src/components/usePdiIsoPrecisionViewport.js``
+- L19 — `point` — `7. Vérifier précision point/souris après zoom`
+- L21 — `port` — `## Note importante`
+### `009_pdi_user_profile_account_space.py`
+- L17 — `port` — `- rapport journalier avec note assets PNG.`
+- L19 — `port` — `from pathlib import Path`
+- L20 — `port` — `import shutil, sys`
+- L21 — `port` — `from datetime import datetime`
+- L25 — `port` — `REPORT=ROOT/'009_user_profile_account_space_REPORT.md'`
+- L26 — `history` — `HISTORY=ROOT/'docs/PATCH_HISTORY.md'`
+- L61 — `anchor` — `anchor='  const [accountMenuOpen, setAccountMenuOpen] = useState(false);'`
+- L62 — `anchor` — `if anchor in s and 'pdiUserProfile' not in s:`
+- L63 — `anchor` — `s=s.replace(anchor, anchor+r'''`
+- L78 — `anchor` — `anchor_panel='        {activeModule === "assistant" && <ComingSoonPanel title="Assistant et agents spécialisés"><p>PD&I orchestrera le repo <code>pipeline-design-skill</code> : agents Vision, Croquis, CAO, JSON, ISO, QA. Les agents proposen`
+- L90 — `anchor` — `if anchor_panel in s and 'Profil utilisateur' not in s:`
+- L91 — `anchor` — `s=s.replace(anchor_panel, profile_panel+'\n'+anchor_panel,1)`
+- L98 — `port` — `def report():`
+- L100 — `port` — `write(REPORT,txt)`
+- L101 — `history` — `if HISTORY.exists() and 'PATCH 009 — Profil utilisateur' not in read(HISTORY):`
+- L102 — `history` — `write(HISTORY, read(HISTORY).rstrip()+'\n\n## PATCH 009 — Profil utilisateur + espace compte\n\n- Ajout module Profil utilisateur.\n- Menu compte enrichi.\n- Page sécurité avec checklist SaaS.\n- Préparation Firebase users/profiles/subscrip`
+- L106 — `port` — `audit(); patch_app(); report(); print('PATCH 009 terminé')`
+### `009b_fix_vercel_missing_firebase_config.py`
+- L9 — `port` — `src/lib/firebase-admin.ts: import firebaseConfig from '../../firebase-applet-config.json'`
+- L17 — `port` — `- Remplacer l'import JSON dur par une configuration lue depuis import.meta.env.`
+- L21 — `port` — `from pathlib import Path`
+- L22 — `port` — `import shutil, sys`
+- L23 — `port` — `from datetime import datetime`
+- L27 — `port` — `REPORT=ROOT/'009b_vercel_firebase_config_fix_REPORT.md'`
+- L28 — `history` — `HISTORY=ROOT/'docs/PATCH_HISTORY.md'`
+- L54 — `port` — `# Remplacement robuste : on supprime l'import JSON et on injecte une config env-safe.`
+- L55 — `port` — `src=src.replace("import firebaseConfig from '../../firebase-applet-config.json';\n", '')`
+- L56 — `port` — `src=src.replace("import firebaseConfig from \"../../firebase-applet-config.json\";\n", '')`
+- L58 — `port` — `fail('firebaseConfig non trouvé après suppression import — vérifier fichier manuellement')`
+- L59 — `port` — `env_block="""// PATCH 009b — Vercel-safe Firebase config.\n// Ne jamais dépendre d'un JSON local absent du build.\n// Config publique Firebase via variables Vercel VITE_FIREBASE_* ; fallback demo non secret pour build.\nconst firebaseConfig`
+- L60 — `port` — `# Placer après les imports initiaux.`
+- L63 — `port` — `while idx < len(lines) and (lines[idx].startswith('import ') or lines[idx].strip()=='' or lines[idx].startswith('//')):`
+- L68 — `port` — `report=f"""# PATCH 009b — Fix Vercel Firebase config\n\nDate: {datetime.now().isoformat(timespec='seconds')}\n\n## Erreur corrigée\nVercel échouait sur :\n\n```text\nCould not resolve \"../../firebase-applet-config.json\"\nsrc/lib/firebase-`
+- L69 — `port` — `write(REPORT,report)`
+- L70 — `history` — `if HISTORY.exists() and 'PATCH 009b — Fix Vercel Firebase config' not in read(HISTORY):`
+- L71 — `history` — `write(HISTORY, read(HISTORY).rstrip()+"\n\n## PATCH 009b — Fix Vercel Firebase config\n\n- Suppression dépendance au fichier local firebase-applet-config.json.\n- Config Firebase lue via variables Vercel VITE_FIREBASE_*.\n- Build Vercel déb`
+### `009b_vercel_firebase_config_fix_REPORT.md`
+- L17 — `port` — `- Suppression de l'import direct `../../firebase-applet-config.json`.`
+### `010_pdi_auth_activation_remove_direct_start_fix_black_buttons.py`
+- L15 — `port` — `from pathlib import Path`
+- L16 — `port` — `import shutil, sys`
+- L17 — `port` — `from datetime import datetime`
+- L23 — `port` — `REPORT=ROOT/'010_auth_activation_remove_direct_start_fix_black_buttons_REPORT.md'`
+- L23 — `move` — `REPORT=ROOT/'010_auth_activation_remove_direct_start_fix_black_buttons_REPORT.md'`
+- L24 — `history` — `HISTORY=ROOT/'docs/PATCH_HISTORY.md'`
+- L81 — `anchor` — `anchor='  const [accountMenuOpen, setAccountMenuOpen] = useState(false);'`
+- L82 — `anchor` — `if anchor in s and 'authPanelMode' not in s:`
+- L83 — `anchor` — `s=s.replace(anchor, anchor+r'''`
+- L96 — `move` — `const activateSimulatedAccount = () => { setAuthMode("client"); try { window.localStorage.removeItem("pdi.activation.pendingToken.v1"); window.localStorage.setItem(PDI_AUTH_KEY,"client"); window.sessionStorage.setItem(PDI_STAGE_KEY,"app"); `
+- L101 — `move` — `# remove duplicated brace artifact if replacement causes two opening blocks? Original line had {, we included { then rest begins following line ok.`
+- L107 — `select` — `{authPanelMode === "register" && <div className="pdi-auth-form"><input placeholder="Nom complet" value={authDraft.name} onChange={e=>setAuthDraft({...authDraft,name:e.target.value})}/><input placeholder="Email" value={authDraft.email} onCha`
+- L118 — `select` — `s=s.replace('@media(max-width:900px)', '.pdi-auth-gateway{grid-column:1/-1;display:grid;place-items:center;min-height:calc(100vh - 170px);animation:pdiAuthIn .35s ease}.pdi-auth-card{width:min(760px,92vw);border:1px solid rgba(103,232,249,.`
+- L118 — `port` — `s=s.replace('@media(max-width:900px)', '.pdi-auth-gateway{grid-column:1/-1;display:grid;place-items:center;min-height:calc(100vh - 170px);animation:pdiAuthIn .35s ease}.pdi-auth-card{width:min(760px,92vw);border:1px solid rgba(103,232,249,.`
+- L118 — `point` — `s=s.replace('@media(max-width:900px)', '.pdi-auth-gateway{grid-column:1/-1;display:grid;place-items:center;min-height:calc(100vh - 170px);animation:pdiAuthIn .35s ease}.pdi-auth-card{width:min(760px,92vw);border:1px solid rgba(103,232,249,.`
+- L118 — `translate` — `s=s.replace('@media(max-width:900px)', '.pdi-auth-gateway{grid-column:1/-1;display:grid;place-items:center;min-height:calc(100vh - 170px);animation:pdiAuthIn .35s ease}.pdi-auth-card{width:min(760px,92vw);border:1px solid rgba(103,232,249,.`
+- L124 — `move` — `if 'PATCH 010 remove direct start and black buttons' in s:`
+- L128 — `move` — `/* PATCH 010 remove direct start and black buttons */`
+- L129 — `port` — `.pdiL-entry,.pdiL-launcher-head button,.pdiL-btn,.pdiL-hero-button{background:linear-gradient(180deg,#1B2A3A,#0F1A27)!important;color:#EAF6FF!important;border:1px solid rgba(77,184,212,.45)!important;box-shadow:0 18px 44px rgba(0,0,0,.32),i`
+- L130 — `port` — `.pdiL-btn-primary,.pdiL-hero-button{background:linear-gradient(135deg,#0284C7,#22D3EE)!important;color:white!important;border-color:#67E8F9!important}`
+- L131 — `select` — `.pdiL-entry strong,.pdiL-entry small,.pdiL-entry p{color:#E5F2FF!important}.pdiL-entry p{opacity:.78}.pdiL-entry-go{color:#67E8F9!important;font-weight:900}.pdiL-entry:hover,.pdiL-entry.selected{background:linear-gradient(180deg,#22384D,#10`
+- L131 — `port` — `.pdiL-entry strong,.pdiL-entry small,.pdiL-entry p{color:#E5F2FF!important}.pdiL-entry p{opacity:.78}.pdiL-entry-go{color:#67E8F9!important;font-weight:900}.pdiL-entry:hover,.pdiL-entry.selected{background:linear-gradient(180deg,#22384D,#10`
+- L131 — `translate` — `.pdiL-entry strong,.pdiL-entry small,.pdiL-entry p{color:#E5F2FF!important}.pdiL-entry p{opacity:.78}.pdiL-entry-go{color:#67E8F9!important;font-weight:900}.pdiL-entry:hover,.pdiL-entry.selected{background:linear-gradient(180deg,#22384D,#10`
+- L136 — `port` — `def report():`
+- L169 — `port` — `write(REPORT,txt)`
+- L170 — `history` — `if HISTORY.exists() and 'PATCH 010 — Auth simulée' not in read(HISTORY):`
+- L171 — `history` — `write(HISTORY, read(HISTORY).rstrip()+"\n\n## PATCH 010 — Auth simulée + suppression accès direct\n\n- Ajout gateway Connexion/Créer compte/Activation/Démo.\n- Suppression accès direct via bouton Commencer/Démarrer.\n- Blocage ouverture mod`
+- L175 — `port` — `audit(); patch_landing(); patch_app(); patch_css(); report(); print('PATCH 010 terminé')`
+### `011_pdi_super_admin_landing_visual_workspace_fix.py`
+- L18 — `port` — `from pathlib import Path`
+- L19 — `port` — `import shutil, sys`
+- L20 — `port` — `from datetime import datetime`
+- L27 — `port` — `REPORT=ROOT/'011_super_admin_landing_workspace_visual_fix_REPORT.md'`
+- L28 — `history` — `HISTORY=ROOT/'docs/PATCH_HISTORY.md'`
+- L71 — `move` — `s=s.replace('window.localStorage.removeItem(PDI_STAGE_KEY)', 'window.localStorage.removeItem(PDI_STAGE_KEY); window.localStorage.removeItem("pdi.force.app.v1")')`
+- L77 — `anchor` — `anchor='        {activeModule === "assistant" && <ComingSoonPanel title="Assistant et agents spécialisés"><p>PD&I orchestrera le repo <code>pipeline-design-skill</code> : agents Vision, Croquis, CAO, JSON, ISO, QA. Les agents proposent ; Py`
+- L89 — `port` — `["Rapports", "Journalier + sécurité + assets PNG"]`
+- L94 — `anchor` — `if anchor in s and 'Super Admin Console' not in s:`
+- L95 — `anchor` — `s=s.replace(anchor, panel+'\n'+anchor,1)`
+- L126 — `port` — `.pdiL-hero-shell{isolation:isolate;perspective:1200px;min-height:100vh!important;display:flex!important}`
+- L127 — `port` — `.pdiL-hero-bg span{will-change:transform,opacity;animation:pdiParallaxFloat 10s ease-in-out infinite alternate!important}`
+- L128 — `port` — `.pdiL-hero-bg span:nth-child(2n){animation-duration:13s!important;animation-direction:alternate-reverse!important}`
+- L129 — `port` — `.pdiL-hero-grid{animation:pdiGridDrift 18s linear infinite!important;background-position:0 0;opacity:.34!important}`
+- L130 — `port` — `.pdiL-splash{animation:pdiHeroRise .7s cubic-bezier(.16,1,.3,1) both!important;transform-style:preserve-3d}`
+- L133 — `align` — `.pdiL-hero-fallback{position:absolute;inset:0;display:grid;place-items:center;text-align:center;background:radial-gradient(circle at 35% 30%,rgba(77,184,212,.25),transparent 35%),linear-gradient(135deg,#0f172a,#020617)}`
+- L137 — `translate` — `@keyframes pdiParallaxFloat{0%{transform:translate3d(-8px,6px,0) rotate(-4deg) scale(1)}100%{transform:translate3d(12px,-10px,40px) rotate(5deg) scale(1.035)}}`
+- L139 — `translate` — `@keyframes pdiHeroRise{from{opacity:0;transform:translateY(18px) rotateX(4deg)}to{opacity:1;transform:none}}`
+- L140 — `translate` — `@keyframes pdiVisualFloat{0%,100%{transform:translateY(0) rotateX(0)}50%{transform:translateY(-8px) rotateX(1.5deg)}}`
+- L141 — `translate` — `@keyframes pdiCardIn{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}`
+- L161 — `anchor` — `s=s.replace('{showDimensions&&showPipeLabels&&s.length>=.5&&<g data-iso-object="true" transform={`translate(${dimensionAnnotation?.x??mx} ${dimensionAnnotation?.y??my-13})`}><rect x="-65" y="-10" width="130" height="18" rx="4" fill="#020617`
+- L161 — `translate` — `s=s.replace('{showDimensions&&showPipeLabels&&s.length>=.5&&<g data-iso-object="true" transform={`translate(${dimensionAnnotation?.x??mx} ${dimensionAnnotation?.y??my-13})`}><rect x="-65" y="-10" width="130" height="18" rx="4" fill="#020617`
+- L165 — `anchor` — `# Grille infinie : remplacer rendu lignes par pattern SVG fixe non friable si anchors présents.`
+- L168 — `point` — `inject='''<defs><pattern id="pdiInfiniteGridMinor" width="24" height="24" patternUnits="userSpaceOnUse"><path d="M 24 0 L 0 0 0 24" fill="none" stroke="#334155" strokeWidth="0.45" opacity="0.55"/></pattern><pattern id="pdiInfiniteGridMajor"`
+- L174 — `port` — `s=s.replace('[data-pdi-studio] .pdi-status-docked{height:28px!important;min-height:28px!important;padding-top:3px!important;padding-bottom:3px!important}', '[data-pdi-studio] .pdi-status-docked{display:none!important}\n        [data-pdi-stu`
+- L184 — `port` — `def report():`
+- L186 — `port` — `write(REPORT,txt)`
+- L187 — `history` — `if HISTORY.exists() and 'PATCH 011 — Super Admin + corrections landing/workspace' not in read(HISTORY):`
+- L188 — `history` — `write(HISTORY, read(HISTORY).rstrip()+"\n\n## PATCH 011 — Super Admin + corrections landing/workspace\n\n- Restauration landing commerciale et animations/parallax.\n- Préparation photo initiale hero-dashboard.png avec fallback CSS.\n- Coule`
+- L192 — `port` — `audit(); patch_app(); patch_landing(); patch_landing_css(); patch_engine(); create_asset_notes(); report(); print('PATCH 011 terminé')`
+### `012_pdi_license_grid_metrics_deploy_fallback.py`
+- L9 — `port` — `from pathlib import Path`
+- L10 — `port` — `import shutil, sys, json`
+- L11 — `port` — `from datetime import datetime`
+- L17 — `history` — `HISTORY=ROOT/'docs/PATCH_HISTORY.md'`
+- L18 — `port` — `REPORT=ROOT/'012_license_grid_metrics_deploy_fallback_REPORT.md'`
+- L46 — `anchor` — `anchor='  const pdiUserProfile = {'`
+- L47 — `anchor` — `idx=s.find(anchor)`
+- L69 — `anchor` — `anchor_panel='        {activeModule === "assistant" && <ComingSoonPanel title="Assistant et agents spécialisés"><p>PD&I orchestrera le repo <code>pipeline-design-skill</code> : agents Vision, Croquis, CAO, JSON, ISO, QA. Les agents proposen`
+- L70 — `anchor` — `if 'Générateur de clés SaaS' not in s and anchor_panel in s:`
+- L74 — `select` — `<section className="pdi-license-form"><h3>Créer une clé</h3><label>Type<select value={licenseDraft.type} onChange={e=>setLicenseDraft({...licenseDraft,type:e.target.value})}><option>TRIAL_7</option><option>TRIAL_30</option><option>GUEST</op`
+- L79 — `anchor` — `s=s.replace(anchor_panel, panel+'\n'+anchor_panel,1)`
+- L81 — `align` — `s=s.replace('@media(max-width:900px)', '.pdi-license-panel{display:grid;grid-template-columns:minmax(260px,.34fr) 1fr;gap:14px}.pdi-license-form,.pdi-license-list{border:1px solid rgba(103,232,249,.25);background:linear-gradient(180deg,#111`
+- L81 — `select` — `s=s.replace('@media(max-width:900px)', '.pdi-license-panel{display:grid;grid-template-columns:minmax(260px,.34fr) 1fr;gap:14px}.pdi-license-form,.pdi-license-list{border:1px solid rgba(103,232,249,.25);background:linear-gradient(180deg,#111`
+- L81 — `port` — `s=s.replace('@media(max-width:900px)', '.pdi-license-panel{display:grid;grid-template-columns:minmax(260px,.34fr) 1fr;gap:14px}.pdi-license-form,.pdi-license-list{border:1px solid rgba(103,232,249,.25);background:linear-gradient(180deg,#111`
+- L94 — `port` — `<pattern id="pdiGridMinor" width="24" height="24" patternUnits="userSpaceOnUse" patternTransform={`translate(${viewport.panX % 24} ${viewport.panY % 24})`}>`
+- L94 — `translate` — `<pattern id="pdiGridMinor" width="24" height="24" patternUnits="userSpaceOnUse" patternTransform={`translate(${viewport.panX % 24} ${viewport.panY % 24})`}>`
+- L97 — `port` — `<pattern id="pdiGridMajor" width="120" height="120" patternUnits="userSpaceOnUse" patternTransform={`translate(${viewport.panX % 120} ${viewport.panY % 120})`}>`
+- L97 — `translate` — `<pattern id="pdiGridMajor" width="120" height="120" patternUnits="userSpaceOnUse" patternTransform={`translate(${viewport.panX % 120} ${viewport.panY % 120})`}>`
+- L102 — `point` — `{showGrid && <rect x="-5000" y="-5000" width="10000" height="10000" fill="url(#pdiGridMajor)" opacity="0.88" pointerEvents="none" />}`
+- L112 — `port` — `[data-pdi-studio] [class*="meter"]{display:none!important}`
+- L115 — `port` — `pos=s.find('        [data-pdi-studio] .pdi-status-docked{display:none!important}')`
+- L129 — `port` — `s += '\n/* PATCH 012 — hide lower metric strip */\n.pdi-bottom-meter,[class*="pdi-bottom-meter"],[data-pdi-studio] [class*="bottom-meter"]{display:none!important}\n'`
+- L142 — `port` — `### Option A — Build statique exportable ZIP, prioritaire`
+- L167 — `port` — `write(REPORT, f'''# PATCH 012 — Audit + licences + grille/métrés + déploiement alternatif`
+- L187 — `history` — `if HISTORY.exists() and 'PATCH 012 — Licences, grille, métrés, déploiement fallback' not in read(HISTORY):`
+- L188 — `history` — `write(HISTORY, read(HISTORY).rstrip()+'''\n\n## PATCH 012 — Licences, grille, métrés, déploiement fallback\n\n- Ajout générateur local de clés SaaS.\n- Correction grille SVG stable type AutoCAD.\n- Masquage cartes métrés/barre basse visible`
+### `013_iso_workflow_alignment_elbow_autocad_fix_REPORT.md`
+- L1 — `align` — `# PATCH 013 — Workflow ISO, doublons, coude, alignement, commandes AutoCAD`
+- L10 — `align` — `- Alignement AX/AY/AZ corrigé sans re-snap`
+- L10 — `snap` — `- Alignement AX/AY/AZ corrigé sans re-snap`
+- L24 — `align` — `- AX/AY/AZ : les points alignés ne glissent plus hors axe`
+- L24 — `point` — `- AX/AY/AZ : les points alignés ne glissent plus hors axe`
+### `013_pdi_iso_workflow_alignment_elbow_autocad_fix.py`
+- L2 — `port` — `from pathlib import Path`
+- L3 — `port` — `from datetime import datetime`
+- L4 — `port` — `import re, shutil`
+- L9 — `align` — `REPORT = ROOT / "013_iso_workflow_alignment_elbow_autocad_fix_REPORT.md"`
+- L9 — `port` — `REPORT = ROOT / "013_iso_workflow_alignment_elbow_autocad_fix_REPORT.md"`
+- L55 — `align` — `# Corriger alignement AX/AY/AZ sans re-snap.`
+- L55 — `snap` — `# Corriger alignement AX/AY/AZ sans re-snap.`
+- L56 — `align` — `old_align = re.search(r'  const alignSelectedNodesAxis = \(axis: "x" \| "y" \| "z"\) => \{.*?\n  \};\n\n  const alignSelectedEquipmentOnTube', s, re.S)`
+- L56 — `select` — `old_align = re.search(r'  const alignSelectedNodesAxis = \(axis: "x" \| "y" \| "z"\) => \{.*?\n  \};\n\n  const alignSelectedEquipmentOnTube', s, re.S)`
+- L57 — `align` — `if old_align:`
+- L58 — `align` — `new_align = '''  const alignSelectedNodesAxis = (axis: "x" | "y" | "z") => {`
+- L58 — `select` — `new_align = '''  const alignSelectedNodesAxis = (axis: "x" | "y" | "z") => {`
+- L59 — `select` — `if (selectedNodeIds.length < 2) {`
+- L60 — `align` — `setStatusMessage(`Aligner ${axis.toUpperCase()} : sélectionner au moins deux nœuds`);`
+- L60 — `sélection` — `setStatusMessage(`Aligner ${axis.toUpperCase()} : sélectionner au moins deux nœuds`);`
+- L63 — `select` — `const referenceId = selectedNodeIds[selectedNodeIds.length - 1];`
+- L67 — `align` — `// PATCH 013 — alignement sans décalage visuel :`
+- L68 — `snap` — `// on applique uniquement le delta nécessaire sur l’axe choisi et on ne re-snap jamais`
+- L69 — `align` — `// les autres coordonnées. Cela évite le glissement des points observé après alignement.`
+- L69 — `point` — `// les autres coordonnées. Cela évite le glissement des points observé après alignement.`
+- L70 — `select` — `const selected = new Set(selectedNodeIds);`
+- L73 — `select` — `if (!selected.has(node.id) || node.id === referenceId) return node;`
+- L79 — `align` — `setStatusMessage(`Alignement ${axis.toUpperCase()} appliqué sans re-snap — référence : ${reference.name}`);`
+- L79 — `snap` — `setStatusMessage(`Alignement ${axis.toUpperCase()} appliqué sans re-snap — référence : ${reference.name}`);`
+- L82 — `align` — `const alignSelectedEquipmentOnTube'''`
+- L82 — `select` — `const alignSelectedEquipmentOnTube'''`
+- L83 — `align` — `s = s[:old_align.start()] + new_align + s[old_align.end():]`
+- L84 — `align` — `notes.append('Alignement AX/AY/AZ corrigé sans re-snap')`
+- L84 — `snap` — `notes.append('Alignement AX/AY/AZ corrigé sans re-snap')`
+- L101 — `point` — `s = s.replace('  const createElbowFromPointer=(e:React.PointerEvent<SVGSVGElement>)=>{', helper + '  const createElbowFromPointer=(e:React.PointerEvent<SVGSVGElement>)=>{', 1)`
+- L107 — `rotation` — `'const id = insertEquipmentNode(hit.id, "coude_90", hit.t, "Coude 90° DN" + (seg?.dn || newDN));\n      const orient = elbowOrientationFromSegment(hit.id, 0);\n      setNodes(prev => prev.map(n => n.id === id ? { ...n, rotation: orient } : `
+- L111 — `snap` — `'const node = makeEquipmentNode("coude_90", `Coude 90° N${nodes.length + 1}`, snapIsoV4(w.x, isoSnapStep), snapIsoV4(w.y, isoSnapStep), nodeZ || 0, newDN, 0);',`
+- L112 — `snap` — `'const node = makeEquipmentNode("coude_90", `Coude 90° N${nodes.length + 1}`, snapIsoV4(w.x, isoSnapStep), snapIsoV4(w.y, isoSnapStep), nodeZ || 0, newDN, elbowOrientationFromSegment(selectedSegmentId, 0));',`
+- L112 — `select` — `'const node = makeEquipmentNode("coude_90", `Coude 90° N${nodes.length + 1}`, snapIsoV4(w.x, isoSnapStep), snapIsoV4(w.y, isoSnapStep), nodeZ || 0, newDN, elbowOrientationFromSegment(selectedSegmentId, 0));',`
+- L152 — `move` — `new_logout = 'window.localStorage.setItem(PDI_AUTH_KEY, "guest");\n      window.localStorage.removeItem("pdi.activeModule.v1");'`
+- L153 — `move` — `if old_logout in s and 'removeItem("pdi.activeModule.v1")' not in s:`
+- L162 — `port` — `REPORT.write_text(`
+- L163 — `align` — `'# PATCH 013 — Workflow ISO, doublons, coude, alignement, commandes AutoCAD\n\n'`
+- L171 — `align` — `'- AX/AY/AZ : les points alignés ne glissent plus hors axe\n',`
+- L171 — `point` — `'- AX/AY/AZ : les points alignés ne glissent plus hors axe\n',`
+- L177 — `port` — `print('Rapport :', REPORT)`
+### `014_COMMANDES_PLANT3D_BOM3D_TABLE.md`
+- L9 — `fitting` — `| PLANTFITTINGMOVE | - | Fitting | implemented | connector | fitting |`
+- L9 — `move` — `| PLANTFITTINGMOVE | - | Fitting | implemented | connector | fitting |`
+- L10 — `fitting` — `| PLANTFLIPFITTING | - | Fitting | implemented | connector | fitting |`
+- L12 — `fitting` — `| PLANTNOZZLEADD | - | Nozzle | future_3d | nozzle | fitting |`
+- L13 — `port` — `| PLANTSUPPORTADD | PSA | Support | future_3d | support | support |`
+- L16 — `port` — `| PLANTISOPRODUCTION | - | ISO fabrication | bom_export | iso | document |`
+- L18 — `port` — `| DATAMANAGER | DM | Données/BOM | bom_export | project | document |`
+- L21 — `move` — `| MOVE | M | Édition | implemented | - | - |`
+- L25 — `fitting` — `| FILLET | F | Édition | prepared | connector | fitting |`
+- L32 — `port` — `| BOM | METRE | Export | bom_export | project | document |`
+### `014_autocad_command_line_plant3d_bom3d_REPORT.md`
+- L8 — `port` — `- Statuts de préparation : `implemented`, `prepared`, `future_3d`, `bom_export`.`
+- L9 — `port` — `- Colonnes `PDI_BOM_EXPORT_COLUMNS` pour préparer export BOM.`
+- L13 — `port` — `Les commandes déjà supportées peuvent lancer les actions existantes. Les commandes Plant 3D non encore natives restent déclarées et renvoient un message de préparation, afin de préparer proprement le passage 3D sans casser l’ISO actuel.`
+- L18 — `move` — `- Tester dans la barre de commande : `COPIE`, `CO`, `MOVE`, `COUDE`, `BOM`, `PLANTPIPEADD`, `PPA`, `DATAMANAGER`, `3DORBIT`.`
+### `014_pdi_autocad_command_line_plant3d_bom3d.py`
+- L3 — `port` — `PATCH 014 — Ligne de commande type AutoCAD / Plant 3D + préparation 3D & exports BOM`
+- L13 — `port` — `- Préparer les catégories/champs utiles pour exports BOM.`
+- L17 — `port` — `from pathlib import Path`
+- L18 — `port` — `from datetime import datetime`
+- L19 — `port` — `import re`
+- L20 — `port` — `import shutil`
+- L25 — `port` — `REPORT = ROOT / "014_autocad_command_line_plant3d_bom3d_REPORT.md"`
+- L32 — `port` — `// et aux exports BOM. Les commandes non encore natives sont déclarées en mode prepared.`
+- L33 — `port` — `export type PdiCommandReadiness = "implemented" | "prepared" | "future_3d" | "bom_export";`
+- L34 — `port` — `export type PdiCommandDomain =`
+- L37 — `port` — `| "supports"`
+- L46 — `port` — `export interface PdiPlant3dCommandRow {`
+- L54 — `fitting` — `bomCategory?: "pipe" | "fitting" | "valve" | "equipment" | "support" | "structure" | "weld" | "document";`
+- L54 — `port` — `bomCategory?: "pipe" | "fitting" | "valve" | "equipment" | "support" | "structure" | "weld" | "document";`
+- L55 — `port` — `future3dEntity?: "pipeRoute" | "connector" | "spec" | "equipment" | "nozzle" | "support" | "steel" | "ortho" | "iso" | "project" | "view";`
+- L58 — `port` — `export const PDI_PLANT3D_COMMAND_TABLE: PdiPlant3dCommandRow[] = [`
+- L60 — `sélection` — `{ id:"plantconnect", command:"PLANTCONNECT", aliases:["CONNECT","CONNEXION","PCONNECT"], domain:"piping_3d", description:"Force la connexion automatique entre deux composants", readiness:"prepared", pdiAction:"Connecter ports/nœuds sélectio`
+- L60 — `port` — `{ id:"plantconnect", command:"PLANTCONNECT", aliases:["CONNECT","CONNEXION","PCONNECT"], domain:"piping_3d", description:"Force la connexion automatique entre deux composants", readiness:"prepared", pdiAction:"Connecter ports/nœuds sélectio`
+- L64 — `fitting` — `{ id:"plantfittingmove", command:"PLANTFITTINGMOVE", aliases:["FITTINGMOVE","MOVEFITTING","DEPLACERRACCORD"], domain:"piping_3d", description:"Déplace un raccord le long d'un segment", readiness:"implemented", pdiAction:"Déplacer équipement`
+- L64 — `move` — `{ id:"plantfittingmove", command:"PLANTFITTINGMOVE", aliases:["FITTINGMOVE","MOVEFITTING","DEPLACERRACCORD"], domain:"piping_3d", description:"Déplace un raccord le long d'un segment", readiness:"implemented", pdiAction:"Déplacer équipement`
+- L65 — `align` — `{ id:"plantflipfitting", command:"PLANTFLIPFITTING", aliases:["FLIPFITTING","FLIP","RETOURNERRACCORD"], domain:"piping_3d", description:"Aligne ou retourne un raccord inséré", readiness:"implemented", pdiAction:"Miroir/retourner équipement `
+- L65 — `sélection` — `{ id:"plantflipfitting", command:"PLANTFLIPFITTING", aliases:["FLIPFITTING","FLIP","RETOURNERRACCORD"], domain:"piping_3d", description:"Aligne ou retourne un raccord inséré", readiness:"implemented", pdiAction:"Miroir/retourner équipement `
+- L65 — `fitting` — `{ id:"plantflipfitting", command:"PLANTFLIPFITTING", aliases:["FLIPFITTING","FLIP","RETOURNERRACCORD"], domain:"piping_3d", description:"Aligne ou retourne un raccord inséré", readiness:"implemented", pdiAction:"Miroir/retourner équipement `
+- L69 — `fitting` — `{ id:"plantnozzleadd", command:"PLANTNOZZLEADD", aliases:["NOZZLE","PIQUAGE","AJOUTPIQUAGE"], domain:"equipment_nozzle", description:"Ajoute/modifie un piquage sur équipement", readiness:"future_3d", pdiAction:"Créer port/piquage sur équipe`
+- L69 — `port` — `{ id:"plantnozzleadd", command:"PLANTNOZZLEADD", aliases:["NOZZLE","PIQUAGE","AJOUTPIQUAGE"], domain:"equipment_nozzle", description:"Ajoute/modifie un piquage sur équipement", readiness:"future_3d", pdiAction:"Créer port/piquage sur équipe`
+- L71 — `port` — `{ id:"plantsupportadd", command:"PLANTSUPPORTADD", aliases:["PSA","SUPPORT","SUPPORTADD"], domain:"supports", description:"Insère un support de tuyauterie", readiness:"future_3d", pdiAction:"Ajouter support attaché au tube", bomCategory:"su`
+- L72 — `port` — `{ id:"plantsupportconvert", command:"PLANTSUPPORTCONVERT", aliases:["SUPPORTCONVERT"], domain:"supports", description:"Convertit bloc/solide en support intelligent", readiness:"future_3d", pdiAction:"Convertir objet en support", bomCategory`
+- L85 — `port` — `{ id:"plantisoproduction", command:"PLANTISOPRODUCTION", aliases:["ISOPROD","PRODUCTIONISO"], domain:"iso_ortho", description:"Génère dessins ISO fabrication", readiness:"bom_export", pdiAction:"Préparer export ISO + BOM", bomCategory:"docu`
+- L89 — `port` — `{ id:"datamanager", command:"DATAMANAGER", aliases:["DM","DATA","DONNEES"], domain:"project_data", description:"Ouvre gestionnaire données/attributs", readiness:"bom_export", pdiAction:"Ouvrir propriétés + table BOM", bomCategory:"document"`
+- L90 — `port` — `{ id:"plantaudit", command:"PLANTAUDIT", aliases:["AUDIT","REPAIR"], domain:"project_data", description:"Répare erreurs modèle/base", readiness:"prepared", pdiAction:"Audit graph/ports/soudures", future3dEntity:"project" },`
+- L95 — `sélection` — `{ id:"move", command:"MOVE", aliases:["M","DEPLACER","MOVE"], domain:"edit", description:"Déplace les objets sélectionnés", readiness:"implemented", pdiAction:"Commande guidée déplacement" },`
+- L95 — `move` — `{ id:"move", command:"MOVE", aliases:["M","DEPLACER","MOVE"], domain:"edit", description:"Déplace les objets sélectionnés", readiness:"implemented", pdiAction:"Commande guidée déplacement" },`
+- L96 — `sélection` — `{ id:"copy", command:"COPY", aliases:["CO","CP","COPIE","COPY"], domain:"edit", description:"Copie les objets sélectionnés", readiness:"implemented", pdiAction:"Commande guidée copie" },`
+- L97 — `sélection` — `{ id:"scale", command:"SCALE", aliases:["SC","ECHELLE"], domain:"edit", description:"Change échelle objets", readiness:"prepared", pdiAction:"Préparer échelle sélection" },`
+- L98 — `sélection` — `{ id:"rotate", command:"ROTATE", aliases:["RO","ROTATION"], domain:"edit", description:"Rotation autour point base", readiness:"implemented", pdiAction:"Rotation sélection" },`
+- L98 — `point` — `{ id:"rotate", command:"ROTATE", aliases:["RO","ROTATION"], domain:"edit", description:"Rotation autour point base", readiness:"implemented", pdiAction:"Rotation sélection" },`
+- L98 — `rotation` — `{ id:"rotate", command:"ROTATE", aliases:["RO","ROTATION"], domain:"edit", description:"Rotation autour point base", readiness:"implemented", pdiAction:"Rotation sélection" },`
+- L99 — `sélection` — `{ id:"erase", command:"ERASE", aliases:["E","EFFACER","DELETE","SUPPR"], domain:"edit", description:"Efface/Supprime", readiness:"implemented", pdiAction:"Supprimer sélection" },`
+- L100 — `groupe` — `{ id:"explode", command:"EXPLODE", aliases:["X","EXPLOSER"], domain:"edit", description:"Décompose objet composite", readiness:"prepared", pdiAction:"Préparer décomposition groupe" },`
+- L100 — `group` — `{ id:"explode", command:"EXPLODE", aliases:["X","EXPLOSER"], domain:"edit", description:"Décompose objet composite", readiness:"prepared", pdiAction:"Préparer décomposition groupe" },`
+- L101 — `sélection` — `{ id:"mirror", command:"MIRROR", aliases:["MI","MIROIR"], domain:"edit", description:"Symétrie miroir", readiness:"implemented", pdiAction:"Miroir sélection" },`
+- L102 — `sélection` — `{ id:"stretch", command:"STRETCH", aliases:["S","ETIRER"], domain:"edit", description:"Étire objets", readiness:"prepared", pdiAction:"Préparer stretch sélection" },`
+- L105 — `fitting` — `{ id:"fillet", command:"FILLET", aliases:["F","RACCORD","CONGE"], domain:"edit", description:"Raccorde avec arc/congé", readiness:"prepared", pdiAction:"Préparer congé/coude automatique", bomCategory:"fitting" },`
+- L107 — `parallèle` — `{ id:"offset", command:"OFFSET", aliases:["O","DECALER"], domain:"edit", description:"Crée parallèles/concentriques", readiness:"prepared", pdiAction:"Préparer offset" },`
+- L110 — `sélection` — `{ id:"copyclip", command:"COPYCLIP", aliases:["CTRL+C","COPIERCLIP"], domain:"clipboard", description:"Copie sélection presse-papiers", readiness:"implemented", pdiAction:"Copier sélection" },`
+- L111 — `point` — `{ id:"copybase", command:"COPYBASE", aliases:["CTRL+SHIFT+C","COPIERBASE"], domain:"clipboard", description:"Copie avec point de base", readiness:"implemented", pdiAction:"Copie guidée point base" },`
+- L114 — `groupe` — `{ id:"pasteblock", command:"PASTEBLOCK", aliases:["CTRL+SHIFT+V","COLLERBLOC"], domain:"clipboard", description:"Colle comme bloc", readiness:"prepared", pdiAction:"Créer groupe/bloc" },`
+- L114 — `group` — `{ id:"pasteblock", command:"PASTEBLOCK", aliases:["CTRL+SHIFT+V","COLLERBLOC"], domain:"clipboard", description:"Colle comme bloc", readiness:"prepared", pdiAction:"Créer groupe/bloc" },`
+- L120 — `point` — `{ id:"vpoint", command:"VPOINT", aliases:["VUE3D","POINTVUE"], domain:"navigation_3d", description:"Direction visualisation 3D", readiness:"future_3d", pdiAction:"Préparer vues 3D", future3dEntity:"view" },`
+- L123 — `port` — `{ id:"bom", command:"BOM", aliases:["BOM","METRE","NOMENCLATURE","MATERIEL","LISTE"], domain:"bom", description:"Ouvre/prépare nomenclature et métré", readiness:"bom_export", pdiAction:"Ouvrir tableau BOM/export", bomCategory:"document" },`
+- L126 — `port` — `export const PDI_BOM_EXPORT_COLUMNS = [`
+- L133 — `port` — `REPORT_TEMPLATE = """# PATCH 014 — Ligne de commande AutoCAD / Plant 3D + BOM/3D`
+- L140 — `port` — `- Statuts de préparation : `implemented`, `prepared`, `future_3d`, `bom_export`.`
+- L141 — `port` — `- Colonnes `PDI_BOM_EXPORT_COLUMNS` pour préparer export BOM.`
+- L145 — `port` — `Les commandes déjà supportées peuvent lancer les actions existantes. Les commandes Plant 3D non encore natives restent déclarées et renvoient un message de préparation, afin de préparer proprement le passage 3D sans casser l’ISO actuel.`
+- L150 — `move` — `- Tester dans la barre de commande : `COPIE`, `CO`, `MOVE`, `COUDE`, `BOM`, `PLANTPIPEADD`, `PPA`, `DATAMANAGER`, `3DORBIT`.`
+- L175 — `port` — `# Importer la table si l'import CadAutocadEngine existe.`
+- L211 — `move` — `setAutocadPrompt(`Commande inconnue : \"${cmdId}\". Essayez COPIE, MOVE, COUDE, BOM, PLANTPIPEADD, DATAMANAGER...`);`
+- L226 — `fitting` — `("PLANTFITTINGMOVE", "-", "Fitting", "implemented", "connector", "fitting"),`
+- L226 — `move` — `("PLANTFITTINGMOVE", "-", "Fitting", "implemented", "connector", "fitting"),`
+- L227 — `fitting` — `("PLANTFLIPFITTING", "-", "Fitting", "implemented", "connector", "fitting"),`
+- L229 — `fitting` — `("PLANTNOZZLEADD", "-", "Nozzle", "future_3d", "nozzle", "fitting"),`
+- L230 — `port` — `("PLANTSUPPORTADD", "PSA", "Support", "future_3d", "support", "support"),`
+- L233 — `port` — `("PLANTISOPRODUCTION", "-", "ISO fabrication", "bom_export", "iso", "document"),`
+- L235 — `port` — `("DATAMANAGER", "DM", "Données/BOM", "bom_export", "project", "document"),`
+- L238 — `move` — `("MOVE", "M", "Édition", "implemented", "-", "-"),`
+- L242 — `fitting` — `("FILLET", "F", "Édition", "prepared", "connector", "fitting"),`
+- L249 — `port` — `("BOM", "METRE", "Export", "bom_export", "project", "document"),`
+- L260 — `port` — `REPORT.write_text(REPORT_TEMPLATE.format(date=datetime.now().isoformat(timespec="seconds")), encoding="utf-8")`
+- L265 — `port` — `print("- Rapport:", REPORT)`
+### `015_pdi_repair_command_bar_pipe_width_view_shift.py`
+- L17 — `port` — `from pathlib import Path`
+- L18 — `port` — `from datetime import datetime`
+- L19 — `port` — `import re`
+- L20 — `port` — `import shutil`
+- L24 — `port` — `REPORT = ROOT / "015_repair_command_bar_pipe_width_view_shift_REPORT.md"`
+- L51 — `anchor` — `state_anchor = '  const [autocadPrompt, setAutocadPrompt] = useState("Tapez une commande (ex: LIGNE, RECT, TRIANGLE, COPIER, COLLER...)");'`
+- L52 — `anchor` — `state_injection = state_anchor + '''`
+- L60 — `anchor` — `s = replace_once(s, state_anchor, state_injection, "État pipeStrokeScale ajouté", notes)`
+- L64 — `anchor` — `persist_anchor = "  const autocadCmdInputRef = useRef<HTMLInputElement>(null);"`
+- L70 — `anchor` — `s = replace_once(s, persist_anchor, persist_injection, "Persistance pipeStrokeScale ajoutée", notes)`
+- L82 — `port` — `# 3) Corriger export/planche pour respecter aussi l'épaisseur configurée.`
+- L88 — `port` — `notes.append("Épaisseur export/planche liée à pipeStrokeScale")`
+- L109 — `move` — `s, removed = cmd_block.subn("\n", s, 1)`
+- L110 — `move` — `notes.append(f"Ancienne barre commande dans panneau supprimée: {removed}")`
+- L148 — `anchor` — `insert_anchor = '    <div className={`hidden pdi-status-docked'`
+- L150 — `anchor` — `if insert_anchor in s:`
+- L151 — `anchor` — `s = s.replace(insert_anchor, fixed_bar + "\n" + insert_anchor, 1)`
+- L154 — `port` — `s = s.replace("  </div>;\n}\n\nexport { IsometrieModule };", fixed_bar + "\n  </div>;\n}\n\nexport { IsometrieModule };", 1)`
+- L163 — `anchor` — `css_anchor = "[data-pdi-studio] .pdi-status-docked{display:none!important}"`
+- L163 — `port` — `css_anchor = "[data-pdi-studio] .pdi-status-docked{display:none!important}"`
+- L164 — `port` — `css_add = """[data-pdi-studio] .pdi-status-docked{display:none!important}`
+- L166 — `port` — `[data-pdi-studio] .pdi-v48d-primary-workspace{padding-bottom:74px!important}`
+- L167 — `port` — `@media(max-width:900px){[data-pdi-studio] .pdi-command-dock-015{left:8px!important;right:8px!important;bottom:8px!important}.pdi-command-dock-015 label{display:none!important}}"""`
+- L168 — `anchor` — `if css_anchor in s and "pdi-command-dock-015" not in s[s.find(css_anchor):s.find(css_anchor)+500]:`
+- L169 — `anchor` — `s = s.replace(css_anchor, css_add, 1)`
+- L173 — `snap` — `# 6) Ajouter un contrôle d'épaisseur dans la toolbar haute, près du snap,`
+- L176 — `anchor` — `snap_anchor = '<select value={isoSnapStep} onChange={e=>setIsoSnapStep(Number(e.target.value))} className="h-8 bg-slate-950 border border-slate-700 rounded px-2 text-[10px] font-black"><option value={.1}>Snap 0,10 m</option><option value={.`
+- L176 — `snap` — `snap_anchor = '<select value={isoSnapStep} onChange={e=>setIsoSnapStep(Number(e.target.value))} className="h-8 bg-slate-950 border border-slate-700 rounded px-2 text-[10px] font-black"><option value={.1}>Snap 0,10 m</option><option value={.`
+- L176 — `select` — `snap_anchor = '<select value={isoSnapStep} onChange={e=>setIsoSnapStep(Number(e.target.value))} className="h-8 bg-slate-950 border border-slate-700 rounded px-2 text-[10px] font-black"><option value={.1}>Snap 0,10 m</option><option value={.`
+- L177 — `anchor` — `toolbar_width_control = snap_anchor + '<label className="h-8 px-2 rounded border border-slate-700 bg-slate-950 text-[10px] font-black flex items-center gap-1" title="Épaisseur tuyauterie"><span>Ép.</span><input type="number" min="0.35" max=`
+- L177 — `snap` — `toolbar_width_control = snap_anchor + '<label className="h-8 px-2 rounded border border-slate-700 bg-slate-950 text-[10px] font-black flex items-center gap-1" title="Épaisseur tuyauterie"><span>Ép.</span><input type="number" min="0.35" max=`
+- L178 — `anchor` — `if snap_anchor in s and 'title="Épaisseur tuyauterie"' not in s:`
+- L178 — `snap` — `if snap_anchor in s and 'title="Épaisseur tuyauterie"' not in s:`
+- L179 — `anchor` — `s = s.replace(snap_anchor, toolbar_width_control, 1)`
+- L179 — `snap` — `s = s.replace(snap_anchor, toolbar_width_control, 1)`
+- L180 — `snap` — `notes.append("Contrôle épaisseur ajouté près du Snap")`
+- L192 — `port` — `REPORT.write_text(`
+- L197 — `port` — `+ "\n\n## Points importants\n"`
+- L197 — `point` — `+ "\n\n## Points importants\n"`
+- L206 — `point` — `"3. Modifier `Ép.` : les lignes de tuyauterie doivent changer d'épaisseur sans déplacer les points.\n"`
+- L214 — `port` — `print("Rapport:", REPORT)`
+### `015_repair_command_bar_pipe_width_view_shift_REPORT.md`
+- L13 — `port` — `## Points importants`
+- L13 — `point` — `## Points importants`
+- L23 — `point` — `3. Modifier `Ép.` : les lignes de tuyauterie doivent changer d'épaisseur sans déplacer les points.`
+### `016A2_hotfix_hide_canvas_properties_keyboard_REPORT.md`
+- L9 — `port` — `- Ouvertures globales remplacées par panneau BOM sauf export volontaire`
+### `016A2_pdi_hotfix_hide_canvas_properties_keyboard.py`
+- L17 — `port` — `from pathlib import Path`
+- L18 — `port` — `from datetime import datetime`
+- L19 — `port` — `import re, shutil`
+- L23 — `port` — `REPORT = ROOT / "016A2_hotfix_hide_canvas_properties_keyboard_REPORT.md"`
+- L39 — `port` — `'[data-pdi-studio] .pdi-v48d-primary-workspace{padding-bottom:74px!important}',`
+- L40 — `port` — `'[data-pdi-studio] .pdi-v48d-primary-workspace{padding-bottom:var(--pdi-command-reserved-bottom,0px)!important}',`
+- L54 — `anchor` — `css_anchor='[data-pdi-studio] .pdi-command-dock-015{font-family:Inter,ui-sans-serif,system-ui,sans-serif}'`
+- L58 — `port` — `[data-pdi-studio] .pdi-v48d-primary-workspace [class*="rounded"]{border-width:1px!important}`
+- L59 — `port` — `[data-pdi-studio] .pdi-v48d-primary-workspace{border-width:1px!important}'''`
+- L60 — `anchor` — `if css_anchor in s and 'border-width:1px!important' not in s[s.find(css_anchor):s.find(css_anchor)+800]:`
+- L60 — `port` — `if css_anchor in s and 'border-width:1px!important' not in s[s.find(css_anchor):s.find(css_anchor)+800]:`
+- L61 — `anchor` — `s=s.replace(css_anchor,css_add,1)`
+- L82 — `port` — `notes.append("Ouvertures globales remplacées par panneau BOM sauf export volontaire")`
+- L128 — `move` — `return () => window.removeEventListener("keydown", onNativeType, true);`
+- L156 — `port` — `REPORT.write_text('# PATCH 016A2 — Hotfix hide/canvas/propriétés/clavier\n\nDate: '+datetime.now().isoformat(timespec='seconds')+'\n\n## Corrections\n'+'\n'.join('- '+n for n in notes)+'\n\n## Tests\n1. Hide commande : le plan doit reprendr`
+- L159 — `port` — `print('Rapport:',REPORT)`
+### `016A_command_ui_shortcuts_style_cleanup_REPORT.md`
+- L26 — `move` — `Ce patch ne crée pas encore les commandes guidées MOVE/COPY/ROTATE avec prévisualisation souris. Cela sera PATCH 016B après validation visuelle de 016A.`
+### `016A_pdi_command_ui_shortcuts_style_cleanup.py`
+- L22 — `port` — `from pathlib import Path`
+- L23 — `port` — `from datetime import datetime`
+- L24 — `port` — `import re`
+- L25 — `port` — `import shutil`
+- L29 — `port` — `REPORT = ROOT / "016A_command_ui_shortcuts_style_cleanup_REPORT.md"`
+- L40 — `anchor` — `def insert_after_once(s: str, anchor: str, addition: str, note: str, notes: list[str]) -> str:`
+- L44 — `anchor` — `if anchor in s:`
+- L46 — `anchor` — `return s.replace(anchor, anchor + addition, 1)`
+- L61 — `anchor` — `anchor = '  const [autocadPrompt, setAutocadPrompt] = useState("Tapez une commande (ex: LIGNE, RECT, TRIANGLE, COPIER, COLLER...)");'`
+- L82 — `anchor` — `if anchor in s:`
+- L83 — `anchor` — `s = s.replace(anchor, anchor + addition, 1)`
+- L101 — `anchor` — `anchor = '  const autocadCmdInputRef = useRef<HTMLInputElement>(null);'`
+- L116 — `anchor` — `if anchor in s:`
+- L117 — `anchor` — `s = s.replace(anchor, addition + anchor, 1)`
+- L188 — `group` — `s, n = re.subn(pattern, lambda m: m.group(1) + style_cmd, s, count=1)`
+- L204 — `select` — `'strokeWidth: selected ? 2.5 : (entity.lineWeight || 1.5),',`
+- L205 — `select` — `'strokeWidth: selected ? 2.5 * workspaceVisualStyle.cad2dStrokeScale : ((entity.lineWeight || 1.5) * workspaceVisualStyle.cad2dStrokeScale),',`
+- L233 — `anchor` — `css_anchor = "[data-pdi-studio] .pdi-command-dock-015{font-family:Inter,ui-sans-serif,system-ui,sans-serif}"`
+- L234 — `anchor` — `css_add = css_anchor + "\n        [data-pdi-studio] .pdi-command-dock-015 .pdi-hide-direct-access-016a{display:none!important}\n        [data-pdi-studio] .pdi-command-dock-015 [class*=\\\"direct\\\"], [data-pdi-studio] .pdi-command-dock-015`
+- L234 — `port` — `css_add = css_anchor + "\n        [data-pdi-studio] .pdi-command-dock-015 .pdi-hide-direct-access-016a{display:none!important}\n        [data-pdi-studio] .pdi-command-dock-015 [class*=\\\"direct\\\"], [data-pdi-studio] .pdi-command-dock-015`
+- L235 — `anchor` — `if css_anchor in s:`
+- L236 — `anchor` — `s = s.replace(css_anchor, css_add, 1)`
+- L244 — `move` — `removed_bom = False`
+- L252 — `move` — `removed_bom = True`
+- L255 — `move` — `notes.append("Bouton BOM & Métré topbar supprimé" if removed_bom else "Bouton BOM & Métré topbar non trouvé ou déjà absent")`
+- L271 — `port` — `REPORT.write_text(`
+- L288 — `move` — `"Ce patch ne crée pas encore les commandes guidées MOVE/COPY/ROTATE avec prévisualisation souris. Cela sera PATCH 016B après validation visuelle de 016A.\n",`
+- L294 — `port` — `print("Rapport:", REPORT)`
+### `016B_guided_commands_preview_REPORT.md`
+- L15 — `rotation` — `- Commandes DEPLACER / COPIE / ROTATION branchees`
+- L22 — `selection` — `4. Selectionner un ou deux noeuds, taper DEPLACER, cliquer un point de base,`
+- L22 — `select` — `4. Selectionner un ou deux noeuds, taper DEPLACER, cliquer un point de base,`
+- L22 — `point` — `4. Selectionner un ou deux noeuds, taper DEPLACER, cliquer un point de base,`
+- L23 — `point` — `bouger la souris (apercu orange en pointille), cliquer pour appliquer.`
+- L24 — `selection` — `5. Meme test avec COPIE : la selection est dupliquee, l'original reste.`
+- L24 — `select` — `5. Meme test avec COPIE : la selection est dupliquee, l'original reste.`
+- L25 — `point` — `6. Meme test avec ROTATION : l'apercu tourne autour du point de base.`
+- L25 — `rotation` — `6. Meme test avec ROTATION : l'apercu tourne autour du point de base.`
+### `016B_pdi_guided_commands_preview_ui_fixes.py`
+- L3 — `rotation` — `PATCH 016B — Commandes guidées (DEPLACER / COPIE / ROTATION) avec prévisualisation`
+- L14 — `sélection` — `4) DEPLACER / MOVE / M          : sélection -> point de base -> point cible -> aperçu -> clic`
+- L14 — `point` — `4) DEPLACER / MOVE / M          : sélection -> point de base -> point cible -> aperçu -> clic`
+- L14 — `move` — `4) DEPLACER / MOVE / M          : sélection -> point de base -> point cible -> aperçu -> clic`
+- L15 — `sélection` — `5) COPIE / COPY / CO            : idem, mais duplique la sélection`
+- L16 — `sélection` — `6) ROTATION / ROTATE / RO       : sélection -> point de base -> angle souris -> aperçu -> clic`
+- L16 — `point` — `6) ROTATION / ROTATE / RO       : sélection -> point de base -> angle souris -> aperçu -> clic`
+- L16 — `rotation` — `6) ROTATION / ROTATE / RO       : sélection -> point de base -> angle souris -> aperçu -> clic`
+- L17 — `point` — `7) Aperçu fantôme en pointillé avant application`
+- L27 — `port` — `from pathlib import Path`
+- L28 — `port` — `from datetime import datetime`
+- L29 — `port` — `import re`
+- L30 — `port` — `import shutil`
+- L35 — `port` — `REPORT = ROOT / "016B_guided_commands_preview_REPORT.md"`
+- L74 — `anchor` — `anchor = "  useEffect(() => {\n    setSelectedIndex(0);"`
+- L74 — `select` — `anchor = "  useEffect(() => {\n    setSelectedIndex(0);"`
+- L80 — `select` — `setSelectedIndex(0);`
+- L85 — `move` — `return () => window.removeEventListener("keydown", onEscape, true);`
+- L89 — `anchor` — `s = sub(s, anchor, addition + anchor, "Ecoute Echap globale ajoutee dans la barre de commande")`
+- L103 — `port` — `# Nettoyage des imports devenus inutiles est volontairement evite (aucun risque de build).`
+- L124 — `anchor` — `anchor = "  const [cadDraftSession, setCadDraftSession] = useState<CadDraftSession | null>(null);"`
+- L126 — `rotation` — `// PATCH 016B : session de commande guidee (deplacer / copier / rotation) avec apercu.`
+- L128 — `move` — `type: "move" | "copy" | "rotate";`
+- L134 — `anchor` — `s = sub(s, anchor, anchor + addition, "Etat guidedCmd ajoute")`
+- L136 — `selection` — `# 2.c Helpers de commande guidee, inseres avant moveSelection.`
+- L136 — `select` — `# 2.c Helpers de commande guidee, inseres avant moveSelection.`
+- L136 — `move` — `# 2.c Helpers de commande guidee, inseres avant moveSelection.`
+- L138 — `anchor` — `anchor = "  const moveSelection=(dx:number,dy:number,dz:number)=>{"`
+- L138 — `selection` — `anchor = "  const moveSelection=(dx:number,dy:number,dz:number)=>{"`
+- L138 — `select` — `anchor = "  const moveSelection=(dx:number,dy:number,dz:number)=>{"`
+- L138 — `move` — `anchor = "  const moveSelection=(dx:number,dy:number,dz:number)=>{"`
+- L140 — `selection` — `const guidedSelectionNodeIds = () => {`
+- L140 — `select` — `const guidedSelectionNodeIds = () => {`
+- L141 — `select` — `const ids = new Set<string>(selectedNodeIds);`
+- L142 — `select` — `if (selectedSegmentIds.length) {`
+- L143 — `select` — `segments.filter(sg => selectedSegmentIds.includes(sg.id)).forEach(sg => { ids.add(sg.fromNodeId); ids.add(sg.toNodeId); });`
+- L148 — `move` — `const startGuidedCommand = (type: "move" | "copy" | "rotate") => {`
+- L149 — `selection` — `const ids = guidedSelectionNodeIds();`
+- L149 — `select` — `const ids = guidedSelectionNodeIds();`
+- L151 — `selection` — `setAutocadPrompt("Selectionnez d'abord un ou plusieurs elements, puis relancez la commande.");`
+- L151 — `select` — `setAutocadPrompt("Selectionnez d'abord un ou plusieurs elements, puis relancez la commande.");`
+- L152 — `selection` — `setStatusMessage("Aucune selection pour la commande guidee");`
+- L152 — `select` — `setStatusMessage("Aucune selection pour la commande guidee");`
+- L156 — `rotation` — `const label = type === "move" ? "DEPLACER" : type === "copy" ? "COPIE" : "ROTATION";`
+- L156 — `move` — `const label = type === "move" ? "DEPLACER" : type === "copy" ? "COPIE" : "ROTATION";`
+- L157 — `point` — `setAutocadPrompt(`[${label}] Specifiez le point de base (clic sur le plan). Echap pour annuler.`);`
+- L158 — `point` — `setStatusMessage(`${label} : point de base attendu`);`
+- L168 — `snap` — `dx: snapIsoV4(target.x - base.x, isoSnapStep),`
+- L169 — `snap` — `dy: snapIsoV4(target.y - base.y, isoSnapStep),`
+- L177 — `selection` — `const ids = guidedSelectionNodeIds();`
+- L177 — `select` — `const ids = guidedSelectionNodeIds();`
+- L181 — `move` — `if (guidedCmd.type === "move") {`
+- L184 — `snap` — `? { ...n, x: snapIsoV4(n.x + dx, isoSnapStep), y: snapIsoV4(n.y + dy, isoSnapStep) }`
+- L199 — `snap` — `x: snapIsoV4(n.x + dx, isoSnapStep),`
+- L200 — `snap` — `y: snapIsoV4(n.y + dy, isoSnapStep),`
+- L210 — `fitting` — `fittings: Array.isArray(sg.fittings) ? sg.fittings.map(f => ({ ...f })) : [],`
+- L214 — `select` — `setSelectedNodeIds(clonedNodes.map(n => n.id));`
+- L224 — `snap` — `x: snapIsoV4(base.x + rx * cos - ry * sin, isoSnapStep),`
+- L225 — `snap` — `y: snapIsoV4(base.y + rx * sin + ry * cos, isoSnapStep),`
+- L229 — `point` — `setAutocadPrompt(`[ROTATION] Applique : ${(angle * 180 / Math.PI).toFixed(1)} deg autour du point de base.`);`
+- L229 — `rotation` — `setAutocadPrompt(`[ROTATION] Applique : ${(angle * 180 / Math.PI).toFixed(1)} deg autour du point de base.`);`
+- L234 — `port` — `// Le clic sur le plan alimente la commande guidee avant tout autre comportement.`
+- L235 — `point` — `const handleGuidedPointerDown = (world: { x: number; y: number; z: number }) => {`
+- L239 — `rotation` — `const label = guidedCmd.type === "move" ? "DEPLACER" : guidedCmd.type === "copy" ? "COPIE" : "ROTATION";`
+- L239 — `move` — `const label = guidedCmd.type === "move" ? "DEPLACER" : guidedCmd.type === "copy" ? "COPIE" : "ROTATION";`
+- L242 — `point` — `: `[${label}] Specifiez le point de destination puis cliquez pour appliquer. Echap pour annuler.`);`
+- L251 — `selection` — `const ids = guidedSelectionNodeIds();`
+- L251 — `select` — `const ids = guidedSelectionNodeIds();`
+- L266 — `anchor` — `s = sub(s, anchor, helpers + anchor, "Moteur de commandes guidees ajoute")`
+- L268 — `point` — `# 2.d Interception dans pointerDown.`
+- L269 — `anchor` — `anchor_down = """    const target=e.target as Element;`
+- L272 — `point` — `if "// PATCH 016B guided pointer down" not in s:`
+- L273 — `anchor` — `addition = anchor_down + '''`
+- L275 — `point` — `// PATCH 016B guided pointer down : la commande guidee capture le clic.`
+- L277 — `port` — `const guidedWorld = isoUnprojectV4(sx, sy, viewport.zoom, viewport.panX, viewport.panY, nodeZ || 0);`
+- L278 — `point` — `if (handleGuidedPointerDown({ x: guidedWorld.x, y: guidedWorld.y, z: guidedWorld.z ?? (nodeZ || 0) })) {`
+- L283 — `anchor` — `s = sub(s, anchor_down, addition, "Interception du clic pour commande guidee")`
+- L286 — `anchor` — `anchor_move = """    if (updateCad2dPointer(e)) return;"""`
+- L286 — `point` — `anchor_move = """    if (updateCad2dPointer(e)) return;"""`
+- L286 — `move` — `anchor_move = """    if (updateCad2dPointer(e)) return;"""`
+- L287 — `point` — `if "// PATCH 016B guided pointer move" not in s:`
+- L287 — `move` — `if "// PATCH 016B guided pointer move" not in s:`
+- L288 — `point` — `addition = '''    // PATCH 016B guided pointer move : mise a jour de l'apercu avant application.`
+- L288 — `move` — `addition = '''    // PATCH 016B guided pointer move : mise a jour de l'apercu avant application.`
+- L291 — `port` — `const gw = isoUnprojectV4(gsx, gsy, viewport.zoom, viewport.panX, viewport.panY, nodeZ || 0);`
+- L295 — `anchor` — `''' + anchor_move`
+- L295 — `move` — `''' + anchor_move`
+- L296 — `anchor` — `s = sub(s, anchor_move, addition, "Apercu souris de la commande guidee")`
+- L296 — `move` — `s = sub(s, anchor_move, addition, "Apercu souris de la commande guidee")`
+- L300 — `anchor` — `anchor_esc = '      // ESC: Global Escape closes all panels, modals, context menus, and resets active operations\n      if (e.key === "Escape") {'`
+- L301 — `anchor` — `addition = '      // PATCH 016B : Echap annule d\'abord la commande guidee.\n      if (e.key === "Escape" && guidedCmd) {\n        e.preventDefault();\n        cancelGuidedCommand();\n        return;\n      }\n' + anchor_esc`
+- L302 — `anchor` — `s = sub(s, anchor_esc, addition, "Echap annule la commande guidee")`
+- L305 — `move` — `if "startGuidedCommand(\"move\")" not in s:`
+- L306 — `anchor` — `anchor_cmd = '''    if (["style"].includes(rawVerb)) {'''`
+- L307 — `move` — `addition = '''    if (["deplacer", "deplace", "move", "m", "translation"].includes(rawVerb)) {`
+- L308 — `move` — `startGuidedCommand("move");`
+- L315 — `rotation` — `if (["rotation", "rotate", "ro", "tourner"].includes(rawVerb)) {`
+- L319 — `anchor` — `''' + anchor_cmd`
+- L320 — `anchor` — `s = sub(s, anchor_cmd, addition, "Commandes DEPLACER / COPIE / ROTATION branchees")`
+- L320 — `rotation` — `s = sub(s, anchor_cmd, addition, "Commandes DEPLACER / COPIE / ROTATION branchees")`
+- … 19 occurrences supplémentaires.
+### `017A_pdi_project_setup_tagging_industriel.py`
+- L3 — `port` — `import os, shutil, datetime`
+- L8 — `port` — `REPORT = os.path.join(ROOT, "017A_project_setup_tagging_REPORT.md")`
+- L23 — `port` — `export interface PdiTagPart {`
+- L29 — `port` — `export interface PdiTagFormat {`
+- L36 — `port` — `export interface PdiService {`
+- L42 — `port` — `export interface PdiSpec {`
+- L50 — `port` — `export interface PdiProjectSetup {`
+- L62 — `port` — `export const PDI_DEFAULT_SERVICES: PdiService[] = [`
+- L73 — `port` — `export const PDI_DEFAULT_SPECS: PdiSpec[] = [`
+- L83 — `port` — `export const PDI_TAG_FORMAT_STANDARD: PdiTagFormat = {`
+- L95 — `port` — `export const PDI_DEFAULT_PROJECT_SETUP: PdiProjectSetup = {`
+- L107 — `port` — `export interface PdiTagFields {`
+- L114 — `port` — `export function pdiBuildTag(fields: PdiTagFields, format: PdiTagFormat): string {`
+- L126 — `port` — `export function pdiParseTag(tag: string, format: PdiTagFormat): PdiTagFields {`
+- L140 — `port` — `export function pdiNextTagNumber(existing: string[], service: string, dn: number, format: PdiTagFormat): number {`
+- L151 — `port` — `export function pdiValidateTag(tag: string, allTags: string[], format: PdiTagFormat): { ok: boolean; reason?: string } {`
+- L162 — `port` — `export function pdiSpecAllowsDn(spec: PdiSpec | undefined, dn: number): boolean {`
+- L167 — `port` — `export function pdiFindSpec(setup: PdiProjectSetup, code: string): PdiSpec | undefined {`
+- L171 — `port` — `export function pdiFindService(setup: PdiProjectSetup, code: string): PdiService | undefined {`
+- L175 — `port` — `export function pdiActiveFormat(setup: PdiProjectSetup): PdiTagFormat {`
+- L179 — `port` — `TYPE_NODE_OLD = '''  ports?: IsoPort[];`
+- L182 — `port` — `TYPE_NODE_NEW = '''  ports?: IsoPort[];`
+- L226 — `anchor` — `HELPERS_ANCHOR = '''  const executeCadCommand = (cmdInput: CadCommandItem | string) => {'''`
+- L233 — `select` — `if (selectedSegmentIds.length > 0) return selectedSegmentIds;`
+- L234 — `select` — `if (selectedSegmentId) return [selectedSegmentId];`
+- L238 — `selection` — `const applyTagToSelection = (service?: string, spec?: string) => {`
+- L238 — `select` — `const applyTagToSelection = (service?: string, spec?: string) => {`
+- L241 — `selection` — `setAutocadPrompt("TAG : selectionnez au moins un troncon de tuyauterie.");`
+- L241 — `select` — `setAutocadPrompt("TAG : selectionnez au moins un troncon de tuyauterie.");`
+- L290 — `anchor` — `''' + HELPERS_ANCHOR`
+- L292 — `rotation` — `CMD_OLD = '''    if (["rotation", "rotate", "ro", "tourner"].includes(rawVerb)) {`
+- L310 — `selection` — `applyTagToSelection(rawParts[1], rawParts[2]);`
+- L310 — `select` — `applyTagToSelection(rawParts[1], rawParts[2]);`
+- L315 — `selection` — `applyTagToSelection(rawArg, undefined);`
+- L315 — `select` — `applyTagToSelection(rawArg, undefined);`
+- L320 — `selection` — `applyTagToSelection(undefined, rawArg);`
+- L320 — `select` — `applyTagToSelection(undefined, rawArg);`
+- L335 — `select` — `value={selectedSeg.tag || ""}`
+- L337 — `select` — `onChange={e => setSegments(prev => prev.map(s => s.id === selectedSeg.id ? { ...s, tag: e.target.value, tagFormatName: activeTagFormat.name } : s))}`
+- L341 — `select` — `<select`
+- L342 — `select` — `value={selectedSeg.service || ""}`
+- L343 — `selection` — `onChange={e => applyTagToSelection(e.target.value, undefined)}`
+- L343 — `select` — `onChange={e => applyTagToSelection(e.target.value, undefined)}`
+- L350 — `select` — `</select>`
+- L351 — `select` — `<select`
+- L352 — `select` — `value={selectedSeg.spec || ""}`
+- L353 — `selection` — `onChange={e => applyTagToSelection(undefined, e.target.value)}`
+- L353 — `select` — `onChange={e => applyTagToSelection(undefined, e.target.value)}`
+- L360 — `select` — `</select>`
+- L363 — `selection` — `<button type="button" onClick={() => applyTagToSelection()} className="flex-1 py-1 rounded bg-amber-950/70 hover:bg-amber-900 border border-amber-700/70 text-amber-200 text-[9px] font-black">Generer le tag</button>`
+- L363 — `select` — `<button type="button" onClick={() => applyTagToSelection()} className="flex-1 py-1 rounded bg-amber-950/70 hover:bg-amber-900 border border-amber-700/70 text-amber-200 text-[9px] font-black">Generer le tag</button>`
+- L366 — `select` — `{selectedSeg.tag && !pdiValidateTag(selectedSeg.tag, segments.map(x => x.tag || ""), activeTagFormat).ok && (`
+- L368 — `select` — `Tag invalide : {pdiValidateTag(selectedSeg.tag, segments.map(x => x.tag || ""), activeTagFormat).reason}`
+- L374 — `anchor` — `MODAL_ANCHOR = '''    {/* PATCH 016A'''`
+- L401 — `select` — `<select value={projectSetup.standard} onChange={e => setProjectSetup(p => ({ ...p, standard: e.target.value as "ANSI" | "DIN" }))} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[11px] font-bold text-white out`
+- L404 — `select` — `</select>`
+- L411 — `select` — `<select value={projectSetup.tagFormatName} onChange={e => setProjectSetup(p => ({ ...p, tagFormatName: e.target.value }))} className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[11px] font-bold text-white outline-none">`
+- L413 — `select` — `</select>`
+- L452 — `anchor` — `''' + MODAL_ANCHOR`
+- L454 — `port` — `def insert_import(s):`
+- L455 — `port` — `marker = "import {\n  PDI_DEFAULT_PROJECT_SETUP,"`
+- L457 — `port` — `notes.append("DEJA APPLIQUE : import du moteur de tagging")`
+- L462 — `port` — `if ln.startswith("import ") or (ln.startswith("} from ") and last >= 0):`
+- L465 — `port` — `notes.append("NON TROUVE : zone d'import")`
+- L468 — `port` — `"import {\n"`
+- L476 — `port` — `"import type { PdiProjectSetup } from \"./pdiTagging\";"`
+- L479 — `port` — `notes.append("Import du moteur de tagging ajoute")`
+- L501 — `port` — `s = insert_import(s)`
+- L502 — `IsoNode` — `s = sub(s, TYPE_NODE_OLD, TYPE_NODE_NEW, "Champs de tag ajoutes sur IsoNode")`
+- L503 — `IsoSegment` — `s = sub(s, TYPE_SEG_OLD, TYPE_SEG_NEW, "Champs de tag ajoutes sur IsoSegment")`
+- L505 — `anchor` — `s = sub(s, HELPERS_ANCHOR, HELPERS_NEW, "Moteur de tagging ajoute")`
+- L508 — `anchor` — `s = sub(s, MODAL_ANCHOR, MODAL_NEW, "Fenetre Project Setup ajoutee")`
+- L512 — `port` — `with open(REPORT, "w", encoding="utf-8") as f:`
+- L521 — `selection` — `f.write("3. Selectionner un troncon, ouvrir l inspecteur : bloc Tag industriel visible.\n")`
+- L521 — `select` — `f.write("3. Selectionner un troncon, ouvrir l inspecteur : bloc Tag industriel visible.\n")`
+- L523 — `selection` — `f.write("5. Taper TAG HC CS300 sur une selection : tag applique sans doublon.\n")`
+- L523 — `select` — `f.write("5. Taper TAG HC CS300 sur une selection : tag applique sans doublon.\n")`
+- L531 — `port` — `print("Rapport : " + REPORT)`
+### `017A_project_setup_tagging_REPORT.md`
+- L7 — `port` — `- Import du moteur de tagging ajoute`
+- L8 — `IsoNode` — `- Champs de tag ajoutes sur IsoNode`
+- L9 — `IsoSegment` — `- Champs de tag ajoutes sur IsoSegment`
+- L19 — `selection` — `3. Selectionner un troncon, ouvrir l inspecteur : bloc Tag industriel visible.`
+- L19 — `select` — `3. Selectionner un troncon, ouvrir l inspecteur : bloc Tag industriel visible.`
+- L21 — `selection` — `5. Taper TAG HC CS300 sur une selection : tag applique sans doublon.`
+- L21 — `select` — `5. Taper TAG HC CS300 sur une selection : tag applique sans doublon.`
+### `017B_pdi_fix_blank_reload_modal_colorbyservice.py`
+- L4 — `port` — `import os, shutil, datetime`
+- L9 — `port` — `REPORT = os.path.join(ROOT, "017B_fix_blank_reload_REPORT.md")`
+- L50 — `port` — `BOUNDARY_OLD = 'import React, { useEffect, useMemo, useState } from "react";'`
+- L78 — `move` — `keys.forEach(k => window.localStorage.removeItem(k));`
+- L96 — `point` — `<button type="button" onClick={this.resetWorkspace} style={{ marginTop: 12, border: 0, borderRadius: 14, padding: "12px 16px", fontWeight: 900, color: "white", background: "linear-gradient(135deg,#0284C7,#22D3EE)", cursor: "pointer" }}>`
+- L126 — `move` — `def move_project_setup_modal(s):`
+- L143 — `anchor` — `anchor = "    {/* PATCH 016A \u2014 Ligne de commande masquable"`
+- L144 — `anchor` — `if anchor not in s:`
+- L149 — `anchor` — `+ "    " + block.strip() + "\n\n" + anchor`
+- L152 — `anchor` — `return s.replace(anchor, replacement, 1)`
+- L160 — `IsoSegment` — `const segmentStrokeColor = (seg: IsoSegment) => {`
+- L206 — `move` — `e = move_project_setup_modal(e)`
+- L212 — `port` — `with open(REPORT, "w", encoding="utf-8") as f:`
+- L235 — `port` — `print("Rapport : " + REPORT)`
+### `017C_command_registry_tagdisplay_renumber_datamanager_REPORT.md`
+- L19 — `rotation` — `- Moteur de renumerotation des tags ajoute`
+- L31 — `selection` — `7. DATAMANAGER ou DM : table de tous les troncons, clic sur une ligne = selection.`
+- L31 — `select` — `7. DATAMANAGER ou DM : table de tous les troncons, clic sur une ligne = selection.`
+### `017C_pdi_command_registry_tagdisplay_renumber_datamanager.py`
+- L4 — `port` — `import os, shutil, datetime`
+- L10 — `port` — `REPORT = os.path.join(ROOT, "017C_command_registry_tagdisplay_renumber_datamanager_REPORT.md")`
+- L55 — `selection` — `description: "Tague la selection : TAG [service] [spec], ex TAG HC CS300",`
+- L55 — `select` — `description: "Tague la selection : TAG [service] [spec], ex TAG HC CS300",`
+- L64 — `selection` — `description: "Affecte le service/fluide a la selection, ex SERVICE HC",`
+- L64 — `select` — `description: "Affecte le service/fluide a la selection, ex SERVICE HC",`
+- L73 — `selection` — `description: "Affecte la spec tuyauterie a la selection, ex SPEC CS300",`
+- L73 — `select` — `description: "Affecte la spec tuyauterie a la selection, ex SPEC CS300",`
+- L161 — `port` — `SEARCH_OLD = '''export function searchCadCommands(query: string): CadCommandItem[] {`
+- L179 — `port` — `export function searchCadCommands(query: string): CadCommandItem[] {`
+- L224 — `history` — `setHistory((prev) => [cmd.name, ...prev.filter((h) => h !== cmd.name)].slice(0, 10));`
+- L229 — `history` — `setHistory((prev) => [payload, ...prev.filter((h) => h !== payload)].slice(0, 10));`
+- L248 — `IsoSegment` — `RENUM_OLD = '''  const segmentStrokeColor = (seg: IsoSegment) => {'''`
+- L249 — `rotation` — `RENUM_NEW = '''  // PATCH 017C : renumerotation en serie des tags, par service.`
+- L279 — `rotation` — `", numerotation a partir de " + start + " (" + touched + " troncon(s))."`
+- L281 — `rotation` — `setStatusMessage("Renumerotation des tags effectuee");`
+- L284 — `IsoSegment` — `const segmentStrokeColor = (seg: IsoSegment) => {'''`
+- L287 — `rotation` — `CMD_NEW = '''    // PATCH 017C : affichage des tags, renumerotation, gestionnaire de donnees.`
+- L318 — `port` — `{tagDisplay && s.tag && viewport.zoom > 0.35 && (`
+- L320 — `anchor` — `textAnchor="middle" paintOrder="stroke" stroke="#0f172a" strokeWidth="3" pointerEvents="none">`
+- L320 — `point` — `textAnchor="middle" paintOrder="stroke" stroke="#0f172a" strokeWidth="3" pointerEvents="none">`
+- L325 — `anchor` — `DM_ANCHOR = '    {/* PATCH 017B : modal Project Setup repositionne au niveau racine */}'`
+- L356 — `select` — `onClick={() => { selectSegmentV44(s.id, false); setDataManagerOpen(false); }}`
+- L357 — `point` — `className="border-t border-slate-800 hover:bg-slate-900/70 cursor-pointer">`
+- L373 — `selection` — `<div className="text-[10px] text-slate-500">Clic sur une ligne : selection du troncon sur le plan. Cette table est la base directe du futur export BOM.</div>`
+- L373 — `select` — `<div className="text-[10px] text-slate-500">Clic sur une ligne : selection du troncon sur le plan. Cette table est la base directe du futur export BOM.</div>`
+- L373 — `port` — `<div className="text-[10px] text-slate-500">Clic sur une ligne : selection du troncon sur le plan. Cette table est la base directe du futur export BOM.</div>`
+- L377 — `anchor` — `''' + DM_ANCHOR`
+- L402 — `rotation` — `e = sub(e, RENUM_OLD, RENUM_NEW, "Moteur de renumerotation des tags ajoute")`
+- L405 — `anchor` — `e = sub(e, DM_ANCHOR, DM_NEW, "Fenetre Data Manager ajoutee")`
+- L408 — `port` — `with open(REPORT, "w", encoding="utf-8") as f:`
+- L427 — `selection` — `f.write("7. DATAMANAGER ou DM : table de tous les troncons, clic sur une ligne = selection.\n")`
+- L427 — `select` — `f.write("7. DATAMANAGER ou DM : table de tous les troncons, clic sur une ligne = selection.\n")`
+- L433 — `port` — `print("Rapport : " + REPORT)`
+### `017D_hotfix_stylesheet_guard_command_dock_REPORT.md`
+- L17 — `parallel` — `- Regression parallele detectee dans la passe UI compacte du build 18 :`
+- L17 — `parallele` — `- Regression parallele detectee dans la passe UI compacte du build 18 :`
+### `017D_pdi_hotfix_stylesheet_guard_command_dock.py`
+- L13 — `port` — `Idempotent. Sauvegardes .before017D. Rapport genere.`
+- L16 — `port` — `import os`
+- L17 — `port` — `import shutil`
+- L18 — `port` — `import sys`
+- L67 — `align` — `align-items: center;`
+- L84 — `point` — `cursor: pointer;`
+- L89 — `port` — `background: #0b0f14 !important;`
+- L90 — `port` — `color: #e6edf3 !important;`
+- L119 — `point` — `cursor: pointer;`
+- L123 — `select` — `html.pdi-no-tailwind select,`
+- L134 — `port` — `position: fixed !important;`
+- L140 — `align` — `align-items: center;`
+- L155 — `port` — `position: fixed !important;`
+- L186 — `move` — `probe.remove();`
+- L188 — `move` — `document.documentElement.classList.remove("pdi-no-tailwind");`
+- L190 — `move` — `if (old) old.remove();`
+- L301 — `port` — `REPORT = os.path.join(ROOT, "017D_hotfix_stylesheet_guard_command_dock_REPORT.md")`
+- L303 — `port` — `REPORT_BODY = """# PATCH 017D - Hotfix build 18 : styles absents et dock de commande`
+- L319 — `parallel` — `- Regression parallele detectee dans la passe UI compacte du build 18 :`
+- L319 — `parallele` — `- Regression parallele detectee dans la passe UI compacte du build 18 :`
+- L355 — `port` — `with open(REPORT, "w", encoding="utf-8") as fh:`
+- L356 — `port` — `fh.write(REPORT_BODY)`
+- L357 — `port` — `notes.append("OK : rapport 017D_hotfix_stylesheet_guard_command_dock_REPORT.md")`
+### `017E_pdi_persistance_f5_onglets_projets.py`
+- L15 — `port` — `Idempotent. Sauvegardes .before017E. Rapport genere.`
+- L18 — `port` — `import os`
+- L19 — `port` — `import shutil`
+- L20 — `port` — `import sys`
+- L82 — `snap` — `setRecoveryCandidate(recovered.snapshot);setRecoverySource(recovered.source);`
+- L91 — `snap` — `applyProjectSnapshot(recovered.snapshot,"Session restauree automatiquement");`
+- L92 — `snap` — `autosaveBaselineRef.current=persistenceFingerprint(recovered.snapshot);`
+- L95 — `snap` — `setRecoveryCandidate(recovered.snapshot);setRecoverySource(recovered.source);`
+- L98 — `snap` — `setRecoveryCandidate(recovered.snapshot);setRecoverySource(recovered.source);`
+- L110 — `snap` — `const snapshot=buildProjectFileV474();`
+- L111 — `snap` — `if(snapshot.model.nodes.length===0&&snapshot.model.segments.length===0)return;`
+- L112 — `snap` — `const serialized=JSON.stringify(snapshot);`
+- L123 — `move` — `window.removeEventListener("beforeunload",flush);`
+- L124 — `move` — `window.removeEventListener("pagehide",flush);`
+- L125 — `move` — `document.removeEventListener("visibilitychange",onVisibility);`
+- L127 — `port` — `},[authReady,userUid,recoveryChecked,recoveryCandidate,recoveryFailure,projectName,lines,nodes,segments,dimensions,cad2dEntities,cad2dLayers,projectSetup,viewport]);`
+- L180 — `snap` — `const snap = JSON.parse(raw);`
+- L181 — `snap` — `const nodes = Array.isArray(snap?.model?.nodes) ? snap.model.nodes.length : 0;`
+- L182 — `snap` — `const segments = Array.isArray(snap?.model?.segments) ? snap.model.segments.length : 0;`
+- L186 — `snap` — `name: String(snap?.project?.name || "Projet isometrique"),`
+- L189 — `snap` — `updatedAt: String(snap?.project?.updatedAt || "").slice(0, 16).replace("T", " "),`
+- L209 — `align` — `(".pdi-tabsbar{grid-column:2;grid-row:2;align-self:start;z-index:8;display:flex;gap:6px;padding:8px 14px;",`
+- L210 — `align` — `".pdi-tabsbar{grid-column:2;grid-row:2;align-self:stretch;z-index:8;display:flex;align-items:center;gap:6px;padding:4px 12px;",`
+- L244 — `align` — `<div style={{ position: "fixed", left: 100, bottom: 56, zIndex: 10040, display: "flex", alignItems: "center", gap: 6, padding: "4px 6px", borderRadius: 12, border: "1px solid rgba(103,232,249,.35)", background: "rgba(2,6,23,.92)", boxShadow`
+- L245 — `point` — `<button type="button" onClick={() => setIsoTabDockOpen(v => !v)} title="Onglets PD&I" style={{ border: "1px solid rgba(103,232,249,.35)", background: "linear-gradient(135deg,#0284C7,#22D3EE)", color: "white", borderRadius: 8, height: 24, pa`
+- L249 — `point` — `<button key={tab.id} type="button" onClick={() => switchTab(tab.id)} title={tab.title} style={{ border: activeTabId === tab.id ? "1px solid #67E8F9" : "1px solid #263241", background: activeTabId === tab.id ? "linear-gradient(135deg,#0284C7`
+- L254 — `point` — `{isoTabDockOpen && <button type="button" onClick={() => openModuleInTab("isometric", "Nouveau plan ISO")} title="Nouvel onglet ISO" style={{ border: "1px solid #263241", background: "#111827", color: "#CBD5E1", borderRadius: 8, height: 24, `
+- L255 — `point` — `{isoTabDockOpen && <button type="button" onClick={() => setActiveModule("projects")} title="Mes projets PD&I" style={{ border: "1px solid #263241", background: "#111827", color: "#CBD5E1", borderRadius: 8, height: 24, padding: "0 8px", font`
+- L266 — `anchor` — `OLD_PROJECTS_ANCHOR = "        {/* PATCH 017B : plus jamais d ecran vide pour un module sans rendu. */}"`
+- L274 — `align` — `<div key={session.key} style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, border: "1px solid rgba(103,232,249,.25)", borderRadius: 14, padding: "10px 12px", background: "#0B111A" }}>`
+- L288 — `anchor` — `""" + OLD_PROJECTS_ANCHOR`
+- L303 — `anchor` — `src = sub(src, OLD_PROJECTS_ANCHOR, NEW_PROJECTS, "ecran Mes projets alimente par les sessions locales")`
+- L307 — `port` — `REPORT = os.path.join(ROOT, "017E_persistance_f5_onglets_projets_REPORT.md")`
+- L309 — `port` — `REPORT_BODY = """# PATCH 017E - Persistance F5, onglets, ecran Mes projets`
+- L329 — `align` — `- La barre d onglets etait `grid-row:2` avec `align-self:start` dans la meme`
+- L362 — `port` — `restaurees automatiquement sous le nouveau compte. Un import/export JSON reste`
+- L373 — `port` — `with open(REPORT, "w", encoding="utf-8") as fh:`
+- L374 — `port` — `fh.write(REPORT_BODY)`
+- L375 — `port` — `notes.append("OK : rapport 017E_persistance_f5_onglets_projets_REPORT.md")`
+### `017E_persistance_f5_onglets_projets_REPORT.md`
+- L21 — `align` — `- La barre d onglets etait `grid-row:2` avec `align-self:start` dans la meme`
+- L54 — `port` — `restaurees automatiquement sous le nouveau compte. Un import/export JSON reste`
+### `017F1B_hotfix_panneaux_echap_onglet_projet_REPORT.md`
+- L10 — `selection` — `### Echap sans effet (panneaux, menu contextuel, deselection)`
+- L10 — `select` — `### Echap sans effet (panneaux, menu contextuel, deselection)`
+- L16 — `selection` — `deselection complete).`
+- L16 — `select` — `deselection complete).`
+- L22 — `selection` — `la photo 05 impossible a fermer, objet selectionne jamais deselectionne).`
+- L22 — `select` — `la photo 05 impossible a fermer, objet selectionne jamais deselectionne).`
+- L30 — `move` — ``pdiRemoveProject` nettoyait l index et les sauvegardes locales, mais pas la`
+- L37 — `selection` — `deselectionne.`
+- L37 — `select` — `deselectionne.`
+- L47 — `selection` — `2. Selectionner un troncon, appuyer sur **Echap** : la selection disparait,`
+- L47 — `select` — `2. Selectionner un troncon, appuyer sur **Echap** : la selection disparait,`
+### `017F1B_pdi_hotfix_panneaux_echap_onglet_projet.py`
+- L12 — `selection` — `desselectionne. Cause : le capteur de saisie natif (016A2) appelait`
+- L12 — `select` — `desselectionne. Cause : le capteur de saisie natif (016A2) appelait`
+- L18 — `port` — `Idempotent. Sauvegardes .before017F1B. Rapport genere.`
+- L21 — `port` — `import os`
+- L22 — `port` — `import shutil`
+- L23 — `port` — `import sys`
+- L78 — `selection` — `// panneaux, le menu contextuel et de desselectionner.`
+- L78 — `select` — `// panneaux, le menu contextuel et de desselectionner.`
+- L139 — `move` — `OLD_DELETE_CALL = "{ pdiRemoveProject(entry.projectId); setProjectsRefresh((v) => v + 1); }"`
+- L140 — `move` — `NEW_DELETE_CALL = "{ pdiRemoveProject(entry.projectId); closeTabsForProject(entry.projectId); setProjectsRefresh((v) => v + 1); }"`
+- L154 — `port` — `REPORT = os.path.join(ROOT, "017F1B_hotfix_panneaux_echap_onglet_projet_REPORT.md")`
+- L156 — `port` — `REPORT_BODY = """# PATCH 017F1B - Hotfix panneaux, Echap, onglet du projet supprime`
+- L165 — `selection` — `### Echap sans effet (panneaux, menu contextuel, deselection)`
+- L165 — `select` — `### Echap sans effet (panneaux, menu contextuel, deselection)`
+- L171 — `selection` — `deselection complete).`
+- L171 — `select` — `deselection complete).`
+- L177 — `selection` — `la photo 05 impossible a fermer, objet selectionne jamais deselectionne).`
+- L177 — `select` — `la photo 05 impossible a fermer, objet selectionne jamais deselectionne).`
+- L185 — `move` — ``pdiRemoveProject` nettoyait l index et les sauvegardes locales, mais pas la`
+- L192 — `selection` — `deselectionne.`
+- L192 — `select` — `deselectionne.`
+- L202 — `selection` — `2. Selectionner un troncon, appuyer sur **Echap** : la selection disparait,`
+- L202 — `select` — `2. Selectionner un troncon, appuyer sur **Echap** : la selection disparait,`
+- L225 — `port` — `with open(REPORT, "w", encoding="utf-8") as fh:`
+- L226 — `port` — `fh.write(REPORT_BODY)`
+- L227 — `port` — `notes.append("OK : rapport 017F1B_hotfix_panneaux_echap_onglet_projet_REPORT.md")`
+### `017F1_pdi_projets_isoles_onglets_renommables_inspecteur.py`
+- L12 — `selection` — `l element selectionne (troncon / noeud-te-coude / equipement).`
+- L12 — `select` — `l element selectionne (troncon / noeud-te-coude / equipement).`
+- L16 — `port` — `Idempotent. Sauvegardes .before017F1. Rapport genere.`
+- L19 — `port` — `import os`
+- L20 — `port` — `import shutil`
+- L21 — `port` — `import sys`
+- L94 — `anchor` — `OLD_CMD_ANCHOR = "    // PATCH 017C : affichage des tags, renumerotation, gestionnaire de donnees."`
+- L94 — `rotation` — `OLD_CMD_ANCHOR = "    // PATCH 017C : affichage des tags, renumerotation, gestionnaire de donnees."`
+- L95 — `selection` — `NEW_CMD = """    // PATCH 017F1 : inspecteur cible de l element selectionne (Regle 8).`
+- L95 — `select` — `NEW_CMD = """    // PATCH 017F1 : inspecteur cible de l element selectionne (Regle 8).`
+- L99 — `select` — `const totalSelected = selectedNodeIds.length + selectedSegmentIds.length + selectedFittingIds.length;`
+- L99 — `fitting` — `const totalSelected = selectedNodeIds.length + selectedSegmentIds.length + selectedFittingIds.length;`
+- L100 — `select` — `setAutocadPrompt(totalSelected === 0`
+- L101 — `selection` — `? "PROPS : selectionnez un element sur le plan pour inspecter ses proprietes."`
+- L101 — `select` — `? "PROPS : selectionnez un element sur le plan pour inspecter ses proprietes."`
+- L102 — `select` — `: "PROPS : inspecteur ouvert sur " + totalSelected + " element(s).");`
+- L106 — `anchor` — `""" + OLD_CMD_ANCHOR`
+- L108 — `anchor` — `OLD_INSPECTOR_ANCHOR = """          {rightPanelTab === "properties" && (`
+- L111 — `anchor` — `NEW_INSPECTOR = OLD_INSPECTOR_ANCHOR + """`
+- L113 — `selection` — `type reel de l element selectionne, plus de table generique. */}`
+- L113 — `select` — `type reel de l element selectionne, plus de table generique. */}`
+- L115 — `select` — `const totalTargeted = selectedNodeIds.length + selectedSegmentIds.length + selectedFittingIds.length;`
+- L115 — `fitting` — `const totalTargeted = selectedNodeIds.length + selectedSegmentIds.length + selectedFittingIds.length;`
+- L123 — `select` — `if (selectedSegmentIds.length === 1) {`
+- L124 — `select` — `const seg = segments.find((s) => s.id === selectedSegmentIds[0]);`
+- L137 — `fitting` — `["Raccords", String((seg.fittings || []).length)],`
+- L142 — `selection` — `<span className="text-[10px] font-black text-cyan-400 uppercase">Troncon selectionne</span>`
+- L142 — `select` — `<span className="text-[10px] font-black text-cyan-400 uppercase">Troncon selectionne</span>`
+- L149 — `select` — `const targetedId = selectedNodeIds[0] || selectedFittingIds[0];`
+- L149 — `fitting` — `const targetedId = selectedNodeIds[0] || selectedFittingIds[0];`
+- L160 — `rotation` — `["Rotation", node.rotation != null ? String(node.rotation) + " deg" : "-"],`
+- L171 — `selection` — `{selectedFittingIds.length === 1 ? "Raccord selectionne" : "Noeud selectionne"}`
+- L171 — `select` — `{selectedFittingIds.length === 1 ? "Raccord selectionne" : "Noeud selectionne"}`
+- L171 — `fitting` — `{selectedFittingIds.length === 1 ? "Raccord selectionne" : "Noeud selectionne"}`
+- L179 — `select` — `<button key={s.id} type="button" onClick={() => selectSegmentV44(s.id, false)} className="mr-1 mb-1 px-1.5 py-0.5 rounded bg-slate-900 border border-slate-700 text-slate-300 font-bold">`
+- L199 — `anchor` — `src = sub(src, OLD_CMD_ANCHOR, NEW_CMD, "moteur : commande PROPS")`
+- L200 — `anchor` — `src = sub(src, OLD_INSPECTOR_ANCHOR, NEW_INSPECTOR, "moteur : inspecteur cible par type d element")`
+- L212 — `selection` — `description: "Ouvre l inspecteur de proprietes de l element selectionne",`
+- L212 — `select` — `description: "Ouvre l inspecteur de proprietes de l element selectionne",`
+- L232 — `port` — `OLD_WRAPPER_FN = """export default function PdiIsometricEditor() {"""`
+- L234 — `port` — `export default function PdiIsometricEditor(props: { projectId?: string }) {"""`
+- L252 — `anchor` — `OLD_INDEX_ANCHOR = "// PATCH 017E : sessions locales autosauvegardees par l editeur ISO."`
+- L283 — `move` — `function pdiRemoveProject(projectId: string) {`
+- L291 — `move` — `doomed.forEach((key) => window.localStorage.removeItem(key));`
+- L295 — `anchor` — `""" + OLD_INDEX_ANCHOR`
+- L353 — `point` — `<button key={tab.id} type="button" onClick={() => switchTab(tab.id)} title={tab.title} style={{ border: activeTabId === tab.id ? "1px solid #67E8F9" : "1px solid #263241", background: activeTabId === tab.id ? "linear-gradient(135deg,#0284C7`
+- L363 — `point` — `<button key={tab.id} type="button" onClick={() => switchTab(tab.id)} onDoubleClick={() => beginRenameTab(tab)} title={tab.title + " - double-clic pour renommer"} style={{ border: activeTabId === tab.id ? "1px solid #67E8F9" : "1px solid #26`
+- L383 — `align` — `<div key={entry.projectId} style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, border: "1px solid rgba(103,232,249,.35)", borderRadius: 14, padding: "10px 12px", background: "#0B111A" }}>`
+- L388 — `point` — `<button type="button" style={{ padding: "8px 12px", borderRadius: 10, border: "1px solid #7F1D1D", background: "#1F0B0B", color: "#FCA5A5", fontSize: 11, fontWeight: 900, cursor: "pointer" }} onClick={() => { if (window.confirm("Supprimer d`
+- L388 — `move` — `<button type="button" style={{ padding: "8px 12px", borderRadius: 10, border: "1px solid #7F1D1D", background: "#1F0B0B", color: "#FCA5A5", fontSize: 11, fontWeight: 900, cursor: "pointer" }} onClick={() => { if (window.confirm("Supprimer d`
+- L401 — `anchor` — `src = sub(src, OLD_INDEX_ANCHOR, NEW_INDEX, "coquille : index des projets PD&I")`
+- L412 — `port` — `REPORT = os.path.join(ROOT, "017F1_projets_isoles_onglets_renommables_inspecteur_REPORT.md")`
+- L414 — `port` — `REPORT_BODY = """# PATCH 017F1 - Projets isoles, onglets renommables, inspecteur cible`
+- L419 — `selection` — `3. Le panneau Proprietes n affichait pas les donnees de l element selectionne.`
+- L419 — `select` — `3. Le panneau Proprietes n affichait pas les donnees de l element selectionne.`
+- L429 — `selection` — `- Le panneau Proprietes ne traitait explicitement que la selection multiple.`
+- L429 — `select` — `- Le panneau Proprietes ne traitait explicitement que la selection multiple.`
+- L444 — `selection` — `6. Inspecteur cible : formulaire distinct selon le type selectionne.`
+- L444 — `select` — `6. Inspecteur cible : formulaire distinct selon le type selectionne.`
+- L448 — `rotation` — `branche, direction de coude, rotation, miroir, position XYZ, troncons`
+- L451 — `selection` — `traitee dans le dispatcher (Regle 8) : ouvre le panneau sur la selection.`
+- L451 — `select` — `traitee dans le dispatcher (Regle 8) : ouvre le panneau sur la selection.`
+- L464 — `selection` — `8. Cliquer un troncon : carte Troncon selectionne avec tag, DN, spec, longueur.`
+- L464 — `select` — `8. Cliquer un troncon : carte Troncon selectionne avec tag, DN, spec, longueur.`
+- L465 — `port` — `Cliquer un noeud ou un te : carte Noeud avec angle de branche et ports.`
+- L487 — `port` — `with open(REPORT, "w", encoding="utf-8") as fh:`
+- L488 — `port` — `fh.write(REPORT_BODY)`
+- L489 — `port` — `notes.append("OK : rapport 017F1_projets_isoles_onglets_renommables_inspecteur_REPORT.md")`
+### `017F1_projets_isoles_onglets_renommables_inspecteur_REPORT.md`
+- L6 — `selection` — `3. Le panneau Proprietes n affichait pas les donnees de l element selectionne.`
+- L6 — `select` — `3. Le panneau Proprietes n affichait pas les donnees de l element selectionne.`
+- L16 — `selection` — `- Le panneau Proprietes ne traitait explicitement que la selection multiple.`
+- L16 — `select` — `- Le panneau Proprietes ne traitait explicitement que la selection multiple.`
+- L31 — `selection` — `6. Inspecteur cible : formulaire distinct selon le type selectionne.`
+- L31 — `select` — `6. Inspecteur cible : formulaire distinct selon le type selectionne.`
+- L35 — `rotation` — `branche, direction de coude, rotation, miroir, position XYZ, troncons`
+- L38 — `selection` — `traitee dans le dispatcher (Regle 8) : ouvre le panneau sur la selection.`
+- L38 — `select` — `traitee dans le dispatcher (Regle 8) : ouvre le panneau sur la selection.`
+- L51 — `selection` — `8. Cliquer un troncon : carte Troncon selectionne avec tag, DN, spec, longueur.`
+- L51 — `select` — `8. Cliquer un troncon : carte Troncon selectionne avec tag, DN, spec, longueur.`
+- L52 — `port` — `Cliquer un noeud ou un te : carte Noeud avec angle de branche et ports.`
+### `017F2B_pdi_refus_visible_tag_resync.py`
+- L42 — `port` — `REGLES : R1 patch .py idempotent + backup + rapport / R2 codage Claude /`
+- L50 — `port` — `import os`
+- L51 — `port` — `import sys`
+- L52 — `port` — `import shutil`
+- L106 — `port` — `"  // segEditError017F2B porte le message affiche dans la carte du troncon.",`
+- L257 — `port` — `report = os.path.join(root, "017F2B_refus_visible_tag_resync_REPORT.md")`
+- L258 — `port` — `with open(report, "w", encoding="utf-8") as fh:`
+- L280 — `port` — `print("Rapport : " + report)`
+### `017F2_inspecteur_editable_anomalies_fix_projets_REPORT.md`
+- L30 — `selection` — `Le bloc *Troncon selectionne* recoit quatre champs modifiables : **DN**,`
+- L30 — `select` — `Le bloc *Troncon selectionne* recoit quatre champs modifiables : **DN**,`
+- L46 — `selection` — `Chaque ligne est un bouton : le clic selectionne l element sur le plan et ouvre`
+- L46 — `select` — `Chaque ligne est un bouton : le clic selectionne l element sur le plan et ouvre`
+- L62 — `selection` — `5. Selectionner un troncon : changer DN a 150 puis Entree, le plan et la liste`
+- L62 — `select` — `5. Selectionner un troncon : changer DN a 150 puis Entree, le plan et la liste`
+- L66 — `selection` — `7. Volet Anomalies : cliquer une ligne selectionne l element concerne.`
+- L66 — `select` — `7. Volet Anomalies : cliquer une ligne selectionne l element concerne.`
+- L70 — `port` — `## Reporte a 017G`
+### `017F2_pdi_inspecteur_editable_anomalies_fix_projets.py`
+- L23 — `port` — `Idempotent. Sauvegardes .before017F2. Rapport genere.`
+- L26 — `port` — `import os`
+- L27 — `port` — `import shutil`
+- L28 — `port` — `import sys`
+- L104 — `snap` — `name: String(snap?.project?.name || "Projet isometrique"),"""`
+- L106 — `port` — `NEW_SESSION_PUSH = """        // PATCH 017F2 : identification du projet porteur de la sauvegarde.`
+- L113 — `snap` — `name: String(snap?.project?.name || "Projet isometrique"),"""`
+- L174 — `port` — `src = sub(src, OLD_SESSION_PUSH, NEW_SESSION_PUSH, "coquille : extraction du projet porteur")`
+- L183 — `port` — `OLD_IMPORT = """import {`
+- L192 — `port` — `NEW_IMPORT = """import {`
+- L276 — `select` — `<select`
+- L285 — `select` — `</select>`
+- L289 — `select` — `<select`
+- L300 — `select` — `</select>`
+- L308 — `select` — `const totalSel = selectedNodeIds.length + selectedSegmentIds.length + selectedFittingIds.length;"""`
+- L308 — `fitting` — `const totalSel = selectedNodeIds.length + selectedSegmentIds.length + selectedFittingIds.length;"""`
+- L344 — `select` — `if (issue.kind === "segment") selectSegmentV44(issue.id, false);`
+- L345 — `select` — `else selectNodeV44(issue.id, false);`
+- L362 — `select` — `const totalSel = selectedNodeIds.length + selectedSegmentIds.length + selectedFittingIds.length;"""`
+- L362 — `fitting` — `const totalSel = selectedNodeIds.length + selectedSegmentIds.length + selectedFittingIds.length;"""`
+- L383 — `port` — `src = sub(src, OLD_IMPORT, NEW_IMPORT, "moteur : import de pdiSpecAllowsDn")`
+- L391 — `port` — `REPORT = os.path.join(ROOT, "017F2_inspecteur_editable_anomalies_fix_projets_REPORT.md")`
+- L393 — `port` — `REPORT_BODY = """# PATCH 017F2 - Inspecteur editable, anomalies, conflit projets / onglets`
+- L422 — `selection` — `Le bloc *Troncon selectionne* recoit quatre champs modifiables : **DN**,`
+- L422 — `select` — `Le bloc *Troncon selectionne* recoit quatre champs modifiables : **DN**,`
+- L438 — `selection` — `Chaque ligne est un bouton : le clic selectionne l element sur le plan et ouvre`
+- L438 — `select` — `Chaque ligne est un bouton : le clic selectionne l element sur le plan et ouvre`
+- L454 — `selection` — `5. Selectionner un troncon : changer DN a 150 puis Entree, le plan et la liste`
+- L454 — `select` — `5. Selectionner un troncon : changer DN a 150 puis Entree, le plan et la liste`
+- L458 — `selection` — `7. Volet Anomalies : cliquer une ligne selectionne l element concerne.`
+- L458 — `select` — `7. Volet Anomalies : cliquer une ligne selectionne l element concerne.`
+- L462 — `port` — `## Reporte a 017G`
+- L475 — `port` — `with open(REPORT, "w", encoding="utf-8") as fh:`
+- L476 — `port` — `fh.write(REPORT_BODY)`
+- L477 — `port` — `notes.append("OK : rapport 017F2_inspecteur_editable_anomalies_fix_projets_REPORT.md")`
+### `017G_pdi_resilience_css_assets_recuperation.py`
+- L16 — `point` — `2. index.html mis en cache par le navigateur / le CDN, pointant sur d anciens`
+- L31 — `port` — `Idempotent. Sauvegardes .before017G. Rapport genere.`
+- L34 — `port` — `import os`
+- L35 — `port` — `import shutil`
+- L36 — `port` — `import sys`
+- L81 — `port` — `OLD_IMPORT_PATH = 'import path from "path";'`
+- L82 — `port` — `NEW_IMPORT_PATH = 'import path from "path";\n// PATCH 017G : inspection reelle du dossier dist/assets.\nimport fs from "fs";'`
+- L92 — `point` — `// continue de pointer vers des assets haches qui n existent plus.`
+- L136 — `port` — `src = sub(src, OLD_IMPORT_PATH, NEW_IMPORT_PATH, "server : import fs")`
+- L142 — `port` — `# Important : ne JAMAIS definir .hidden ici, la sonde 017D s en sert pour`
+- L163 — `align` — `align-items: center;`
+- L171 — `align` — `align-items: center;`
+- L192 — `point` — `cursor: pointer;`
+- L195 — `select` — `html.pdi-no-tailwind select {`
+- L210 — `align` — `align-items: center;`
+- L238 — `point` — `// Cas traite : dist/index.html en cache pointe sur un asset disparu, ou la`
+- L245 — `select` — `const already = Array.from(document.querySelectorAll('link[rel="stylesheet"]')).some(`
+- L319 — `port` — `REPORT = os.path.join(ROOT, "017G_resilience_css_assets_recuperation_REPORT.md")`
+- L321 — `port` — `REPORT_BODY = """# PATCH 017G - Resilience CSS et service des assets`
+- L359 — `port` — `1. Toute requete comportant une extension de fichier renvoie desormais un`
+- L362 — `point` — `pointant vers des assets disparus.`
+- L371 — `port` — `Elle est portee par `html.pdi-no-tailwind`, donc active uniquement en mode`
+- L400 — `port` — `## Note importante`
+- L415 — `port` — `with open(REPORT, "w", encoding="utf-8") as fh:`
+- L416 — `port` — `fh.write(REPORT_BODY)`
+- L417 — `port` — `notes.append("OK : rapport 017G_resilience_css_assets_recuperation_REPORT.md")`
+### `017G_resilience_css_assets_recuperation_REPORT.md`
+- L39 — `port` — `1. Toute requete comportant une extension de fichier renvoie desormais un`
+- L42 — `point` — `pointant vers des assets disparus.`
+- L51 — `port` — `Elle est portee par `html.pdi-no-tailwind`, donc active uniquement en mode`
+- L80 — `port` — `## Note importante`
+### `017H2_ordre_cascade_css_inline_REPORT.md`
+- L25 — `port` — `[APPLIQ] A1. pdiInlineStyles.ts : import leaflet inline`
+### `017H2_pdi_ordre_cascade_css_inline.py`
+- L22 — `port` — `4. src/index.css = @import "tailwindcss"   (main.tsx ligne 7, EN DERNIER)`
+- L37 — `port` — `REGLES : R1 patch .py idempotent + backup + rapport / R2 codage Claude /`
+- L44 — `port` — `import os`
+- L45 — `port` — `import sys`
+- L46 — `port` — `import shutil`
+- L94 — `port` — `# A1. imports : ajout de leaflet`
+- L96 — `port` — `IMPORTS_OLD = "\n".join([`
+- L97 — `port` — `'import baseCss from "./index.css?inline";',`
+- L98 — `port` — `'import precisionCss from "./pdiIsoPrecisionUx.css?inline";',`
+- L99 — `port` — `'import landingCss from "./pdi/landing/pdiLandingV4.css?inline";',`
+- L102 — `port` — `IMPORTS_NEW = "\n".join([`
+- L103 — `port` — `"// PATCH 017H2 : l ordre des imports ne pilote plus la cascade ; c est l ordre",`
+- L105 — `port` — `'import baseCss from "./index.css?inline";',`
+- L106 — `port` — `'import precisionCss from "./pdiIsoPrecisionUx.css?inline";',`
+- L107 — `port` — `'import landingCss from "./pdi/landing/pdiLandingV4.css?inline";',`
+- L108 — `port` — `'import leafletCss from "leaflet/dist/leaflet.css?inline";',`
+- L140 — `port` — `'import leafletCss from "leaflet/dist/leaflet.css?inline";',`
+- L141 — `port` — `'import { pdiInjectInlineCss } from "../pdiInlineStyles";',`
+- L158 — `port` — `step("A1. pdiInlineStyles.ts : import leaflet inline",`
+- L160 — `port` — `IMPORTS_OLD, IMPORTS_NEW, root)`
+- L174 — `port` — `report = os.path.join(root, "017H2_ordre_cascade_css_inline_REPORT.md")`
+- L175 — `port` — `with open(report, "w", encoding="utf-8") as fh:`
+- L195 — `port` — `print("Rapport : " + report)`
+### `017H_css_inline_bundle_403_REPORT.md`
+- L11 — `port` — `| A | `src/pdiInlineStyles.ts` (nouveau) | Imports `?inline` + injection `<style>` |`
+- L12 — `port` — `| B | `src/main.tsx` | Import unique de `pdiInlineStyles` |`
+- L29 — `port` — `[APPLIQ] B1. main.tsx : import de pdiInlineStyles`
+- L30 — `port` — `[APPLIQ] B2. main.tsx : retrait de l import direct de index.css`
+### `017H_pdi_css_inline_bundle_403.py`
+- L21 — `port` — `A. src/pdiInlineStyles.ts (nouveau) : chaque CSS du projet est importe en mode`
+- L25 — `port` — `B. src/main.tsx : les imports CSS a effet de bord sont remplaces par l'import`
+- L36 — `port` — `REGLES : R1 patch .py idempotent + backup + rapport / R2 codage Claude /`
+- L42 — `port` — `import os`
+- L43 — `port` — `import sys`
+- L44 — `port` — `import shutil`
+- L119 — `port` — `"// Solution : importer chaque CSS avec le suffixe Vite \"?inline\". Vite renvoie",`
+- L123 — `port` — `"import baseCss from \"./index.css?inline\";",`
+- L124 — `port` — `"import precisionCss from \"./pdiIsoPrecisionUx.css?inline\";",`
+- L125 — `port` — `"import landingCss from \"./pdi/landing/pdiLandingV4.css?inline\";",`
+- L136 — `port` — `"export function pdiInjectInlineCss(id: string, css: string): boolean {",`
+- L152 — `port` — `"export function pdiInstallInlineStyles(): number {",`
+- L163 — `move` — `"      document.documentElement.classList.remove(\"pdi-no-tailwind\");",`
+- L165 — `move` — `"      if (alertBar) alertBar.remove();",`
+- L181 — `port` — `MAIN_OLD_HEAD = 'import "./pdiIsoPrecisionUx.css";\n'`
+- L184 — `port` — `"// pdiInlineStyles importe chaque feuille en \"?inline\" et l injecte au demarrage.",`
+- L185 — `port` — `'import "./pdiInlineStyles";',`
+- L189 — `port` — `MAIN_OLD_INDEX = "import './index.css';\n"`
+- L192 — `port` — `LANDING_OLD = 'import "./pdiLandingV4.css";'`
+- L195 — `port` — `MAP_OLD = 'import "leaflet/dist/leaflet.css";'`
+- L198 — `port` — `'import leafletCss from "leaflet/dist/leaflet.css?inline";',`
+- L199 — `port` — `'import { pdiInjectInlineCss } from "../pdiInlineStyles";',`
+- L207 — `port` — `"// PATCH 017H : CSS importes en chaine de caracteres (embarques dans le bundle).",`
+- L210 — `port` — `"  export default css;",`
+- L275 — `port` — `step("B1. main.tsx : import de pdiInlineStyles",`
+- L276 — `port` — `"src/main.tsx", 'import "./pdiInlineStyles";',`
+- L279 — `port` — `step("B2. main.tsx : retrait de l import direct de index.css",`
+- L311 — `port` — `report = os.path.join(root, "017H_css_inline_bundle_403_REPORT.md")`
+- L312 — `port` — `with open(report, "w", encoding="utf-8") as fh:`
+- L322 — `port` — `fh.write("| A | `src/pdiInlineStyles.ts` (nouveau) | Imports `?inline` + injection `<style>` |\n")`
+- L323 — `port` — `fh.write("| B | `src/main.tsx` | Import unique de `pdiInlineStyles` |\n")`
+- L340 — `port` — `print("Rapport : " + report)`
+### `017I2_pdi_projection_float32_hittest_perf.py`
+- L6 — `port` — `#    [nodes, viewport], avec index id -> position.`
+- L7 — `selection` — `# 3. Selection par fenetre : lecture du cache + Map d index des noeuds`
+- L7 — `select` — `# 3. Selection par fenetre : lecture du cache + Map d index des noeuds`
+- L10 — `port` — `# S applique APRES 017I. Idempotent (R1). Sauvegardes .before017I2. Rapport.`
+- L11 — `port` — `import io, os, sys, shutil`
+- L16 — `port` — `REPORT = os.path.join(ROOT, "017I2_projection_float32_hittest_perf_REPORT.md")`
+- L68 — `point` — `"// chaque projection coutait deux appels trigonometriques par point et par",`
+- L113 — `anchor` — `ANCHOR_MEMO = "  const projectJoints=useMemo(()=>deriveProjectJoints(nodes,segments),[nodes,segments]);"`
+- L116 — `anchor` — `ANCHOR_MEMO,`
+- L120 — `port` — `"  // noeuds ou le viewport changent.",`
+- L123 — `IsoNode` — `"    const m = new Map<string, IsoNode>();",`
+- L133 — `port` — `"      const p = isoProjectV4(n.x, n.y, n.z || 0, viewport.zoom, viewport.panX, viewport.panY);",`
+- L146 — `port` — `"  }, [nodes, viewport]);",`
+- L147 — `IsoNode` — `"  const projectNodeCached017I2 = (node: IsoNode) => {",`
+- L149 — `port` — `"    if (i === undefined) return isoProjectV4(node.x, node.y, node.z || 0, viewport.zoom, viewport.panX, viewport.panY);",`
+- L156 — `anchor` — `elif ANCHOR_MEMO in eng:`
+- L157 — `anchor` — `eng = eng.replace(ANCHOR_MEMO, CACHE, 1)`
+- L166 — `selection` — `# 3. Selection par fenetre : lecture du cache et fin du nodes.find imbrique`
+- L166 — `select` — `# 3. Selection par fenetre : lecture du cache et fin du nodes.find imbrique`
+- L170 — `port` — `"        const p = isoProjectV4(n.x, n.y, n.z || 0, viewport.zoom, viewport.panX, viewport.panY);",`
+- L178 — `selection` — `log.append("DEJA : selection fenetre sur cache")`
+- L178 — `select` — `log.append("DEJA : selection fenetre sur cache")`
+- L181 — `selection` — `log.append("APPLIQUE : selection par fenetre lit le cache")`
+- L181 — `select` — `log.append("APPLIQUE : selection par fenetre lit le cache")`
+- L183 — `selection` — `print("ECHEC : ancre selection noeuds introuvable")`
+- L183 — `select` — `print("ECHEC : ancre selection noeuds introuvable")`
+- L185 — `selection` — `checks.append(("selection fenetre sur cache", "projectNodeCached017I2(n)" in eng))`
+- L185 — `select` — `checks.append(("selection fenetre sur cache", "projectNodeCached017I2(n)" in eng))`
+- L209 — `anchor` — `ANCHOR_REG = "\n".join([`
+- L213 — `history` — `'    icon: "History",',`
+- L221 — `history` — `'    icon: "History",',`
+- L238 — `anchor` — `elif ANCHOR_REG in reg:`
+- L239 — `anchor` — `reg = reg.replace(ANCHOR_REG, NEW_REG, 1)`
+- L247 — `anchor` — `ANCHOR_DISP = "\n".join([`
+- L261 — `anchor` — `ANCHOR_DISP,`
+- L266 — `anchor` — `elif ANCHOR_DISP in eng:`
+- L267 — `anchor` — `eng = eng.replace(ANCHOR_DISP, DISPATCH, 1)`
+- L277 — `port` — `# RAPPORT`
+- L280 — `selection` — `R.append("# PATCH 017I2 - projection Float32Array, selection indexee, PERF")`
+- L280 — `select` — `R.append("# PATCH 017I2 - projection Float32Array, selection indexee, PERF")`
+- L292 — `point` — `R.append("  appel**, soit deux appels trigonometriques par point et par rendu.")`
+- L293 — `selection` — `R.append("- La selection par fenetre executait `nodes.find()` **deux fois par troncon**,")`
+- L293 — `select` — `R.append("- La selection par fenetre executait `nodes.find()` **deux fois par troncon**,")`
+- L302 — `port` — `R.append("   `[nodes, viewport]`, avec index `id -> position`. Un plan de 500 noeuds tient")`
+- L304 — `selection` — `R.append("3. La selection par fenetre lit le cache et utilise une `Map` d index :")`
+- L304 — `select` — `R.append("3. La selection par fenetre lit le cache et utilise une `Map` d index :")`
+- L310 — `port` — `R.append("## Reporte, volontairement")`
+- L311 — `port` — `R.append("Le lissage des mises a jour de `viewport` par `requestAnimationFrame` et la")`
+- L319 — `port` — `R.append("2. Zoom molette, Ctrl+molette, Maj+molette, panoramique : comportement inchange.")`
+- L320 — `selection` — `R.append("3. Selection par fenetre de gauche a droite (englobante) puis de droite a gauche")`
+- L320 — `select` — `R.append("3. Selection par fenetre de gauche a droite (englobante) puis de droite a gauche")`
+- L325 — `align` — `R.append("6. Cotations et alignements (AX, AY, AZ) : toujours corrects, car ils passent par")`
+- L327 — `port` — `write(REPORT, "\n".join(R) + "\n")`
+- L336 — `port` — `print("RAPPORT : " + REPORT)`
+### `017I2_projection_float32_hittest_perf_REPORT.md`
+- L1 — `selection` — `# PATCH 017I2 - projection Float32Array, selection indexee, PERF`
+- L1 — `select` — `# PATCH 017I2 - projection Float32Array, selection indexee, PERF`
+- L9 — `selection` — `- APPLIQUE : selection par fenetre lit le cache`
+- L9 — `select` — `- APPLIQUE : selection par fenetre lit le cache`
+- L19 — `selection` — `- [x] selection fenetre sur cache`
+- L19 — `select` — `- [x] selection fenetre sur cache`
+- L26 — `point` — `appel**, soit deux appels trigonometriques par point et par rendu.`
+- L27 — `selection` — `- La selection par fenetre executait `nodes.find()` **deux fois par troncon**,`
+- L27 — `select` — `- La selection par fenetre executait `nodes.find()` **deux fois par troncon**,`
+- L36 — `port` — ``[nodes, viewport]`, avec index `id -> position`. Un plan de 500 noeuds tient`
+- L38 — `selection` — `3. La selection par fenetre lit le cache et utilise une `Map` d index :`
+- L38 — `select` — `3. La selection par fenetre lit le cache et utilise une `Map` d index :`
+- L44 — `port` — `## Reporte, volontairement`
+- L45 — `port` — `Le lissage des mises a jour de `viewport` par `requestAnimationFrame` et la`
+- L53 — `port` — `2. Zoom molette, Ctrl+molette, Maj+molette, panoramique : comportement inchange.`
+- L54 — `selection` — `3. Selection par fenetre de gauche a droite (englobante) puis de droite a gauche`
+- L54 — `select` — `3. Selection par fenetre de gauche a droite (englobante) puis de droite a gauche`
+- L59 — `align` — `6. Cotations et alignements (AX, AY, AZ) : toujours corrects, car ils passent par`
+### `017I3_pdi_retour_commande_visible_surbrillance.py`
+- L7 — `selection` — `# 2. SURBRILLANCE MOINS OPAQUE : halo de selection et de survol des troncons`
+- L7 — `select` — `# 2. SURBRILLANCE MOINS OPAQUE : halo de selection et de survol des troncons`
+- L9 — `port` — `# S applique APRES 017I2. Idempotent (R1). Sauvegardes .before017I3. Rapport.`
+- L10 — `port` — `import io, os, sys, shutil`
+- L15 — `port` — `REPORT = os.path.join(ROOT, "017I3_retour_commande_visible_surbrillance_REPORT.md")`
+- L55 — `anchor` — `ANCHOR_BAR = "\n".join([`
+- L76 — `anchor` — `ANCHOR_BAR,`
+- L81 — `anchor` — `elif ANCHOR_BAR in bar:`
+- L82 — `anchor` — `bar = bar.replace(ANCHOR_BAR, BLOCK_BAR, 1)`
+- L91 — `selection` — `# 2. Surbrillance de selection et de survol allegee`
+- L91 — `select` — `# 2. Surbrillance de selection et de survol allegee`
+- L106 — `selection` — `log.append("DEJA : surbrillance selection allegee")`
+- L106 — `select` — `log.append("DEJA : surbrillance selection allegee")`
+- L109 — `selection` — `log.append("APPLIQUE : surbrillance selection 0.35 -> 0.16, largeur +8 -> +5")`
+- L109 — `select` — `log.append("APPLIQUE : surbrillance selection 0.35 -> 0.16, largeur +8 -> +5")`
+- L111 — `selection` — `print("ECHEC : ancre surbrillance selection introuvable")`
+- L111 — `select` — `print("ECHEC : ancre surbrillance selection introuvable")`
+- L113 — `selection` — `checks.append(("selection allegee", 'strokeOpacity=".16"' in eng))`
+- L113 — `select` — `checks.append(("selection allegee", 'strokeOpacity=".16"' in eng))`
+- L138 — `port` — `# RAPPORT`
+- L166 — `selection` — `R.append("2. Surbrillance des troncons : selection `+8 px / opacite 0.35` devient")`
+- L166 — `select` — `R.append("2. Surbrillance des troncons : selection `+8 px / opacite 0.35` devient")`
+- L177 — `selection` — `R.append("3. Selectionnez un troncon : le halo est discret, la couleur de service et les")`
+- L177 — `select` — `R.append("3. Selectionnez un troncon : le halo est discret, la couleur de service et les")`
+- L179 — `selection` — `R.append("4. Survolez un troncon non selectionne : le halo de survol est visible mais tres")`
+- L179 — `select` — `R.append("4. Survolez un troncon non selectionne : le halo de survol est visible mais tres")`
+- L180 — `selection` — `R.append("   leger, et se distingue nettement de la selection.")`
+- L180 — `select` — `R.append("   leger, et se distingue nettement de la selection.")`
+- L183 — `port` — `write(REPORT, "\n".join(R) + "\n")`
+- L192 — `port` — `print("RAPPORT : " + REPORT)`
+### `017I3_retour_commande_visible_surbrillance_REPORT.md`
+- L7 — `selection` — `- APPLIQUE : surbrillance selection 0.35 -> 0.16, largeur +8 -> +5`
+- L7 — `select` — `- APPLIQUE : surbrillance selection 0.35 -> 0.16, largeur +8 -> +5`
+- L13 — `selection` — `- [x] selection allegee`
+- L13 — `select` — `- [x] selection allegee`
+- L32 — `selection` — `2. Surbrillance des troncons : selection `+8 px / opacite 0.35` devient`
+- L32 — `select` — `2. Surbrillance des troncons : selection `+8 px / opacite 0.35` devient`
+- L43 — `selection` — `3. Selectionnez un troncon : le halo est discret, la couleur de service et les`
+- L43 — `select` — `3. Selectionnez un troncon : le halo est discret, la couleur de service et les`
+- L45 — `selection` — `4. Survolez un troncon non selectionne : le halo de survol est visible mais tres`
+- L45 — `select` — `4. Survolez un troncon non selectionne : le halo de survol est visible mais tres`
+- L46 — `selection` — `leger, et se distingue nettement de la selection.`
+- L46 — `select` — `leger, et se distingue nettement de la selection.`
+### `017I_pdi_wheel_passif_badge_sauvegarde_save_restore.py`
+- L8 — `port` — `# Idempotent (R1). Sauvegardes .before017I. Rapport genere.`
+- L9 — `port` — `import io, os, sys, shutil`
+- L14 — `port` — `REPORT = os.path.join(ROOT, "017I_wheel_passif_badge_sauvegarde_REPORT.md")`
+- L50 — `anchor` — `ANCHOR_REG = (`
+- L82 — `history` — `'    icon: "History",\n'`
+- L91 — `anchor` — `elif ANCHOR_REG in reg:`
+- L92 — `anchor` — `reg = reg.replace(ANCHOR_REG, NEW_REG, 1)`
+- L107 — `anchor` — `ANCHOR_WHEEL = "  const wheel = (e: React.WheelEvent<SVGSVGElement>) => {"`
+- L121 — `move` — `'    return () => el.removeEventListener("wheel", onWheelNative017I);\n'`
+- L128 — `anchor` — `elif ANCHOR_WHEEL in eng:`
+- L129 — `anchor` — `eng = eng.replace(ANCHOR_WHEEL, EFFECT + ANCHOR_WHEEL, 1)`
+- L137 — `point` — `OLD_JSX = "              onWheel={wheel} onPointerDown={pointerDown}"`
+- L138 — `point` — `NEW_JSX = "              onPointerDown={pointerDown}"`
+- L147 — `anchor` — `ANCHOR_SVG = '            <svg ref={svgRef} viewBox="0 0 620 400"'`
+- L151 — `select` — `'              className={"pdi-save-badge-017i absolute top-2 right-2 z-[60] pointer-events-none select-none rounded-lg border px-2 py-1 text-[10px] font-black shadow-lg bg-slate-900/85 " + (saveState === "error" ? "border-red-600 text-red-`
+- L151 — `point` — `'              className={"pdi-save-badge-017i absolute top-2 right-2 z-[60] pointer-events-none select-none rounded-lg border px-2 py-1 text-[10px] font-black shadow-lg bg-slate-900/85 " + (saveState === "error" ? "border-red-600 text-red-`
+- L166 — `anchor` — `elif ANCHOR_SVG in eng:`
+- L167 — `anchor` — `eng = eng.replace(ANCHOR_SVG, BADGE + ANCHOR_SVG, 1)`
+- L175 — `anchor` — `ANCHOR_DISP = (`
+- L184 — `snap` — `"        const snapshot017I = buildProjectFileV474();\n"`
+- L188 — `snap` — `"          localStorage.setItem(AUTOSAVE_CURRENT_KEY, JSON.stringify(snapshot017I));\n"`
+- L190 — `snap` — `"        autosaveBaselineRef.current = persistenceFingerprint(snapshot017I);\n"`
+- L216 — `anchor` — `+ ANCHOR_DISP`
+- L221 — `anchor` — `elif ANCHOR_DISP in eng:`
+- L222 — `anchor` — `eng = eng.replace(ANCHOR_DISP, DISPATCH, 1)`
+- L233 — `port` — `# RAPPORT`
+- L252 — `port` — `R.append("2. **Badge de sauvegarde** : l ancien badge vivait dans la barre d etat portant")`
+- L261 — `port` — `R.append("## Hors perimetre, reporte en 017I2")`
+- L279 — `port` — `write(REPORT, "\n".join(R) + "\n")`
+- L288 — `port` — `print("RAPPORT : " + REPORT)`
+### `017I_wheel_passif_badge_sauvegarde_REPORT.md`
+- L27 — `port` — `2. **Badge de sauvegarde** : l ancien badge vivait dans la barre d etat portant`
+- L36 — `port` — `## Hors perimetre, reporte en 017I2`
+### `017J_palette_lisible_branding_secret_REPORT.md`
+- L8 — `port` — `- APPLIQUE : import du module de branding`
+- L20 — `port` — `- [x] import branding`
+- L46 — `port` — `clair dans le source livre au navigateur : n importe qui pouvait le lire dans`
+- L67 — `ancrage` — `Verifier notamment `M - Cotation 2 ancrages`, `AT - Equipement sur tube`,`
+- L68 — `parallel` — ``// - Rendre parallele`, `ISO - Redresser ISO` et `Suppr. derniere cote`.`
+- L68 — `parallele` — ``// - Rendre parallele`, `ISO - Redresser ISO` et `Suppr. derniere cote`.`
+### `017J_pdi_palette_lisible_branding_secret.py`
+- L10 — `port` — `# S applique APRES 017I3. Idempotent (R1). Sauvegardes .before017J. Rapport.`
+- L11 — `port` — `import io, os, sys, shutil`
+- L18 — `port` — `REPORT = os.path.join(ROOT, "017J_palette_lisible_branding_secret_REPORT.md")`
+- L126 — `port` — `B.append('export const PDI_BRANDING_KEY = "pdi.branding.v1";')`
+- L127 — `port` — `B.append('export const PDI_BRANDING_FALLBACK_COMPANY = "Societe non renseignee";')`
+- L129 — `port` — `B.append("export type PdiBranding = {")`
+- L138 — `port` — `B.append("export const PDI_DEFAULT_BRANDING: PdiBranding = {")`
+- L147 — `port` — `B.append("export function pdiLoadBranding(): PdiBranding {")`
+- L158 — `port` — `B.append("export function pdiSaveBranding(next: Partial<PdiBranding>): PdiBranding {")`
+- L170 — `port` — `B.append("export function pdiCompanyName(): string {")`
+- L175 — `port` — `B.append("export function pdiStandardsNote(): string {")`
+- L180 — `port` — `B.append("export function pdiDocumentPrefix(): string {")`
+- L195 — `port` — `# C. Import + cartouche debrandee`
+- L197 — `anchor` — `ANCHOR_IMPORT = 'import { onAuthStateChanged } from "firebase/auth";'`
+- L197 — `port` — `ANCHOR_IMPORT = 'import { onAuthStateChanged } from "firebase/auth";'`
+- L198 — `port` — `NEW_IMPORT = "\n".join([`
+- L199 — `anchor` — `ANCHOR_IMPORT,`
+- L199 — `port` — `ANCHOR_IMPORT,`
+- L201 — `port` — `'import { pdiCompanyName, pdiStandardsNote } from "../../branding/pdiBranding";',`
+- L204 — `port` — `log.append("DEJA : import du module de branding")`
+- L205 — `anchor` — `elif ANCHOR_IMPORT in eng:`
+- L205 — `port` — `elif ANCHOR_IMPORT in eng:`
+- L206 — `anchor` — `eng = eng.replace(ANCHOR_IMPORT, NEW_IMPORT, 1)`
+- L206 — `port` — `eng = eng.replace(ANCHOR_IMPORT, NEW_IMPORT, 1)`
+- L207 — `port` — `log.append("APPLIQUE : import du module de branding")`
+- L209 — `port` — `print("ECHEC : ancre d import introuvable")`
+- L211 — `port` — `checks.append(("import branding", 'from "../../branding/pdiBranding"' in eng))`
+- L268 — `port` — `"      ((import.meta as unknown as { env?: Record<string, string> }).env || {})",`
+- L302 — `port` — `"        ((import.meta as unknown as { env?: Record<string, string> }).env || {})",`
+- L331 — `move` — `'localStorage.removeItem("sonelgaz_user_profile");',`
+- L332 — `move` — `'localStorage.removeItem("pdi.userProfile.v1");\n'`
+- L333 — `move` — `'        localStorage.removeItem("sonelgaz_user_profile");',`
+- L345 — `port` — `# RAPPORT`
+- L380 — `port` — `R.append("clair dans le source livre au navigateur : n importe qui pouvait le lire dans")`
+- L401 — `ancrage` — `R.append("   Verifier notamment `M - Cotation 2 ancrages`, `AT - Equipement sur tube`,")`
+- L402 — `parallel` — `R.append("   `// - Rendre parallele`, `ISO - Redresser ISO` et `Suppr. derniere cote`.")`
+- L402 — `parallele` — `R.append("   `// - Rendre parallele`, `ISO - Redresser ISO` et `Suppr. derniere cote`.")`
+- L412 — `port` — `write(REPORT, "\n".join(R) + "\n")`
+- L423 — `port` — `print("RAPPORT : " + REPORT)`
+### `017K2_notice_profil_societe_REPORT.md`
+- L7 — `port` — `- APPLIQUE : import PdiCompanyPanel`
+- L15 — `port` — `- [x] import du panneau`
+- L27 — `align` — `- Precision geometrique (snap, rotation, alignement, parallele) : patch 017P.`
+- L27 — `parallel` — `- Precision geometrique (snap, rotation, alignement, parallele) : patch 017P.`
+- L27 — `parallele` — `- Precision geometrique (snap, rotation, alignement, parallele) : patch 017P.`
+- L27 — `snap` — `- Precision geometrique (snap, rotation, alignement, parallele) : patch 017P.`
+- L27 — `rotation` — `- Precision geometrique (snap, rotation, alignement, parallele) : patch 017P.`
+### `017K2_pdi_notice_profil_societe.py`
+- L6 — `port` — `import os`
+- L7 — `port` — `import re`
+- L8 — `port` — `import sys`
+- L59 — `port` — `"import React, { useEffect } from \"react\";",`
+- L60 — `port` — `"import { createRoot } from \"react-dom/client\";",`
+- L62 — `port` — `"export type PdiNoticeTone = \"info\" | \"success\" | \"warning\" | \"error\";",`
+- L86 — `move` — `"    return () => window.removeEventListener(\"keydown\", onKey);",`
+- L93 — `align` — `"      style={{ position: \"fixed\", inset: 0, zIndex: 100200, background: \"rgba(2,6,15,.72)\", backdropFilter: \"blur(3px)\", display: \"flex\", alignItems: \"center\", justifyContent: \"center\", padding: 16 }}",`
+- L108 — `point` — `"            style={{ padding: \"9px 18px\", borderRadius: 10, border: \"1px solid rgba(103,232,249,.5)\", background: \"#0E7490\", color: \"#FFFFFF\", fontSize: 12, fontWeight: 900, cursor: \"pointer\" }}",`
+- L118 — `port` — `"export function pdiAlert(message: unknown, title?: string, tone?: PdiNoticeTone): Promise<void> {",`
+- L128 — `move` — `"      try { host.remove(); } catch (e) { void e; }",`
+- L135 — `port` — `"export default pdiAlert;",`
+- L169 — `port` — `imp = 'import { pdiAlert } from "' + rel + '";'`
+- L174 — `port` — `if ln.startswith("import "):`
+- L177 — `port` — `warn.append("import impossible dans " + name)`
+- L208 — `port` — `"import React, { useState } from \"react\";",`
+- L209 — `port` — `"import { pdiLoadBranding, pdiSaveBranding, PdiBranding } from \"../branding/pdiBranding\";",`
+- L210 — `port` — `"import { pdiAlert } from \"./PdiNotice\";",`
+- L223 — `port` — `"export function PdiCompanyPanel() {",`
+- L253 — `align` — `"      <div style={{ display: \"flex\", alignItems: \"center\", gap: 10, marginTop: 16, flexWrap: \"wrap\" }}>",`
+- L257 — `point` — `"          style={{ padding: \"9px 16px\", borderRadius: 10, border: \"1px solid rgba(103,232,249,.5)\", background: \"#0E7490\", color: \"#FFFFFF\", fontSize: 12, fontWeight: 900, cursor: \"pointer\" }}",`
+- L264 — `point` — `"          style={{ padding: \"9px 14px\", borderRadius: 10, border: \"1px solid rgba(148,163,184,.35)\", background: \"transparent\", color: \"#CBD5E1\", fontSize: 12, fontWeight: 800, cursor: \"pointer\" }}",`
+- L274 — `port` — `"export default PdiCompanyPanel;",`
+- L290 — `port` — `IMP_C = 'import { PdiCompanyPanel } from "../ui/PdiCompanyPanel";'`
+- L292 — `port` — `log.append("DEJA : import PdiCompanyPanel")`
+- L297 — `port` — `if ln.startswith("import "):`
+- L300 — `port` — `warn.append("import impossible dans PdiUnifiedApp")`
+- L304 — `port` — `log.append("APPLIQUE : import PdiCompanyPanel")`
+- L331 — `port` — `checks.append(("import du panneau", IMP_C in app))`
+- L334 — `port` — `# Rapport`
+- L345 — `port` — `rep = os.path.join(ROOT, "017K2_notice_profil_societe_REPORT.md")`
+- L372 — `align` — `out.append("- Precision geometrique (snap, rotation, alignement, parallele) : patch 017P.")`
+- L372 — `parallel` — `out.append("- Precision geometrique (snap, rotation, alignement, parallele) : patch 017P.")`
+- L372 — `parallele` — `out.append("- Precision geometrique (snap, rotation, alignement, parallele) : patch 017P.")`
+- L372 — `snap` — `out.append("- Precision geometrique (snap, rotation, alignement, parallele) : patch 017P.")`
+- L372 — `rotation` — `out.append("- Precision geometrique (snap, rotation, alignement, parallele) : patch 017P.")`
+- L374 — `port` — `print("RAPPORT : " + rep)`
+### `017K3_pdi_classe_pression.py`
+- L10 — `fitting` — `ASME B16.5 (Pipe Flanges and Flanged Fittings) definit SEPT classes de`
+- L12 — `groupe` — `par habitude : on entre dans la table pression-temperature du groupe de`
+- L12 — `group` — `par habitude : on entre dans la table pression-temperature du groupe de`
+- L20 — `port` — `chaque ligne porte une classe de ligne, et les composants sont specifies`
+- L51 — `port` — `import hashlib`
+- L52 — `port` — `import os`
+- L53 — `port` — `import re`
+- L54 — `port` — `import sys`
+- L55 — `port` — `import tempfile`
+- L56 — `port` — `import zlib`
+- L167 — `groupe` — `//     determine en entrant dans la table pression-temperature du groupe de`
+- L167 — `group` — `//     determine en entrant dans la table pression-temperature du groupe de`
+- L181 — `port` — `import { PDI_DEFAULT_SPECS, pdiFindSpec } from "./pdiTagging";`
+- L182 — `port` — `import type { PdiProjectSetup } from "./pdiTagging";`
+- L185 — `port` — `export const PDI_CLASSES_B165_017K3: string[] = [`
+- L199 — `port` — `export const PDI_DESIGNATIONS_PN_017K3: string[] = ["PN16", "PN40"];`
+- L202 — `port` — `export const PDI_CLASSE_PAR_DEFAUT_017K3: string =`
+- L206 — `port` — `export const PDI_MATERIAU_PAR_DEFAUT_017K3: string =`
+- L220 — `port` — `export function pdiClasseDeSpec017K3(`
+- L229 — `port` — `export function pdiMateriauDeSpec017K3(`
+- L238 — `port` — `export function pdiClasseConforme017K3(`
+- L247 — `port` — `* Message de derogation. On n interdit pas : un projet reel comporte des`
+- L250 — `port` — `export function pdiMessageDerogation017K3(`
+- L270 — `port` — `ANCRE_IMPORT = ('import { PDI_ONGLETS_RUBAN_017M, PDI_INVITE_COMMANDE_017M, '`
+- L271 — `groupe` — `'pdiGroupesOnglet017M, pdiEntreesGroupe017M } from '`
+- L271 — `group` — `'pdiGroupesOnglet017M, pdiEntreesGroupe017M } from '`
+- L274 — `port` — `NOUVEL_IMPORT = ANCRE_IMPORT + "\n" + (`
+- L275 — `port` — `'import { PDI_CLASSES_B165_017K3, PDI_DESIGNATIONS_PN_017K3, '`
+- L309 — `select` — `ANCRE_ONCHANGE = ('<select value={newPN} onChange={e=>setNewPN(e.target.value)}')`
+- L310 — `select` — `NOUVEAU_ONCHANGE = ('<select value={newPN} onChange={e=>{setNewPN(e.target.value);'`
+- L377 — `port` — `deja("le moteur importe deja le module")`
+- L379 — `port` — `if ANCRE_IMPORT not in moteur:`
+- L380 — `port` — `raise SystemExit("ARRET : ligne d import du registre introuvable.")`
+- L381 — `port` — `moteur = moteur.replace(ANCRE_IMPORT, NOUVEL_IMPORT, 1)`
+- L382 — `port` — `note("pdiClassePression017K3" in moteur, "import ajoute")`
+- L435 — `group` — `lambda m: options_bloc(m.group(1)), moteur)`
+- L485 — `point` — `d exemple, les 2 CDN externes, les 8 window.confirm, et les points d audit`
+### `017K_confirm_navigation_landing_REPORT.md`
+- L7 — `port` — `- APPLIQUE : import pdiConfirm`
+- L19 — `port` — `- [x] import pdiConfirm`
+- L36 — `port` — `7. Landing : plus de Vision ni de V4.8d, Sketch to ISO et Impression & export presents.`
+### `017K_pdi_confirm_navigation_landing.py`
+- L5 — `port` — `# D. Landing : Vision retiree, Croquis renomme Sketch to ISO, impression/export mis en avant`
+- L8 — `port` — `import os`
+- L9 — `port` — `import sys`
+- L65 — `port` — `"import React, { useEffect, useState } from \"react\";",`
+- L66 — `port` — `"import { createRoot } from \"react-dom/client\";",`
+- L68 — `port` — `"export type PdiConfirmOptions = {",`
+- L79 — `align` — `"  display: \"flex\", alignItems: \"center\", justifyContent: \"center\", padding: 16,",`
+- L100 — `move` — `"    return () => window.removeEventListener(\"keydown\", onKey);",`
+- L114 — `point` — `"            style={{ padding: \"9px 14px\", borderRadius: 10, border: \"1px solid rgba(148,163,184,.35)\", background: \"transparent\", color: \"#CBD5E1\", fontSize: 12, fontWeight: 800, cursor: \"pointer\" }}",`
+- L123 — `point` — `"            style={{ padding: \"9px 16px\", borderRadius: 10, border: danger ? \"1px solid #7F1D1D\" : \"1px solid rgba(103,232,249,.5)\", background: danger ? \"#7F1D1D\" : \"#0E7490\", color: \"#FFFFFF\", fontSize: 12, fontWeight: 900, c`
+- L134 — `port` — `"export function pdiConfirm(options: PdiConfirmOptions): Promise<boolean> {",`
+- L143 — `move` — `"      try { host.remove(); } catch (e) { void e; }",`
+- L150 — `port` — `"export default pdiConfirm;",`
+- L164 — `port` — `# B. Import du composant dans PdiUnifiedApp`
+- L166 — `port` — `IMP_MARK = 'import { pdiConfirm } from "../ui/PdiConfirm";'`
+- L168 — `port` — `log.append("DEJA : import pdiConfirm")`
+- L173 — `port` — `if ln.startswith("import "):`
+- L176 — `port` — `warn.append("aucune ligne import trouvee dans PdiUnifiedApp")`
+- L180 — `port` — `log.append("APPLIQUE : import pdiConfirm")`
+- L181 — `port` — `checks.append(("import pdiConfirm", IMP_MARK in app))`
+- L186 — `move` — `OLD_DEL = 'onClick={() => { if (window.confirm("Supprimer definitivement le projet \\"" + entry.title + "\\" et sa sauvegarde locale ?")) { pdiRemoveProject(entry.projectId); closeTabsForProject(entry.projectId); setProjectsRefresh((v) => v`
+- L187 — `move` — `NEW_DEL = 'onClick={() => { pdiConfirm({ title: "Supprimer le projet", message: "Le projet \\"" + entry.title + "\\" et sa sauvegarde locale seront definitivement supprimes. Cette action ne peut pas etre annulee.", confirmLabel: "Supprimer `
+- L208 — `anchor` — `ANCHOR_NAV = "const navItems: Array<{ id: PdiModule; label: string; icon: string; title: string }> = ["`
+- L211 — `anchor` — `elif ANCHOR_NAV in app:`
+- L212 — `anchor` — `app = app.replace(ANCHOR_NAV, STACK_DECL + ANCHOR_NAV, 1)`
+- L229 — `anchor` — `ANCHOR_TITLE = "  const moduleTitle = useMemo("`
+- L232 — `anchor` — `elif ANCHOR_TITLE in app:`
+- L233 — `anchor` — `app = app.replace(ANCHOR_TITLE, BACK_FN + ANCHOR_TITLE, 1)`
+- L244 — `align` — `'      {activeModule !== "home" && <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 14px", background: "#070B12", borderBottom: "1px solid rgba(148,163,184,.14)" }}>',`
+- L245 — `align` — `'        <button type="button" onClick={pdiGoBack017K} title="Retour au niveau precedent" style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 10px", borderRadius: 8, border: "1px solid rgba(103,232,249,.35)", backgr`
+- L245 — `point` — `'        <button type="button" onClick={pdiGoBack017K} title="Retour au niveau precedent" style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 10px", borderRadius: 8, border: "1px solid rgba(103,232,249,.35)", backgr`
+- L248 — `point` — `'        <button type="button" onClick={() => setActiveModule("home")} style={{ background: "none", border: "none", color: "#94A3B8", fontSize: 11, fontWeight: 800, cursor: "pointer", padding: 0 }}>Accueil</button>',`
+- L254 — `anchor` — `ANCHOR_MAINNAV = '      <nav className="pdi-main-nav" aria-label="Navigation PD&I">'`
+- L257 — `anchor` — `elif ANCHOR_MAINNAV in app:`
+- L258 — `anchor` — `app = app.replace(ANCHOR_MAINNAV, CRUMB + ANCHOR_MAINNAV, 1)`
+- L293 — `move` — `removed = 0`
+- L296 — `move` — `removed += 1`
+- L299 — `move` — `removed += 1`
+- L303 — `move` — `if removed:`
+- L304 — `move` — `log.append("APPLIQUE : entrees Vision retirees (%d)" % removed)`
+- L313 — `port` — `# Le moteur interne V4.8d disparait, l impression et l export prennent sa place`
+- L315 — `port` — `'title: "Impression & export", tag: "A5 \u2192 A0 \u00b7 PDF vectoriel", icon: "\U0001F5A8", text: "Planches A5 \u00e0 A0, cartouche ISO 7200, \u00e9chelles 1:1 \u00e0 1:200, PDF vectoriel et DXF."'),`
+- L318 — `port` — `('{ title: "Produit", links: ["Editeur isometrique", "Vision IA", "Croquis vers ISO", "Import CAO"] }',`
+- L319 — `port` — `'{ title: "Produit", links: ["Editeur isometrique", "Impression & export", "Sketch to ISO", "Import CAO"] }'),`
+- L320 — `port` — `('title: "Export documentaire", text: "Planches A4 a A1, cartouche, PDF, DXF et dossier de fabrication."',`
+- L321 — `port` — `'title: "Impression & export", text: "Planches A5 a A0, cartouche ISO 7200, PDF vectoriel, DXF et dossier de fabrication."'),`
+- L346 — `port` — `BOM_BAND = '  { key: "bom", cls: "pdiL-band-json", title: "Nomenclature & m\u00e9tr\u00e9", tag: "BOM par tag", icon: "\U0001F4CB", text: "Boulonnerie ASME B16.5, joints B16.20, supports et consommables de soudure compt\u00e9s automatiqueme`
+- L363 — `port` — `# Rapport`
+- L374 — `port` — `rep = os.path.join(ROOT, "017K_confirm_navigation_landing_REPORT.md")`
+- L398 — `port` — `lines.append("7. Landing : plus de Vision ni de V4.8d, Sketch to ISO et Impression & export presents.")`
+- L404 — `port` — `print("RAPPORT : " + rep)`
+### `017L_pdi_debranding_droits.py`
+- L8 — `port` — `3. Porte des droits pdiCan() introduite`
+- L13 — `port` — `import os, sys, hashlib, tempfile, zlib`
+- L75 — `move` — `os.remove(tmp)`
+- L120 — `port` — `export function pdiFeuilleImpression017L(): string {`
+- L136 — `port` — `export const PDI_STYLE_IMPRESSION_017L = [`
+- L137 — `port` — `"@media print { .pdi-no-print { display: none !important; } }",`
+- L142 — `port` — `MODULE_DROITS = '''// PATCH 017L - porte des droits centrale`
+- L144 — `point` — `// Avance du 023. Un seul point de decision pour savoir si un module est`
+- L145 — `port` — `// accessible, au lieu de conditions dispersees. Aujourd hui la porte laisse`
+- L147 — `port` — `// aucun comportement existant. Le 023 y branchera les licences.`
+- L149 — `port` — `export type PdiModule017L =`
+- L176 — `port` — `export function pdiCan(module: PdiModule017L): boolean {`
+- L185 — `port` — `export function pdiSetCan017L(module: PdiModule017L, actif: boolean): void {`
+- L191 — `port` — `// stockage indisponible : la porte retombe sur les valeurs par defaut`
+- L196 — `port` — `export function pdiModulesOuverts017L(): PdiModule017L[] {`
+- L215 — `port` — `IMPORT_IMP = 'import { pdiFeuilleImpression017L, PDI_STYLE_IMPRESSION_017L } from "../pdi/impression/pdiImpression017L";\n'`
+- L246 — `port` — `def ajouter_import(txt, ligne_import):`
+- L247 — `port` — `if ligne_import.strip() in txt:`
+- L249 — `port` — `return ligne_import + txt, True`
+- L255 — `point` — `print("  PATCH " + PATCH + " - saisies, impression, droits, endpoint")`
+- L268 — `port` — `ecrire_module(racine, REL_MOD_DROITS, MODULE_DROITS, "module porte des droits pdiCan()")`
+- L276 — `port` — `t, ajoute = ajouter_import(t, IMPORT_IMP)`
+- L277 — `port` — `note(IMPORT_IMP.strip() in t, "import present dans " + os.path.basename(rel))`
+### `017P10_pdi_saisie_refus_explicite.py`
+- L20 — `point` — `DEFAUT B - un CINQUIEME point de verite, et il se contredit.`
+- L30 — `point` — `apres une correction reussie, et contredit les quatre autres points`
+- L64 — `port` — `import hashlib`
+- L65 — `port` — `import os`
+- L66 — `port` — `import re`
+- L67 — `port` — `import shutil`
+- L68 — `port` — `import sys`
+- L69 — `port` — `import tempfile`
+- L70 — `port` — `import zlib`
+- L190 — `point` — `// Restait un cinquieme point de verite que personne n avait vu : le validateur`
+- L194 — `port` — `// Ce module porte les regles de SAISIE. Elles sont distinctes des anomalies du`
+- L206 — `port` — `export const PDI_LONGUEUR_MIN_017P10 = 0.05;`
+- L208 — `port` — `export interface PdiControleSaisie017P10 {`
+- L224 — `port` — `export function pdiValiderLongueur017P10(valeur: unknown): PdiControleSaisie017P10 {`
+- L254 — `port` — `export function pdiValiderDn017P10(valeur: unknown): PdiControleSaisie017P10 {`
+- L270 — `port` — `export function pdiEcartAccrochage017P10(demandee: number, obtenue: number): string {`
+- L284 — `port` — `ANCIEN_IMPORT = ('import { pdiUnifyAnomalies017P9, pdiAnomalieKind017P9, '`
+- L286 — `port` — `NOUVEL_IMPORT = ANCIEN_IMPORT + (`
+- L288 — `port` — `'import { pdiValiderLongueur017P10, pdiValiderDn017P10, '`
+- L305 — `point` — `'  // restait affiche apres correction et contredisait les quatre points',`
+- L421 — `port` — `note("pdiValiderLongueur017P10" in m, "controle de longueur exporte")`
+- L422 — `port` — `note("pdiValiderDn017P10" in m, "controle de diametre exporte")`
+- L423 — `port` — `note("pdiEcartAccrochage017P10" in m, "signalement d ecart d accrochage exporte")`
+- L431 — `port` — `deja("le moteur importe les regles de saisie")`
+- L432 — `port` — `elif ANCIEN_IMPORT in tsx:`
+- L433 — `port` — `tsx = tsx.replace(ANCIEN_IMPORT, NOUVEL_IMPORT, 1)`
+- L434 — `port` — `note("pdiSaisie017P10" in tsx, "import des regles de saisie ajoute")`
+- L436 — `port` — `note(False, "import : ancre du 017P9 introuvable")`
+- L522 — `selection` — `print("  2. Selectionner un troncon, mettre 0 dans Longueur, valider.")`
+- L522 — `select` — `print("  2. Selectionner un troncon, mettre 0 dans Longueur, valider.")`
+### `017P2_pdi_ports_coudes.py`
+- L1 — `port` — `# PATCH 017P2 - reorientation geometrique des ports et des coudes`
+- L3 — `port` — `# Regles : R1 (idempotent + backup + rapport), R6, R7, R24, R25`
+- L4 — `port` — `import os`
+- L5 — `port` — `import hashlib`
+- L16 — `port` — `PORTS = os.path.join(ROOT, "src", "pdi", "isometric", "engine", "pdiPorts017P2.ts")`
+- L17 — `port` — `REPORT = os.path.join(ROOT, "017P2_ports_coudes_REPORT.md")`
+- L26 — `port` — `PORTS_TS = "\n".join([`
+- L27 — `port` — `"// PATCH 017P2 - reorientation geometrique des ports et des coudes.",`
+- L30 — `port` — `"export type PdiPortLike = { id: string; index: number; role?: string; dx: number; dy: number; dz: number };",`
+- L32 — `port` — `"export type PdiNodeLike = {",`
+- L37 — `rotation` — `"  rotation?: number;",`
+- L40 — `port` — `"  ports?: PdiPortLike[];",`
+- L43 — `port` — `"export type PdiSegmentLike = {",`
+- L47 — `port` — `"  fromPortId?: string;",`
+- L48 — `port` — `"  toPortId?: string;",`
+- L52 — `port` — `"export const PDI_ELBOW_CATALOG: Array<{ type: string; angle: number }> = [",`
+- L59 — `port` — `"export const PDI_ELBOW_RESIDUAL_MAX_DEG = 5;",`
+- L66 — `port` — `"export const pdiTolViewBox = (tolPx: number, elementWidthPx: number, viewBoxWidth = 620) => {",`
+- L71 — `port` — `"export const pdiUnitDir = (",`
+- L82 — `rotation` — `"// Adapte un coude a la geometrie : on deduit rotation et sens de coude des",`
+- L84 — `port` — `"export const pdiFitElbow = (",`
+- L100 — `rotation` — `"    rotation: r3(((rot % 360) + 360) % 360),",`
+- L107 — `port` — `"// Les ports de piquage (role branch) et les equipements non coudes sont",`
+- L109 — `port` — `"export const pdiReorientPorts = <N extends PdiNodeLike, S extends PdiSegmentLike>(",`
+- L117 — `port` — `"  const links = new Map<string, Array<{ portId?: string; otherId: string }>>();",`
+- L118 — `port` — `"  const push = (id: string, link: { portId?: string; otherId: string }) => {",`
+- L125 — `port` — `"    push(s.fromNodeId, { portId: s.fromPortId, otherId: s.toNodeId });",`
+- L126 — `port` — `"    push(s.toNodeId, { portId: s.toPortId, otherId: s.fromNodeId });",`
+- L144 — `rotation` — `"      if (node.equipmentType === fit.equipmentType && r3(node.rotation || 0) === fit.rotation && sameBend) return node;",`
+- L146 — `rotation` — `"      return { ...node, equipmentType: fit.equipmentType, rotation: fit.rotation, bendDirection: fit.bendDirection } as unknown as N;",`
+- L149 — `port` — `"    if (!node.ports || !node.ports.length) return node;",`
+- L150 — `rotation` — `"    const angle = ((node.rotation || 0) * Math.PI) / 180;",`
+- L154 — `port` — `"    const ports = node.ports.map((port) => {",`
+- L155 — `port` — `"      const link = ls.find((l) => l.portId === port.id);",`
+- L156 — `port` — `"      if (!link || port.role === \"branch\") return port;",`
+- L158 — `port` — `"      if (!other) return port;",`
+- L163 — `port` — `"      if (dx === r3(port.dx) && dy === r3(port.dy) && dz === r3(port.dz)) return port;",`
+- L165 — `port` — `"      return { ...port, dx, dy, dz };",`
+- L169 — `port` — `"    return { ...node, ports } as unknown as N;",`
+- L174 — `point` — `"// Controle de coherence : une face qui ne pointe pas vers son voisin.",`
+- L175 — `port` — `"export const pdiAuditPorts = <N extends PdiNodeLike, S extends PdiSegmentLike>(",`
+- L186 — `port` — `"    const port = (a.ports || []).find((p) => p.id === s.fromPortId);",`
+- L187 — `port` — `"    if (!port || port.role === \"branch\") continue;",`
+- L188 — `rotation` — `"    const angle = ((a.rotation || 0) * Math.PI) / 180;",`
+- L191 — `port` — `"    const wx = port.dx * c - port.dy * sn;",`
+- L192 — `port` — `"    const wy = port.dx * sn + port.dy * c;",`
+- L193 — `port` — `"    const n1 = Math.hypot(wx, wy, port.dz) || 1;",`
+- L195 — `port` — `"    const dot = (wx / n1) * d.x + (wy / n1) * d.y + (port.dz / n1) * d.z;",`
+- L208 — `port` — `# E1 : import du module de reorientation, juste apres celui du 017P`
+- L210 — `port` — `"E1 import du module de reorientation",`
+- L212 — `port` — `'from "./pdiPrecision017P";\nimport { pdiReorientPorts, pdiTolViewBox } from "./pdiPorts017P2";',`
+- L216 — `point` — `# E2 : l apercu du trace utilisait la grille pure -> il passe par pdiCreatePoint`
+- L220 — `snap` — `"      const w = screenToIsoWorld(e);\n      const pt = { x: snapIsoV4(w.x, isoSnapStep), y: snapIsoV4(w.y, isoSnapStep) };",`
+- L221 — `point` — `"      // PATCH 017P2 : ce que l on voit est ce qui sera cree.\n      const pt = pdiCreatePoint(screenToIsoWorld(e));",`
+- L228 — `snap` — `"    // Detection du snap le plus proche (Port, Endpoint, Midpoint, Grid)",`
+- L228 — `port` — `"    // Detection du snap le plus proche (Port, Endpoint, Midpoint, Grid)",`
+- L228 — `point` — `"    // Detection du snap le plus proche (Port, Endpoint, Midpoint, Grid)",`
+- L229 — `snap` — `"    // PATCH 017P2 : la tolerance est convertie du viewBox vers les pixels reels.\n    const pdiTolScale = (t: number) => pdiTolViewBox(t, svgRef.current ? svgRef.current.getBoundingClientRect().width : 0);\n    // Detection du snap le plu`
+- L229 — `port` — `"    // PATCH 017P2 : la tolerance est convertie du viewBox vers les pixels reels.\n    const pdiTolScale = (t: number) => pdiTolViewBox(t, svgRef.current ? svgRef.current.getBoundingClientRect().width : 0);\n    // Detection du snap le plu`
+- L229 — `point` — `"    // PATCH 017P2 : la tolerance est convertie du viewBox vers les pixels reels.\n    const pdiTolScale = (t: number) => pdiTolViewBox(t, svgRef.current ? svgRef.current.getBoundingClientRect().width : 0);\n    // Detection du snap le plu`
+- L233 — `port` — `for kind in ("PORT", "ENDPOINT", "MIDPOINT", "GRID"):`
+- L233 — `point` — `for kind in ("PORT", "ENDPOINT", "MIDPOINT", "GRID"):`
+- L236 — `snap` — `"< PDI_SNAP_TOL_PX." + kind + ")",`
+- L237 — `snap` — `"< pdiTolScale(PDI_SNAP_TOL_PX." + kind + "))",`
+- L241 — `port` — `# E4 : commitGraph reoriente les ports et adapte les coudes.`
+- L242 — `align` — `# Toutes les commandes geometriques en beneficient : aligner, parallele,`
+- L242 — `parallel` — `# Toutes les commandes geometriques en beneficient : aligner, parallele,`
+- L242 — `parallele` — `# Toutes les commandes geometriques en beneficient : aligner, parallele,`
+- L245 — `port` — `"E4 commitGraph reoriente ports et coudes",`
+- L246 — `history` — `"    if (!historyBusyRef.current) pushHistory();\n    historyBusyRef.current = true;\n    setNodesRaw(nextNodes);",`
+- L247 — `history` — `"    if (!historyBusyRef.current) pushHistory();\n    historyBusyRef.current = true;\n    // PATCH 017P2 : les faces suivent la geometrie reelle et les coudes\n    // sont ramenes sur l angle normalise le plus proche.\n    const pdiReor = p`
+- L247 — `port` — `"    if (!historyBusyRef.current) pushHistory();\n    historyBusyRef.current = true;\n    // PATCH 017P2 : les faces suivent la geometrie reelle et les coudes\n    // sont ramenes sur l angle normalise le plus proche.\n    const pdiReor = p`
+- L251 — `align` — `# E5 : fin des alignements muets`
+- L253 — `align` — `"E5 alignement sans effet signale",`
+- L255 — `align` — `"    // PATCH 017P2 : un alignement sans effet ne doit plus etre muet.\n    const pdiMoved = nextNodes.some((n, i) => n !== nodes[i]);\n    if (!pdiMoved) {\n      setStatusMessage(`Alignement ${axis.toUpperCase()} : noeuds deja alignes sur`
+- L255 — `move` — `"    // PATCH 017P2 : un alignement sans effet ne doit plus etre muet.\n    const pdiMoved = nextNodes.some((n, i) => n !== nodes[i]);\n    if (!pdiMoved) {\n      setStatusMessage(`Alignement ${axis.toUpperCase()} : noeuds deja alignes sur`
+- L259 — `align` — `# E6 : le menu Alignement reste cliquable et explique la condition`
+- L261 — `align` — `old = '{ label: "Aligner ' + axis_label + '", hint: "' + hint + '", run: () => alignSelectedNodesAxis("' + axis_key + '"), disabled: selectedNodeIds.length < 2 },'`
+- L261 — `select` — `old = '{ label: "Aligner ' + axis_label + '", hint: "' + hint + '", run: () => alignSelectedNodesAxis("' + axis_key + '"), disabled: selectedNodeIds.length < 2 },'`
+- L262 — `align` — `new = '{ label: "Aligner ' + axis_label + '", hint: "' + hint + '", run: () => alignSelectedNodesAxis("' + axis_key + '") },'`
+- L262 — `select` — `new = '{ label: "Aligner ' + axis_label + '", hint: "' + hint + '", run: () => alignSelectedNodesAxis("' + axis_key + '") },'`
+- L263 — `align` — `EDITS.append(("E6 menu Aligner " + axis_label + " toujours cliquable", old, new, 1))`
+- L267 — `selection` — `"E7 astuce selection par rectangle",`
+- L267 — `select` — `"E7 astuce selection par rectangle",`
+- L268 — `align` — `'setStatusMessage(`Aligner ${axis.toUpperCase()} : s\u00e9lectionner au moins deux n\u0153uds`);',`
+- L269 — `align` — `'setStatusMessage(`Aligner ${axis.toUpperCase()} : s\u00e9lectionner au moins deux n\u0153uds (astuce : s\u00e9lection par rectangle pour des n\u0153uds empil\u00e9s)`);',`
+- L273 — `port` — `# VOLET C - application, controles, rapport`
+- L293 — `port` — `if os.path.exists(PORTS):`
+- L294 — `port` — `with open(PORTS, "r", encoding="utf-8") as fh:`
+- L295 — `port` — `need_module = fh.read() != PORTS_TS`
+- L297 — `port` — `with open(PORTS, "w", encoding="utf-8") as fh:`
+- L298 — `port` — `fh.write(PORTS_TS)`
+- L299 — `port` — `log("ECRIT : module pdiPorts017P2.ts")`
+- L301 — `port` — `log("DEJA : module pdiPorts017P2.ts")`
+- L325 — `port` — `with open(PORTS, "r", encoding="utf-8") as fh:`
+- L329 — `port` — `("module pdiPorts017P2 present", "export const pdiReorientPorts" in mod),`
+- L331 — `port` — `("import dans le moteur", 'from "./pdiPorts017P2"' in src),`
+- L332 — `point` — `("apercu du trace accroche", "const pt = pdiCreatePoint(screenToIsoWorld(e));" in src),`
+- L333 — `snap` — `("apercu sans grille pure", "const pt = { x: snapIsoV4(w.x, isoSnapStep), y: snapIsoV4(w.y, isoSnapStep) };" not in src),`
+- L334 — `snap` — `("tolerances a l echelle ecran (4)", src.count("pdiTolScale(PDI_SNAP_TOL_PX") == 4),`
+- … 15 occurrences supplémentaires.
+### `017P2_ports_coudes_REPORT.md`
+- L1 — `port` — `# PATCH 017P2 - reorientation des ports et des coudes`
+- L8 — `port` — `portWorldPosition decale chaque extremite de 0.08 a 0.20 m selon port.dx/dy`
+- L9 — `rotation` — `et node.rotation. Aucune commande geometrique ne reorientait ces faces :`
+- L10 — `align` — `apres un alignement le tube restait suspendu a cote des noeuds.`
+- L11 — `rotation` — `2. Les coudes sont desormais adaptes a la geometrie : rotation et sens deduits`
+- L19 — `align` — `5. Un alignement sans effet affichait un message identique a un succes.`
+- L20 — `align` — `6. Le menu Alignement etait grise sans explication sur des noeuds empiles.`
+- L28 — `snap` — `- Le verrouillage angulaire interactif (pdiSnapAngleDeg) attend le ruban 017M.`
+- L33 — `port` — `- OK   module pdiPorts017P2 present`
+- L35 — `port` — `- OK   import dans le moteur`
+- L42 — `align` — `- OK   alignement sans effet signale`
+- L43 — `align` — `- OK   menu Alignement toujours cliquable`
+### `017P3_noeuds_triedre_metre_REPORT.md`
+- L1 — `port` — `# RAPPORT PATCH 017P3 - Noeuds, triedre X Y Z et metre par convention`
+- L12 — `rotation` — `La rotation ne creait pas le defaut : elle le revelait, en faisant pivoter`
+- L17 — `point` — `1. Un noeud simple est un POINT : le tube part de son centre. Les cotes`
+- L21 — `point` — `plus mentir sur la position du point.`
+- L34 — `port` — `Les valeurs de longueur totale et de poids AUGMENTENT par rapport aux`
+- L41 — `port` — `- APPLIQUE : E1 import du module d axes`
+- L56 — `port` — `- [x] import branche dans le moteur`
+- L57 — `port` — `- [x] noeud simple ramene au centre dans portWorldPosition`
+### `017P3_pdi_noeuds_triedre_metre.py`
+- L4 — `port` — `# Regles : R1 idempotent + backup + rapport, R26 volets separes puis cat.`
+- L5 — `port` — `import os`
+- L6 — `port` — `import re`
+- L7 — `port` — `import sys`
+- L8 — `port` — `import shutil`
+- L9 — `port` — `import hashlib`
+- L85 — `port` — `'export type PdiAxisKey017P3 = "X" | "Y" | "Z";',`
+- L87 — `port` — `'export type PdiAxisDir017P3 = {',`
+- L95 — `port` — `'export const PDI_AXIS_COLORS_017P3: Record<PdiAxisKey017P3, string> = {',`
+- L101 — `port` — `'export const pdiIsoAxisDirs017P3 = (cos: number, sin: number): PdiAxisDir017P3[] => [',`
+- L108 — `port` — `'export const PDI_NODE_RADIUS_MIN_017P3 = 3;',`
+- L109 — `port` — `'export const PDI_NODE_RADIUS_MAX_017P3 = 10;',`
+- L111 — `port` — `'export const pdiNodeRadius017P3 = (zoom: number, isSel?: boolean, isHov?: boolean) => {',`
+- L119 — `point` — `'// Regle metier ISO : un changement de direction est un POINT, pas une piece.',`
+- L121 — `port` — `'export const pdiNodeHasFaceOffset017P3 = (',`
+- L125 — `port` — `'export const PDI_METRE_CONVENTION_017P3 =',`
+- L147 — `translate` — `'<g transform="translate(566 44)">'`
+- L151 — `anchor` — `'<text x={a.sx*34} y={a.sy*34+3} fill={a.color} fontSize="9" fontWeight="bold" textAnchor="middle">{a.key}</text>'`
+- L157 — `port` — `IMPORT_LINE = (`
+- L158 — `port` — `'import { pdiIsoAxisDirs017P3, pdiNodeRadius017P3, '`
+- L165 — `port` — `'E1 import du module d axes',`
+- L167 — `port` — `'from "./pdiPorts017P2";',`
+- L168 — `port` — `IMPORT_LINE,`
+- L174 — `port` — `'if(!port) return {x:node.x,y:node.y,z:node.z};',`
+- L182 — `port` — `'r={pdiNodeRadius017P3(viewport.zoom,isSel,isHov)}',`
+- L183 — `port` — `'pdiNodeRadius017P3(viewport.zoom',`
+- L188 — `translate` — `'<g transform="translate(550 45)">',`
+- L216 — `anchor` — `def apply_edit(txt, label, mode, anchor, payload, sentinel):`
+- L222 — `anchor` — `hits = [i for i, l in enumerate(lines) if anchor in l]`
+- L231 — `anchor` — `lines[i] = raw.replace(anchor, payload)`
+- L250 — `anchor` — `for (label, mode, anchor, payload, sentinel) in EDITS:`
+- L251 — `anchor` — `txt = apply_edit(txt, label, mode, anchor, payload, sentinel)`
+- L261 — `port` — `# VOLET C : verifications, rapport, point d entree`
+- L261 — `point` — `# VOLET C : verifications, rapport, point d entree`
+- L283 — `port` — `'import branche dans le moteur',`
+- L287 — `port` — `'noeud simple ramene au centre dans portWorldPosition',`
+- L296 — `port` — `'pdiNodeRadius017P3(viewport.zoom,isSel,isHov)' in tsx,`
+- L300 — `translate` — `'translate(550 45)' not in tsx,`
+- L304 — `translate` — `'translate(566 44)' in tsx and 'pdiIsoAxisDirs017P3(PDI_ISO_COS_017I2' in tsx,`
+- L329 — `port` — `RAPPORT_ENTETE = [`
+- L330 — `port` — `'# RAPPORT PATCH 017P3 - Noeuds, triedre X Y Z et metre par convention',`
+- L341 — `rotation` — `'La rotation ne creait pas le defaut : elle le revelait, en faisant pivoter',`
+- L346 — `point` — `'1. Un noeud simple est un POINT : le tube part de son centre. Les cotes',`
+- L350 — `point` — `'   plus mentir sur la position du point.',`
+- L363 — `port` — `'Les valeurs de longueur totale et de poids AUGMENTENT par rapport aux',`
+- L389 — `port` — `lines = list(RAPPORT_ENTETE)`
+- L398 — `port` — `rep = os.path.join(root, '017P3_noeuds_triedre_metre_REPORT.md')`
+- L401 — `port` — `print('RAPPORT : ' + rep)`
+### `017P4_pdi_te_ports_cartouche.py`
+- L2 — `port` — `# Objet : le glyphe du Te derive de ses ports reels (fin des pixels figes),`
+- L4 — `port` — `# Regles : R1 idempotent + backup + rapport, R26 volets separes puis cat.`
+- L5 — `port` — `import os`
+- L6 — `port` — `import re`
+- L7 — `port` — `import sys`
+- L8 — `port` — `import shutil`
+- L9 — `port` — `import hashlib`
+- L85 — `anchor` — `def apply_edit(txt, label, mode, anchor, payload, sentinel, anchor_end=None):`
+- L91 — `anchor` — `hits = [i for i, l in enumerate(lines) if anchor in l]`
+- L102 — `anchor` — `lines[i] = raw.replace(anchor, payload)`
+- L108 — `anchor` — `ends = [k for k, l in enumerate(lines) if anchor_end and anchor_end in l and k >= i]`
+- L127 — `port` — `# Le scope du rendu fournit deja, pour TOUT noeud, la liste nativePorts :`
+- L128 — `port` — `#   nativePorts = (n.ports||[]).map(port => { w = portWorldPosition(n, port.id);`
+- L129 — `port` — `#                 sp = isoProjectV4(w...); return {...port, sx: sp.x-p.x, sy: sp.y-p.y}; })`
+- L131 — `rotation` — `# la rotation. Le Te est reconstruit sur cette base : plus aucune coordonnee`
+- L133 — `port` — `# Te ancien qui n aurait aucun port declare.`
+- L135 — `port` — `'<circle r={pdiNodeRadius017P3(viewport.zoom,isSel,isHov)+2} fill="#1e1b4b" stroke={isSel?"#facc15":"#a78bfa"} strokeWidth={2}/>',`
+- L136 — `port` — `'{nativePorts.length?nativePorts.map(port=>(<line key={`te-branche-${port.id}`} x1="0" y1="0" x2={port.sx} y2={port.sy} stroke="#a78bfa" strokeWidth="2.5" strokeLinecap="round"/>)):(<path d="M -10 0 L 10 0 M 0 0 L 0 -12" stroke="#a78bfa" st`
+- L137 — `port` — `'{nativePorts.map(port=>(<g key={port.id} data-iso-port="true" data-port-node-id={n.id} data-port-idx={String(port.index)} className="cursor-crosshair"><circle cx={port.sx} cy={port.sy} r={port.role==="branch"?4:3} fill={port.role==="branch`
+- L153 — `port` — `'E1 glyphe du Te derive de ses ports reels',`
+- L157 — `port` — `'te-branche-${port.id}',`
+- L177 — `anchor` — `for (label, mode, anchor, payload, sentinel, anchor_end) in EDITS:`
+- L178 — `anchor` — `txt = apply_edit(txt, label, mode, anchor, payload, sentinel, anchor_end)`
+- L187 — `port` — `# VOLET C : verifications, rapport, point d entree`
+- L187 — `point` — `# VOLET C : verifications, rapport, point d entree`
+- L198 — `port` — `'pdiNodeRadius017P3(viewport.zoom,isSel,isHov)+2' in tsx,`
+- L201 — `port` — `'branches du Te tracees vers les ports projetes',`
+- L202 — `port` — `'x2={port.sx} y2={port.sy}' in tsx,`
+- L205 — `port` — `'plus aucune pastille de port du Te en dur',`
+- L209 — `port` — `'repli conserve pour un Te sans port declare',`
+- L213 — `port` — `'ports du Te restent cliquables (piquage preserve)',`
+- L214 — `port` — `tsx.count('data-port-idx={String(port.index)}') >= 2,`
+- L230 — `translate` — `'translate(566 44)' in tsx,`
+- L234 — `translate` — `'translate(550 45)' not in tsx and '>N</text>' in tsx,`
+- L251 — `port` — `RAPPORT = [`
+- L252 — `port` — `'# RAPPORT PATCH 017P4 - Te collé et convention au cartouche',`
+- L261 — `port` — `'- trois pastilles de port placees a cx = -12, cx = 12, cy = -14.',`
+- L266 — `rotation` — `'coordonnees en dur NE TOURNENT PAS : apres une rotation, le glyphe restait',`
+- L267 — `port` — `'couche alors que les ports avaient pivote.',`
+- L271 — `port` — `'Le scope de rendu calculait deja, pour tout noeud, nativePorts avec des',`
+- L272 — `port` — `'offsets ecran sx / sy issus de portWorldPosition puis isoProjectV4. Le Te',`
+- L274 — `port` — `'centre vers ses ports reels, ses pastilles se posent sur ces ports. Echelle',`
+- L276 — `port` — `'apres toute rotation. Un Te ancien depourvu de ports garde le trace de',`
+- L276 — `rotation` — `'apres toute rotation. Un Te ancien depourvu de ports garde le trace de',`
+- L309 — `port` — `lines = list(RAPPORT)`
+- L318 — `port` — `rep = os.path.join(root, '017P4_te_ports_cartouche_REPORT.md')`
+- L321 — `port` — `print('RAPPORT : ' + rep)`
+### `017P4_te_ports_cartouche_REPORT.md`
+- L1 — `port` — `# RAPPORT PATCH 017P4 - Te collé et convention au cartouche`
+- L10 — `port` — `- trois pastilles de port placees a cx = -12, cx = 12, cy = -14.`
+- L15 — `rotation` — `coordonnees en dur NE TOURNENT PAS : apres une rotation, le glyphe restait`
+- L16 — `port` — `couche alors que les ports avaient pivote.`
+- L20 — `port` — `Le scope de rendu calculait deja, pour tout noeud, nativePorts avec des`
+- L21 — `port` — `offsets ecran sx / sy issus de portWorldPosition puis isoProjectV4. Le Te`
+- L23 — `port` — `centre vers ses ports reels, ses pastilles se posent sur ces ports. Echelle`
+- L25 — `port` — `apres toute rotation. Un Te ancien depourvu de ports garde le trace de`
+- L25 — `rotation` — `apres toute rotation. Un Te ancien depourvu de ports garde le trace de`
+- L35 — `port` — `- MESURE : E1 glyphe du Te derive de ses ports reels : plage remplacee 7024-7028`
+- L36 — `port` — `- APPLIQUE : E1 glyphe du Te derive de ses ports reels`
+- L46 — `port` — `- [x] branches du Te tracees vers les ports projetes`
+- L47 — `port` — `- [x] plus aucune pastille de port du Te en dur`
+- L48 — `port` — `- [x] repli conserve pour un Te sans port declare`
+- L49 — `port` — `- [x] ports du Te restent cliquables (piquage preserve)`
+### `017P5_glyphes_equipements_REPORT.md`
+- L1 — `port` — `# PATCH 017P5 - glyphes d equipements a l echelle des ports`
+- L11 — `port` — `Un Te reduit porte equipmentType, il passe donc par la branche`
+- L14 — `fitting` — `glyphes de getFittingSvgGraphic sont nominaux a +/- 7 unites :`
+- L15 — `port` — `demi-branche de 9.1 px constants contre des ports a`
+- L22 — `port` — `moyenne centre -> ports, bornee entre 0.9 et 40.`
+- L23 — `port` — `- Pattes de raccordement du centre vers chaque port, garantie`
+- L25 — `selection` — `- Cadres de selection et de survol mis a la meme echelle.`
+- L25 — `select` — `- Cadres de selection et de survol mis a la meme echelle.`
+- L38 — `port` — `- APPLIQUE : E1 import du module d echelle des glyphes`
+- L40 — `selection` — `- APPLIQUE : E3 cadre de selection a l echelle du glyphe`
+- L40 — `select` — `- APPLIQUE : E3 cadre de selection a l echelle du glyphe`
+- L42 — `port` — `- APPLIQUE : E5 glyphe d equipement mis a l echelle de ses ports`
+- L46 — `port` — `- OK : module : fonction pdiGlyphScale017P5 exportee`
+- L49 — `port` — `- OK : module : calcul 100 pour cent local, aucun import externe (R7)`
+- L50 — `port` — `- OK : moteur : import du module present`
+- L53 — `port` — `- OK : glyphe mis a l echelle des ports : scale(${kGlyph}`
+- L54 — `port` — `- OK : pattes de raccordement centre -> ports`
+- L55 — `selection` — `- OK : cadre de selection a l echelle`
+- L55 — `select` — `- OK : cadre de selection a l echelle`
+### `017P5_pdi_glyphes_equipements.py`
+- L2 — `port` — `# Objet : le glyphe du Te derive de ses ports reels (fin des pixels figes),`
+- L4 — `port` — `# Regles : R1 idempotent + backup + rapport, R26 volets separes puis cat.`
+- L5 — `port` — `import os`
+- L6 — `port` — `import re`
+- L7 — `port` — `import sys`
+- L8 — `port` — `import shutil`
+- L9 — `port` — `import hashlib`
+- L85 — `anchor` — `def apply_edit(txt, label, mode, anchor, payload, sentinel, anchor_end=None):`
+- L91 — `anchor` — `hits = [i for i, l in enumerate(lines) if anchor in l]`
+- L102 — `anchor` — `lines[i] = raw.replace(anchor, payload)`
+- L108 — `anchor` — `ends = [k for k, l in enumerate(lines) if anchor_end and anchor_end in l and k >= i]`
+- L128 — `fitting` — `# Module local : echelle des glyphes de fittings derivee des ports.`
+- L128 — `port` — `# Module local : echelle des glyphes de fittings derivee des ports.`
+- L129 — `fitting` — `# Les glyphes de getFittingSvgGraphic sont dessines dans une plage`
+- L132 — `port` — `# alors que les ports sont a 0.20 m x 28 px/m x zoom.`
+- L135 — `fitting` — `'// Echelle des glyphes de fittings, derivee de la position reelle des ports.',`
+- L135 — `port` — `'// Echelle des glyphes de fittings, derivee de la position reelle des ports.',`
+- L138 — `fitting` — `'// Demi-taille nominale des glyphes de getFittingSvgGraphic, en unites SVG.',`
+- L139 — `port` — `'export const PDI_GLYPHE_DEMI_NOMINALE_017P5 = 7;',`
+- L142 — `port` — `'export const PDI_GLYPHE_SCALE_MIN_017P5 = 0.9;',`
+- L143 — `port` — `'export const PDI_GLYPHE_SCALE_MAX_017P5 = 40;',`
+- L145 — `port` — `'export type PdiGlyphPort017P5 = { sx: number; sy: number };',`
+- L148 — `port` — `'// nominale couvre la distance ecran moyenne centre -> ports.',`
+- L149 — `port` — `'export function pdiGlyphScale017P5(',`
+- L150 — `port` — `'  ports: PdiGlyphPort017P5[] | null | undefined,',`
+- L153 — `port` — `'  if (!ports || ports.length === 0) return defaut;',`
+- L156 — `port` — `'  for (const port of ports) {',`
+- L157 — `port` — `'    const d = Math.hypot(Number(port.sx) || 0, Number(port.sy) || 0);',`
+- L174 — `port` — `IMPORT_NEUF = 'import { pdiGlyphScale017P5 } from "./pdiGlyphes017P5";'`
+- L176 — `port` — `KGLYPH_NEUF = 'const kGlyph=pdiGlyphScale017P5(nativePorts);'`
+- L178 — `port` — `# Glyphe d equipement : echelle derivee des ports + pattes de raccordement.`
+- L183 — `port` — `'<g>{nativePorts.map(port=>(<line key={`patte-${port.id}`} x1="0" y1="0"'`
+- L184 — `port` — `' x2={port.sx} y2={port.sy} stroke="#64748b" strokeWidth="1.6"'`
+- L187 — `fitting` — `' dangerouslySetInnerHTML={{__html:getFittingSvgGraphic(n.equipmentType!,false)}}/>'`
+- L202 — `port` — `'E1 import du module d echelle des glyphes',`
+- L205 — `port` — `IMPORT_NEUF,`
+- L218 — `selection` — `'E3 cadre de selection a l echelle du glyphe',`
+- L218 — `select` — `'E3 cadre de selection a l echelle du glyphe',`
+- L234 — `port` — `'E5 glyphe d equipement mis a l echelle de ses ports',`
+- L238 — `port` — `'patte-${port.id}',`
+- L260 — `anchor` — `for label, mode, anchor, payload, sentinel, anchor_end in EDITS:`
+- L261 — `anchor` — `txt = apply_edit(txt, label, mode, anchor, payload, sentinel, anchor_end)`
+- L272 — `port` — `# VOLET C : controles, rapport, point d entree`
+- L272 — `point` — `# VOLET C : controles, rapport, point d entree`
+- L282 — `port` — `tests.append(('module : fonction pdiGlyphScale017P5 exportee',`
+- L283 — `port` — `'export function pdiGlyphScale017P5(' in ts))`
+- L289 — `port` — `tests.append(('module : calcul 100 pour cent local, aucun import externe (R7)',`
+- L290 — `port` — `'import ' not in ts))`
+- L292 — `port` — `tests.append(('moteur : import du module present',`
+- L295 — `port` — `tsx.count('const kGlyph=pdiGlyphScale017P5(nativePorts);') == 1))`
+- L299 — `port` — `tests.append(('glyphe mis a l echelle des ports : scale(${kGlyph}',`
+- L301 — `port` — `tests.append(('pattes de raccordement centre -> ports',`
+- L302 — `port` — `'patte-${port.id}' in tsx`
+- L303 — `port` — `and 'x2={port.sx} y2={port.sy}' in tsx))`
+- L305 — `selection` — `tests.append(('cadre de selection a l echelle',`
+- L305 — `select` — `tests.append(('cadre de selection a l echelle',`
+- L315 — `port` — `'te-branche-${port.id}' in tsx))`
+- L317 — `port` — `'pdiNodeRadius017P3(viewport.zoom,isSel,isHov)' in tsx`
+- L320 — `translate` — `'translate(566 44)' in tsx))`
+- L341 — `port` — `RAPPORT = '017P5_glyphes_equipements_REPORT.md'`
+- L344 — `port` — `def ecrire_rapport(root, bons, total):`
+- L346 — `port` — `lignes.append('# PATCH ' + TAG + ' - glyphes d equipements a l echelle des ports')`
+- L356 — `port` — `lignes.append('Un Te reduit porte equipmentType, il passe donc par la branche')`
+- L359 — `fitting` — `lignes.append('glyphes de getFittingSvgGraphic sont nominaux a +/- 7 unites :')`
+- L360 — `port` — `lignes.append('demi-branche de 9.1 px constants contre des ports a')`
+- L367 — `port` — `lignes.append('  moyenne centre -> ports, bornee entre 0.9 et 40.')`
+- L368 — `port` — `lignes.append('- Pattes de raccordement du centre vers chaque port, garantie')`
+- L370 — `selection` — `lignes.append('- Cadres de selection et de survol mis a la meme echelle.')`
+- L370 — `select` — `lignes.append('- Cadres de selection et de survol mis a la meme echelle.')`
+- L381 — `port` — `write(os.path.join(root, RAPPORT), '\n'.join(lignes))`
+- L385 — `port` — `print('=== PATCH ' + TAG + ' : glyphes d equipements a l echelle des ports ===')`
+- L397 — `port` — `if 'te-branche-${port.id}' not in tsx:`
+- L404 — `port` — `ecrire_rapport(root, bons, total)`
+### `017P6_pdi_te_equipement_oriente.py`
+- L2 — `port` — `# Objet : le glyphe du Te derive de ses ports reels (fin des pixels figes),`
+- L4 — `port` — `# Regles : R1 idempotent + backup + rapport, R26 volets separes puis cat.`
+- L5 — `port` — `import os`
+- L6 — `port` — `import re`
+- L7 — `port` — `import sys`
+- L8 — `port` — `import shutil`
+- L9 — `port` — `import hashlib`
+- L85 — `anchor` — `def apply_edit(txt, label, mode, anchor, payload, sentinel, anchor_end=None):`
+- L91 — `anchor` — `hits = [i for i, l in enumerate(lines) if anchor in l]`
+- L102 — `anchor` — `lines[i] = raw.replace(anchor, payload)`
+- L108 — `anchor` — `ends = [k for k, l in enumerate(lines) if anchor_end and anchor_end in l and k >= i]`
+- L123 — `port` — `# VOLET B : les tes-equipements traces depuis leurs ports`
+- L126 — `align` — `# Cause racine : rotate(angle) n aligne le glyphe que sur l axe`
+- L130 — `rotation` — `# apparaissent a environ 120 degres. Une rotation plane unique`
+- L134 — `port` — `# ports projetes, sans aucune rotation.`
+- L134 — `rotation` — `# ports projetes, sans aucune rotation.`
+- L136 — `port` — `BRANCH_NEUF = 'const branchPort=nativePorts.find(port=>port.role==="branch");'`
+- L141 — `port` — `'branchPort&&p0&&p1?<g data-pdi-te="017p6">'`
+- L144 — `port` — `'<line x1="0" y1="0" x2={branchPort.sx} y2={branchPort.sy} stroke="#22c55e"'`
+- L146 — `port` — `'<circle cx={branchPort.sx} cy={branchPort.sy} r="2.5" fill="#22c55e"/>'`
+- L148 — `port` — `'<g>{nativePorts.map(port=>(<line key={`patte-${port.id}`} x1="0" y1="0"'`
+- L149 — `port` — `' x2={port.sx} y2={port.sy} stroke="#64748b" strokeWidth="1.6"'`
+- L152 — `fitting` — `' dangerouslySetInnerHTML={{__html:getFittingSvgGraphic(n.equipmentType!,false)}}/>'`
+- L159 — `fitting` — `'E1 reperage du port de branche du fitting',`
+- L159 — `port` — `'E1 reperage du port de branche du fitting',`
+- L161 — `port` — `'const kGlyph=pdiGlyphScale017P5(nativePorts);',`
+- L163 — `port` — `'const branchPort=nativePorts.find',`
+- L167 — `port` — `'E2 te-equipement trace depuis ses ports, sans rotation',`
+- L167 — `rotation` — `'E2 te-equipement trace depuis ses ports, sans rotation',`
+- L169 — `port` — `'patte-${port.id}',`
+- L184 — `anchor` — `for label, mode, anchor, payload, sentinel, anchor_end in EDITS:`
+- L185 — `anchor` — `txt = apply_edit(txt, label, mode, anchor, payload, sentinel, anchor_end)`
+- L196 — `port` — `# VOLET C : controles, rapport, point d entree`
+- L196 — `point` — `# VOLET C : controles, rapport, point d entree`
+- L205 — `port` — `tests.append(('port de branche repere une seule fois',`
+- L206 — `port` — `tsx.count('const branchPort=nativePorts.find') == 1))`
+- L207 — `rotation` — `tests.append(('CAUSE RACINE : te-equipement trace sans rotation',`
+- L211 — `port` — `tests.append(('branche du te : du centre au port de branche',`
+- L212 — `port` — `'x2={branchPort.sx} y2={branchPort.sy}' in tsx))`
+- L214 — `port` — `'branchPort&&p0&&p1?<g data-pdi-te' in tsx))`
+- L215 — `fitting` — `tests.append(('le glyphe tournant reste reserve aux fittings inline',`
+- L216 — `port` — `'branchPort&&p0&&p1?' in tsx))`
+- L224 — `port` — `'patte-${port.id}' in tsx))`
+- L228 — `port` — `'te-branche-${port.id}' in tsx))`
+- L230 — `port` — `'pdiNodeRadius017P3(viewport.zoom,isSel,isHov)' in tsx`
+- L233 — `translate` — `'translate(566 44)' in tsx))`
+- L254 — `port` — `RAPPORT = '017P6_te_equipement_oriente_REPORT.md'`
+- L257 — `port` — `def ecrire_rapport(root, bons, total):`
+- L259 — `port` — `lignes.append('# PATCH ' + TAG + ' - te-equipement oriente par ses ports')`
+- L264 — `rotation` — `lignes.append('reste mal oriente apres rotation.')`
+- L268 — `align` — `lignes.append('angle = atan2(p1.sy - p0.sy, p1.sx - p0.sx) n aligne le glyphe')`
+- L272 — `rotation` — `lignes.append('environ 120 degres. Une rotation plane unique ne peut pas')`
+- L277 — `fitting` — `lignes.append('Tout fitting portant un port de role branch est desormais')`
+- L277 — `port` — `lignes.append('Tout fitting portant un port de role branch est desormais')`
+- L278 — `port` — `lignes.append('trace depuis ses ports projetes : corps de p0 a p1, branche du')`
+- L279 — `port` — `lignes.append('centre vers le port de branche, sans aucune rotation. Meme')`
+- L279 — `rotation` — `lignes.append('centre vers le port de branche, sans aucune rotation. Meme')`
+- L281 — `fitting` — `lignes.append('Les fittings inline (vannes, brides, JMI) conservent le glyphe')`
+- L282 — `port` — `lignes.append('tournant : pour eux rotate est exact car leurs ports sont')`
+- L294 — `port` — `write(os.path.join(root, RAPPORT), '\n'.join(lignes))`
+- L298 — `port` — `print('=== PATCH ' + TAG + ' : te-equipement oriente par ses ports ===')`
+- L310 — `port` — `if 'te-branche-${port.id}' not in tsx:`
+- L320 — `port` — `ecrire_rapport(root, bons, total)`
+### `017P6_te_equipement_oriente_REPORT.md`
+- L1 — `port` — `# PATCH 017P6 - te-equipement oriente par ses ports`
+- L6 — `rotation` — `reste mal oriente apres rotation.`
+- L10 — `align` — `angle = atan2(p1.sy - p0.sy, p1.sx - p0.sx) n aligne le glyphe`
+- L14 — `rotation` — `environ 120 degres. Une rotation plane unique ne peut pas`
+- L19 — `fitting` — `Tout fitting portant un port de role branch est desormais`
+- L19 — `port` — `Tout fitting portant un port de role branch est desormais`
+- L20 — `port` — `trace depuis ses ports projetes : corps de p0 a p1, branche du`
+- L21 — `port` — `centre vers le port de branche, sans aucune rotation. Meme`
+- L21 — `rotation` — `centre vers le port de branche, sans aucune rotation. Meme`
+- L23 — `fitting` — `Les fittings inline (vannes, brides, JMI) conservent le glyphe`
+- L24 — `port` — `tournant : pour eux rotate est exact car leurs ports sont`
+- L36 — `fitting` — `- APPLIQUE : E1 reperage du port de branche du fitting`
+- L36 — `port` — `- APPLIQUE : E1 reperage du port de branche du fitting`
+- L37 — `port` — `- APPLIQUE : E2 te-equipement trace depuis ses ports, sans rotation`
+- L37 — `rotation` — `- APPLIQUE : E2 te-equipement trace depuis ses ports, sans rotation`
+- L41 — `port` — `- OK : port de branche repere une seule fois`
+- L42 — `rotation` — `- OK : CAUSE RACINE : te-equipement trace sans rotation`
+- L44 — `port` — `- OK : branche du te : du centre au port de branche`
+- L46 — `fitting` — `- OK : le glyphe tournant reste reserve aux fittings inline`
+### `017P7_pdi_version_te_unifie.py`
+- L2 — `port` — `# Objet : le glyphe du Te derive de ses ports reels (fin des pixels figes),`
+- L4 — `port` — `# Regles : R1 idempotent + backup + rapport, R26 volets separes puis cat.`
+- L5 — `port` — `import os`
+- L6 — `port` — `import re`
+- L7 — `port` — `import sys`
+- L8 — `port` — `import shutil`
+- L9 — `port` — `import hashlib`
+- L85 — `anchor` — `def apply_edit(txt, label, mode, anchor, payload, sentinel, anchor_end=None):`
+- L91 — `anchor` — `hits = [i for i, l in enumerate(lines) if anchor in l]`
+- L102 — `anchor` — `lines[i] = raw.replace(anchor, payload)`
+- L108 — `anchor` — `ends = [k for k, l in enumerate(lines) if anchor_end and anchor_end in l and k >= i]`
+- L128 — `point` — `# Un seul point de verite pour la version affichee dans l interface.`
+- L132 — `point` — `'// Point de verite unique : chaque patch met a jour cette valeur,',`
+- L135 — `port` — `'export const PDI_PATCH_VERSION = "017P7";',`
+- L138 — `port` — `'export const PDI_PATCH_DATE = "2026-08-27";',`
+- L142 — `port` — `IMPORT_NEUF = 'import { PDI_PATCH_VERSION } from "../../pdiVersion";'`
+- L149 — `align` — `' border-cyan-500/40 rounded px-1 py-0.5 mr-1.5 align-middle">'`
+- L155 — `port` — `# dont les ports sont a 0.20 m ne mesure que 8.8 px a 158 pour cent,`
+- L161 — `port` — `'branchPort?<g data-pdi-te="017p7">'`
+- L162 — `port` — `'<circle r={pdiNodeRadius017P3(viewport.zoom,isSel,isHov)+2} fill="#052e16"'`
+- L164 — `port` — `'{nativePorts.map(port=>(<line key={`teq-branche-${port.id}`} x1="0" y1="0"'`
+- L165 — `port` — `' x2={port.sx} y2={port.sy} stroke="#22c55e" strokeWidth="2.5"'`
+- L167 — `port` — `'{nativePorts.map(port=>(<g key={port.id} data-iso-port="true"'`
+- L168 — `port` — `' data-port-node-id={n.id} data-port-idx={String(port.index)}'`
+- L169 — `port` — `' className="cursor-crosshair"><circle cx={port.sx} cy={port.sy}'`
+- L170 — `port` — `' r={port.role==="branch"?4:3}'`
+- L171 — `port` — `' fill={port.role==="branch"?"#22c55e":"#16a34a"} stroke="#ffffff"'`
+- L172 — `port` — `' strokeWidth={port.role==="branch"?1.5:1}/></g>))}'`
+- L174 — `port` — `'<g>{nativePorts.map(port=>(<line key={`patte-${port.id}`} x1="0" y1="0"'`
+- L175 — `port` — `' x2={port.sx} y2={port.sy} stroke="#64748b" strokeWidth="1.6"'`
+- L178 — `fitting` — `' dangerouslySetInnerHTML={{__html:getFittingSvgGraphic(n.equipmentType!,false)}}/>'`
+- L185 — `port` — `'E1 import du point de verite de version',`
+- L185 — `point` — `'E1 import du point de verite de version',`
+- L188 — `port` — `IMPORT_NEUF,`
+- L229 — `anchor` — `for label, mode, anchor, payload, sentinel, anchor_end in EDITS:`
+- L230 — `anchor` — `txt = apply_edit(txt, label, mode, anchor, payload, sentinel, anchor_end)`
+- L241 — `port` — `# VOLET C : controles, rapport, point d entree`
+- L241 — `point` — `# VOLET C : controles, rapport, point d entree`
+- L251 — `point` — `tests.append(('point de verite : PDI_PATCH_VERSION sur ' + TAG,`
+- L254 — `port` — `'import ' not in ver))`
+- L255 — `port` — `tests.append(('import de la version dans le moteur',`
+- L264 — `port` — `and tsx.count('pdiNodeRadius017P3(viewport.zoom,isSel,isHov)+2') == 2))`
+- L265 — `port` — `tests.append(('branches du te-equipement vers tous les ports projetes',`
+- L266 — `port` — `'teq-branche-${port.id}' in tsx))`
+- L267 — `port` — `tests.append(('ports du te-equipement cliquables pour le piquage',`
+- L268 — `port` — `tsx.count('data-port-idx={String(port.index)}') >= 3))`
+- L270 — `port` — `'branchPort?<g data-pdi-te' in tsx))`
+- L280 — `port` — `'te-branche-${port.id}' in tsx))`
+- L283 — `translate` — `and 'translate(566 44)' in tsx))`
+- L304 — `port` — `RAPPORT = '017P7_version_te_unifie_REPORT.md'`
+- L307 — `port` — `def ecrire_rapport(root, bons, total):`
+- L313 — `point` — `lignes.append('src/pdi/pdiVersion.ts devient le point de verite unique.')`
+- L323 — `port` — `lignes.append('depuis les ports, mais sans repere central. Or les ports d un')`
+- L331 — `port` — `lignes.append('branches vers les ports projetes. Le te-equipement adopte')`
+- L338 — `port` — `lignes.append('  derive des ports qu au coude. Un te imprime reste mal')`
+- L353 — `port` — `write(os.path.join(root, RAPPORT), '\n'.join(lignes))`
+- L371 — `port` — `if 'const branchPort=nativePorts.find' not in tsx:`
+- L379 — `port` — `ecrire_rapport(root, bons, total)`
+### `017P7_version_te_unifie_REPORT.md`
+- L5 — `point` — `src/pdi/pdiVersion.ts devient le point de verite unique.`
+- L15 — `port` — `depuis les ports, mais sans repere central. Or les ports d un`
+- L23 — `port` — `branches vers les ports projetes. Le te-equipement adopte`
+- L30 — `port` — `derive des ports qu au coude. Un te imprime reste mal`
+- L47 — `port` — `- APPLIQUE : E1 import du point de verite de version`
+- L47 — `point` — `- APPLIQUE : E1 import du point de verite de version`
+- L53 — `point` — `- OK : point de verite : PDI_PATCH_VERSION sur 017P7`
+- L55 — `port` — `- OK : import de la version dans le moteur`
+- L59 — `port` — `- OK : branches du te-equipement vers tous les ports projetes`
+- L60 — `port` — `- OK : ports du te-equipement cliquables pour le piquage`
+### `017P8_pdi_port_occupe_erreurs_reseau.py`
+- L2 — `port` — `# Objet : le glyphe du Te derive de ses ports reels (fin des pixels figes),`
+- L4 — `port` — `# Regles : R1 idempotent + backup + rapport, R26 volets separes puis cat.`
+- L5 — `port` — `import os`
+- L6 — `port` — `import re`
+- L7 — `port` — `import sys`
+- L8 — `port` — `import shutil`
+- L9 — `port` — `import hashlib`
+- L85 — `anchor` — `def apply_edit(txt, label, mode, anchor, payload, sentinel, anchor_end=None):`
+- L91 — `anchor` — `hits = [i for i, l in enumerate(lines) if anchor in l]`
+- L102 — `anchor` — `lines[i] = raw.replace(anchor, payload)`
+- L108 — `anchor` — `ends = [k for k, l in enumerate(lines) if anchor_end and anchor_end in l and k >= i]`
+- L123 — `port` — `# VOLET B : port occupe non branchable + erreurs reseau explicitees`
+- L126 — `port` — `# E1 : refus de branche sur un port deja occupe par un troncon.`
+- L127 — `port` — `# Un port occupe porte une soudure : il ne peut pas recevoir de branche.`
+- L129 — `port` — `'setBranchDrawing({fromNodeId:nodeId,fromPortId:portByIndex(node,portIdx)?.id,'`
+- L130 — `port` — `'handleIndex:portIdx,currentWorldPos:screenToIsoWorld(e)});'`
+- L133 — `port` — `'const portCible=portByIndex(node,portIdx);'`
+- L134 — `port` — `'const portOccupe=!!portCible&&segments.some(s=>s.fromPortId===portCible.id'`
+- L135 — `port` — `'||s.toPortId===portCible.id);'`
+- L136 — `port` — `'if(portOccupe){setStatusMessage("PORT OCCUPE : ce port porte deja une soudure.'`
+- L137 — `port` — `' Aucune branche creee. Choisissez un port libre.");e.stopPropagation();return;}'`
+- L138 — `port` — `'setBranchDrawing({fromNodeId:nodeId,fromPortId:portCible?.id,'`
+- L139 — `port` — `'handleIndex:portIdx,currentWorldPos:screenToIsoWorld(e)});'`
+- L144 — `port` — `# qui distingue port libre (cliquable) et port soude (non cliquable).`
+- L150 — `port` — `'branchPort?<g data-pdi-te="017p8">'`
+- L151 — `port` — `'<circle r={pdiNodeRadius017P3(viewport.zoom,isSel,isHov)+2} fill="#052e16"'`
+- L153 — `port` — `'{nativePorts.map(port=>(<line key={`teq-branche-${port.id}`} x1="0" y1="0"'`
+- L154 — `port` — `' x2={port.sx} y2={port.sy} stroke="#22c55e" strokeWidth="2.5"'`
+- L157 — `port` — `'<g>{nativePorts.map(port=>(<line key={`patte-${port.id}`} x1="0" y1="0"'`
+- L158 — `port` — `' x2={port.sx} y2={port.sy} stroke="#64748b" strokeWidth="1.6"'`
+- L161 — `fitting` — `' dangerouslySetInnerHTML={{__html:getFittingSvgGraphic(n.equipmentType!,false)}}/>'`
+- L166 — `port` — `# Un port soude devient une croix non cliquable.`
+- L167 — `port` — `ANCRE_TE_NATIF = 'fill={port.role==="branch"?"#22c55e":"#8b5cf6"}'`
+- L169 — `port` — `'{nativePorts.map(port=>{'`
+- L170 — `port` — `'const jointTe=projectJoints.find(item=>item.nodeId===n.id&&item.portId===port.id);'`
+- L171 — `port` — `'if(jointTe)return <g key={port.id} pointerEvents="none">'`
+- L171 — `point` — `'if(jointTe)return <g key={port.id} pointerEvents="none">'`
+- L172 — `port` — `'<circle cx={port.sx} cy={port.sy} r="3.4" fill="#0f172a" stroke="#fbbf24"'`
+- L174 — `port` — `'return <g key={port.id} data-iso-port="true" data-port-node-id={n.id}'`
+- L175 — `port` — `' data-port-idx={String(port.index)} className="cursor-crosshair">'`
+- L176 — `port` — `'<circle cx={port.sx} cy={port.sy} r={port.role==="branch"?4:3}'`
+- L177 — `port` — `' fill={port.role==="branch"?"#22c55e":"#8b5cf6"} stroke="#ffffff"'`
+- L178 — `port` — `' strokeWidth={port.role==="branch"?1.5:1}/></g>;})}'`
+- L198 — `point` — `' cursor-pointer":graphWarningCount?"text-amber-300 underline'`
+- L199 — `point` — `' decoration-dotted cursor-pointer":"text-emerald-400 cursor-pointer"}>'`
+- L217 — `port` — `'E1 refus de branche sur un port deja soude',`
+- L221 — `port` — `'const portOccupe=!!portCible',`
+- L233 — `port` — `'E3 port soude non cliquable sur le te natif',`
+- L266 — `anchor` — `for label, mode, anchor, payload, sentinel, anchor_end in EDITS:`
+- L267 — `anchor` — `txt = apply_edit(txt, label, mode, anchor, payload, sentinel, anchor_end)`
+- L278 — `port` — `# VOLET C : controles, rapport, point d entree`
+- L278 — `point` — `# VOLET C : controles, rapport, point d entree`
+- L286 — `port` — `# --- E1 port occupe ---`
+- L287 — `port` — `tests.append(('port occupe detecte avant toute branche',`
+- L288 — `port` — `'const portOccupe=!!portCible&&segments.some(' in tsx))`
+- L290 — `port` — `'PORT OCCUPE : ce port porte deja une soudure' in tsx))`
+- L291 — `port` — `tests.append(('aucune branche creee quand le port est occupe',`
+- L292 — `port` — `'if(portOccupe){setStatusMessage(' in tsx`
+- L294 — `port` — `tests.append(('le port libre cree toujours la branche',`
+- L295 — `port` — `'setBranchDrawing({fromNodeId:nodeId,fromPortId:portCible?.id' in tsx))`
+- L301 — `port` — `'teq-branche-${port.id}' in tsx`
+- L302 — `port` — `and tsx.count('pdiNodeRadius017P3(viewport.zoom,isSel,isHov)+2') == 2))`
+- L306 — `port` — `tests.append(('port soude non cliquable sur le te natif',`
+- L308 — `point` — `tests.append(('la croix de soudure du te natif ignore le pointeur',`
+- L309 — `port` — `'if(jointTe)return <g key={port.id} pointerEvents="none">' in tsx))`
+- L309 — `point` — `'if(jointTe)return <g key={port.id} pointerEvents="none">' in tsx))`
+- L322 — `port` — `tests.append(('non-regression coude derive des ports',`
+- L329 — `translate` — `'translate(566 44)' in tsx and 'pdiNodeHasFaceOffset017P3' in tsx))`
+- L350 — `port` — `RAPPORT = '017P8_port_occupe_erreurs_reseau_REPORT.md'`
+- L353 — `port` — `def ecrire_rapport(root, bons, total):`
+- L355 — `port` — `lignes.append('# PATCH ' + TAG + ' - port occupe et erreurs reseau explicitees')`
+- L363 — `port` — `lignes.append('data-iso-port, en doublon de la boucle des joints qui suit')`
+- L364 — `port` — `lignes.append('immediatement. Cette boucle distingue correctement le port')`
+- L365 — `port` — `lignes.append('libre du port soude, et rend la croix de soudure avec')`
+- L366 — `point` — `lignes.append('pointerEvents=none. Le doublon, dessine dessous, restait')`
+- L368 — `port` — `lignes.append('sur un port deja soude. Le doublon est supprime.')`
+- L371 — `port` — `lignes.append('jamais l occupation du port avant d appeler setBranchDrawing.')`
+- L372 — `port` — `lignes.append('Un garde-fou teste desormais si un troncon occupe le port et')`
+- L377 — `port` — `lignes.append('joints, ses ports soudes deviennent des croix non cliquables.')`
+- L394 — `port` — `lignes.append('- MISSING_PORT : troncon dont le port de raccordement est absent')`
+- L397 — `port` — `lignes.append('- PORT_CAPACITY : port connecte plus d une fois')`
+- L417 — `port` — `write(os.path.join(root, RAPPORT), '\n'.join(lignes))`
+- L421 — `port` — `print('=== PATCH ' + TAG + ' : port occupe et erreurs reseau ===')`
+- L440 — `port` — `ecrire_rapport(root, bons, total)`
+### `017P8_port_occupe_erreurs_reseau_REPORT.md`
+- L1 — `port` — `# PATCH 017P8 - port occupe et erreurs reseau explicitees`
+- L9 — `port` — `data-iso-port, en doublon de la boucle des joints qui suit`
+- L10 — `port` — `immediatement. Cette boucle distingue correctement le port`
+- L11 — `port` — `libre du port soude, et rend la croix de soudure avec`
+- L12 — `point` — `pointerEvents=none. Le doublon, dessine dessous, restait`
+- L14 — `port` — `sur un port deja soude. Le doublon est supprime.`
+- L17 — `port` — `jamais l occupation du port avant d appeler setBranchDrawing.`
+- L18 — `port` — `Un garde-fou teste desormais si un troncon occupe le port et`
+- L23 — `port` — `joints, ses ports soudes deviennent des croix non cliquables.`
+- L40 — `port` — `- MISSING_PORT : troncon dont le port de raccordement est absent`
+- L43 — `port` — `- PORT_CAPACITY : port connecte plus d une fois`
+- L64 — `port` — `- APPLIQUE : E1 refus de branche sur un port deja soude`
+- L66 — `port` — `- APPLIQUE : E3 port soude non cliquable sur le te natif`
+- L72 — `port` — `- OK : port occupe detecte avant toute branche`
+- L74 — `port` — `- OK : aucune branche creee quand le port est occupe`
+- L75 — `port` — `- OK : le port libre cree toujours la branche`
+- L79 — `port` — `- OK : port soude non cliquable sur le te natif`
+- L80 — `point` — `- OK : la croix de soudure du te natif ignore le pointeur`
+- L86 — `port` — `- OK : non-regression coude derive des ports`
+### `017P9_pdi_anomalies_source_unique.py`
+- L20 — `point` — `branche les quatre points d affichage dessus, et supprime le calcul en ligne`
+- L35 — `port` — `3. Lire le rapport affiche a la fin. Il doit finir par : VERIFICATIONS : n/n`
+- L40 — `port` — `- Lecture auto-reparante : si un fichier moteur porte la queue compressee`
+- L47 — `port` — `import hashlib`
+- L48 — `port` — `import os`
+- L49 — `port` — `import shutil`
+- L50 — `port` — `import sys`
+- L51 — `port` — `import tempfile`
+- L52 — `port` — `import zlib`
+- L83 — `port` — `"""Retourne le texte recolle si le fichier porte une queue zlib, sinon None.`
+- L212 — `point` — `// jeu (b), sans doublon. Resultat : 11 codes, une seule liste, quatre points`
+- L217 — `port` — `export type PdiSeverite017P9 = "error" | "warning";`
+- L219 — `port` — `export interface PdiAnomalie017P9 {`
+- L227 — `IsoNode` — `// Vues minimales des entites. On ne reimporte pas IsoNode / IsoSegment depuis`
+- L227 — `IsoSegment` — `// Vues minimales des entites. On ne reimporte pas IsoNode / IsoSegment depuis`
+- L227 — `port` — `// Vues minimales des entites. On ne reimporte pas IsoNode / IsoSegment depuis`
+- L229 — `port` — `export interface PdiNoeudVu017P9 {`
+- L236 — `port` — `export interface PdiTronconVu017P9 {`
+- L248 — `port` — `export const PDI_ANOMALIE_CODES_017P9 = [`
+- L250 — `port` — `"MISSING_PORT",`
+- L253 — `port` — `"PORT_CAPACITY",`
+- L263 — `port` — `export const PDI_ANOMALIE_LIBELLES_017P9: Record<string, string> = {`
+- L265 — `port` — `MISSING_PORT: "Port invalide",`
+- L268 — `port` — `PORT_CAPACITY: "Port surcharge",`
+- L277 — `port` — `export function pdiAnomalieLibelle017P9(issue: PdiAnomalie017P9): string {`
+- L281 — `selection` — `// Le volet Anomalies a besoin de savoir s il doit selectionner un noeud ou un`
+- L281 — `select` — `// Le volet Anomalies a besoin de savoir s il doit selectionner un noeud ou un`
+- L283 — `port` — `export function pdiAnomalieKind017P9(`
+- L300 — `port` — `export function pdiUnifyAnomalies017P9(`
+- L375 — `port` — `// le volet signalait tous les noeuds. On garde la portee large, sans`
+- L410 — `port` — `ANCIEN_IMPORT = 'import { pdiGlyphScale017P5 } from "./pdiGlyphes017P5";'`
+- L411 — `port` — `NOUVEL_IMPORT = (`
+- L412 — `port` — `'import { pdiGlyphScale017P5 } from "./pdiGlyphes017P5";\n'`
+- L414 — `port` — `'import { pdiUnifyAnomalies017P9, pdiAnomalieKind017P9, pdiAnomalieLibelle017P9 } from "./pdiAnomalies017P9";'`
+- L494 — `port` — `note("pdiUnifyAnomalies017P9" in contenu_module, "fonction d union exportee")`
+- L495 — `port` — `note("pdiAnomalieKind017P9" in contenu_module, "aide au clic-vers-entite exportee")`
+- L496 — `port` — `note("pdiAnomalieLibelle017P9" in contenu_module, "libelles courts exportes")`
+- L505 — `port` — `deja("le moteur importe le module de source unique")`
+- L506 — `port` — `elif ANCIEN_IMPORT in tsx:`
+- L507 — `port` — `tsx = tsx.replace(ANCIEN_IMPORT, NOUVEL_IMPORT, 1)`
+- L508 — `port` — `note("pdiAnomalies017P9" in tsx, "import du module ajoute")`
+- L510 — `port` — `note(False, "import du module : ancre d import introuvable")`
+- L531 — `select` — `note("selectSegmentV44(issue.id, false)" in tsx, "clic-vers-entite du 017F2 conserve")`
+- L533 — `point` — `note("graphIssues.slice(0,8)" in tsx, "infobulle du bandeau conservee (point 1)")`
+- L534 — `point` — `note("CONTROLE RESEAU :" in tsx, "detail en barre d etat conserve (point 2)")`
+- L535 — `point` — `note("erreur(s) réseau" in tsx, "compteur de la barre d etat conserve (point 3)")`
+- L551 — `port` — `import re as _re`
+- L587 — `port` — `print("  3. Supprimer un noeud portant un troncon : le nombre affiche en haut")`
+- L589 — `selection` — `print("  4. Cliquer une ligne du volet : l entite doit se selectionner et le")`
+- L589 — `select` — `print("  4. Cliquer une ligne du volet : l entite doit se selectionner et le")`
+### `017P_pdi_precision_geometrique.py`
+- L2 — `port` — `# Regle R24 : precision avant volume. Regle R1 : idempotent, backup, rapport.`
+- L6 — `port` — `import os`
+- L7 — `port` — `import hashlib`
+- L8 — `port` — `import shutil`
+- L31 — `port` — `REPORT = os.path.join(ROOT, "017P_precision_geometrique_REPORT.md")`
+- L67 — `port` — `"export type PdiVec3 = { x: number; y: number; z: number };",`
+- L69 — `snap` — `"export const PDI_SNAP_TOL_PX = {",`
+- L69 — `port` — `"export const PDI_SNAP_TOL_PX = {",`
+- L70 — `port` — `"  PORT: 14,",`
+- L71 — `point` — `"  ENDPOINT: 14,",`
+- L72 — `point` — `"  MIDPOINT: 12,",`
+- L77 — `snap` — `"export const PDI_SNAP_PRIORITY = [\"PORT\", \"ENDPOINT\", \"MIDPOINT\", \"AXIS\", \"GRID\"];",`
+- L77 — `port` — `"export const PDI_SNAP_PRIORITY = [\"PORT\", \"ENDPOINT\", \"MIDPOINT\", \"AXIS\", \"GRID\"];",`
+- L77 — `point` — `"export const PDI_SNAP_PRIORITY = [\"PORT\", \"ENDPOINT\", \"MIDPOINT\", \"AXIS\", \"GRID\"];",`
+- L80 — `port` — `"export const pdiRound3 = (v: number) => Number((Number.isFinite(v) ? v : 0).toFixed(3));",`
+- L82 — `snap` — `"export const pdiSnapValue = (v: number, step: number) =>",`
+- L82 — `port` — `"export const pdiSnapValue = (v: number, step: number) =>",`
+- L86 — `port` — `"export const PDI_ISO_DIRECTIONS: Array<PdiVec3 & { label: string }> = [",`
+- L96 — `snap` — `"export const pdiSnapDirectionIso = (v: PdiVec3) => {",`
+- L96 — `port` — `"export const pdiSnapDirectionIso = (v: PdiVec3) => {",`
+- L112 — `snap` — `"export const pdiSnapAngleDeg = (angle: number, step = 15) => {",`
+- L112 — `port` — `"export const pdiSnapAngleDeg = (angle: number, step = 15) => {",`
+- L122 — `port` — `"export const pdiFindCoincidentNodes = (nodes: PdiQaNode[], eps = 0.001) => {",`
+- L137 — `port` — `"export const pdiAuditGraph = (nodes: PdiQaNode[], segments: PdiQaSegment[]) => {",`
+- L164 — `port` — `E1_OLD = 'import { pdiCompanyName, pdiStandardsNote } from "../../branding/pdiBranding";'`
+- L167 — `port` — `"import {",`
+- L168 — `snap` — `"  PDI_SNAP_TOL_PX,",`
+- L170 — `snap` — `"  pdiSnapValue,",`
+- L171 — `snap` — `"  pdiSnapDirectionIso,",`
+- L179 — `snap` — `E2_NEW = "if (Math.hypot(sp.x - sx, sp.y - sy) < PDI_SNAP_TOL_PX.PORT) {"`
+- L179 — `port` — `E2_NEW = "if (Math.hypot(sp.x - sx, sp.y - sy) < PDI_SNAP_TOL_PX.PORT) {"`
+- L182 — `snap` — `E3_NEW = "if (Math.hypot(np.x - sx, np.y - sy) < PDI_SNAP_TOL_PX.ENDPOINT) {"`
+- L182 — `point` — `E3_NEW = "if (Math.hypot(np.x - sx, np.y - sy) < PDI_SNAP_TOL_PX.ENDPOINT) {"`
+- L185 — `snap` — `E4_NEW = "if (Math.hypot(sp.x - sx, sp.y - sy) < PDI_SNAP_TOL_PX.MIDPOINT) {"`
+- L185 — `point` — `E4_NEW = "if (Math.hypot(sp.x - sx, sp.y - sy) < PDI_SNAP_TOL_PX.MIDPOINT) {"`
+- L188 — `snap` — `E5_NEW = "if (Math.hypot(gp.x - sx, gp.y - sy) < PDI_SNAP_TOL_PX.GRID) {"`
+- L190 — `point` — `# Point de creation : l accroche detectee est desormais respectee.`
+- L192 — `point` — `"  const screenToIsoWorld=(e:React.PointerEvent<SVGSVGElement>, targetZ:number = nodeZ || 0)=>{",`
+- L194 — `port` — `"    return isoUnprojectV4(sx, sy, viewport.zoom, viewport.panX, viewport.panY, targetZ);",`
+- L198 — `point` — `"  // PATCH 017P : point de creation. Avant ce patch la creation d un noeud",`
+- L199 — `snap` — `"  // ignorait activeSnap et ne retenait que la grille : impossible de poser",`
+- L200 — `port` — `"  // un noeud exactement sur un port, une extremite ou un milieu de tube.",`
+- L201 — `point` — `"  const pdiCreatePoint = (w: { x: number; y: number; z?: number }) => {",`
+- L202 — `snap` — `"    if (snapEnabled && activeSnap) {",`
+- L204 — `snap` — `"        x: pdiRound3(activeSnap.worldPos.x),",`
+- L205 — `snap` — `"        y: pdiRound3(activeSnap.worldPos.y),",`
+- L206 — `snap` — `"        z: pdiRound3(activeSnap.worldPos.z),",`
+- L209 — `snap` — `"    const step = snapEnabled && snapGrid ? isoSnapStep : 0;",`
+- L211 — `snap` — `"      x: pdiSnapValue(w.x, step),",`
+- L212 — `snap` — `"      y: pdiSnapValue(w.y, step),",`
+- L218 — `snap` — `E7_OLD = "snapIsoV4(w.x, isoSnapStep), snapIsoV4(w.y, isoSnapStep), nodeZ || 0"`
+- L219 — `point` — `E7_NEW = "pdiCreatePoint(w).x, pdiCreatePoint(w).y, pdiCreatePoint(w).z"`
+- L221 — `align` — `# Alignement : la valeur de reference est ramenee sur le pas de grille.`
+- L226 — `snap` — `"    // du PATCH 013 (pas de re-snap lateral), mais la ligne tombe juste.",`
+- L228 — `snap` — `"    const refValue = snapEnabled && snapGrid ? pdiSnapValue(rawRef, isoSnapStep) : pdiRound3(rawRef);",`
+- L233 — `align` — `"    setStatusMessage(`Alignement ${axis.toUpperCase()} appliqu\u00e9 sans re-snap \u2014 r\u00e9f\u00e9rence : ${reference.name}`);",`
+- L233 — `snap` — `"    setStatusMessage(`Alignement ${axis.toUpperCase()} appliqu\u00e9 sans re-snap \u2014 r\u00e9f\u00e9rence : ${reference.name}`);",`
+- L237 — `align` — `"    const alignAudit = pdiFindCoincidentNodes(nextNodes, 0.001);",`
+- L238 — `align` — `"    if (alignAudit) {",`
+- L239 — `align` — `"      setStatusMessage(`Alignement ${axis.toUpperCase()} refus\u00e9 : ${alignAudit}`);",`
+- L243 — `align` — `"    setStatusMessage(`Alignement ${axis.toUpperCase()} sur ${refValue.toFixed(3)} m \u2014 r\u00e9f\u00e9rence : ${reference.name}`);",`
+- L246 — `parallel` — `# Rendre parallele : axe ISO + rotation autour du noeud amont + propagation aval.`
+- L246 — `parallele` — `# Rendre parallele : axe ISO + rotation autour du noeud amont + propagation aval.`
+- L246 — `rotation` — `# Rendre parallele : axe ISO + rotation autour du noeud amont + propagation aval.`
+- L269 — `snap` — `"    const dir = pdiSnapDirectionIso(rv);",`
+- L277 — `parallel` — `"    const downstreamParallel = downstreamNodeIds(tb.id, segments, target.id);",`
+- L280 — `parallel` — `"      if (!downstreamParallel.has(node.id)) return node;",`
+- L288 — `parallel` — `"    const parallelAudit = pdiFindCoincidentNodes(nextNodes, 0.001);",`
+- L289 — `parallel` — `"    if (parallelAudit) {",`
+- L290 — `parallel` — `"      setStatusMessage(`Rendre parall\u00e8le refus\u00e9 : ${parallelAudit}`);",`
+- L294 — `parallel` — `"    setStatusMessage(`Tube parall\u00e8le \u00b7 axe ISO ${dir.label} \u00b7 ${downstreamParallel.size} n\u0153ud(s) aval suivis`);",`
+- L297 — `rotation` — `# Rotation transactionnelle : un seul commitGraph, aucune creation implicite.`
+- L300 — `rotation` — `'    setStatusMessage(`Rotation ${delta > 0 ? "+" : ""}${delta}\u00b0 (R)`);',`
+- L303 — `rotation` — `"    // PATCH 017P : rotation transactionnelle. La commande refuse de valider",`
+- L307 — `rotation` — `'      setStatusMessage("Rotation refus\u00e9e : le nombre de n\u0153uds a chang\u00e9");',`
+- L310 — `rotation` — `"    const rotationAudit = pdiAuditGraph(nextNodes, segments);",`
+- L312 — `rotation` — `'    setStatusMessage(`Rotation ${delta > 0 ? "+" : ""}${delta}\u00b0 (R)${rotationAudit ? " \u00b7 contr\u00f4le : " + rotationAudit : ""}`);',`
+- L317 — `snap` — `E12_OLD = "        const sw={x:snapIsoV4(w.x,isoSnapStep),y:snapIsoV4(w.y,isoSnapStep),z:nodeZ||0};"`
+- L320 — `point` — `"        const sw=pdiCreatePoint(w);",`
+- L325 — `snap` — `"  const snapBranchWorld=(w:{x:number;y:number;z:number})=>({",`
+- L326 — `snap` — `"    x:snapIsoV4(w.x,isoSnapStep),",`
+- L327 — `snap` — `"    y:snapIsoV4(w.y,isoSnapStep),",`
+- L333 — `snap` — `"  const snapBranchWorld=(w:{x:number;y:number;z:number})=>pdiCreatePoint(w);",`
+- L333 — `point` — `"  const snapBranchWorld=(w:{x:number;y:number;z:number})=>pdiCreatePoint(w);",`
+- L337 — `port` — `("E1 import du module de precision", E1_OLD, E1_NEW),`
+- L338 — `port` — `("E2 tolerance PORT en pixels", E2_OLD, E2_NEW),`
+- L342 — `point` — `("E6 fonction pdiCreatePoint", E6_OLD, E6_NEW),`
+- L344 — `align` — `("E8 alignement sur le pas de grille", E8_OLD, E8_NEW),`
+- L345 — `align` — `("E9 QA de l alignement", E9_OLD, E9_NEW),`
+- L346 — `parallel` — `("E10 parallele : axe ISO + propagation aval", E10_OLD, E10_NEW),`
+- L346 — `parallele` — `("E10 parallele : axe ISO + propagation aval", E10_OLD, E10_NEW),`
+- L347 — `rotation` — `("E11 rotation transactionnelle", E11_OLD, E11_NEW),`
+- L353 — `port` — `# VOLET C : application, verifications, rapport`
+- L404 — `snap` — `helper_ok = os.path.exists(HELPER) and "pdiSnapDirectionIso" in read_text(HELPER)`
+- L407 — `port` — `("import du module dans le moteur", 'from "./pdiPrecision017P"' in src),`
+- L408 — `snap` — `("4 tolerances d accroche en pixels", src.count("PDI_SNAP_TOL_PX.") == 4),`
+- L411 — `point` — `("fonction pdiCreatePoint definie", "const pdiCreatePoint = (w:" in src),`
+- L413 — `point` — `src.count("pdiCreatePoint(w)") >= 5`
+- L414 — `snap` — `and "snapIsoV4(w.x, isoSnapStep), snapIsoV4(w.y, isoSnapStep), nodeZ || 0" not in src`
+- L415 — `snap` — `and "const sw={x:snapIsoV4(" not in src),`
+- … 38 occurrences supplémentaires.
+### `017P_precision_geometrique_REPORT.md`
+- L7 — `snap` — `1. Accroche a la creation. `snapIsoV4` n etait applique qu au glissement.`
+- L9 — `port` — `ignoraient l accroche detectee (port, extremite, milieu) : c est la cause`
+- L10 — `point` — `premiere du dessin imprecis. Elles passent par `pdiCreatePoint`.`
+- L12 — `snap` — `par `PDI_SNAP_TOL_PX`, en pixels ecran, donc stables a tout zoom.`
+- L13 — `align` — `3. Alignement. La coordonnee de reference est ramenee sur le pas de grille,`
+- L14 — `snap` — `sans re-snap lateral (le PATCH 013 n est pas regresse), et la commande`
+- L16 — `parallel` — `4. Rendre parallele. La direction de reference est ramenee sur un des 6 axes`
+- L16 — `parallele` — `4. Rendre parallele. La direction de reference est ramenee sur un des 6 axes`
+- L18 — `translate` — `translate. Avant, seul `toNodeId` bougeait et le reseau se dechirait.`
+- L19 — `rotation` — `5. Rotation transactionnelle. Un seul `commitGraph`, refus de validation si`
+- L25 — `port` — `1. Poser un noeud exactement sur un port existant : le reticule cyan`
+- L26 — `port` — `apparait, le noeud se cree sur le port, pas a cote.`
+- L29 — `align` — `3. Selectionner deux noeuds, Aligner X : la valeur affichee dans la barre`
+- L29 — `selection` — `3. Selectionner deux noeuds, Aligner X : la valeur affichee dans la barre`
+- L29 — `select` — `3. Selectionner deux noeuds, Aligner X : la valeur affichee dans la barre`
+- L30 — `snap` — `d etat est un multiple du pas de snap.`
+- L31 — `parallel` — `4. Selectionner deux tubes, Rendre parallele : le tube cible se met sur un`
+- L31 — `parallele` — `4. Selectionner deux tubes, Rendre parallele : le tube cible se met sur un`
+- L31 — `selection` — `4. Selectionner deux tubes, Rendre parallele : le tube cible se met sur un`
+- L31 — `select` — `4. Selectionner deux tubes, Rendre parallele : le tube cible se met sur un`
+- L33 — `selection` — `5. Selectionner un noeud et faire R plusieurs fois : le compteur de noeuds`
+- L33 — `select` — `5. Selectionner un noeud et faire R plusieurs fois : le compteur de noeuds`
+- L35 — `align` — `6. Aligner deux noeuds deja superposes : la commande est refusee avec un`
+- L40 — `snap` — `- Verrouillage angulaire interactif a la souris : `pdiSnapAngleDeg` est`
+- L53 — `port` — `APPLIQUE : E1 import du module de precision (1 site(s))`
+- L54 — `port` — `APPLIQUE : E2 tolerance PORT en pixels (1 site(s))`
+- L58 — `point` — `APPLIQUE : E6 fonction pdiCreatePoint (1 site(s))`
+- L60 — `align` — `APPLIQUE : E8 alignement sur le pas de grille (1 site(s))`
+- L61 — `align` — `APPLIQUE : E9 QA de l alignement (1 site(s))`
+- L62 — `parallel` — `APPLIQUE : E10 parallele : axe ISO + propagation aval (1 site(s))`
+- L62 — `parallele` — `APPLIQUE : E10 parallele : axe ISO + propagation aval (1 site(s))`
+- L63 — `rotation` — `APPLIQUE : E11 rotation transactionnelle (1 site(s))`
+- L70 — `port` — `[x] import du module dans le moteur`
+- L73 — `point` — `[x] fonction pdiCreatePoint definie`
+- L75 — `align` — `[x] alignement ramene sur le pas de grille`
+- L76 — `align` — `[x] QA de l alignement active`
+- L77 — `parallel` — `[x] parallele sur axe ISO`
+- L77 — `parallele` — `[x] parallele sur axe ISO`
+- L78 — `parallel` — `[x] propagation aval du parallele`
+- L78 — `parallele` — `[x] propagation aval du parallele`
+- L79 — `rotation` — `[x] rotation transactionnelle controlee`
+### `017Q1_audit_selection_ancrages.py`
+- L7 — `align` — `sélection / points d'ancrage / Align / Parallèle / Grouper / Associer.`
+- L7 — `parallèle` — `sélection / points d'ancrage / Align / Parallèle / Grouper / Associer.`
+- L7 — `grouper` — `sélection / points d'ancrage / Align / Parallèle / Grouper / Associer.`
+- L7 — `groupe` — `sélection / points d'ancrage / Align / Parallèle / Grouper / Associer.`
+- L7 — `group` — `sélection / points d'ancrage / Align / Parallèle / Grouper / Associer.`
+- L7 — `associer` — `sélection / points d'ancrage / Align / Parallèle / Grouper / Associer.`
+- L7 — `ancrage` — `sélection / points d'ancrage / Align / Parallèle / Grouper / Associer.`
+- L7 — `sélection` — `sélection / points d'ancrage / Align / Parallèle / Grouper / Associer.`
+- L7 — `point` — `sélection / points d'ancrage / Align / Parallèle / Grouper / Associer.`
+- L11 — `ancrage` — `017Q1_AUDIT_SELECTION_ANCRAGES_REPORT.md`
+- L11 — `selection` — `017Q1_AUDIT_SELECTION_ANCRAGES_REPORT.md`
+- L11 — `select` — `017Q1_AUDIT_SELECTION_ANCRAGES_REPORT.md`
+- L11 — `port` — `017Q1_AUDIT_SELECTION_ANCRAGES_REPORT.md`
+- L15 — `align` — `- Align et Parallèle doivent fonctionner directement avec une sélection.`
+- L15 — `parallèle` — `- Align et Parallèle doivent fonctionner directement avec une sélection.`
+- L15 — `sélection` — `- Align et Parallèle doivent fonctionner directement avec une sélection.`
+- L16 — `grouper` — `- Grouper et Associer facilitent les relations, mais ne sont pas des`
+- L16 — `groupe` — `- Grouper et Associer facilitent les relations, mais ne sont pas des`
+- L16 — `group` — `- Grouper et Associer facilitent les relations, mais ne sont pas des`
+- L16 — `associer` — `- Grouper et Associer facilitent les relations, mais ne sont pas des`
+- L18 — `ancrage` — `- Les points d'ancrage doivent provenir de la géométrie/ports réels.`
+- L18 — `port` — `- Les points d'ancrage doivent provenir de la géométrie/ports réels.`
+- L18 — `point` — `- Les points d'ancrage doivent provenir de la géométrie/ports réels.`
+- L19 — `undo` — `- Une opération = preview -> validation -> transaction Undo/Redo.`
+- L19 — `redo` — `- Une opération = preview -> validation -> transaction Undo/Redo.`
+- L24 — `port` — `from pathlib import Path`
+- L25 — `port` — `from dataclasses import dataclass`
+- L28 — `ancrage` — `REPORT = ROOT / "017Q1_AUDIT_SELECTION_ANCRAGES_REPORT.md"`
+- L28 — `selection` — `REPORT = ROOT / "017Q1_AUDIT_SELECTION_ANCRAGES_REPORT.md"`
+- L28 — `select` — `REPORT = ROOT / "017Q1_AUDIT_SELECTION_ANCRAGES_REPORT.md"`
+- L28 — `port` — `REPORT = ROOT / "017Q1_AUDIT_SELECTION_ANCRAGES_REPORT.md"`
+- L37 — `align` — `"align", "aligned",`
+- L37 — `aligned` — `"align", "aligned",`
+- L38 — `parallel` — `"parallel", "parallele", "parallèle",`
+- L38 — `parallele` — `"parallel", "parallele", "parallèle",`
+- L38 — `parallèle` — `"parallel", "parallele", "parallèle",`
+- L39 — `grouper` — `"grouper", "groupe", "group",`
+- L39 — `groupe` — `"grouper", "groupe", "group",`
+- L39 — `group` — `"grouper", "groupe", "group",`
+- L40 — `associer` — `"associer", "association",`
+- L40 — `association` — `"associer", "association",`
+- L41 — `anchor` — `"anchor", "ancrage", "snap",`
+- L41 — `ancrage` — `"anchor", "ancrage", "snap",`
+- L41 — `snap` — `"anchor", "ancrage", "snap",`
+- L42 — `selection` — `"selection", "sélection", "select",`
+- L42 — `sélection` — `"selection", "sélection", "select",`
+- L42 — `select` — `"selection", "sélection", "select",`
+- L43 — `undo` — `"undo", "redo", "history",`
+- L43 — `redo` — `"undo", "redo", "history",`
+- L43 — `history` — `"undo", "redo", "history",`
+- L44 — `IsoNode` — `"IsoNode", "IsoSegment", "fitting",`
+- L44 — `IsoSegment` — `"IsoNode", "IsoSegment", "fitting",`
+- L44 — `fitting` — `"IsoNode", "IsoSegment", "fitting",`
+- L45 — `port` — `"port", "point",`
+- L45 — `point` — `"port", "point",`
+- L46 — `rotation` — `"rotation", "translate", "move", "drag",`
+- L46 — `translate` — `"rotation", "translate", "move", "drag",`
+- L46 — `move` — `"rotation", "translate", "move", "drag",`
+- L46 — `drag` — `"rotation", "translate", "move", "drag",`
+- L98 — `port` — `def build_report(scanned, files_with_hits, hits):`
+- L99 — `groupe` — `grouped = {}`
+- L99 — `group` — `grouped = {}`
+- L101 — `groupe` — `grouped.setdefault(hit.path, []).append(hit)`
+- L101 — `group` — `grouped.setdefault(hit.path, []).append(hit)`
+- L104 — `align` — `"# 017Q1 — Audit sélection / ancrages / Align / Parallèle / Grouper / Associer",`
+- L104 — `parallèle` — `"# 017Q1 — Audit sélection / ancrages / Align / Parallèle / Grouper / Associer",`
+- L104 — `grouper` — `"# 017Q1 — Audit sélection / ancrages / Align / Parallèle / Grouper / Associer",`
+- L104 — `groupe` — `"# 017Q1 — Audit sélection / ancrages / Align / Parallèle / Grouper / Associer",`
+- L104 — `group` — `"# 017Q1 — Audit sélection / ancrages / Align / Parallèle / Grouper / Associer",`
+- L104 — `associer` — `"# 017Q1 — Audit sélection / ancrages / Align / Parallèle / Grouper / Associer",`
+- L104 — `ancrage` — `"# 017Q1 — Audit sélection / ancrages / Align / Parallèle / Grouper / Associer",`
+- L104 — `sélection` — `"# 017Q1 — Audit sélection / ancrages / Align / Parallèle / Grouper / Associer",`
+- L123 — `groupe` — `if not grouped:`
+- L123 — `group` — `if not grouped:`
+- L126 — `groupe` — `for filename, file_hits in sorted(grouped.items()):`
+- L126 — `group` — `for filename, file_hits in sorted(grouped.items()):`
+- L141 — `sélection` — `"### 1. Sélection",`
+- L143 — `sélection` — `"- Conserver sélection simple et multiple.",`
+- L144 — `sélection` — `"- Ne pas créer un deuxième système de sélection.",`
+- L146 — `ancrage` — `"### 2. Points d'ancrage",`
+- L146 — `point` — `"### 2. Points d'ancrage",`
+- L147 — `port` — `"- Réutiliser ports, extrémités, centres, branches et sommets existants.",`
+- L148 — `parallèle` — `"- Ne pas créer une géométrie parallèle au moteur ISO.",`
+- L150 — `align` — `"### 3. ALIGN",`
+- L151 — `ancrage` — `"Sélection → référence → point d'ancrage → axe/direction",`
+- L151 — `sélection` — `"Sélection → référence → point d'ancrage → axe/direction",`
+- L151 — `point` — `"Sélection → référence → point d'ancrage → axe/direction",`
+- L152 — `undo` — `"→ preview → validation → Undo.",`
+- L154 — `align` — `"**Align doit fonctionner directement sur la sélection.**",`
+- L154 — `sélection` — `"**Align doit fonctionner directement sur la sélection.**",`
+- L156 — `parallèle` — `"### 4. PARALLÈLE",`
+- L157 — `sélection` — `"Sélection → référence → direction/axe ou second point",`
+- L157 — `point` — `"Sélection → référence → direction/axe ou second point",`
+- L158 — `undo` — `"→ preview → validation → Undo.",`
+- L160 — `parallèle` — `"**Parallèle doit fonctionner directement sur la sélection.**",`
+- L160 — `sélection` — `"**Parallèle doit fonctionner directement sur la sélection.**",`
+- L162 — `grouper` — `"### 5. GROUPER",`
+- L162 — `groupe` — `"### 5. GROUPER",`
+- L162 — `group` — `"### 5. GROUPER",`
+- L163 — `undo` — `"Relation légère entre entités, sans duplication, compatible JSON et Undo/Redo.",`
+- … 87 occurrences supplémentaires.
+### `0d8f1324-3a87-43a4-91b6-1fc247408eec.py`
+- L12 — `align` — `Affichage, Dessin, Cotation, Alignement, Insertion, Impression, Outils.`
+- L15 — `groupe` — `occupe un onglet alors qu elle doit etre un groupe de Fichier.`
+- L15 — `group` — `occupe un onglet alors qu elle doit etre un groupe de Fichier.`
+- L25 — `group` — `.pdi-ribbon-group sont DEFINIES (lignes 5796-5800) mais utilisees NULLE PART`
+- L31 — `groupe` — `unique et bilingue du ruban. 9 onglets, leurs groupes, et pour chaque`
+- L31 — `group` — `unique et bilingue du ruban. 9 onglets, leurs groupes, et pour chaque`
+- L33 — `groupe` — `groupe, ordre, portee, etat.`
+- L33 — `group` — `groupe, ordre, portee, etat.`
+- L33 — `port` — `groupe, ordre, portee, etat.`
+- L35 — `port` — `3. IMPORTANT - il ne reecrit AUCUNE des 47 actions existantes. Le registre les`
+- L36 — `groupe` — `designe par (groupe, index) et le ruban les reutilise telles quelles. Le`
+- L36 — `group` — `designe par (groupe, index) et le ruban les reutilise telles quelles. Le`
+- L40 — `port` — `supports et massifs (019S+), textes et reperes (019B), export PDF/DXF`
+- L41 — `grouper` — `(020F), import Sketch-to-ISO (R23), et Grouper / Associer / Bloc (017Q1).`
+- L41 — `groupe` — `(020F), import Sketch-to-ISO (R23), et Grouper / Associer / Bloc (017Q1).`
+- L41 — `group` — `(020F), import Sketch-to-ISO (R23), et Grouper / Associer / Bloc (017Q1).`
+- L41 — `associer` — `(020F), import Sketch-to-ISO (R23), et Grouper / Associer / Bloc (017Q1).`
+- L41 — `port` — `(020F), import Sketch-to-ISO (R23), et Grouper / Associer / Bloc (017Q1).`
+- L59 — `port` — `exports, et les brancher exige de rejouer le dispatch. Le registre est`
+- L79 — `port` — `import hashlib`
+- L80 — `port` — `import os`
+- L81 — `port` — `import re`
+- L82 — `port` — `import shutil`
+- L83 — `port` — `import sys`
+- L84 — `port` — `import tempfile`
+- L85 — `port` — `import zlib`
+- L98 — `align` — `(u"Cotation", 3), (u"Alignement", 6), (u"Insertion", 2),`
+- L207 — `group` — `"""Releve (titre, nombre d entrees) de cadMenuGroups dans le moteur."""`
+- L210 — `group` — `debut = next(i for i, l in enumerate(lignes) if "const cadMenuGroups" in l)`
+- L223 — `group` — `titre = m.group(1)`
+- L239 — `point` — `// Point de verite unique du ruban. Avant ce fichier, trois sources decrivaient`
+- L253 — `groupe` — `// source = { menu, index } : le titre du groupe de menu historique et le rang de`
+- L253 — `group` — `// source = { menu, index } : le titre du groupe de menu historique et le rang de`
+- L263 — `port` — `export type PdiOngletRuban017M =`
+- L274 — `port` — `export type PdiEtatCommande017M = "actif" | "grise";`
+- L276 — `port` — `export type PdiPorteeCommande017M =`
+- L278 — `selection` — `| "selection"`
+- L278 — `select` — `| "selection"`
+- L283 — `port` — `export interface PdiSourceAction017M {`
+- L284 — `groupe` — `/** Titre exact du groupe de menu historique dans le moteur. */`
+- L284 — `group` — `/** Titre exact du groupe de menu historique dans le moteur. */`
+- L286 — `groupe` — `/** Rang de l entree dans ce groupe, a partir de 0. */`
+- L286 — `group` — `/** Rang de l entree dans ce groupe, a partir de 0. */`
+- L290 — `port` — `export interface PdiEntreeRuban017M {`
+- L298 — `groupe` — `groupe: string;`
+- L298 — `group` — `groupe: string;`
+- L300 — `port` — `portee: PdiPorteeCommande017M;`
+- L309 — `port` — `export const PDI_ONGLETS_RUBAN_017M: Array<{`
+- L325 — `align` — `/** Invite de la ligne de commande, alignee sur le vocabulaire tuyauterie. */`
+- L326 — `port` — `export const PDI_INVITE_COMMANDE_017M =`
+- L327 — `align` — `"Tapez une commande (ex: TUBE, TE, COUDE, COTER, ALIGNER, BOM...)";`
+- L329 — `port` — `export const PDI_REGISTRE_RUBAN_017M: PdiEntreeRuban017M[] = [`
+- L331 — `groupe` — `{ id:"fichier.nouveau", nomFr:"Nouveau projet", nomEn:"New project", aliases:["NOUVEAU","NEW"], icone:"\\u2726", onglet:"fichier", groupe:"Nouveau et ouverture", ordre:1, portee:"projet", etat:"actif", source:{menu:"Fichier",index:0} },`
+- L331 — `group` — `{ id:"fichier.nouveau", nomFr:"Nouveau projet", nomEn:"New project", aliases:["NOUVEAU","NEW"], icone:"\\u2726", onglet:"fichier", groupe:"Nouveau et ouverture", ordre:1, portee:"projet", etat:"actif", source:{menu:"Fichier",index:0} },`
+- L331 — `port` — `{ id:"fichier.nouveau", nomFr:"Nouveau projet", nomEn:"New project", aliases:["NOUVEAU","NEW"], icone:"\\u2726", onglet:"fichier", groupe:"Nouveau et ouverture", ordre:1, portee:"projet", etat:"actif", source:{menu:"Fichier",index:0} },`
+- L332 — `groupe` — `{ id:"fichier.accueil", nomFr:"Accueil", nomEn:"Home", aliases:["ACCUEIL","HOME"], icone:"\\u2302", onglet:"fichier", groupe:"Nouveau et ouverture", ordre:2, portee:"session", etat:"actif", source:{menu:"Fichier",index:1} },`
+- L332 — `group` — `{ id:"fichier.accueil", nomFr:"Accueil", nomEn:"Home", aliases:["ACCUEIL","HOME"], icone:"\\u2302", onglet:"fichier", groupe:"Nouveau et ouverture", ordre:2, portee:"session", etat:"actif", source:{menu:"Fichier",index:1} },`
+- L332 — `port` — `{ id:"fichier.accueil", nomFr:"Accueil", nomEn:"Home", aliases:["ACCUEIL","HOME"], icone:"\\u2302", onglet:"fichier", groupe:"Nouveau et ouverture", ordre:2, portee:"session", etat:"actif", source:{menu:"Fichier",index:1} },`
+- L333 — `groupe` — `{ id:"fichier.landing", nomFr:"Presentation", nomEn:"Landing", aliases:["LANDING"], icone:"\\u25c8", onglet:"fichier", groupe:"Nouveau et ouverture", ordre:3, portee:"session", etat:"actif", source:{menu:"Fichier",index:2} },`
+- L333 — `group` — `{ id:"fichier.landing", nomFr:"Presentation", nomEn:"Landing", aliases:["LANDING"], icone:"\\u25c8", onglet:"fichier", groupe:"Nouveau et ouverture", ordre:3, portee:"session", etat:"actif", source:{menu:"Fichier",index:2} },`
+- L333 — `port` — `{ id:"fichier.landing", nomFr:"Presentation", nomEn:"Landing", aliases:["LANDING"], icone:"\\u25c8", onglet:"fichier", groupe:"Nouveau et ouverture", ordre:3, portee:"session", etat:"actif", source:{menu:"Fichier",index:2} },`
+- L334 — `groupe` — `{ id:"fichier.ouvrir", nomFr:"Ouvrir JSON", nomEn:"Open JSON", aliases:["OUVRIR","OPEN","IMPORT"], icone:"\\u{1F4C2}", onglet:"fichier", groupe:"Nouveau et ouverture", ordre:4, portee:"projet", etat:"actif", source:{menu:"Fichier",index:6} `
+- L334 — `group` — `{ id:"fichier.ouvrir", nomFr:"Ouvrir JSON", nomEn:"Open JSON", aliases:["OUVRIR","OPEN","IMPORT"], icone:"\\u{1F4C2}", onglet:"fichier", groupe:"Nouveau et ouverture", ordre:4, portee:"projet", etat:"actif", source:{menu:"Fichier",index:6} `
+- L334 — `port` — `{ id:"fichier.ouvrir", nomFr:"Ouvrir JSON", nomEn:"Open JSON", aliases:["OUVRIR","OPEN","IMPORT"], icone:"\\u{1F4C2}", onglet:"fichier", groupe:"Nouveau et ouverture", ordre:4, portee:"projet", etat:"actif", source:{menu:"Fichier",index:6} `
+- L335 — `groupe` — `{ id:"fichier.exemple.poste", nomFr:"Exemple poste", nomEn:"Station sample", aliases:["EXEMPLEPOSTE"], icone:"\\u25a6", onglet:"fichier", groupe:"Exemples", ordre:1, portee:"projet", etat:"actif", source:{menu:"Fichier",index:3} },`
+- L335 — `group` — `{ id:"fichier.exemple.poste", nomFr:"Exemple poste", nomEn:"Station sample", aliases:["EXEMPLEPOSTE"], icone:"\\u25a6", onglet:"fichier", groupe:"Exemples", ordre:1, portee:"projet", etat:"actif", source:{menu:"Fichier",index:3} },`
+- L335 — `port` — `{ id:"fichier.exemple.poste", nomFr:"Exemple poste", nomEn:"Station sample", aliases:["EXEMPLEPOSTE"], icone:"\\u25a6", onglet:"fichier", groupe:"Exemples", ordre:1, portee:"projet", etat:"actif", source:{menu:"Fichier",index:3} },`
+- L336 — `groupe` — `{ id:"fichier.exemple.gare", nomFr:"Exemple gare racleur", nomEn:"Pig trap sample", aliases:["EXEMPLEGARE"], icone:"\\u25a7", onglet:"fichier", groupe:"Exemples", ordre:2, portee:"projet", etat:"actif", source:{menu:"Fichier",index:4} },`
+- L336 — `group` — `{ id:"fichier.exemple.gare", nomFr:"Exemple gare racleur", nomEn:"Pig trap sample", aliases:["EXEMPLEGARE"], icone:"\\u25a7", onglet:"fichier", groupe:"Exemples", ordre:2, portee:"projet", etat:"actif", source:{menu:"Fichier",index:4} },`
+- L336 — `port` — `{ id:"fichier.exemple.gare", nomFr:"Exemple gare racleur", nomEn:"Pig trap sample", aliases:["EXEMPLEGARE"], icone:"\\u25a7", onglet:"fichier", groupe:"Exemples", ordre:2, portee:"projet", etat:"actif", source:{menu:"Fichier",index:4} },`
+- L337 — `groupe` — `{ id:"fichier.sauver", nomFr:"Sauver JSON", nomEn:"Save JSON", aliases:["SAUVER","SAVE","EXPORT"], icone:"\\u{1F4BE}", raccourci:"Ctrl+S", onglet:"fichier", groupe:"Enregistrement", ordre:1, portee:"projet", etat:"actif", source:{menu:"Fich`
+- L337 — `group` — `{ id:"fichier.sauver", nomFr:"Sauver JSON", nomEn:"Save JSON", aliases:["SAUVER","SAVE","EXPORT"], icone:"\\u{1F4BE}", raccourci:"Ctrl+S", onglet:"fichier", groupe:"Enregistrement", ordre:1, portee:"projet", etat:"actif", source:{menu:"Fich`
+- L337 — `port` — `{ id:"fichier.sauver", nomFr:"Sauver JSON", nomEn:"Save JSON", aliases:["SAUVER","SAVE","EXPORT"], icone:"\\u{1F4BE}", raccourci:"Ctrl+S", onglet:"fichier", groupe:"Enregistrement", ordre:1, portee:"projet", etat:"actif", source:{menu:"Fich`
+- L338 — `groupe` — `{ id:"fichier.planche", nomFr:"Planche ISO A3", nomEn:"ISO sheet A3", aliases:["PLANCHE","A3"], icone:"\\u25a4", raccourci:"A3", onglet:"fichier", groupe:"Impression et export", ordre:1, portee:"document", etat:"actif", source:{menu:"Impres`
+- L338 — `group` — `{ id:"fichier.planche", nomFr:"Planche ISO A3", nomEn:"ISO sheet A3", aliases:["PLANCHE","A3"], icone:"\\u25a4", raccourci:"A3", onglet:"fichier", groupe:"Impression et export", ordre:1, portee:"document", etat:"actif", source:{menu:"Impres`
+- L338 — `port` — `{ id:"fichier.planche", nomFr:"Planche ISO A3", nomEn:"ISO sheet A3", aliases:["PLANCHE","A3"], icone:"\\u25a4", raccourci:"A3", onglet:"fichier", groupe:"Impression et export", ordre:1, portee:"document", etat:"actif", source:{menu:"Impres`
+- L339 — `groupe` — `{ id:"fichier.imprimer", nomFr:"Imprimer", nomEn:"Print", aliases:["IMPRIMER","PRINT","PLOT"], icone:"\\u2399", raccourci:"P", onglet:"fichier", groupe:"Impression et export", ordre:2, portee:"document", etat:"actif", source:{menu:"Impressi`
+- L339 — `group` — `{ id:"fichier.imprimer", nomFr:"Imprimer", nomEn:"Print", aliases:["IMPRIMER","PRINT","PLOT"], icone:"\\u2399", raccourci:"P", onglet:"fichier", groupe:"Impression et export", ordre:2, portee:"document", etat:"actif", source:{menu:"Impressi`
+- L339 — `port` — `{ id:"fichier.imprimer", nomFr:"Imprimer", nomEn:"Print", aliases:["IMPRIMER","PRINT","PLOT"], icone:"\\u2399", raccourci:"P", onglet:"fichier", groupe:"Impression et export", ordre:2, portee:"document", etat:"actif", source:{menu:"Impressi`
+- L340 — `groupe` — `{ id:"fichier.export.pdf", nomFr:"Export PDF A5 a A0", nomEn:"Export PDF A5-A0", aliases:["PDF","EXPORTPDF"], icone:"\\u{1F5CE}", onglet:"fichier", groupe:"Impression et export", ordre:3, portee:"document", etat:"grise", jalon:"020F - impre`
+- L340 — `group` — `{ id:"fichier.export.pdf", nomFr:"Export PDF A5 a A0", nomEn:"Export PDF A5-A0", aliases:["PDF","EXPORTPDF"], icone:"\\u{1F5CE}", onglet:"fichier", groupe:"Impression et export", ordre:3, portee:"document", etat:"grise", jalon:"020F - impre`
+- L340 — `port` — `{ id:"fichier.export.pdf", nomFr:"Export PDF A5 a A0", nomEn:"Export PDF A5-A0", aliases:["PDF","EXPORTPDF"], icone:"\\u{1F5CE}", onglet:"fichier", groupe:"Impression et export", ordre:3, portee:"document", etat:"grise", jalon:"020F - impre`
+- L341 — `groupe` — `{ id:"fichier.export.dxf", nomFr:"Export DXF", nomEn:"Export DXF", aliases:["DXF","EXPORTDXF"], icone:"\\u25f1", onglet:"fichier", groupe:"Impression et export", ordre:4, portee:"document", etat:"grise", jalon:"020F - impression et export" `
+- L341 — `group` — `{ id:"fichier.export.dxf", nomFr:"Export DXF", nomEn:"Export DXF", aliases:["DXF","EXPORTDXF"], icone:"\\u25f1", onglet:"fichier", groupe:"Impression et export", ordre:4, portee:"document", etat:"grise", jalon:"020F - impression et export" `
+- L341 — `port` — `{ id:"fichier.export.dxf", nomFr:"Export DXF", nomEn:"Export DXF", aliases:["DXF","EXPORTDXF"], icone:"\\u25f1", onglet:"fichier", groupe:"Impression et export", ordre:4, portee:"document", etat:"grise", jalon:"020F - impression et export" `
+- L342 — `groupe` — `{ id:"fichier.deconnexion", nomFr:"Deconnexion", nomEn:"Sign out", aliases:["DECONNEXION","LOGOUT"], icone:"\\u238b", onglet:"fichier", groupe:"Session", ordre:1, portee:"session", etat:"actif", source:{menu:"Fichier",index:8} },`
+- L342 — `group` — `{ id:"fichier.deconnexion", nomFr:"Deconnexion", nomEn:"Sign out", aliases:["DECONNEXION","LOGOUT"], icone:"\\u238b", onglet:"fichier", groupe:"Session", ordre:1, portee:"session", etat:"actif", source:{menu:"Fichier",index:8} },`
+- L342 — `port` — `{ id:"fichier.deconnexion", nomFr:"Deconnexion", nomEn:"Sign out", aliases:["DECONNEXION","LOGOUT"], icone:"\\u238b", onglet:"fichier", groupe:"Session", ordre:1, portee:"session", etat:"actif", source:{menu:"Fichier",index:8} },`
+- L345 — `groupe` — `{ id:"edition.annuler", nomFr:"Annuler", nomEn:"Undo", aliases:["ANNULER","UNDO","U"], icone:"\\u21b6", raccourci:"Ctrl+Z", onglet:"edition", groupe:"Annulation", ordre:1, portee:"projet", etat:"actif", source:{menu:"\\u00c9dition",index:0}`
+- L345 — `group` — `{ id:"edition.annuler", nomFr:"Annuler", nomEn:"Undo", aliases:["ANNULER","UNDO","U"], icone:"\\u21b6", raccourci:"Ctrl+Z", onglet:"edition", groupe:"Annulation", ordre:1, portee:"projet", etat:"actif", source:{menu:"\\u00c9dition",index:0}`
+- L345 — `undo` — `{ id:"edition.annuler", nomFr:"Annuler", nomEn:"Undo", aliases:["ANNULER","UNDO","U"], icone:"\\u21b6", raccourci:"Ctrl+Z", onglet:"edition", groupe:"Annulation", ordre:1, portee:"projet", etat:"actif", source:{menu:"\\u00c9dition",index:0}`
+- L345 — `port` — `{ id:"edition.annuler", nomFr:"Annuler", nomEn:"Undo", aliases:["ANNULER","UNDO","U"], icone:"\\u21b6", raccourci:"Ctrl+Z", onglet:"edition", groupe:"Annulation", ordre:1, portee:"projet", etat:"actif", source:{menu:"\\u00c9dition",index:0}`
+- L346 — `groupe` — `{ id:"edition.retablir", nomFr:"Retablir", nomEn:"Redo", aliases:["RETABLIR","REDO"], icone:"\\u21b7", raccourci:"Ctrl+Y", onglet:"edition", groupe:"Annulation", ordre:2, portee:"projet", etat:"actif", source:{menu:"\\u00c9dition",index:1} `
+- L346 — `group` — `{ id:"edition.retablir", nomFr:"Retablir", nomEn:"Redo", aliases:["RETABLIR","REDO"], icone:"\\u21b7", raccourci:"Ctrl+Y", onglet:"edition", groupe:"Annulation", ordre:2, portee:"projet", etat:"actif", source:{menu:"\\u00c9dition",index:1} `
+- L346 — `redo` — `{ id:"edition.retablir", nomFr:"Retablir", nomEn:"Redo", aliases:["RETABLIR","REDO"], icone:"\\u21b7", raccourci:"Ctrl+Y", onglet:"edition", groupe:"Annulation", ordre:2, portee:"projet", etat:"actif", source:{menu:"\\u00c9dition",index:1} `
+- L346 — `port` — `{ id:"edition.retablir", nomFr:"Retablir", nomEn:"Redo", aliases:["RETABLIR","REDO"], icone:"\\u21b7", raccourci:"Ctrl+Y", onglet:"edition", groupe:"Annulation", ordre:2, portee:"projet", etat:"actif", source:{menu:"\\u00c9dition",index:1} `
+- L347 — `groupe` — `{ id:"edition.copier", nomFr:"Copier", nomEn:"Copy", aliases:["CO","CP","COPY","COPIER"], icone:"\\u29c9", raccourci:"Ctrl+C", onglet:"edition", groupe:"Presse-papiers", ordre:1, portee:"selection", etat:"actif", source:{menu:"\\u00c9dition`
+- L347 — `group` — `{ id:"edition.copier", nomFr:"Copier", nomEn:"Copy", aliases:["CO","CP","COPY","COPIER"], icone:"\\u29c9", raccourci:"Ctrl+C", onglet:"edition", groupe:"Presse-papiers", ordre:1, portee:"selection", etat:"actif", source:{menu:"\\u00c9dition`
+- L347 — `selection` — `{ id:"edition.copier", nomFr:"Copier", nomEn:"Copy", aliases:["CO","CP","COPY","COPIER"], icone:"\\u29c9", raccourci:"Ctrl+C", onglet:"edition", groupe:"Presse-papiers", ordre:1, portee:"selection", etat:"actif", source:{menu:"\\u00c9dition`
+- L347 — `select` — `{ id:"edition.copier", nomFr:"Copier", nomEn:"Copy", aliases:["CO","CP","COPY","COPIER"], icone:"\\u29c9", raccourci:"Ctrl+C", onglet:"edition", groupe:"Presse-papiers", ordre:1, portee:"selection", etat:"actif", source:{menu:"\\u00c9dition`
+- … 282 occurrences supplémentaires.
+### `34075068-420f-4947-b362-3ef3a35283da.py`
+- L12 — `port` — `- Ajouter export/import JSON des entités 2D.`
+- L18 — `port` — `from pathlib import Path`
+- L19 — `port` — `import shutil`
+- L20 — `port` — `import sys`
+- L21 — `port` — `from datetime import datetime`
+- L26 — `port` — `REPORT = ROOT / "007_real_2d_geometry_foundation_REPORT.md"`
+- L27 — `history` — `HISTORY = ROOT / "docs" / "PATCH_HISTORY.md"`
+- L56 — `select` — `required = ["IsometrieModule", "selectedNodeIds", "selectedSegmentIds", "commitGraph", "buildProjectFile", "importProjectJson"]`
+- L56 — `port` — `required = ["IsometrieModule", "selectedNodeIds", "selectedSegmentIds", "commitGraph", "buildProjectFile", "importProjectJson"]`
+- L60 — `sélection` — `print("Audit OK : V4.8d présent, sélection pro présente, export/import JSON présents.")`
+- L60 — `port` — `print("Audit OK : V4.8d présent, sélection pro présente, export/import JSON présents.")`
+- L72 — `anchor` — `type_anchor = "export interface PipingLine {\n  id: string;\n  lineNumber: string;\n  service: string;\n  dn: number;\n  nps: string;\n  material: string;\n  pressureClass: string;\n  schedule?: string;\n  designPressure?: number;\n  design`
+- L72 — `port` — `type_anchor = "export interface PipingLine {\n  id: string;\n  lineNumber: string;\n  service: string;\n  dn: number;\n  nps: string;\n  material: string;\n  pressureClass: string;\n  schedule?: string;\n  designPressure?: number;\n  design`
+- L73 — `anchor` — `type_patch = type_anchor + r'''`
+- L77 — `port` — `export type Cad2dEntityType = "line" | "polyline" | "circle" | "arc" | "text";`
+- L78 — `port` — `export type Cad2dPoint = { x: number; y: number };`
+- L78 — `point` — `export type Cad2dPoint = { x: number; y: number };`
+- L79 — `port` — `export type Cad2dEntity = {`
+- L87 — `point` — `points?: Cad2dPoint[];`
+- L88 — `point` — `center?: Cad2dPoint;`
+- L93 — `rotation` — `rotation?: number;`
+- L103 — `port` — `export type Cad2dLayer = {`
+- L112 — `anchor` — `if type_anchor in src:`
+- L113 — `anchor` — `src = src.replace(type_anchor, type_patch, 1)`
+- L118 — `anchor` — `iso_proj_anchor = "  model: { lines: PipingLine[]; nodes: IsoNode[]; segments: IsoSegment[]; dimensions?: IsoDimension[]; };"`
+- L118 — `IsoNode` — `iso_proj_anchor = "  model: { lines: PipingLine[]; nodes: IsoNode[]; segments: IsoSegment[]; dimensions?: IsoDimension[]; };"`
+- L118 — `IsoSegment` — `iso_proj_anchor = "  model: { lines: PipingLine[]; nodes: IsoNode[]; segments: IsoSegment[]; dimensions?: IsoDimension[]; };"`
+- L119 — `IsoNode` — `iso_proj_patch = "  model: { lines: PipingLine[]; nodes: IsoNode[]; segments: IsoSegment[]; dimensions?: IsoDimension[]; cad2d?: { layers: Cad2dLayer[]; entities: Cad2dEntity[]; }; };"`
+- L119 — `IsoSegment` — `iso_proj_patch = "  model: { lines: PipingLine[]; nodes: IsoNode[]; segments: IsoSegment[]; dimensions?: IsoDimension[]; cad2d?: { layers: Cad2dLayer[]; entities: Cad2dEntity[]; }; };"`
+- L120 — `anchor` — `if iso_proj_anchor in src:`
+- L121 — `anchor` — `src = src.replace(iso_proj_anchor, iso_proj_patch, 1)`
+- L124 — `anchor` — `state_anchor = "  const [dimensions, setDimensionsRaw] = useState<IsoDimension[]>([]);"`
+- L125 — `anchor` — `state_patch = state_anchor + r'''`
+- L132 — `port` — `{ id: "import_cad", name: "Import CAD / fond plan", color: "#888888", visible: true, locked: false },`
+- L134 — `select` — `const [selectedCad2dIds, setSelectedCad2dIds] = useState<string[]>([]);`
+- L141 — `select` — `setSelectedCad2dIds([next.id]);`
+- L146 — `select` — `setInteractionMode("select");`
+- L147 — `select` — `setIsoDrawMode("select");`
+- L152 — `anchor` — `if state_anchor in src:`
+- L153 — `anchor` — `src = src.replace(state_anchor, state_patch, 1)`
+- L157 — `port` — `# 3) Ajouter support export JSON simple.`
+- L158 — `anchor` — `export_anchor = "model:{lines,nodes,segments,dimensions}"`
+- L158 — `port` — `export_anchor = "model:{lines,nodes,segments,dimensions}"`
+- L159 — `anchor` — `if export_anchor in src:`
+- L159 — `port` — `if export_anchor in src:`
+- L160 — `anchor` — `src = src.replace(export_anchor, "model:{lines,nodes,segments,dimensions,cad2d:{layers:cad2dLayers,entities:cad2dEntities}}", 1)`
+- L160 — `port` — `src = src.replace(export_anchor, "model:{lines,nodes,segments,dimensions,cad2d:{layers:cad2dLayers,entities:cad2dEntities}}", 1)`
+- L162 — `port` — `print("Ancre export exacte non trouvée — export 2D non injecté automatiquement.")`
+- L164 — `port` — `# 4) Ajouter support import JSON après dimensions import.`
+- L165 — `anchor` — `import_anchor = "    setDimensionsRaw(snapshot.model.dimensions || []);"`
+- L165 — `snap` — `import_anchor = "    setDimensionsRaw(snapshot.model.dimensions || []);"`
+- L165 — `port` — `import_anchor = "    setDimensionsRaw(snapshot.model.dimensions || []);"`
+- L166 — `snap` — `import_patch = """    setDimensionsRaw(snapshot.model.dimensions || []);`
+- L166 — `port` — `import_patch = """    setDimensionsRaw(snapshot.model.dimensions || []);`
+- L167 — `snap` — `setCad2dLayers(snapshot.model.cad2d?.layers || [`
+- L170 — `port` — `{ id: "import_cad", name: "Import CAD / fond plan", color: "#888888", visible: true, locked: false },`
+- L172 — `snap` — `setCad2dEntities(snapshot.model.cad2d?.entities || []);`
+- L173 — `select` — `setSelectedCad2dIds([]);"""`
+- L174 — `anchor` — `if import_anchor in src:`
+- L174 — `port` — `if import_anchor in src:`
+- L175 — `anchor` — `src = src.replace(import_anchor, import_patch, 1)`
+- L175 — `port` — `src = src.replace(import_anchor, import_patch, 1)`
+- L177 — `port` — `print("Ancre import dimensions non trouvée — import 2D non injecté automatiquement.")`
+- L180 — `anchor` — `svg_anchor = "                {/* User Dimensions (Interactive CAD Cotations) */}"`
+- L184 — `select` — `const selected = selectedCad2dIds.includes(entity.id);`
+- L185 — `select` — `const stroke = selected ? "#fbbf24" : entity.color;`
+- L188 — `select` — `strokeWidth: selected ? 2.5 : (entity.lineWeight || 1.5),`
+- L191 — `point` — `style: { cursor: "pointer" },`
+- L194 — `select` — `setSelectedCad2dIds(event.shiftKey || event.ctrlKey || event.metaKey`
+- L195 — `select` — `? (selected ? selectedCad2dIds.filter((id) => id !== entity.id) : [...selectedCad2dIds, entity.id])`
+- L197 — `sélection` — `setStatusMessage(`Objet 2D sélectionné · ${entity.type} · ${entity.id}`);`
+- L200 — `point` — `if (entity.type === "line" && entity.points && entity.points.length >= 2) {`
+- L201 — `port` — `const a = isoProjectV4(entity.points[0].x, entity.points[0].y, entity.metadata?.elevationZ || 0, viewport.zoom, viewport.panX, viewport.panY);`
+- L201 — `point` — `const a = isoProjectV4(entity.points[0].x, entity.points[0].y, entity.metadata?.elevationZ || 0, viewport.zoom, viewport.panX, viewport.panY);`
+- L202 — `port` — `const b = isoProjectV4(entity.points[1].x, entity.points[1].y, entity.metadata?.elevationZ || 0, viewport.zoom, viewport.panX, viewport.panY);`
+- L202 — `point` — `const b = isoProjectV4(entity.points[1].x, entity.points[1].y, entity.metadata?.elevationZ || 0, viewport.zoom, viewport.panX, viewport.panY);`
+- L205 — `point` — `if (entity.type === "polyline" && entity.points && entity.points.length > 0) {`
+- L206 — `point` — `const d = entity.points.map((p, i) => {`
+- L207 — `port` — `const pp = isoProjectV4(p.x, p.y, entity.metadata?.elevationZ || 0, viewport.zoom, viewport.panX, viewport.panY);`
+- L213 — `port` — `const c = isoProjectV4(entity.center.x, entity.center.y, entity.metadata?.elevationZ || 0, viewport.zoom, viewport.panX, viewport.panY);`
+- L214 — `port` — `return <circle key={entity.id} cx={c.x} cy={c.y} r={entity.radius * 18 * viewport.zoom} {...common} />;`
+- L217 — `port` — `const c = isoProjectV4(entity.center.x, entity.center.y, entity.metadata?.elevationZ || 0, viewport.zoom, viewport.panX, viewport.panY);`
+- L218 — `port` — `const r = entity.radius * 18 * viewport.zoom;`
+- L229 — `point` — `if (entity.type === "text" && entity.points && entity.points[0]) {`
+- L230 — `port` — `const p = isoProjectV4(entity.points[0].x, entity.points[0].y, entity.metadata?.elevationZ || 0, viewport.zoom, viewport.panX, viewport.panY);`
+- L230 — `point` — `const p = isoProjectV4(entity.points[0].x, entity.points[0].y, entity.metadata?.elevationZ || 0, viewport.zoom, viewport.panX, viewport.panY);`
+- L238 — `anchor` — `if svg_anchor in src:`
+- L239 — `anchor` — `src = src.replace(svg_anchor, svg_patch, 1)`
+- L244 — `anchor` — `click_anchor = "    if(isoDrawMode===\"coude\"){"`
+- L247 — `snap` — `const point = { x: snapIsoV4(w.x, isoSnapStep), y: snapIsoV4(w.y, isoSnapStep) };`
+- L247 — `point` — `const point = { x: snapIsoV4(w.x, isoSnapStep), y: snapIsoV4(w.y, isoSnapStep) };`
+- L249 — `point` — `addCad2dEntity({ type: "line", layerId: "axes_tuyauterie", color: "#4db8d4", points: [point, { x: point.x + 2, y: point.y }] });`
+- L251 — `point` — `addCad2dEntity({ type: "polyline", layerId: "axes_tuyauterie", color: "#4db8d4", points: [point, { x: point.x + 1, y: point.y + 1 }, { x: point.x + 2, y: point.y }] });`
+- L253 — `port` — `addCad2dEntity({ type: "circle", layerId: "import_cad", color: "#8b5cf6", center: point, radius: 1 });`
+- L253 — `point` — `addCad2dEntity({ type: "circle", layerId: "import_cad", color: "#8b5cf6", center: point, radius: 1 });`
+- L255 — `port` — `addCad2dEntity({ type: "arc", layerId: "import_cad", color: "#e8a838", center: point, radius: 1, startAngle: 0, endAngle: 90 });`
+- L255 — `point` — `addCad2dEntity({ type: "arc", layerId: "import_cad", color: "#e8a838", center: point, radius: 1, startAngle: 0, endAngle: 90 });`
+- L257 — `point` — `addCad2dEntity({ type: "text", layerId: "annotations", color: "#f0f0f0", points: [point], text: "Texte" });`
+- L265 — `anchor` — `if click_anchor in src:`
+- L266 — `anchor` — `src = src.replace(click_anchor, click_patch, 1)`
+- … 33 occurrences supplémentaires.
+### `50a96eb1-cd3c-43ea-aac5-e3a799010369.py`
+- L12 — `rotation` — `Consequence constatee par l utilisateur : DEPLACER, ROTATION, MIROIR,`
+- L39 — `port` — `Les entrees ajoutees ici ne redecrivent aucune action. Elles portent un`
+- L46 — `rotation` — `MOVE/DEPLACER, ERASE/EFFACER, MIRROR/MIROIR, ROTATE/ROTATION,`
+- L46 — `move` — `MOVE/DEPLACER, ERASE/EFFACER, MIRROR/MIROIR, ROTATE/ROTATION,`
+- L54 — `grouper` — `Grouper / Associer / Bloc restent grises (jalon 017Q1). Ce sont de vraies`
+- L54 — `groupe` — `Grouper / Associer / Bloc restent grises (jalon 017Q1). Ce sont de vraies`
+- L54 — `group` — `Grouper / Associer / Bloc restent grises (jalon 017Q1). Ce sont de vraies`
+- L54 — `associer` — `Grouper / Associer / Bloc restent grises (jalon 017Q1). Ce sont de vraies`
+- L55 — `groupe` — `fonctions : un groupe doit etre stocke dans le graphe, sauve dans le JSON,`
+- L55 — `group` — `fonctions : un groupe doit etre stocke dans le graphe, sauve dans le JSON,`
+- L58 — `groupe` — `A noter : ROTATION agit deja sur la selection courante (l. 3095). Le groupe`
+- L58 — `group` — `A noter : ROTATION agit deja sur la selection courante (l. 3095). Le groupe`
+- L58 — `selection` — `A noter : ROTATION agit deja sur la selection courante (l. 3095). Le groupe`
+- L58 — `select` — `A noter : ROTATION agit deja sur la selection courante (l. 3095). Le groupe`
+- L58 — `rotation` — `A noter : ROTATION agit deja sur la selection courante (l. 3095). Le groupe`
+- L66 — `port` — `import hashlib`
+- L67 — `port` — `import json`
+- L68 — `port` — `import os`
+- L69 — `port` — `import re`
+- L70 — `port` — `import sys`
+- L71 — `port` — `import tempfile`
+- L72 — `port` — `import zlib`
+- L95 — `port` — `"""Lecture qui repare d abord une queue zlib si le fichier en porte une."""`
+- L234 — `groupe` — `#    (id, nomFr, nomEn, alias, icone, onglet, groupe, portee, etat,`
+- L234 — `group` — `#    (id, nomFr, nomEn, alias, icone, onglet, groupe, portee, etat,`
+- L234 — `port` — `#    (id, nomFr, nomEn, alias, icone, onglet, groupe, portee, etat,`
+- L240 — `move` — `("edition.deplacer", "Deplacer", "Move",`
+- L241 — `move` — `["DEPLACER", "MOVE", "M", "TRANSLATION", "DEPLACE"], "\u2725",`
+- L242 — `selection` — `"edition", "Transformer", "selection", "actif", None, "DEPLACER"),`
+- L242 — `select` — `"edition", "Transformer", "selection", "actif", None, "DEPLACER"),`
+- L243 — `rotation` — `("edition.rotation", "Rotation", "Rotate",`
+- L244 — `rotation` — `["ROTATION", "ROTATE", "RO", "TOURNER"], "\u21bb",`
+- L245 — `selection` — `"edition", "Transformer", "selection", "actif", None, "ROTATION"),`
+- L245 — `select` — `"edition", "Transformer", "selection", "actif", None, "ROTATION"),`
+- L245 — `rotation` — `"edition", "Transformer", "selection", "actif", None, "ROTATION"),`
+- L248 — `selection` — `"edition", "Transformer", "selection", "actif", None, "MIROIR"),`
+- L248 — `select` — `"edition", "Transformer", "selection", "actif", None, "MIROIR"),`
+- L251 — `selection` — `"edition", "Transformer", "selection", "actif", None, "EFFACER"),`
+- L251 — `select` — `"edition", "Transformer", "selection", "actif", None, "EFFACER"),`
+- L255 — `selection` — `"edition", "Modifier la geometrie", "selection", "grise", "019B", None),`
+- L255 — `select` — `"edition", "Modifier la geometrie", "selection", "grise", "019B", None),`
+- L257 — `selection` — `"edition", "Modifier la geometrie", "selection", "grise", "019B", None),`
+- L257 — `select` — `"edition", "Modifier la geometrie", "selection", "grise", "019B", None),`
+- L259 — `selection` — `"\u27f6", "edition", "Modifier la geometrie", "selection", "grise",`
+- L259 — `select` — `"\u27f6", "edition", "Modifier la geometrie", "selection", "grise",`
+- L262 — `selection` — `"edition", "Modifier la geometrie", "selection", "grise", "019B", None),`
+- L262 — `select` — `"edition", "Modifier la geometrie", "selection", "grise", "019B", None),`
+- L264 — `selection` — `"\u25e2", "edition", "Modifier la geometrie", "selection", "grise",`
+- L264 — `select` — `"\u25e2", "edition", "Modifier la geometrie", "selection", "grise",`
+- L267 — `selection` — `"edition", "Modifier la geometrie", "selection", "grise", "019B", None),`
+- L267 — `select` — `"edition", "Modifier la geometrie", "selection", "grise", "019B", None),`
+- L269 — `selection` — `"edition", "Modifier la geometrie", "selection", "grise", "019B", None),`
+- L269 — `select` — `"edition", "Modifier la geometrie", "selection", "grise", "019B", None),`
+- L271 — `selection` — `"edition", "Modifier la geometrie", "selection", "grise", "019B", None),`
+- L271 — `select` — `"edition", "Modifier la geometrie", "selection", "grise", "019B", None),`
+- L273 — `selection` — `"\u2604", "edition", "Modifier la geometrie", "selection", "grise",`
+- L273 — `select` — `"\u2604", "edition", "Modifier la geometrie", "selection", "grise",`
+- L311 — `selection` — `"donnees", "Tags", "selection", "actif", None, "TAG"),`
+- L311 — `select` — `"donnees", "Tags", "selection", "actif", None, "TAG"),`
+- L325 — `selection` — `"donnees", "Tags", "selection", "actif", None, "SERVICE"),`
+- L325 — `select` — `"donnees", "Tags", "selection", "actif", None, "SERVICE"),`
+- L331 — `selection` — `"donnees", "Tables", "selection", "actif", None, "PROPRIETES"),`
+- L331 — `select` — `"donnees", "Tables", "selection", "actif", None, "PROPRIETES"),`
+- L376 — `groupe` — `# Groupe "Navigation" et non "Navigation 3D" : le 017M a deja cree un`
+- L376 — `group` — `# Groupe "Navigation" et non "Navigation 3D" : le 017M a deja cree un`
+- L377 — `groupe` — `# groupe "Navigation" dans cet onglet, et deux groupes aux noms voisins`
+- L377 — `group` — `# groupe "Navigation" dans cet onglet, et deux groupes aux noms voisins`
+- L381 — `point` — `("trois_d.pointvue", "Point de vue", "View point", ["VPOINT"], "\u25d5",`
+- L392 — `selection` — `"trois_d", "Equipements", "selection", "grise", "019C", None),`
+- L392 — `select` — `"trois_d", "Equipements", "selection", "grise", "019C", None),`
+- L395 — `selection` — `"trois_d", "Tuyauterie 3D", "selection", "grise", "019C", None),`
+- L395 — `select` — `"trois_d", "Tuyauterie 3D", "selection", "grise", "019C", None),`
+- L396 — `fitting` — `("trois_d.fittingmove", "Deplacer un raccord", "Move fitting",`
+- L396 — `move` — `("trois_d.fittingmove", "Deplacer un raccord", "Move fitting",`
+- L397 — `fitting` — `["PLANTFITTINGMOVE"], "\u2b83",`
+- L397 — `move` — `["PLANTFITTINGMOVE"], "\u2b83",`
+- L398 — `selection` — `"trois_d", "Tuyauterie 3D", "selection", "grise", "019C", None),`
+- L398 — `select` — `"trois_d", "Tuyauterie 3D", "selection", "grise", "019C", None),`
+- L399 — `fitting` — `("trois_d.flipfitting", "Retourner un raccord", "Flip fitting",`
+- L400 — `fitting` — `["PLANTFLIPFITTING"], "\u2b82",`
+- L401 — `selection` — `"trois_d", "Tuyauterie 3D", "selection", "grise", "019C", None),`
+- L401 — `select` — `"trois_d", "Tuyauterie 3D", "selection", "grise", "019C", None),`
+- L403 — `selection` — `"trois_d", "Tuyauterie 3D", "selection", "grise", "019C", None),`
+- L403 — `select` — `"trois_d", "Tuyauterie 3D", "selection", "grise", "019C", None),`
+- L422 — `port` — `("trois_d.support_ajout", "Ajouter un support", "Add support",`
+- L423 — `port` — `["PLANTSUPPORTADD"], "\u2534",`
+- L424 — `port` — `"trois_d", "Supports", "document", "grise", "019S+", None),`
+- L425 — `port` — `("trois_d.support_convert", "Convertir en support", "Convert support",`
+- L426 — `port` — `["PLANTSUPPORTCONVERT"], "\u252c",`
+- L427 — `selection` — `"trois_d", "Supports", "selection", "grise", "019S+", None),`
+- L427 — `select` — `"trois_d", "Supports", "selection", "grise", "019S+", None),`
+- L427 — `port` — `"trois_d", "Supports", "selection", "grise", "019S+", None),`
+- L456 — `groupe` — `for (ident, fr, en, alias, icone, ong, groupe, portee, etat,`
+- L456 — `group` — `for (ident, fr, en, alias, icone, ong, groupe, portee, etat,`
+- L456 — `port` — `for (ident, fr, en, alias, icone, ong, groupe, portee, etat,`
+- L458 — `groupe` — `cle = (ong, groupe)`
+- L458 — `group` — `cle = (ong, groupe)`
+- L459 — `groupe` — `# Decalage de 50 : certains groupes existent deja au 017M`
+- L459 — `group` — `# Decalage de 50 : certains groupes existent deja au 017M`
+- L461 — `port` — `# porteraient le meme ordre et l affichage serait arbitraire.`
+- … 51 occurrences supplémentaires.
+### `710cb2d8-71ff-44dc-a2f9-226ec80fa114.py`
+- L20 — `port` — `from pathlib import Path`
+- L21 — `port` — `import shutil`
+- L22 — `port` — `import sys`
+- L23 — `port` — `from datetime import datetime`
+- L29 — `port` — `REPORT = ROOT / "007e_compact_floating_props_landing_restore_REPORT.md"`
+- L30 — `history` — `HISTORY = ROOT / "docs" / "PATCH_HISTORY.md"`
+- L53 — `select` — `missing = [x for x in ["selectedCad2dEntity","updateCad2dEntity","contextMenu"] if x not in es]`
+- L71 — `move` — `try { window.sessionStorage.removeItem(PDI_STAGE_KEY); } catch {}`
+- L101 — `select` — `# 1) Etat palette flottante après selectedCad2dEntity.`
+- L102 — `anchor` — `anchor = "  const selectedCad2dEntity = cad2dEntities.find((entity) => selectedCad2dIds.includes(entity.id)) || null;"`
+- L102 — `select` — `anchor = "  const selectedCad2dEntity = cad2dEntities.find((entity) => selectedCad2dIds.includes(entity.id)) || null;"`
+- L103 — `anchor` — `inject = anchor + r'''`
+- L108 — `drag` — `const cadPropsDragRef = useRef<{ dx: number; dy: number } | null>(null);`
+- L109 — `drag` — `const startCadPropsDrag = (event: React.MouseEvent) => {`
+- L111 — `drag` — `cadPropsDragRef.current = { dx: event.clientX - cadPropsPos.x, dy: event.clientY - cadPropsPos.y };`
+- L113 — `move` — `const moveCadPropsDrag = (event: React.MouseEvent) => {`
+- L113 — `drag` — `const moveCadPropsDrag = (event: React.MouseEvent) => {`
+- L114 — `drag` — `if (!cadPropsDragRef.current) return;`
+- L116 — `drag` — `x: Math.max(8, Math.min(event.clientX - cadPropsDragRef.current.dx, (typeof window !== "undefined" ? window.innerWidth : 900) - 238)),`
+- L117 — `drag` — `y: Math.max(84, Math.min(event.clientY - cadPropsDragRef.current.dy, (typeof window !== "undefined" ? window.innerHeight : 700) - 260)),`
+- L120 — `drag` — `const endCadPropsDrag = () => { cadPropsDragRef.current = null; };`
+- L122 — `anchor` — `if anchor in src and "cadPropsPos" not in src:`
+- L123 — `anchor` — `src = src.replace(anchor, inject, 1)`
+- L125 — `move` — `# 2) Ajouter global mouse move/up sur root pour drag palette.`
+- L125 — `drag` — `# 2) Ajouter global mouse move/up sur root pour drag palette.`
+- L128 — `move` — `'data-pdi-studio="true" onMouseMove={moveCadPropsDrag} onMouseUp={endCadPropsDrag}',`
+- L128 — `drag` — `'data-pdi-studio="true" onMouseMove={moveCadPropsDrag} onMouseUp={endCadPropsDrag}',`
+- L137 — `anchor` — `anchor2 = '            {contextMenu && ('`
+- L138 — `select` — `palette = r'''            {selectedCad2dEntity && cadPropsOpen && (`
+- L140 — `drag` — `<div className="pdi-cad-float-head" onMouseDown={startCadPropsDrag}>`
+- L141 — `select` — `<b>PROPERTIES</b><span>{selectedCad2dEntity.type}</span><button onClick={()=>setCadPropsOpen(false)}>×</button>`
+- L144 — `select` — `<label>Layer<select value={selectedCad2dEntity.layerId} onChange={e=>updateCad2dEntity(selectedCad2dEntity.id,{layerId:e.target.value})}>{cad2dLayers.map(layer=><option key={layer.id} value={layer.id}>{layer.name}</option>)}</select></label`
+- L145 — `select` — `<label>Color<input type="color" value={selectedCad2dEntity.color} onChange={e=>updateCad2dEntity(selectedCad2dEntity.id,{color:e.target.value})}/></label>`
+- L146 — `select` — `<label>Line<select value={selectedCad2dEntity.lineType || "continuous"} onChange={e=>updateCad2dEntity(selectedCad2dEntity.id,{lineType:e.target.value as Cad2dEntity["lineType"]})}><option value="continuous">Continuous</option><option value`
+- L147 — `select` — `<label>Weight<input type="number" min="0.5" step="0.5" value={selectedCad2dEntity.lineWeight || 1.5} onChange={e=>updateCad2dEntity(selectedCad2dEntity.id,{lineWeight:Number(e.target.value)||1.5})}/></label>`
+- L148 — `select` — `{selectedCad2dEntity.type === "text" && <>`
+- L149 — `select` — `<label className="wide">Text<input value={selectedCad2dEntity.text || ""} onChange={e=>updateCad2dEntity(selectedCad2dEntity.id,{text:e.target.value})}/></label>`
+- L150 — `select` — `<label>Size<input type="number" min="6" max="96" value={selectedCad2dEntity.fontSize || 16} onChange={e=>updateCad2dEntity(selectedCad2dEntity.id,{fontSize:Number(e.target.value)||16})}/></label>`
+- L151 — `select` — `<label>Font<select value={selectedCad2dEntity.fontFamily || "Arial"} onChange={e=>updateCad2dEntity(selectedCad2dEntity.id,{fontFamily:e.target.value})}><option>Arial</option><option>Inter</option><option>JetBrains Mono</option><option>Geor`
+- L153 — `select` — `<label>Rot.<input type="number" step="1" value={selectedCad2dEntity.rotation || 0} onChange={e=>updateCad2dEntity(selectedCad2dEntity.id,{rotation:Number(e.target.value)||0})}/></label>`
+- L153 — `rotation` — `<label>Rot.<input type="number" step="1" value={selectedCad2dEntity.rotation || 0} onChange={e=>updateCad2dEntity(selectedCad2dEntity.id,{rotation:Number(e.target.value)||0})}/></label>`
+- L154 — `select` — `<label>Opacity<input type="number" min="0.1" max="1" step="0.05" value={selectedCad2dEntity.opacity ?? 1} onChange={e=>updateCad2dEntity(selectedCad2dEntity.id,{opacity:Number(e.target.value)||1})}/></label>`
+- L156 — `select` — `<div className="pdi-cad-float-actions"><button onClick={duplicateSelectedCad2d}>Dup</button><button onClick={()=>rotateSelectedCad2d(15)}>Rot</button><button onClick={()=>scaleSelectedCad2d(1.1)}>Scale</button><button onClick={deleteSelecte`
+- L159 — `select` — `{selectedCad2dEntity && !cadPropsOpen && <button className="pdi-cad-props-tab" onClick={()=>setCadPropsOpen(true)} style={{ left: cadPropsPos.x, top: cadPropsPos.y }}>PROPS</button>}`
+- L161 — `anchor` — `''' + anchor2`
+- L162 — `anchor` — `if anchor2 in src and "pdi-cad-float-props" not in src:`
+- L163 — `anchor` — `src = src.replace(anchor2, palette, 1)`
+- L181 — `anchor` — `style_anchor = '[data-pdi-studio] .pdi-cad-menu-panel{display:none;position:absolute;top:30px;left:0;min-width:210px;max-height:70vh;overflow:auto;z-index:10050;background:#0F141B;border:1px solid #30363D;border-radius:10px;padding:6px;box-`
+- L182 — `anchor` — `style_add = style_anchor + r'''`
+- L183 — `select` — `[data-pdi-studio] .pdi-cad-float-props{position:fixed;width:218px;z-index:10070;background:#111317;border:1px solid #2d333b;border-radius:8px;box-shadow:0 18px 44px rgba(0,0,0,.55);color:#d1d5db;font-size:10px;overflow:hidden;user-select:no`
+- L184 — `align` — `[data-pdi-studio] .pdi-cad-float-head{height:27px;display:flex;align-items:center;gap:7px;background:#0b0d10;border-bottom:1px solid #2d333b;padding:0 7px;cursor:move;color:#e5e7eb;letter-spacing:.08em}`
+- L184 — `move` — `[data-pdi-studio] .pdi-cad-float-head{height:27px;display:flex;align-items:center;gap:7px;background:#0b0d10;border-bottom:1px solid #2d333b;padding:0 7px;cursor:move;color:#e5e7eb;letter-spacing:.08em}`
+- L185 — `point` — `[data-pdi-studio] .pdi-cad-float-head b{font-size:9px}.pdi-cad-float-head span{margin-left:auto;color:#8b949e;font-size:9px;text-transform:uppercase}.pdi-cad-float-head button{width:18px;height:18px;border:0;background:#22272e;color:#8b949e`
+- L188 — `select` — `[data-pdi-studio] .pdi-cad-float-body input,[data-pdi-studio] .pdi-cad-float-body select{height:22px;min-width:0;border-radius:4px;background:#0d1117!important;border:1px solid #30363d!important;color:#e6edf3!important;font-size:10px;paddin`
+- L188 — `port` — `[data-pdi-studio] .pdi-cad-float-body input,[data-pdi-studio] .pdi-cad-float-body select{height:22px;min-width:0;border-radius:4px;background:#0d1117!important;border:1px solid #30363d!important;color:#e6edf3!important;font-size:10px;paddin`
+- L189 — `point` — `[data-pdi-studio] .pdi-cad-float-actions{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:6px;background:#0f141b;border-top:1px solid #2d333b}.pdi-cad-float-actions button,.pdi-cad-props-tab{height:22px;border-radius:4px;bor`
+- L191 — `anchor` — `if style_anchor in src and "pdi-cad-float-props" not in src[src.find(style_anchor):src.find(style_anchor)+2000]:`
+- L192 — `anchor` — `src = src.replace(style_anchor, style_add, 1)`
+- L197 — `port` — `def write_report():`
+- L216 — `sélection` — `1. Sélectionner objet 2D : petite palette flottante apparaît.`
+- L222 — `port` — `write(REPORT,content)`
+- L224 — `history` — `def update_history():`
+- L225 — `history` — `if not HISTORY.exists(): return`
+- L226 — `history` — `src = read(HISTORY)`
+- L239 — `history` — `write(HISTORY, src.rstrip()+"\n"+entry)`
+- L246 — `port` — `write_report()`
+- L247 — `history` — `update_history()`
+### `PD-I_AI_STUDIO_ISO_MASTER.py`
+- L40 — `port` — `IMPORTANT`
+- L53 — `select` — `- select objects precisely`
+- L54 — `snap` — `- snap to meaningful ISO points`
+- L54 — `point` — `- snap to meaningful ISO points`
+- L55 — `fitting` — `- create/edit pipe segments and fittings`
+- L60 — `undo` — `- undo/redo operations`
+- L60 — `redo` — `- undo/redo operations`
+- L64 — `port` — `- export a clean visual representation`
+- L85 — `select` — `+--> Select ISO drawing`
+- L91 — `selection` — `|      +--> selection`
+- L91 — `select` — `|      +--> selection`
+- L92 — `snap` — `|      +--> snapping`
+- L94 — `fitting` — `|      +--> fittings`
+- L111 — `port` — `+--> Export`
+- L114 — `port` — `+--> DXF (when supported)`
+- L121 — `selection` — `- selection`
+- L121 — `select` — `- selection`
+- L122 — `selection` — `- box selection`
+- L122 — `select` — `- box selection`
+- L127 — `undo` — `- undo/redo`
+- L127 — `redo` — `- undo/redo`
+- L129 — `snap` — `PHASE 2 — ISO snapping`
+- L130 — `snap` — `- endpoint snap`
+- L130 — `point` — `- endpoint snap`
+- L131 — `snap` — `- port snap`
+- L131 — `port` — `- port snap`
+- L132 — `snap` — `- midpoint snap`
+- L132 — `point` — `- midpoint snap`
+- L133 — `snap` — `- intersection snap`
+- L134 — `snap` — `- axis snap`
+- L135 — `snap` — `- grid snap`
+- L136 — `snap` — `- visible snap feedback`
+- L137 — `snap` — `- configurable snap priority`
+- L143 — `move` — `- move segment`
+- L144 — `fitting` — `- rotate fitting`
+- L173 — `port` — `- disconnected ports`
+- L175 — `fitting` — `- invalid fittings`
+- L180 — `port` — `- export readiness`
+- L189 — `port` — `PHASE 8 — Export`
+- L192 — `port` — `- DXF after deterministic export contract is stable`
+- L204 — `selection` — `- obvious selection state`
+- L204 — `select` — `- obvious selection state`
+- L206 — `undo` — `- undo available after every mutation`
+- L210 — `snap` — `- snap feedback must be visible`
+- L211 — `select` — `- properties panel reflects selected object`
+- L215 — `select` — `V = select`
+- L220 — `selection` — `Delete/Backspace = delete selection`
+- L220 — `select` — `Delete/Backspace = delete selection`
+- L221 — `undo` — `Ctrl/Cmd+Z = undo`
+- L222 — `redo` — `Ctrl/Cmd+Shift+Z = redo`
+- L239 — `selection` — `- selection`
+- L239 — `select` — `- selection`
+- L241 — `port` — `- viewport`
+- L242 — `snap` — `- snap`
+- L247 — `undo` — `- undo()`
+- L250 — `parallel` — `Do NOT create parallel copies of piping geometry in React state.`
+- L287 — `snap` — `-> use snapping`
+- L288 — `select` — `-> select/move/delete`
+- L288 — `move` — `-> select/move/delete`
+- L289 — `undo` — `-> undo/redo`
+- L289 — `redo` — `-> undo/redo`
+- L297 — `port` — `-> export`
+- L305 — `port` — `- inspect imports and consumers`
+- L311 — `port` — `- report failures honestly`
+- L324 — `port` — `- Do not break existing import/export behavior.`
+- L330 — `selection` — `2. selection model`
+- L330 — `select` — `2. selection model`
+- L331 — `undo` — `3. command/undo-redo foundation`
+- L331 — `redo` — `3. command/undo-redo foundation`
+- L332 — `snap` — `4. snapping service`
+- L333 — `port` — `5. viewport service`
+- L342 — `port` — `14. export`
+### `PD-I_AI_STUDIO_ISO_MASTER_PATCH_V3.py`
+- L6 — `port` — `IMPORTANT WORKFLOW:`
+- L13 — `port` — `- Before every change, inspect the CURRENT files, imports, consumers and source of truth.`
+- L23 — `snap` — `components, snap, edit properties, dimension, annotate, manage layers,`
+- L24 — `undo` — `undo/redo, validate, save/reload, prepare title block, preview and export.`
+- L24 — `redo` — `undo/redo, validate, save/reload, prepare title block, preview and export.`
+- L24 — `port` — `undo/redo, validate, save/reload, prepare title block, preview and export.`
+- L52 — `port` — `11. Report failures honestly.`
+- L58 — `selection` — `2. Real selection + hover`
+- L58 — `select` — `2. Real selection + hover`
+- L60 — `select` — `4. Real Properties panel bound to selected model entity`
+- L61 — `undo` — `5. Command-based Undo/Redo`
+- L61 — `redo` — `5. Command-based Undo/Redo`
+- L62 — `snap` — `6. Professional snapping`
+- L80 — `point` — `- no pointer-event interception`
+- L83 — `snap` — `- prepared for snapping`
+- L90 — `snap` — `- snap enabled`
+- L91 — `snap` — `- snap spacing`
+- L96 — `selection` — `2 — SELECTION`
+- L96 — `select` — `2 — SELECTION`
+- L98 — `selection` — `Implement real model-backed selection:`
+- L98 — `select` — `Implement real model-backed selection:`
+- L99 — `selection` — `- click selection`
+- L99 — `select` — `- click selection`
+- L101 — `select` — `- selected highlight`
+- L102 — `selection` — `- multi-selection where supported`
+- L102 — `select` — `- multi-selection where supported`
+- L102 — `port` — `- multi-selection where supported`
+- L103 — `selection` — `- box selection if compatible`
+- L103 — `select` — `- box selection if compatible`
+- L106 — `selection` — `- selection references real model IDs/entities`
+- L106 — `select` — `- selection references real model IDs/entities`
+- L113 — `select` — `Select`
+- L114 — `port` — `Hide/Show (if supported)`
+- L118 — `select` — `Properties MUST be bound to the actual selected model entity.`
+- L136 — `port` — `- connected ports`
+- L144 — `port` — `- connected ports`
+- L148 — `undo` — `4 — UNDO / REDO`
+- L148 — `redo` — `4 — UNDO / REDO`
+- L153 — `undo` — `command.undo()`
+- L159 — `move` — `MoveObjectCommand`
+- L164 — `undo` — `Undo/redo must restore the canonical model exactly.`
+- L164 — `redo` — `Undo/redo must restore the canonical model exactly.`
+- L170 — `snap` — `5 — SNAPPING`
+- L172 — `snap` — `Create a dedicated snapping service/utility.`
+- L176 — `point` — `ENDPOINT`
+- L177 — `port` — `PORT`
+- L178 — `point` — `MIDPOINT`
+- L186 — `port` — `- viewport-scale-aware tolerance`
+- L190 — `port` — `PORT > ENDPOINT > INTERSECTION > MIDPOINT > AXIS > GRID`
+- L190 — `point` — `PORT > ENDPOINT > INTERSECTION > MIDPOINT > AXIS > GRID`
+- L197 — `select` — `Select, Pan, Pipe, Elbow, Tee, Reducer, Flange, Valve,`
+- L206 — `port` — `Progressively support:`
+- L210 — `align` — `- aligned`
+- L210 — `aligned` — `- aligned`
+- L213 — `move` — `- movement`
+- L224 — `port` — `Support:`
+- L239 — `fitting` — `PIPE, FITTINGS, VALVES, DIMENSIONS, ANNOTATIONS, WELDS,`
+- L242 — `port` — `Support visibility, active layer and optional lock/filtering.`
+- L247 — `port` — `Support progressively:`
+- L255 — `port` — `Preview/export must use the same sheet model.`
+- L271 — `port` — `- port definitions`
+- L286 — `port` — `ports`
+- L314 — `port` — `- disconnected ports`
+- L323 — `port` — `- export readiness`
+- L340 — `port` — `- viewport only if appropriate`
+- L342 — `port` — `Support dirty-state detection.`
+- L345 — `port` — `15 — EXPORT`
+- L350 — `port` — `Exports derive from canonical document/model.`
+- L369 — `move` — `Audit and remove:`
+- L382 — `selection` — `selection, hover, pan/zoom, fit, shortcuts, Escape, delete, undo/redo`
+- L382 — `select` — `selection, hover, pan/zoom, fit, shortcuts, Escape, delete, undo/redo`
+- L382 — `undo` — `selection, hover, pan/zoom, fit, shortcuts, Escape, delete, undo/redo`
+- L382 — `redo` — `selection, hover, pan/zoom, fit, shortcuts, Escape, delete, undo/redo`
+- L384 — `snap` — `PHASE 2: grid and snapping`
+- L386 — `snap` — `grid snapping, endpoint/port/intersection snapping`
+- L386 — `port` — `grid snapping, endpoint/port/intersection snapping`
+- L386 — `point` — `grid snapping, endpoint/port/intersection snapping`
+- L389 — `move` — `pipe, elbow, tee, reducer, flange, valve, connect, edit, move, rotate`
+- L399 — `port` — `connectivity, collisions, clearances, required metadata, export readiness`
+- L401 — `port` — `PHASE 7: persistence and export`
+- L417 — `snap` — `7. Snap endpoint`
+- L417 — `point` — `7. Snap endpoint`
+- L422 — `select` — `12. Select object`
+- L426 — `undo` — `16. Undo`
+- L427 — `redo` — `17. Redo`
+- L437 — `port` — `27. Export SVG/PDF when implemented`
+- L446 — `port` — `STEP 3: create/clean viewport/grid abstraction.`
+- L447 — `selection` — `STEP 4: real selection/hover.`
+- L447 — `select` — `STEP 4: real selection/hover.`
+- L450 — `undo` — `STEP 7: command Undo/Redo.`
+- L450 — `redo` — `STEP 7: command Undo/Redo.`
+- L451 — `snap` — `STEP 8: snapping service.`
+- L452 — `fitting` — `STEP 9: pipe/fitting manipulation.`
+- L471 — `port` — `For every task report:`
+- L512 — `port` — `- real ports`
+- L538 — `snap` — `GRID -> SELECTION -> RIGHT CLICK -> PROPERTIES -> UNDO/REDO -> SNAPPING`
+- L538 — `selection` — `GRID -> SELECTION -> RIGHT CLICK -> PROPERTIES -> UNDO/REDO -> SNAPPING`
+- L538 — `select` — `GRID -> SELECTION -> RIGHT CLICK -> PROPERTIES -> UNDO/REDO -> SNAPPING`
+- L538 — `undo` — `GRID -> SELECTION -> RIGHT CLICK -> PROPERTIES -> UNDO/REDO -> SNAPPING`
+- L538 — `redo` — `GRID -> SELECTION -> RIGHT CLICK -> PROPERTIES -> UNDO/REDO -> SNAPPING`
+- … 5 occurrences supplémentaires.
+### `PD-I_AI_STUDIO_ISO_REPAIR_V4.py`
+- L13 — `port` — `REPORTED REGRESSIONS`
+- L15 — `point` — `1. Mouse click position != created point position.`
+- L22 — `selection` — `8. Rectangle/marquee multi-selection is missing.`
+- L22 — `select` — `8. Rectangle/marquee multi-selection is missing.`
+- L23 — `selection` — `9. Multi-selection must support move, delete, copy, duplicate, cut.`
+- L23 — `select` — `9. Multi-selection must support move, delete, copy, duplicate, cut.`
+- L23 — `port` — `9. Multi-selection must support move, delete, copy, duplicate, cut.`
+- L23 — `move` — `9. Multi-selection must support move, delete, copy, duplicate, cut.`
+- L35 — `IsoNode` — `- IsoNode / IsoSegment`
+- L35 — `IsoSegment` — `- IsoNode / IsoSegment`
+- L38 — `point` — `- pointer/click handlers`
+- L40 — `port` — `- viewport, zoom, pan`
+- L42 — `selection` — `- selection/context menu/properties`
+- L42 — `select` — `- selection/context menu/properties`
+- L45 — `undo` — `- existing command/undo/redo code`
+- L45 — `redo` — `- existing command/undo/redo code`
+- L53 — `point` — `1. HIGHEST PRIORITY — POINTER / COORDINATE BUG`
+- L56 — `point` — `The created point must appear exactly under the mouse.`
+- L68 — `port` — `- stale viewport state`
+- L73 — `port` — `The renderer and pointer insertion must use the SAME viewport/projection.`
+- L73 — `point` — `The renderer and pointer insertion must use the SAME viewport/projection.`
+- L87 — `move` — `Use temporary diagnostics only to find the root cause; remove/disable them`
+- L91 — `fitting` — `2. RESTORE EXISTING FITTING INSERTION`
+- L103 — `select` — `user selects component`
+- L104 — `port` — `-> targets pipe/port/segment`
+- L105 — `snap` — `-> snap detects valid target`
+- L108 — `port` — `-> ports/topology updated`
+- L113 — `port` — `- preserve/create branch port`
+- L120 — `port` — `- correct port connectivity`
+- L123 — `point` — `- connect to endpoint/route`
+- L125 — `port` — `- preserve ports/connectivity`
+- L140 — `parallel` — `Restore the SAME authoritative representation; do not create a parallel Z model.`
+- L142 — `port` — `Display where supported:`
+- L187 — `fitting` — `Fitting rows may include:`
+- L194 — `port` — `Ports`
+- L204 — `selection` — `- update when selection changes`
+- L204 — `select` — `- update when selection changes`
+- L208 — `selection` — `5. RECTANGLE / MARQUEE MULTI-SELECTION`
+- L208 — `select` — `5. RECTANGLE / MARQUEE MULTI-SELECTION`
+- L211 — `selection` — `Implement CAD-style rectangular selection.`
+- L211 — `select` — `Implement CAD-style rectangular selection.`
+- L214 — `drag` — `-> drag rectangle`
+- L215 — `select` — `-> select all selectable model objects inside/intersecting the rectangle`
+- L217 — `select` — `Do not select:`
+- L220 — `select` — `- non-selectable construction objects`
+- L222 — `port` — `Support:`
+- L223 — `selection` — `- click selection`
+- L223 — `select` — `- click selection`
+- L224 — `move` — `- Shift+click add/remove where compatible`
+- L225 — `selection` — `- rectangle selection`
+- L225 — `select` — `- rectangle selection`
+- L229 — `select` — `Selected objects need a consistent visual highlight.`
+- L234 — `selection` — `6. MULTI-SELECTION OPERATIONS`
+- L234 — `select` — `6. MULTI-SELECTION OPERATIONS`
+- L237 — `selection` — `For real multi-selection support:`
+- L237 — `select` — `For real multi-selection support:`
+- L237 — `port` — `For real multi-selection support:`
+- L238 — `move` — `- MOVE`
+- L247 — `selection` — `MoveSelectionCommand`
+- L247 — `select` — `MoveSelectionCommand`
+- L247 — `move` — `MoveSelectionCommand`
+- L248 — `selection` — `DeleteSelectionCommand`
+- L248 — `select` — `DeleteSelectionCommand`
+- L249 — `selection` — `CopySelectionCommand`
+- L249 — `select` — `CopySelectionCommand`
+- L250 — `selection` — `DuplicateSelectionCommand`
+- L250 — `select` — `DuplicateSelectionCommand`
+- L251 — `selection` — `CutSelectionCommand`
+- L251 — `select` — `CutSelectionCommand`
+- L253 — `undo` — `All destructive operations must be undoable.`
+- L263 — `move` — `- remove originals through a model command`
+- L264 — `undo` — `- undo restores originals`
+- L272 — `undo` — `Ctrl/Cmd+Z undo`
+- L273 — `redo` — `Ctrl/Cmd+Shift+Z redo`
+- L285 — `port` — `8. GRID / VIEWPORT SAFETY`
+- L290 — `snap` — `Grid, model rendering, snapping and pointer insertion must share the correct`
+- L290 — `point` — `Grid, model rendering, snapping and pointer insertion must share the correct`
+- L291 — `port` — `viewport transform.`
+- L293 — `port` — `Fix the ROOT viewport/coordinate problem rather than compensating with offsets.`
+- L310 — `move` — `- remove topology logic`
+- L311 — `parallel` — `- create a parallel geometry model`
+- L312 — `fitting` — `- simplify fitting insertion into decorative placement`
+- L318 — `point` — `A POINTER:`
+- L325 — `move` — `- create/move/delete`
+- L330 — `port` — `- connected ports`
+- L340 — `port` — `- connected ports`
+- L352 — `select` — `H MULTISELECT:`
+- L353 — `select` — `- rectangle select`
+- L354 — `move` — `- move`
+- L359 — `undo` — `- undo/redo`
+- L359 — `redo` — `- undo/redo`
+- L378 — `align` — `- pointer alignment`
+- L378 — `point` — `- pointer alignment`
+- L379 — `fitting` — `- fitting insertion`
+- L382 — `selection` — `- marquee selection`
+- L382 — `select` — `- marquee selection`
+- L383 — `move` — `- move/delete/copy/duplicate/cut`
+- L386 — `port` — `Report exact commands/results.`
+- L396 — `port` — `13. REQUIRED AI STUDIO REPORT`
+- L416 — `point` — `- pointer`
+- … 4 occurrences supplémentaires.
+### `PD-I_AI_STUDIO_ISO_REPAIR_V5.py`
+- L32 — `port` — `Make it cover the ENTIRE drawing viewport dynamically:`
+- L39 — `point` — `- no pointer-event interception`
+- L40 — `port` — `- same viewport transform as geometry`
+- L48 — `port` — `Audit them. Recenter/Fit must change VIEWPORT only:`
+- L63 — `selection` — `- Selection`
+- L63 — `select` — `- Selection`
+- L66 — `snap` — `- Snap options`
+- L71 — `select` — `Selected model entity drives contextual information.`
+- L74 — `move` — `5) REMOVE USELESS BOTTOM DETAILS`
+- L76 — `move` — `Remove the current bottom display of weight/length IF it is only redundant UI.`
+- L79 — `move` — `Move useful information to:`
+- L84 — `move` — `6) MOVE BOM / PROPERTIES`
+- L86 — `move` — `Move the current BOM/Properties button from the top horizontal area into`
+- L93 — `selection` — `- Selection`
+- L93 — `select` — `- Selection`
+- L103 — `point` — `- Node: node/point-node symbol`
+- L104 — `point` — `- Point: circle`
+- L124 — `move` — `Do not remove accessibility/status indicators unnecessarily.`
+- L128 — `port` — `All compatible library components must support:`
+- L130 — `select` — `select pipe segment`
+- L133 — `snap` — `-> snap to valid segment location`
+- L135 — `port` — `-> update ports/topology`
+- L143 — `drag` — `10) LIBRARY DRAG & DROP`
+- L145 — `port` — `Support:`
+- L146 — `drag` — `Library component -> drag -> ISO segment -> preview -> drop -> validate`
+- L149 — `drag` — `During drag:`
+- L157 — `port` — `- connect ports`
+- L161 — `rotation` — `11) ROTATION — KEY R`
+- L163 — `rotation` — `Implement/use a real model rotation command.`
+- L165 — `select` — `R = rotate selected/active element using the project's existing rotation`
+- L165 — `rotation` — `R = rotate selected/active element using the project's existing rotation`
+- L168 — `rotation` — `Rotation must:`
+- L171 — `port` — `- update orientation/ports`
+- L172 — `undo` — `- be undoable`
+- L175 — `rotation` — `Expose rotation in:`
+- L185 — `port` — `User reports cotations are not visible.`
+- L200 — `select` — `- select first reference`
+- L201 — `select` — `- select second reference`
+- L207 — `port` — `Support at minimum:`
+- L208 — `align` — `linear, horizontal, vertical; aligned if current engine supports it.`
+- L208 — `aligned` — `linear, horizontal, vertical; aligned if current engine supports it.`
+- L208 — `port` — `linear, horizontal, vertical; aligned if current engine supports it.`
+- L212 — `snap` — `13) SNAP BELOW 0.25`
+- L214 — `snap` — `Investigate current snap tolerance.`
+- L223 — `snap` — `Make snap tolerance configurable and viewport-scale aware, allowing precision`
+- L223 — `port` — `Make snap tolerance configurable and viewport-scale aware, allowing precision`
+- L227 — `snap` — `- Snap enabled`
+- L228 — `snap` — `- Snap tolerance`
+- L229 — `snap` — `- Grid snap`
+- L230 — `snap` — `- Endpoint snap`
+- L230 — `point` — `- Endpoint snap`
+- L231 — `snap` — `- Port snap`
+- L231 — `port` — `- Port snap`
+- L232 — `snap` — `- Intersection snap`
+- L233 — `snap` — `- Midpoint snap`
+- L233 — `point` — `- Midpoint snap`
+- L235 — `snap` — `Show snap feedback near cursor.`
+- L236 — `snap` — `Never snap outside configured tolerance.`
+- L237 — `snap` — `Do not alter canonical coordinates to make snapping look correct.`
+- L241 — `port` — `Before touching shared viewport/insertion functions, verify:`
+- L242 — `align` — `- pointer alignment`
+- L242 — `point` — `- pointer alignment`
+- L249 — `selection` — `- marquee selection`
+- L249 — `select` — `- marquee selection`
+- L250 — `selection` — `- multi-selection operations`
+- L250 — `select` — `- multi-selection operations`
+- L283 — `drag` — `- drag/drop onto segment`
+- L289 — `rotation` — `ROTATION:`
+- L290 — `select` — `- R rotates selected/active object`
+- L291 — `rotation` — `- menu exposes rotation`
+- L292 — `undo` — `- undo/redo works`
+- L292 — `redo` — `- undo/redo works`
+- L300 — `snap` — `SNAP:`
+- L301 — `snap` — `- fine snap below 0.25 when coordinate system allows`
+- L303 — `snap` — `- no false snapping outside tolerance`
+- L314 — `port` — `Report:`
+- L327 — `port` — `3. Fix full-viewport grid.`
+- L330 — `move` — `6. Move Properties/BOM.`
+- L331 — `move` — `7. Remove bottom weight/length display.`
+- L334 — `drag` — `10. Add drag/drop insertion.`
+- L335 — `rotation` — `11. Add R rotation.`
+- L337 — `snap` — `13. Fine-tune configurable snap.`
+- L339 — `port` — `15. Build and report.`
+### `PD-I_AI_STUDIO_ISO_REPAIR_V6.py`
+- L14 — `move` — `Keep the global application navigation if it is genuinely global, but remove/restructure`
+- L16 — `port` — `The drawing viewport must gain space.`
+- L22 — `snap` — `Selection | Properties | BOM/Métré | Dimensions | Layers | Snap | Details`
+- L22 — `selection` — `Selection | Properties | BOM/Métré | Dimensions | Layers | Snap | Details`
+- L22 — `select` — `Selection | Properties | BOM/Métré | Dimensions | Layers | Snap | Details`
+- L25 — `move` — `Move BOM & Métré completely into the right vertical bar.`
+- L29 — `move` — `3. REMOVE BOTTOM CARDS`
+- L30 — `move` — `Remove persistent bottom cards for:`
+- L38 — `selection` — `4. SELECTION IS BROKEN`
+- L38 — `select` — `4. SELECTION IS BROKEN`
+- L39 — `selection` — `The Selection tool must hit-test ALL real model entities:`
+- L39 — `select` — `The Selection tool must hit-test ALL real model entities:`
+- L41 — `select` — `dimensions and annotations where selectable.`
+- L43 — `snap` — `Selection must use the SAME screen/model transform as rendering, snapping and`
+- L43 — `selection` — `Selection must use the SAME screen/model transform as rendering, snapping and`
+- L43 — `select` — `Selection must use the SAME screen/model transform as rendering, snapping and`
+- L44 — `select` — `insertion. Click -> real model entity selected -> visible highlight.`
+- L45 — `select` — `Inserted library objects MUST become selectable.`
+- L47 — `port` — `Support:`
+- L48 — `selection` — `click, hover, Shift+click where compatible, rectangle/marquee selection, Escape,`
+- L48 — `select` — `click, hover, Shift+click where compatible, rectangle/marquee selection, Escape,`
+- L49 — `move` — `Delete, Move, Copy, Cut, Duplicate, Rotate.`
+- L50 — `undo` — `All model mutations must be undoable.`
+- L56 — `select` — `select/target pipe -> choose library component -> component automatically inserts`
+- L57 — `port` — `INTO the tube/segment -> ports connect -> topology updates -> welds W00x are`
+- L58 — `select` — `created/calculated -> BOM/Métré updates -> component is selectable.`
+- L67 — `select` — `1 select pipe segment`
+- L69 — `point` — `3 determine valid insertion point`
+- L70 — `snap` — `4 snap to segment`
+- L73 — `port` — `7 connect ports`
+- L77 — `select` — `11 make inserted object selectable`
+- L79 — `drag` — `DRAG & DROP:`
+- L80 — `drag` — `library component -> drag -> pipe segment -> preview -> validate -> drop ->`
+- L81 — `port` — `canonical insertion -> ports/topology -> welds -> BOM.`
+- L88 — `undo` — `Welds must remain consistent on insert, delete, undo/redo and save/reload.`
+- L88 — `redo` — `Welds must remain consistent on insert, delete, undo/redo and save/reload.`
+- L97 — `port` — `Chrome/macOS two-finger scrolling over the ISO drawing must pan the viewport.`
+- L99 — `point` — `pointer-events, nested containers and React event handling.`
+- L100 — `selection` — `Do not break mouse wheel, pinch zoom, selection or drag/drop.`
+- L100 — `select` — `Do not break mouse wheel, pinch zoom, selection or drag/drop.`
+- L100 — `drag` — `Do not break mouse wheel, pinch zoom, selection or drag/drop.`
+- L101 — `port` — `Do not hijack page scrolling outside the ISO viewport.`
+- L102 — `selection` — `Test vertical and horizontal two-finger pan and selection after pan.`
+- L102 — `select` — `Test vertical and horizontal two-finger pan and selection after pan.`
+- L106 — `point` — `node/point, circle, pipe line, elbow bend, tee T, valve symbol, reducer,`
+- L107 — `select` — `flange, dimension arrows, note, select pointer, pan hand.`
+- L107 — `point` — `flange, dimension arrows, note, select pointer, pan hand.`
+- L114 — `select` — `When one object selected: Properties/Details show that model entity.`
+- L115 — `group` — `When multiple selected: show count/common properties/group actions.`
+- L115 — `select` — `When multiple selected: show count/common properties/group actions.`
+- L119 — `rotation` — `11. ROTATION`
+- L120 — `select` — `R rotates selected/active real model entity using the project's existing`
+- L121 — `rotation` — `rotation convention; inspect it first, do not guess.`
+- L122 — `port` — `Rotation updates orientation/ports, preserves connectivity where possible,`
+- L122 — `rotation` — `Rotation updates orientation/ports, preserves connectivity where possible,`
+- L123 — `undo` — `is undoable, and is exposed in menus/shortcut help. Avoid shortcut conflicts.`
+- L128 — `select` — `Minimum: select first reference -> second -> preview -> commit -> visible,`
+- L129 — `select` — `selectable/editable where supported -> save/reload.`
+- L129 — `port` — `selectable/editable where supported -> save/reload.`
+- L130 — `align` — `Support linear/horizontal/vertical, aligned if supported. Never fake static labels.`
+- L130 — `aligned` — `Support linear/horizontal/vertical, aligned if supported. Never fake static labels.`
+- L130 — `port` — `Support linear/horizontal/vertical, aligned if supported. Never fake static labels.`
+- L132 — `snap` — `13. SNAP`
+- L133 — `snap` — `Keep fine snap from V5. Separate screen-pixel tolerance from model-unit`
+- L134 — `port` — `tolerance, grid spacing and zoom. Make it viewport-aware and configurable.`
+- L136 — `port` — `Support grid/endpoint/port/midpoint/intersection/axis and visible feedback.`
+- L136 — `point` — `Support grid/endpoint/port/midpoint/intersection/axis and visible feedback.`
+- L139 — `point` — `14. POINTER/TRANSFORM INVARIANT`
+- L140 — `snap` — `Pointer, selection, snapping, drag preview, drop, insertion, grid and rendering`
+- L140 — `selection` — `Pointer, selection, snapping, drag preview, drop, insertion, grid and rendering`
+- L140 — `select` — `Pointer, selection, snapping, drag preview, drop, insertion, grid and rendering`
+- L140 — `point` — `Pointer, selection, snapping, drag preview, drop, insertion, grid and rendering`
+- L140 — `drag` — `Pointer, selection, snapping, drag preview, drop, insertion, grid and rendering`
+- L141 — `port` — `must share one consistent screen<->viewport<->model transform.`
+- L154 — `select` — `- click selects pipe/fittings/library objects`
+- L154 — `fitting` — `- click selects pipe/fittings/library objects`
+- L156 — `select` — `- double-click valve/elbow/tee/reducer/flange inserts into selected pipe`
+- L157 — `drag` — `- drag/drop inserts into valid pipe`
+- L158 — `port` — `- ports/topology update`
+- L160 — `select` — `- inserted objects selectable`
+- L161 — `select` — `- marquee select works`
+- L162 — `undo` — `- move/delete/copy/duplicate/cut work and undo/redo`
+- L162 — `redo` — `- move/delete/copy/duplicate/cut work and undo/redo`
+- L162 — `move` — `- move/delete/copy/duplicate/cut work and undo/redo`
+- L166 — `snap` — `- fine snap works`
+- L173 — `move` — `2 remove old horizontal ISO toolbars / move BOM`
+- L174 — `move` — `3 remove bottom cards`
+- L175 — `selection` — `4 repair selection`
+- L175 — `select` — `4 repair selection`
+- L178 — `drag` — `7 drag/drop`
+- L180 — `rotation` — `9 rotation R`
+- L182 — `snap` — `11 fine snap`
+- L186 — `port` — `18. REQUIRED REPORT`
+- L190 — `selection` — `BUSINESS: valve/elbow/tee/reducer/flange, welds, BOM, selection, multi-select, R, Z, dimensions`
+- L190 — `select` — `BUSINESS: valve/elbow/tee/reducer/flange, welds, BOM, selection, multi-select, R, Z, dimensions`
+- L191 — `selection` — `MAC: two-finger vertical/horizontal pan, zoom, selection after pan`
+- L191 — `select` — `MAC: two-finger vertical/horizontal pan, zoom, selection after pan`
+- L194 — `selection` — `Do not claim completion while insertion, topology, weld generation, selection or`
+- L194 — `select` — `Do not claim completion while insertion, topology, weld generation, selection or`
+### `PD-I_AI_STUDIO_PATCH_001_SOURCE_OF_TRUTH.py`
+- L4 — `port` — `IMPORTANT:`
+- L27 — `port` — `Report:`
+- L34 — `point` — `7. actual application entry point`
+- L51 — `fitting` — `- fittings`
+- L53 — `port` — `- ports`
+- L60 — `selection` — `- selection`
+- L60 — `select` — `- selection`
+- L61 — `port` — `- viewport`
+- L65 — `port` — `For each item report:`
+- L81 — `fitting` — `node, segment, fitting, equipment, port, topology, weld,`
+- L81 — `port` — `node, segment, fitting, equipment, port, topology, weld,`
+- L82 — `selection` — `dimension, annotation, layer, X, Y, Z, selection, viewport,`
+- L82 — `select` — `dimension, annotation, layer, X, Y, Z, selection, viewport,`
+- L82 — `port` — `dimension, annotation, layer, X, Y, Z, selection, viewport,`
+- L91 — `snap` — `- snapping`
+- L92 — `selection` — `- selection`
+- L92 — `select` — `- selection`
+- L109 — `port` — `The user reported pointer positions appearing away from the click.`
+- L109 — `point` — `The user reported pointer positions appearing away from the click.`
+- L112 — `point` — `pointer event`
+- L114 — `port` — `-> viewport coordinates`
+- L116 — `snap` — `-> snap coordinates`
+- L125 — `translate` — `- translate`
+- L136 — `selection` — `library selection`
+- L136 — `select` — `library selection`
+- L139 — `port` — `-> ports`
+- L143 — `selection` — `-> selection`
+- L143 — `select` — `-> selection`
+- L149 — `drag` — `- drag/drop insertion`
+- L150 — `rotation` — `- rotation`
+- L170 — `port` — `If local workspace differs from main, report it.`
+- L181 — `point` — `- entry point`
+- L186 — `port` — `- viewport`
+- L187 — `selection` — `- selection`
+- L187 — `select` — `- selection`
+- L188 — `snap` — `- snap`
+- L208 — `port` — `7. Where are ports created?`
+- L211 — `selection` — `10. Where is selection stored?`
+- L211 — `select` — `10. Where is selection stored?`
+- L212 — `snap` — `11. Where is snap calculated?`
+- L224 — `port` — `FINAL REPORT`
+- L226 — `port` — `A. Source of Truth Report`
+- L227 — `port` — `B. Architecture Conflict Report`
+- L228 — `port` — `C. Coordinate Report`
+- L235 — `port` — `The next patch will be based on this report and will repair the highest-risk`
+### `PD-I_AI_STUDIO_PATCH_002_INTERACTION_COORDINATE_CONTRACT.py`
+- L20 — `snap` — `POINTER → SCREEN → SVG VIEWBOX → ISO WORLD → SNAP → MODEL`
+- L20 — `point` — `POINTER → SCREEN → SVG VIEWBOX → ISO WORLD → SNAP → MODEL`
+- L22 — `selection` — `LIBRARY INSERTION → MODEL ENTITY → SELECTION`
+- L22 — `select` — `LIBRARY INSERTION → MODEL ENTITY → SELECTION`
+- L24 — `port` — `TRACKPAD → VIEWPORT PAN / ZOOM`
+- L35 — `snap` — `getSvgCoordinates, isoUnprojectV4, isoProjectV4, snapIsoV4,`
+- L36 — `point` — `pointerDown, pointerMove, pointerUp, wheel/onWheel,`
+- L36 — `move` — `pointerDown, pointerMove, pointerUp, wheel/onWheel,`
+- L37 — `port` — `panX/panY, viewport zoom, insertEquipmentNode, insertTeeNode,`
+- L39 — `select` — `selectedNodeId, selectedNodeIds, selectedSegmentId,`
+- L40 — `select` — `selectedSegmentIds, selectedFitting, undo/redo.`
+- L40 — `undo` — `selectedSegmentIds, selectedFitting, undo/redo.`
+- L40 — `redo` — `selectedSegmentIds, selectedFitting, undo/redo.`
+- L40 — `fitting` — `selectedSegmentIds, selectedFitting, undo/redo.`
+- L46 — `point` — `Pointer event`
+- L51 — `snap` — `→ snapIsoV4()`
+- L63 — `snap` — `Selection, snapping, insertion and drawing must share the same transform.`
+- L63 — `selection` — `Selection, snapping, insertion and drawing must share the same transform.`
+- L63 — `select` — `Selection, snapping, insertion and drawing must share the same transform.`
+- L65 — `point` — `PHASE 2 — POINTER OFFSET REGRESSION`
+- L67 — `snap` — `→ snap → stored x/y/z → isoProjectV4 → rendered position.`
+- L69 — `point` — `Verify that clicking the visible projection of a world point recovers`
+- L70 — `point` — `that point within the engine's existing tolerance.`
+- L85 — `translate` — `- CSS transform/translate/scale`
+- L90 — `port` — `- duplicated viewport offsets`
+- L98 — `selection` — `PHASE 4 — INSERTION → SELECTION`
+- L98 — `select` — `PHASE 4 — INSERTION → SELECTION`
+- L108 — `select` — `→ selectedNodeId or selectedNodeIds updated`
+- L111 — `move` — `→ Move/Delete/Rotate target same entity.`
+- L113 — `select` — `Never select by screen coordinates or array index.`
+- L115 — `select` — `If insertion fails, do not leave a stale selected ID.`
+- L124 — `port` — `3. ports exist`
+- L125 — `port` — `4. port orientation remains valid`
+- L131 — `select` — `10. inserted entity is selectable`
+- L132 — `undo` — `11. undo restores previous graph`
+- L133 — `redo` — `12. redo restores insertion`
+- L144 — `port` — `- pinch zoom only if already supported by the event path`
+- L149 — `port` — `Do not prevent page scrolling outside the ISO viewport.`
+- L150 — `selection` — `Do not break drag/drop or selection.`
+- L150 — `select` — `Do not break drag/drop or selection.`
+- L150 — `drag` — `Do not break drag/drop or selection.`
+- L151 — `port` — `Do not create a second viewport state.`
+- L154 — `port` — `Pan, zoom, recenter and sidebar changes may change viewport/camera state,`
+- L155 — `fitting` — `but MUST NOT mutate node.x/y/z, segment geometry, fittings, topology or welds.`
+- L160 — `selection` — `- selection remains on same entity`
+- L160 — `select` — `- selection remains on same entity`
+- L161 — `align` — `- hit testing remains aligned`
+- L161 — `aligned` — `- hit testing remains aligned`
+- L162 — `align` — `- snap remains aligned`
+- L162 — `aligned` — `- snap remains aligned`
+- L162 — `snap` — `- snap remains aligned`
+- L166 — `selection` — `Verify it changes camera only, preserves all model geometry and selection,`
+- L166 — `select` — `Verify it changes camera only, preserves all model geometry and selection,`
+- L167 — `point` — `and does not introduce pointer offsets.`
+- L169 — `undo` — `PHASE 10 — UNDO/REDO`
+- L169 — `redo` — `PHASE 10 — UNDO/REDO`
+- L170 — `selection` — `Viewport-only actions (pan, zoom, sidebar, hover, selection) must NOT create`
+- L170 — `select` — `Viewport-only actions (pan, zoom, sidebar, hover, selection) must NOT create`
+- L170 — `port` — `Viewport-only actions (pan, zoom, sidebar, hover, selection) must NOT create`
+- L171 — `undo` — `engineering undo entries.`
+- L173 — `move` — `Engineering mutations (insert, delete, move, rotate, split, dimension edit)`
+- L174 — `undo` — `remain undoable. Do not rewrite the history engine.`
+- L174 — `history` — `remain undoable. Do not rewrite the history engine.`
+- L183 — `point` — `A) Coordinate: place → zoom → pan → click visible point → no offset.`
+- L184 — `selection` — `B) Selection: insert valve → immediate selection → click → properties → delete/undo/redo.`
+- L184 — `select` — `B) Selection: insert valve → immediate selection → click → properties → delete/undo/redo.`
+- L184 — `undo` — `B) Selection: insert valve → immediate selection → click → properties → delete/undo/redo.`
+- L184 — `redo` — `B) Selection: insert valve → immediate selection → click → properties → delete/undo/redo.`
+- L185 — `port` — `C) Insertion: elbow, tee, valve, reducer, flange → ports/topology/weld/BOM.`
+- L186 — `selection` — `D) Trackpad: vertical/horizontal pan → zoom → selection → insertion.`
+- L186 — `select` — `D) Trackpad: vertical/horizontal pan → zoom → selection → insertion.`
+- L187 — `selection` — `E) Sidebar: open/close → selection and coordinates unchanged.`
+- L187 — `select` — `E) Sidebar: open/close → selection and coordinates unchanged.`
+- L191 — `port` — `Compare before/after viewport-only actions:`
+- L194 — `fitting` — `- fittings/equipment`
+- L199 — `port` — `Viewport operations MUST produce zero engineering-model changes.`
+- L208 — `parallel` — `STOP and report the exact blocker. Do not invent a parallel system.`
+- L208 — `port` — `STOP and report the exact blocker. Do not invent a parallel system.`
+- L210 — `port` — `FINAL REPORT`
+- L215 — `selection` — `4. INSERTION → SELECTION RESULT`
+- L215 — `select` — `4. INSERTION → SELECTION RESULT`
+- L220 — `undo` — `9. UNDO/REDO RESULT`
+- L220 — `redo` — `9. UNDO/REDO RESULT`
+### `PD-I_AI_STUDIO_PATCH_003_PROFESSIONAL_SELECTION.py`
+- L1 — `selection` — `PD&I — PATCH 003 — PROFESSIONAL SELECTION`
+- L1 — `select` — `PD&I — PATCH 003 — PROFESSIONAL SELECTION`
+- L12 — `selection` — `Stabilize professional CAD-style selection using the existing V4.8d model`
+- L12 — `select` — `Stabilize professional CAD-style selection using the existing V4.8d model`
+- L13 — `selection` — `and selection states. This is an interaction patch, not an architecture`
+- L13 — `select` — `and selection states. This is an interaction patch, not an architecture`
+- L23 — `selection` — `Existing selection state previously identified:`
+- L23 — `select` — `Existing selection state previously identified:`
+- L24 — `select` — `- selectedNodeId`
+- L25 — `select` — `- selectedNodeIds`
+- L26 — `select` — `- selectedSegmentId`
+- L27 — `select` — `- selectedSegmentIds`
+- L28 — `select` — `- selectedFitting`
+- L28 — `fitting` — `- selectedFitting`
+- L29 — `select` — `- selectedDimensionId`
+- L34 — `selection` — `REQUIRED SELECTION`
+- L34 — `select` — `REQUIRED SELECTION`
+- L37 — `select` — `- node → select node`
+- L38 — `select` — `- pipe segment → select segment`
+- L39 — `select` — `- fitting/equipment → select real model entity`
+- L39 — `fitting` — `- fitting/equipment → select real model entity`
+- L40 — `select` — `- dimension → select dimension if safely supported`
+- L40 — `port` — `- dimension → select dimension if safely supported`
+- L41 — `selection` — `- empty canvas → clear selection`
+- L41 — `select` — `- empty canvas → clear selection`
+- L44 — `select` — `- add unselected entity`
+- L45 — `select` — `- remove already selected entity`
+- L45 — `move` — `- remove already selected entity`
+- L46 — `selection` — `- preserve unrelated selections`
+- L46 — `select` — `- preserve unrelated selections`
+- L48 — `selection` — `3. Rectangle/window selection:`
+- L48 — `select` — `3. Rectangle/window selection:`
+- L49 — `drag` — `- mouse drag on empty workspace`
+- L51 — `select` — `- on release select eligible real model IDs`
+- L55 — `drag` — `4. Drag-vs-click:`
+- L56 — `move` — `- small movement threshold distinguishes click from rectangle`
+- L57 — `select` — `- dragging a selected entity must continue using existing move behavior`
+- L57 — `move` — `- dragging a selected entity must continue using existing move behavior`
+- L57 — `drag` — `- dragging a selected entity must continue using existing move behavior`
+- L58 — `selection` — `- do not steal entity dragging for rectangle selection`
+- L58 — `select` — `- do not steal entity dragging for rectangle selection`
+- L58 — `drag` — `- do not steal entity dragging for rectangle selection`
+- L60 — `selection` — `5. Selection mode:`
+- L60 — `select` — `5. Selection mode:`
+- L61 — `selection` — `- reuse existing selection tool if present`
+- L61 — `select` — `- reuse existing selection tool if present`
+- L62 — `selection` — `- do not create a second selection mode`
+- L62 — `select` — `- do not create a second selection mode`
+- L67 — `select` — `Never select by screen coordinate, SVG child index, array index or visual`
+- L70 — `fitting` — `Keep node IDs, segment IDs, fittings and dimensions type-safe according to`
+- L71 — `parallel` — `the existing architecture. Do not invent a generic parallel selection model.`
+- L71 — `selection` — `the existing architecture. Do not invent a generic parallel selection model.`
+- L71 — `select` — `the existing architecture. Do not invent a generic parallel selection model.`
+- L76 — `anchor` — `- node/fitting: projected anchor/center inside rectangle`
+- L76 — `fitting` — `- node/fitting: projected anchor/center inside rectangle`
+- L78 — `port` — `- dimension: only if current implementation supports safe hit testing`
+- L85 — `port` — `and report the limitation.`
+- L90 — `point` — `Pointer`
+- L94 — `snap` — `→ snapIsoV4() where appropriate`
+- L100 — `selection` — `Selection-only operations MUST NOT change:`
+- L100 — `select` — `Selection-only operations MUST NOT change:`
+- L103 — `port` — `- ports`
+- L111 — `selection` — `After single selection, the existing right sidebar Properties must show`
+- L111 — `select` — `After single selection, the existing right sidebar Properties must show`
+- L112 — `select` — `the same real selected object.`
+- L114 — `selection` — `After multi-selection, show a safe multi-selection state/summary.`
+- L114 — `select` — `After multi-selection, show a safe multi-selection state/summary.`
+- L115 — `select` — `Never display stale properties from a previously selected object.`
+- L119 — `selection` — `Selection must work with the right sidebar open or closed.`
+- L119 — `select` — `Selection must work with the right sidebar open or closed.`
+- L125 — `selection` — `- selection after pan/zoom`
+- L125 — `select` — `- selection after pan/zoom`
+- L130 — `move` — `- Move`
+- L137 — `selection` — `Do not rewrite topology or business logic inside selection.`
+- L137 — `select` — `Do not rewrite topology or business logic inside selection.`
+- L139 — `group` — `If group movement is already supported safely, selection must feed it.`
+- L139 — `selection` — `If group movement is already supported safely, selection must feed it.`
+- L139 — `select` — `If group movement is already supported safely, selection must feed it.`
+- L139 — `port` — `If group movement is already supported safely, selection must feed it.`
+- L139 — `move` — `If group movement is already supported safely, selection must feed it.`
+- L140 — `move` — `If it is not, do NOT rewrite the move/topology engine in this patch.`
+- L141 — `group` — `Report group movement as deferred.`
+- L141 — `port` — `Report group movement as deferred.`
+- L141 — `move` — `Report group movement as deferred.`
+- L143 — `group` — `For multi-selection, only enable group rotation if the current architecture`
+- L143 — `selection` — `For multi-selection, only enable group rotation if the current architecture`
+- L143 — `select` — `For multi-selection, only enable group rotation if the current architecture`
+- L143 — `rotation` — `For multi-selection, only enable group rotation if the current architecture`
+- L144 — `port` — `already has a safe path. Otherwise preserve single-object R and report that`
+- L145 — `group` — `group rotation is deferred.`
+- L145 — `rotation` — `group rotation is deferred.`
+- L147 — `undo` — `UNDO / REDO`
+- L147 — `redo` — `UNDO / REDO`
+- L149 — `selection` — `Selection and rectangle selection create NO engineering history entries.`
+- L149 — `select` — `Selection and rectangle selection create NO engineering history entries.`
+- L149 — `history` — `Selection and rectangle selection create NO engineering history entries.`
+- L151 — `undo` — `Engineering operations remain undoable:`
+- L152 — `move` — `- move`
+- L156 — `rotation` — `- rotation`
+- L161 — `selection` — `If an engineering operation follows selection, use the existing canonical`
+- … 55 occurrences supplémentaires.
+### `a9d93fd5-9f18-4cca-ab51-bd4935024d25.py`
+- L5 — `drag` — `Correctif unique CAD 2D : drag souris, resize souris, grips, propriétés modulaires compactes.`
+- L8 — `sélection` — `- drag souris global des objets 2D sélectionnés ;`
+- L8 — `drag` — `- drag souris global des objets 2D sélectionnés ;`
+- L12 — `align` — `- champs texte : contenu, taille, police, graisse, style, alignement, rotation ;`
+- L12 — `rotation` — `- champs texte : contenu, taille, police, graisse, style, alignement, rotation ;`
+- L17 — `port` — `from pathlib import Path`
+- L18 — `port` — `import shutil`
+- L19 — `port` — `import sys`
+- L20 — `port` — `from datetime import datetime`
+- L25 — `port` — `REPORT = ROOT / "007d_2d_mouse_resize_modular_properties_REPORT.md"`
+- L26 — `history` — `HISTORY = ROOT / "docs" / "PATCH_HISTORY.md"`
+- L55 — `select` — `required = ["Cad2dEntity", "cad2dEntities", "selectedCad2dIds", "updateCad2dEntity", "moveSelectedCad2d"]`
+- L55 — `move` — `required = ["Cad2dEntity", "cad2dEntities", "selectedCad2dIds", "updateCad2dEntity", "moveSelectedCad2d"]`
+- L70 — `align` — `# 1. Étendre le type Cad2dEntity avec lineType, opacity, fontSize, fontFamily, fontWeight, textAlign`
+- L71 — `port` — `type_old = """export type Cad2dEntity = {`
+- L79 — `point` — `points?: Cad2dPoint[];`
+- L80 — `point` — `center?: Cad2dPoint;`
+- L85 — `rotation` — `rotation?: number;`
+- L88 — `port` — `type_new = """export type Cad2dEntity = {`
+- L98 — `point` — `points?: Cad2dPoint[];`
+- L99 — `point` — `center?: Cad2dPoint;`
+- L107 — `align` — `textAlign?: "left" | "center" | "right";`
+- L108 — `rotation` — `rotation?: number;`
+- L116 — `drag` — `# 2. Ajouter helpers manipulation/drag/actions 2D`
+- L117 — `anchor` — `helpers_anchor = "  const selectedCad2dEntity = cad2dEntities.find((entity) => selectedCad2dIds.includes(entity.id)) || null;"`
+- L117 — `select` — `helpers_anchor = "  const selectedCad2dEntity = cad2dEntities.find((entity) => selectedCad2dIds.includes(entity.id)) || null;"`
+- L118 — `anchor` — `helpers_code = helpers_anchor + r'''`
+- L121 — `point` — `const cad2dPointerRef = useRef<{`
+- L122 — `move` — `mode: "move" | "grip";`
+- L127 — `point` — `startWorld: Cad2dPoint;`
+- L128 — `snap` — `snapshot: Cad2dEntity[];`
+- L135 — `point` — `points: entity.points?.map((p) => ({ x: p.x + dx, y: p.y + dy })),`
+- L139 — `point` — `if (entity.type === "line" && entity.points && entity.points.length >= 2) {`
+- L140 — `point` — `const points = entity.points.map((p) => ({ ...p }));`
+- L141 — `point` — `if (grip === "start") points[0] = { x: points[0].x + dx, y: points[0].y + dy };`
+- L142 — `point` — `if (grip === "end") points[1] = { x: points[1].x + dx, y: points[1].y + dy };`
+- L143 — `point` — `return { ...entity, points };`
+- L145 — `point` — `if (entity.type === "polyline" && entity.points && entity.points.length && grip.startsWith("v:")) {`
+- L147 — `point` — `const points = entity.points.map((p, i) => (i === idx ? { x: p.x + dx, y: p.y + dy } : { ...p }));`
+- L148 — `point` — `return { ...entity, points };`
+- L164 — `point` — `if (entity.type === "text" && entity.points && entity.points[0]) {`
+- L165 — `point` — `return { ...entity, points: [{ x: entity.points[0].x + dx, y: entity.points[0].y + dy }, ...(entity.points.slice(1) || [])] };`
+- L170 — `point` — `const startCad2dPointer = (event: React.PointerEvent, entityId: string, grip: string = "body") => {`
+- L172 — `point` — `const w = screenToIsoWorld(event as unknown as React.PointerEvent<SVGSVGElement>);`
+- L173 — `select` — `const ids = selectedCad2dIds.includes(entityId) ? selectedCad2dIds : [entityId];`
+- L174 — `select` — `setSelectedCad2dIds(ids);`
+- L175 — `point` — `cad2dPointerRef.current = {`
+- L176 — `move` — `mode: grip === "body" ? "move" : "grip",`
+- L182 — `snap` — `snapshot: cad2dEntities.map((entity) => ({`
+- L184 — `point` — `points: entity.points?.map((p) => ({ ...p })),`
+- L188 — `point` — `(event.currentTarget as Element).setPointerCapture?.(event.pointerId);`
+- L192 — `point` — `const updateCad2dPointer = (event: React.PointerEvent<SVGSVGElement>) => {`
+- L193 — `point` — `const drag = cad2dPointerRef.current;`
+- L193 — `drag` — `const drag = cad2dPointerRef.current;`
+- L194 — `drag` — `if (!drag) return false;`
+- L196 — `drag` — `const rawDx = w.x - drag.startWorld.x;`
+- L197 — `drag` — `const rawDy = w.y - drag.startWorld.y;`
+- L198 — `snap` — `const dx = isoSnapStep > 0 ? snapIsoV4(rawDx, isoSnapStep) : rawDx;`
+- L199 — `snap` — `const dy = isoSnapStep > 0 ? snapIsoV4(rawDy, isoSnapStep) : rawDy;`
+- L200 — `drag` — `const ids = new Set(drag.entityIds);`
+- L201 — `snap` — `setCad2dEntities(drag.snapshot.map((entity) => ids.has(entity.id) && !entity.locked ? cad2dApplyDelta(entity, dx, dy, drag.grip) : entity));`
+- L201 — `drag` — `setCad2dEntities(drag.snapshot.map((entity) => ids.has(entity.id) && !entity.locked ? cad2dApplyDelta(entity, dx, dy, drag.grip) : entity));`
+- L205 — `point` — `const endCad2dPointer = () => {`
+- L206 — `point` — `if (!cad2dPointerRef.current) return;`
+- L207 — `point` — `cad2dPointerRef.current = null;`
+- L211 — `select` — `const rotateSelectedCad2d = (angleDeg: number) => {`
+- L212 — `select` — `if (!selectedCad2dIds.length) return;`
+- L213 — `select` — `const ids = new Set(selectedCad2dIds);`
+- L216 — `rotation` — `const rot = ((entity.rotation || 0) + angleDeg) % 360;`
+- L217 — `rotation` — `return { ...entity, rotation: rot };`
+- L219 — `rotation` — `setStatusMessage(`Rotation 2D · ${angleDeg > 0 ? "+" : ""}${angleDeg}°`);`
+- L222 — `select` — `const scaleSelectedCad2d = (factor: number) => {`
+- L223 — `select` — `if (!selectedCad2dIds.length) return;`
+- L224 — `select` — `const ids = new Set(selectedCad2dIds);`
+- L233 — `point` — `if (entity.points && entity.points.length >= 2) {`
+- L234 — `point` — `const cx = entity.points.reduce((sum, p) => sum + p.x, 0) / entity.points.length;`
+- L235 — `point` — `const cy = entity.points.reduce((sum, p) => sum + p.y, 0) / entity.points.length;`
+- L236 — `point` — `const points = entity.points.map((p) => ({`
+- L240 — `point` — `return { ...entity, points };`
+- L247 — `select` — `const mirrorSelectedCad2dX = () => {`
+- L248 — `select` — `if (!selectedCad2dIds.length) return;`
+- L249 — `select` — `const ids = new Set(selectedCad2dIds);`
+- L252 — `point` — `if (entity.points && entity.points.length) {`
+- L253 — `point` — `const cx = entity.points.reduce((sum, p) => sum + p.x, 0) / entity.points.length;`
+- L254 — `point` — `const points = entity.points.map((p) => ({ x: 2 * cx - p.x, y: p.y }));`
+- L255 — `point` — `return { ...entity, points };`
+- L262 — `select` — `const bringSelectedCad2dFront = () => {`
+- L263 — `select` — `if (!selectedCad2dIds.length) return;`
+- L264 — `select` — `const ids = new Set(selectedCad2dIds);`
+- L273 — `select` — `const sendSelectedCad2dBack = () => {`
+- L274 — `select` — `if (!selectedCad2dIds.length) return;`
+- L275 — `select` — `const ids = new Set(selectedCad2dIds);`
+- L284 — `select` — `const setSelectedCad2dLocked = (locked: boolean) => {`
+- L285 — `select` — `if (!selectedCad2dIds.length) return;`
+- L286 — `select` — `const ids = new Set(selectedCad2dIds);`
+- L291 — `anchor` — `if helpers_anchor in src:`
+- L292 — `anchor` — `src = src.replace(helpers_anchor, helpers_code, 1)`
+- L294 — `anchor` — `fail("ancre helpers_anchor introuvable")`
+- L296 — `point` — `# 3. Brancher pointerMove et pointerUp pour updateCad2dPointer et endCad2dPointer`
+- L296 — `move` — `# 3. Brancher pointerMove et pointerUp pour updateCad2dPointer et endCad2dPointer`
+- … 154 occurrences supplémentaires.
+### `add_bending_cavalier_schematics.py`
+- L1 — `port` — `import sys`
+- L2 — `port` — `import re`
+- L67 — `select` — `DN {currentBending.diameterInches} | e = {selectedThickness} mm | Gabarit Ø {currentBending.gaugePlateDiameter} mm`
+- L87 — `anchor` — `<text x="420" y="265" fill="#94a3b8" fontSize="10" fontWeight="bold" textAnchor="middle">`
+- L91 — `port` — `{/* Left Support Die */}`
+- L95 — `port` — `{/* Right Support Die */}`
+- L105 — `anchor` — `<text x="420" y="42" fill="#ffffff" fontSize="9" fontWeight="900" textAnchor="middle">VÉRIN</text>`
+- L109 — `point` — `<polygon points="420,130 405,115 435,115" fill="#ef4444"/>`
+- L114 — `point` — `<polygon points="420,135 414,145 426,145" fill="#f59e0b"/>`
+- L117 — `anchor` — `<text x="420" y="184" fill="#f59e0b" fontSize="13" fontWeight="900" textAnchor="middle">`
+- L122 — `translate` — `<g transform="translate(620, 40)">`
+- L124 — `anchor` — `<text x="85" y="22" fill="#a5b4fc" fontSize="9" fontWeight="bold" textAnchor="middle">PLAQUE DE GABARIT</text>`
+- L125 — `anchor` — `<text x="85" y="44" fill="#ffffff" fontSize="14" fontWeight="900" textAnchor="middle">Ø {currentBending.gaugePlateDiameter} mm</text>`
+- L141 — `port` — `<span className="font-bold">Note de calcul (p. 152) :</span> Le lestage doit garantir une flottabilité négative d'au moins 10% par rapport au volume déplacé.`
+- L149 — `port` — `<span className="font-bold">Note de calcul (p. 152) :</span> Le lestage doit garantir une flottabilité négative d'au moins 10% par rapport au volume déplacé.`
+- L190 — `anchor` — `<text x="420" y="182" fill="#ffffff" fontSize="11" fontWeight="900" textAnchor="middle">`
+- L195 — `translate` — `<g transform="translate(180, 115)">`
+- L197 — `anchor` — `<text x="35" y="-10" fill="#fef08a" fontSize="10" fontWeight="bold" textAnchor="middle">Cavalier 1</text>`
+- L198 — `anchor` — `<text x="35" y="45" fill="#ffffff" fontSize="9" fontWeight="bold" textAnchor="middle">{cavalierVolume} m³</text>`
+- L202 — `translate` — `<g transform="translate(590, 115)">`
+- L204 — `anchor` — `<text x="35" y="-10" fill="#fef08a" fontSize="10" fontWeight="bold" textAnchor="middle">Cavalier 2</text>`
+- L205 — `anchor` — `<text x="35" y="45" fill="#ffffff" fontSize="9" fontWeight="bold" textAnchor="middle">{cavalierVolume} m³</text>`
+- L209 — `translate` — `<g transform="translate(420, 210)">`
+- L211 — `point` — `<polygon points="0,0 -6,10 6,10" fill="#06b6d4"/>`
+- L212 — `anchor` — `<text x="0" y="50" fill="#6ee7b7" fontSize="10" fontWeight="extrabold" textAnchor="middle">Poussée d'Archimède (Fa)</text>`
+- L216 — `translate` — `<g transform="translate(215, 230)">`
+- L218 — `point` — `<polygon points="0,30 -5,20 5,20" fill="#ef4444"/>`
+- L219 — `anchor` — `<text x="0" y="42" fill="#fca5a5" fontSize="9" textAnchor="middle">Poids (P1)</text>`
+- L221 — `translate` — `<g transform="translate(625, 230)">`
+- L223 — `point` — `<polygon points="0,30 -5,20 5,20" fill="#ef4444"/>`
+- L224 — `anchor` — `<text x="0" y="42" fill="#fca5a5" fontSize="9" textAnchor="middle">Poids (P2)</text>`
+- L229 — `point` — `<polygon points="215,295 225,290 225,300" fill="#f59e0b"/>`
+- L230 — `point` — `<polygon points="625,295 615,290 615,300" fill="#f59e0b"/>`
+- L233 — `anchor` — `<text x="420" y="299" fill="#f59e0b" fontSize="12" fontWeight="900" textAnchor="middle">`
+### `add_schematics_and_reorganize_croquis.py`
+- L1 — `port` — `import sys`
+- L2 — `port` — `import re`
+- L20 — `select` — `<p className="text-3xl font-black text-blue-600 mt-1">{RIGHT_OF_WAY_TABLE[selectedRowIndex].total} mètres</p>`
+- L28 — `select` — `<p className="text-3xl font-black text-blue-600 mt-1">{RIGHT_OF_WAY_TABLE[selectedRowIndex].total} mètres</p>`
+- L43 — `select` — `Tube Ø {RIGHT_OF_WAY_TABLE[selectedRowIndex].diameterInches} ({RIGHT_OF_WAY_TABLE[selectedRowIndex].diameterMm} mm)`
+- L79 — `point` — `<polygon points="290,180 310,245 450,245 470,180" fill="#020617" stroke="#38bdf8" strokeWidth="2.5"/>`
+- L87 — `anchor` — `<text x="380" y="214" fill="#ffffff" fontSize="9" fontWeight="900" textAnchor="middle">`
+- L88 — `select` — `{RIGHT_OF_WAY_TABLE[selectedRowIndex].diameterInches}`
+- L93 — `anchor` — `<text x="150" y="145" fill="#fef08a" fontSize="11" fontWeight="bold" textAnchor="middle">`
+- L94 — `select` — `Déblais (D) = {RIGHT_OF_WAY_TABLE[selectedRowIndex].d}m`
+- L96 — `anchor` — `<text x="150" y="162" fill="#fde68a" fontSize="9" textAnchor="middle">Stockage terre meuble</text>`
+- L100 — `anchor` — `<text x="635" y="162" fill="#6ee7b7" fontSize="11" fontWeight="bold" textAnchor="middle">`
+- L101 — `select` — `Piste de Travail (B) = {RIGHT_OF_WAY_TABLE[selectedRowIndex].b}m`
+- L103 — `anchor` — `<text x="635" y="145" fill="#a7f3d0" fontSize="9" textAnchor="middle">Passage engins & bardage</text>`
+- L107 — `anchor` — `<text x="255" y="162" fill="#93c5fd" fontSize="10" fontWeight="bold" textAnchor="middle">`
+- L108 — `select` — `C = {RIGHT_OF_WAY_TABLE[selectedRowIndex].c}m`
+- L118 — `anchor` — `<text x="40" y="130" fill="#fca5a5" fontSize="9" textAnchor="middle" fontWeight="bold">Limite Emprise</text>`
+- L122 — `anchor` — `<text x="800" y="130" fill="#fca5a5" fontSize="9" textAnchor="middle" fontWeight="bold">Limite Emprise</text>`
+- L126 — `point` — `<polygon points="40,290 50,285 50,295" fill="#38bdf8"/>`
+- L127 — `point` — `<polygon points="800,290 790,285 790,295" fill="#38bdf8"/>`
+- L130 — `anchor` — `<text x="420" y="295" fill="#38bdf8" fontSize="13" fontWeight="900" textAnchor="middle">`
+- L131 — `select` — `LARGEUR TOTALE (A) = {RIGHT_OF_WAY_TABLE[selectedRowIndex].total} MÈTRES`
+### `apply_all_croquis_fixes.py`
+- L1 — `port` — `import re`
+- L12 — `port` — `size: A4 portrait;`
+- L22 — `port` — `.container { max-width: 100% !important; width: 100% !important; border: none !important; padding: 0 !important; }`
+- L33 — `select` — `className="relative w-full overflow-hidden bg-slate-950 rounded-b-xl border border-slate-800 shadow-2xl min-h-[580px] flex items-center justify-center p-2 select-none"`
+- L34 — `move` — `onMouseMove={(e) => {"""`
+- L37 — `select` — `className="relative w-full overflow-hidden bg-slate-950 rounded-b-xl border border-slate-800 shadow-2xl min-h-[580px] flex items-center justify-center p-2 select-none"`
+- L46 — `move` — `onMouseMove={(e) => {"""`
+- L75 — `point` — `className="w-7 h-7 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded-xl font-bold transition-all border border-slate-700 cursor-pointer"`
+- L86 — `point` — `className="w-7 h-7 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded-xl font-bold transition-all border border-slate-700 cursor-pointer"`
+- L94 — `point` — `className="px-2 py-1 text-[10px] font-mono font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition-all border border-slate-700 cursor-pointer flex items-center gap-1"`
+- L106 — `point` — `className="px-3 py-1 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white rounded-xl text-[10px] font-black shadow-sm transition-all flex items-center gap-1 cursor-pointer"`
+- L139 — `anchor` — `<text x={mX + mW / 2} y={mY + mH / 2 + 3} fill="#fef3c7" fontSize="8" fontWeight="bold" textAnchor="middle">`
+- L164 — `anchor` — `<text x={mX + mW / 2} y={mY + mH / 2 + 3} fill="#fef3c7" fontSize="8" fontWeight="bold" textAnchor="middle">`
+- L171 — `port` — `{/* ==================== RENDERING PARAMETRIC GATES & PORTILLONS ==================== */}`
+- L173 — `select` — `const isSelected = selectedGateId === g.id;`
+- L174 — `port` — `const isSmall = g.type === "portillon";`
+- L204 — `point` — `className="cursor-pointer"`
+- L207 — `select` — `setSelectedGateId(g.id);`
+- L220 — `select` — `<rect x={px + gWidthPx/2 - 45} y={py + (g.wall === "nord" ? -22 : 18)} width="90" height="16" fill={isSelected ? "#0284c7" : "#0f172a"} stroke={isSelected ? "#38bdf8" : "#334155"} rx="4" />`
+- L221 — `anchor` — `<text x={px + gWidthPx/2} y={py + (g.wall === "nord" ? -10 : 30)} fill="#38bdf8" fontSize="8" fontWeight="black" textAnchor="middle">`
+- L231 — `select` — `<rect x={px + (g.wall === "ouest" ? -95 : 10)} y={py + gWidthPx/2 - 8} width="85" height="16" fill={isSelected ? "#0284c7" : "#0f172a"} stroke={isSelected ? "#38bdf8" : "#334155"} rx="4" />`
+- L232 — `anchor` — `<text x={px + (g.wall === "ouest" ? -52.5 : 52.5)} y={py + gWidthPx/2 + 3} fill="#38bdf8" fontSize="8" fontWeight="black" textAnchor="middle">`
+- L281 — `anchor` — `textAnchor="middle"`
+### `apply_changes.py`
+- L1 — `port` — `import sys`
+- L2 — `port` — `import re`
+- L9 — `move` — `# 1. REPLACE TOP SUB-NAV BAR (remove horizontal scroll, show all buttons in grid)`
+- L37 — `point` — `className={`flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl text-[11px] font-black transition-all border text-center cursor-pointer ${`
+- L49 — `point` — `className={`flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl text-[11px] font-black transition-all border text-center cursor-pointer ${`
+- L61 — `point` — `className={`flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl text-[11px] font-black transition-all border text-center cursor-pointer ${`
+- L73 — `point` — `className={`flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl text-[11px] font-black transition-all border text-center cursor-pointer ${`
+- L85 — `point` — `className={`flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl text-[11px] font-black transition-all border text-center cursor-pointer ${`
+- L97 — `point` — `className={`flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl text-[11px] font-black transition-all border text-center cursor-pointer ${`
+- L109 — `point` — `className={`flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl text-[11px] font-black transition-all border text-center cursor-pointer ${`
+- L121 — `point` — `className={`flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl text-[11px] font-black transition-all border text-center cursor-pointer ${`
+- L133 — `point` — `className={`flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl text-[11px] font-black transition-all border text-center cursor-pointer ${`
+### `apply_croquis_print_update.py`
+- L1 — `port` — `import re`
+- L23 — `port` — `size: A4 portrait;`
+- L54 — `align` — `vertical-align: top;`
+- L81 — `align` — `text-align: left;`
+- L113 — `port` — `code = code.replace('const [showTechnicalReport, setShowTechnicalReport] = useState<boolean>(false);',`
+- L114 — `port` — `'const [showTechnicalReport, setShowTechnicalReport] = useState<boolean>(false);\n' + handler_code)`
+- L120 — `port` — `onClick={() => setShowTechnicalReport(true)}`
+- L206 — `port` — `{/* Action Button: Direct Print / PDF Export */}`
+- L214 — `point` — `className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white rounded-2xl text-xs font-black shadow-lg shadow-orange-500/20 transition-all flex items-center justify-c`
+- L217 — `port` — `<span>Imprimer / Exporter PDF (Plan CAD & Cartouche Sonelgaz)</span>`
+### `apply_full_updates.py`
+- L1 — `port` — `import sys`
+- L2 — `port` — `import re`
+- L9 — `port` — `state_target = """  // Clôture Gates / Portails & Portillons State`
+- L10 — `port` — `const [nbPortails5m, setNbPortails5m] = useState<number>(1); // Portail 2 vantaux de 5.00 ml (H = fenceHeight)`
+- L11 — `port` — `const [nbPortillons1m, setNbPortillons1m] = useState<number>(1); // Portillon piéton de 1.00 ml (H = fenceHeight)`
+- L13 — `port` — `const [portailOffset, setPortailOffset] = useState<number>(5); // Pos en mètres sur la façade`
+- L14 — `port` — `const [portillonOffset, setPortillonOffset] = useState<number>(15); // Pos en mètres sur la façade"""`
+- L22 — `port` — `// Dynamic Clôture Gates / Portails & Portillons State`
+- L26 — `port` — `name: "Portail Véhicules Principal",`
+- L27 — `port` — `type: "portail_5m",`
+- L35 — `port` — `name: "Portillon Piéton",`
+- L36 — `port` — `type: "portillon",`
+- L43 — `select` — `const [selectedGateId, setSelectedGateId] = useState<string | null>(null);`
+- L44 — `drag` — `const [draggingGateId, setDraggingGateId] = useState<string | null>(null);`
+- L46 — `port` — `const handleAddGate = (type: "portail_5m" | "portail_custom" | "portillon" = "portail_5m") => {`
+- L48 — `port` — `const width = type === "portail_5m" ? 5 : type === "portillon" ? 1 : 4;`
+- L49 — `port` — `const name = type === "portillon" ? `Portillon Piéton ${gates.length + 1}` : `Portail Véhicules ${gates.length + 1}`;`
+- L62 — `select` — `setSelectedGateId(newId);`
+- L65 — `move` — `const handleRemoveGate = (id: string) => {`
+- L67 — `select` — `if (selectedGateId === id) setSelectedGateId(null);`
+- L89 — `select` — `setSelectedGateId(newId);`
+- L96 — `ancrage` — `name: "Massif Ancrage Filtre",`
+- L115 — `select` — `const [selectedMassifId, setSelectedMassifId] = useState<string | null>(null);`
+- L116 — `drag` — `const [draggingMassifId, setDraggingMassifId] = useState<string | null>(null);`
+- L133 — `select` — `setSelectedMassifId(newId);`
+- L136 — `move` — `const handleRemoveMassif = (id: string) => {`
+- L138 — `select` — `if (selectedMassifId === id) setSelectedMassifId(null);`
+- L159 — `select` — `setSelectedMassifId(newId);`
+- L213 — `select` — `if (selectedSlabId) setSelectedSlabId(null);`
+- L214 — `select` — `if (selectedAbriId) setSelectedAbriId(null);`
+- L215 — `select` — `if (selectedShapeId) setSelectedShapeId(null);`
+- L223 — `select` — `if (selectedSlabId) {`
+- L225 — `select` — `setSlabs(prev => prev.filter(s => s.id !== selectedSlabId));`
+- L226 — `select` — `setSelectedSlabId(null);`
+- L227 — `select` — `} else if (selectedAbriId) {`
+- L229 — `select` — `setAbris(prev => prev.filter(a => a.id !== selectedAbriId));`
+- L230 — `select` — `setSelectedAbriId(null);`
+- L237 — `select` — `if (selectedSlabId) {`
+- L239 — `select` — `const target = slabs.find(s => s.id === selectedSlabId);`
+- L250 — `select` — `setSelectedSlabId(newId);`
+- L251 — `select` — `setSelectedAbriId(null);`
+- L253 — `select` — `} else if (selectedAbriId) {`
+- L255 — `select` — `const target = abris.find(a => a.id === selectedAbriId);`
+- L266 — `select` — `setSelectedAbriId(newId);`
+- L267 — `select` — `setSelectedSlabId(null);`
+- L274 — `select` — `if (selectedSlabId) setSelectedSlabId(null);`
+- L275 — `select` — `if (selectedAbriId) setSelectedAbriId(null);`
+- L276 — `select` — `if (selectedMassifId) setSelectedMassifId(null);`
+- L277 — `select` — `if (selectedGateId) setSelectedGateId(null);`
+- L278 — `select` — `if (selectedShapeId) setSelectedShapeId(null);`
+- L284 — `select` — `// Delete or Backspace shortcut for selected element`
+- L286 — `select` — `if (selectedSlabId) {`
+- L288 — `select` — `handleRemoveSlab(selectedSlabId);`
+- L288 — `move` — `handleRemoveSlab(selectedSlabId);`
+- L289 — `select` — `} else if (selectedAbriId) {`
+- L291 — `select` — `handleRemoveAbri(selectedAbriId);`
+- L291 — `move` — `handleRemoveAbri(selectedAbriId);`
+- L292 — `select` — `} else if (selectedMassifId) {`
+- L294 — `select` — `handleRemoveMassif(selectedMassifId);`
+- L294 — `move` — `handleRemoveMassif(selectedMassifId);`
+- L295 — `select` — `} else if (selectedGateId) {`
+- L297 — `select` — `handleRemoveGate(selectedGateId);`
+- L297 — `move` — `handleRemoveGate(selectedGateId);`
+- L301 — `select` — `// Duplicate shortcut: Ctrl+D, Cmd+D, or 'd' / 'D' key for selected element`
+- L304 — `select` — `if (selectedSlabId) {`
+- L306 — `select` — `handleDuplicateSlab(selectedSlabId);`
+- L307 — `select` — `} else if (selectedAbriId) {`
+- L309 — `select` — `handleDuplicateAbri(selectedAbriId);`
+- L310 — `select` — `} else if (selectedMassifId) {`
+- L312 — `select` — `handleDuplicateMassif(selectedMassifId);`
+- L313 — `select` — `} else if (selectedGateId) {`
+- L315 — `select` — `handleDuplicateGate(selectedGateId);`
+- L341 — `select` — `setSelectedSlabId(newId);`
+- L358 — `select` — `setSelectedAbriId(newId);`
+### `apply_modal_removal.py`
+- L6 — `port` — `{showTechnicalReport && (`
+- L26 — `align` — `.header { display: flex; justify-content: space-between; align-items: center; border-b: 2px solid #000; padding-bottom: 12px; margin-bottom: 15px; }`
+- L28 — `align` — `.title-block { text-align: center; border: 1.5px solid #000; padding: 10px; font-weight: bold; background-color: #f1f5f9; text-transform: uppercase; font-size: 11px; margin-bottom: 15px; }`
+- L29 — `align` — `.drawing-area { text-align: center; border: 1.5px solid #000; padding: 15px; background-color: #fff; margin-bottom: 15px; min-height: 250px; }`
+- L33 — `align` — `.cartouche td { border: 1px solid #000; padding: 6px; font-size: 8px; font-family: monospace; vertical-align: top; }`
+- L54 — `port` — `onClick={() => setShowTechnicalReport(false)}`
+- L140 — `port` — `new_printable_start = '''              {/* Hidden Printable Area Container (Targeted by Direct Print / Export PDF) */}`
+- L150 — `move` — `# Also remove the ending </div> </div> )} around line 7038`
+### `apply_print_area_fixes.py`
+- L20 — `port` — `{/* Official Sonelgaz Transport du Gaz Header */}`
+- L93 — `align` — `<th style={{ textAlign: 'right' }}>Quantité</th>`
+- L99 — `align` — `<td style={{ textAlign: 'right' }}><strong>{ouvrages.length} U</strong></td>`
+- L103 — `align` — `<td style={{ textAlign: 'right' }}><strong>{slabs.length} U ({slabs.reduce((acc, s) => acc + s.length * s.width, 0).toFixed(1)} m²)</strong></td>`
+- L107 — `align` — `<td style={{ textAlign: 'right' }}><strong>{totalConcrete.toFixed(2)} m³</strong></td>`
+- L110 — `port` — `<td>Portails & Portillons</td>`
+- L111 — `align` — `<td style={{ textAlign: 'right' }}><strong>{gates.length} U</strong></td>`
+- L115 — `align` — `<td style={{ textAlign: 'right' }}><strong>{(fenceA * 2 + fenceB * 2).toFixed(1)} ml</strong></td>`
+### `apply_sidebar_updates.py`
+- L1 — `port` — `import sys`
+- L218 — `port` — `# 2. ADD SIDEBAR SECTION FOR GATES & PORTILLONS MANAGEMENT`
+- L219 — `port` — `gates_sidebar = """                    {/* Dynamic Portails & Portillons Management */}`
+- L224 — `port` — `<span>Portails & Portillons ({gates.length})</span>`
+- L229 — `port` — `onClick={() => handleAddGate("portail_5m")}`
+- L233 — `port` — `<span>Portail 5m</span>`
+- L237 — `port` — `onClick={() => handleAddGate("portillon")}`
+- L241 — `port` — `<span>Portillon</span>`
+- L251 — `select` — `selectedGateId === gate.id`
+- L275 — `move` — `onClick={() => handleRemoveGate(gate.id)}`
+- L298 — `select` — `<select`
+- L307 — `select` — `</select>`
+- L367 — `select` — `selectedMassifId === massif.id`
+- L390 — `move` — `onClick={() => handleRemoveMassif(massif.id)}`
+### `de171a0a-327e-4160-ba39-7e197ba269bf.py`
+- L13 — `sélection` — `- Ajouter sélection fiable des objets 2D.`
+- L21 — `port` — `from pathlib import Path`
+- L22 — `port` — `import shutil`
+- L23 — `port` — `import sys`
+- L24 — `port` — `from datetime import datetime`
+- L29 — `port` — `REPORT = ROOT / "007b_2d_objects_manipulation_properties_fix_REPORT.md"`
+- L30 — `history` — `HISTORY = ROOT / "docs" / "PATCH_HISTORY.md"`
+- L59 — `select` — `required = ["Cad2dEntity", "cad2dEntities", "selectedCad2dIds", "addCad2dEntity"]`
+- L75 — `anchor` — `anchor = '''  const prepareCad2dTool = (tool: Cad2dEntityType) => {`
+- L76 — `select` — `setInteractionMode("select");`
+- L77 — `select` — `setIsoDrawMode("select");`
+- L82 — `anchor` — `patch = anchor + r'''`
+- L85 — `select` — `const selectedCad2dEntity = cad2dEntities.find((entity) => selectedCad2dIds.includes(entity.id)) || null;`
+- L91 — `select` — `const moveSelectedCad2d = (dx: number, dy: number) => {`
+- L91 — `move` — `const moveSelectedCad2d = (dx: number, dy: number) => {`
+- L92 — `select` — `if (!selectedCad2dIds.length) return;`
+- L93 — `select` — `const ids = new Set(selectedCad2dIds);`
+- L98 — `point` — `points: entity.points?.map((point) => ({ x: point.x + dx, y: point.y + dy })),`
+- L102 — `select` — `setStatusMessage(`Déplacement 2D · ${selectedCad2dIds.length} objet(s)`);`
+- L105 — `select` — `const duplicateSelectedCad2d = () => {`
+- L106 — `select` — `if (!selectedCad2dIds.length) return;`
+- L107 — `select` — `const ids = new Set(selectedCad2dIds);`
+- L111 — `snap` — `points: entity.points?.map((point) => ({ x: point.x + isoSnapStep, y: point.y + isoSnapStep })),`
+- L111 — `point` — `points: entity.points?.map((point) => ({ x: point.x + isoSnapStep, y: point.y + isoSnapStep })),`
+- L112 — `snap` — `center: entity.center ? { x: entity.center.x + isoSnapStep, y: entity.center.y + isoSnapStep } : entity.center,`
+- L115 — `select` — `setSelectedCad2dIds(clones.map((entity) => entity.id));`
+- L119 — `select` — `const deleteSelectedCad2d = () => {`
+- L120 — `select` — `if (!selectedCad2dIds.length) return;`
+- L121 — `select` — `const ids = new Set(selectedCad2dIds);`
+- L123 — `select` — `setSelectedCad2dIds([]);`
+- L127 — `anchor` — `if anchor not in src:`
+- L129 — `anchor` — `src = src.replace(anchor, patch, 1)`
+- L132 — `anchor` — `key_anchor = '      if(e.key.startsWith("Arrow") && selectedNodeIds.length && !(e.target as HTMLElement)?.matches("input,textarea,select")){'`
+- L132 — `select` — `key_anchor = '      if(e.key.startsWith("Arrow") && selectedNodeIds.length && !(e.target as HTMLElement)?.matches("input,textarea,select")){'`
+- L133 — `select` — `key_patch = r'''      if(selectedCad2dIds.length && !(e.target as HTMLElement)?.matches("input,textarea,select")){`
+- L136 — `snap` — `const step = isoSnapStep * (e.shiftKey ? 4 : 1);`
+- L137 — `select` — `moveSelectedCad2d(e.key === "ArrowRight" ? step : e.key === "ArrowLeft" ? -step : 0, e.key === "ArrowDown" ? step : e.key === "ArrowUp" ? -step : 0);`
+- L137 — `move` — `moveSelectedCad2d(e.key === "ArrowRight" ? step : e.key === "ArrowLeft" ? -step : 0, e.key === "ArrowDown" ? step : e.key === "ArrowUp" ? -step : 0);`
+- L142 — `select` — `duplicateSelectedCad2d();`
+- L147 — `select` — `deleteSelectedCad2d();`
+- L152 — `select` — `if(e.key.startsWith("Arrow") && selectedNodeIds.length && !(e.target as HTMLElement)?.matches("input,textarea,select")){'''`
+- L153 — `anchor` — `if key_anchor in src:`
+- L154 — `anchor` — `src = src.replace(key_anchor, key_patch, 1)`
+- L160 — `rotation` — `new_text = '''<g key={entity.id} onClick={common.onClick} style={common.style} transform={`translate(${p.x} ${p.y}) rotate(${entity.rotation || 0})`}>`
+- L160 — `translate` — `new_text = '''<g key={entity.id} onClick={common.onClick} style={common.style} transform={`translate(${p.x} ${p.y}) rotate(${entity.rotation || 0})`}>`
+- L161 — `select` — `<rect x="-4" y="-16" width={Math.max(48, (entity.text || "Texte").length * 8)} height="22" rx="3" fill={selected ? "#fbbf24" : "#020617"} fillOpacity={selected ? .18 : .55} stroke={stroke} strokeOpacity=".55" />`
+- L162 — `point` — `<text x="0" y="0" fill={stroke} fontSize="14" fontWeight="900" pointerEvents="none">{entity.text || "Texte"}</text>`
+- L170 — `anchor` — `panel_anchor = '        {/* CAD Property Inspector for active selection */}'`
+- L170 — `selection` — `panel_anchor = '        {/* CAD Property Inspector for active selection */}'`
+- L170 — `select` — `panel_anchor = '        {/* CAD Property Inspector for active selection */}'`
+- L172 — `select` — `{selectedCad2dEntity && (`
+- L176 — `select` — `<span className="text-[10px] font-mono bg-cyan-950 text-cyan-300 px-2 py-0.5 rounded border border-cyan-800 font-bold">{selectedCad2dEntity.type}</span>`
+- L181 — `select` — `<div className="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-[10px] font-mono text-slate-300 truncate">{selectedCad2dEntity.id}</div>`
+- L185 — `select` — `<select value={selectedCad2dEntity.layerId} onChange={(e) => updateCad2dEntity(selectedCad2dEntity.id, { layerId: e.target.value })} className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-white">`
+- L187 — `select` — `</select>`
+- L191 — `select` — `<input type="color" value={selectedCad2dEntity.color} onChange={(e) => updateCad2dEntity(selectedCad2dEntity.id, { color: e.target.value })} className="w-full h-8 bg-slate-800 border border-slate-700 rounded" />`
+- L193 — `select` — `{(selectedCad2dEntity.type === "circle" || selectedCad2dEntity.type === "arc") && (`
+- L196 — `select` — `<input type="number" step="0.1" value={selectedCad2dEntity.radius || 1} onChange={(e) => updateCad2dEntity(selectedCad2dEntity.id, { radius: Number(e.target.value) || 1 })} className="w-full bg-slate-800 border border-slate-700 rounded px-2`
+- L199 — `select` — `{selectedCad2dEntity.type === "text" && (`
+- L202 — `select` — `<input value={selectedCad2dEntity.text || ""} onChange={(e) => updateCad2dEntity(selectedCad2dEntity.id, { text: e.target.value })} className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-white" />`
+- L207 — `select` — `<select value={selectedCad2dEntity.metadata?.intent || "draft"} onChange={(e) => updateCad2dEntity(selectedCad2dEntity.id, { metadata: { ...(selectedCad2dEntity.metadata || {}), intent: e.target.value as any } })} className="w-full bg-slate`
+- L212 — `select` — `</select>`
+- L216 — `select` — `<input type="number" step="0.1" value={selectedCad2dEntity.metadata?.elevationZ || 0} onChange={(e) => updateCad2dEntity(selectedCad2dEntity.id, { metadata: { ...(selectedCad2dEntity.metadata || {}), elevationZ: Number(e.target.value) || 0 `
+- L220 — `snap` — `<button type="button" onClick={() => moveSelectedCad2d(-isoSnapStep, 0)} className="rounded bg-slate-800 py-1 text-[10px] font-black">←</button>`
+- L220 — `select` — `<button type="button" onClick={() => moveSelectedCad2d(-isoSnapStep, 0)} className="rounded bg-slate-800 py-1 text-[10px] font-black">←</button>`
+- L220 — `move` — `<button type="button" onClick={() => moveSelectedCad2d(-isoSnapStep, 0)} className="rounded bg-slate-800 py-1 text-[10px] font-black">←</button>`
+- L221 — `snap` — `<button type="button" onClick={() => moveSelectedCad2d(isoSnapStep, 0)} className="rounded bg-slate-800 py-1 text-[10px] font-black">→</button>`
+- L221 — `select` — `<button type="button" onClick={() => moveSelectedCad2d(isoSnapStep, 0)} className="rounded bg-slate-800 py-1 text-[10px] font-black">→</button>`
+- L221 — `move` — `<button type="button" onClick={() => moveSelectedCad2d(isoSnapStep, 0)} className="rounded bg-slate-800 py-1 text-[10px] font-black">→</button>`
+- L222 — `select` — `<button type="button" onClick={duplicateSelectedCad2d} className="rounded bg-blue-800 py-1 text-[10px] font-black">Dup</button>`
+- L223 — `select` — `<button type="button" onClick={deleteSelectedCad2d} className="rounded bg-red-800 py-1 text-[10px] font-black">Del</button>`
+- L228 — `selection` — `{/* CAD Property Inspector for active selection */}'''`
+- L228 — `select` — `{/* CAD Property Inspector for active selection */}'''`
+- L229 — `anchor` — `if panel_anchor in src:`
+- L230 — `anchor` — `src = src.replace(panel_anchor, panel, 1)`
+- L234 — `sélection` — `# 5) Brancher boutons ruban Copy/Delete/Duplicate : si objet 2D sélectionné prioritaire.`
+- L235 — `selection` — `src = src.replace('<button onClick={duplicateSelection}>Duplicate</button>', '<button onClick={() => selectedCad2dIds.length ? duplicateSelectedCad2d() : duplicateSelection()}>Duplicate</button>', 1)`
+- L235 — `select` — `src = src.replace('<button onClick={duplicateSelection}>Duplicate</button>', '<button onClick={() => selectedCad2dIds.length ? duplicateSelectedCad2d() : duplicateSelection()}>Duplicate</button>', 1)`
+- L236 — `selection` — `src = src.replace('<button onClick={deleteSelection}>Delete</button>', '<button onClick={() => selectedCad2dIds.length ? deleteSelectedCad2d() : deleteSelection()}>Delete</button>', 1)`
+- L236 — `select` — `src = src.replace('<button onClick={deleteSelection}>Delete</button>', '<button onClick={() => selectedCad2dIds.length ? deleteSelectedCad2d() : deleteSelection()}>Delete</button>', 1)`
+- L242 — `port` — `def write_report() -> None:`
+- L253 — `sélection` — `- Sélection objet 2D fiabilisée.`
+- L254 — `sélection` — `- Déplacement clavier des objets 2D sélectionnés.`
+- L257 — `point` — `- Rendu texte corrigé avec fond et `pointerEvents` contrôlé.`
+- L258 — `sélection` — `- Boutons ruban Duplicate/Delete priorisent les objets 2D sélectionnés.`
+- L266 — `port` — `- Mapping 2D -> piping toujours reporté au patch suivant.`
+- L282 — `port` — `write(REPORT, content)`
+- L283 — `port` — `print(f"Rapport écrit : {REPORT}")`
+- L286 — `history` — `def update_history() -> None:`
+- L287 — `history` — `if not HISTORY.exists():`
+- L288 — `history` — `print("PATCH_HISTORY.md absent — historique non mis à jour.")`
+- L290 — `history` — `src = read(HISTORY)`
+- L292 — `history` — `print("PATCH_HISTORY.md déjà mis à jour.")`
+- L306 — `history` — `write(HISTORY, src.rstrip() + "\n" + entry)`
+- L307 — `history` — `print("PATCH_HISTORY.md mis à jour.")`
+- L314 — `port` — `write_report()`
+- L315 — `history` — `update_history()`
+### `docs/DEPLOYMENT_ENTERPRISE_FALLBACK.md`
+- L10 — `port` — `### Option A — Build statique exportable ZIP, prioritaire`
+### `docs/PATCH_HISTORY.md`
+- L27 — `port` — `- La page d'accueil propose : nouveau projet, Vision PD&I, croquis, import DXF/PDF/JSON, exports.`
+- L38 — `align` — `- la barre menus Fichier / Édition / Affichage / Dessin / Cotation / Alignement / Insertion / Impression / Export / Outils doit rester visible ;`
+- L38 — `port` — `- la barre menus Fichier / Édition / Affichage / Dessin / Cotation / Alignement / Insertion / Impression / Export / Outils doit rester visible ;`
+- L58 — `rotation` — `- Menu contextuel ISO : Proprietes, Copier, Couper, Coller, Dupliquer, Rotation, Retourner, Supprimer.`
+- L59 — `port` — `- Panneau de proprietes reel : X / Y / Z, elevation, DN, type, tag, rotation, ports, connexions, soudures W00x.`
+- L59 — `rotation` — `- Panneau de proprietes reel : X / Y / Z, elevation, DN, type, tag, rotation, ports, connexions, soudures W00x.`
+- L60 — `selection` — `- Proprietes multi-selection sans residu d'un objet precedent.`
+- L60 — `select` — `- Proprietes multi-selection sans residu d'un objet precedent.`
+- L62 — `snap` — `(ports et lineId canonises par normalizedGraphPorts, positions calees par snapIsoV4).`
+- L62 — `port` — `(ports et lineId canonises par normalizedGraphPorts, positions calees par snapIsoV4).`
+- L64 — `undo` — `- Undo par operation logique + Redo (Ctrl/Cmd+Shift+Z, Ctrl/Cmd+Y).`
+- L64 — `redo` — `- Undo par operation logique + Redo (Ctrl/Cmd+Shift+Z, Ctrl/Cmd+Y).`
+- L65 — `port` — `- Suppression sans topologie orpheline (purge des cotations support).`
+- L67 — `selection` — `- Rectangle de selection (fenetre et traversee) sur noeuds et tronçons.`
+- L67 — `select` — `- Rectangle de selection (fenetre et traversee) sur noeuds et tronçons.`
+- L70 — `selection` — `## Patch 004b — Cotations, selection et correctif du chemin de suppression`
+- L70 — `select` — `## Patch 004b — Cotations, selection et correctif du chemin de suppression`
+- L77 — `selection` — `- Selection multiple de cotations (selectedDimensionIds), Shift+clic additif.`
+- L77 — `select` — `- Selection multiple de cotations (selectedDimensionIds), Shift+clic additif.`
+- L78 — `selection` — `- Le rectangle de selection capture aussi les cotations (fenetre et traversee),`
+- L78 — `select` — `- Le rectangle de selection capture aussi les cotations (fenetre et traversee),`
+- L79 — `anchor` — `via resolveDimensionAnchor + isoProjectV4 + lineSegmentIntersectsBox.`
+- L80 — `selection` — `- Presse-papiers : les cotations entierement contenues dans la selection sont`
+- L80 — `select` — `- Presse-papiers : les cotations entierement contenues dans la selection sont`
+- L82 — `selection` — `Une cotation dont une seule ancre est selectionnee n'est jamais clonee.`
+- L82 — `select` — `Une cotation dont une seule ancre est selectionnee n'est jamais clonee.`
+- L85 — `port` — `## Patch 004c — Interface publique (landing v4) portee en composants React`
+- L128 — `sélection` — `- Audit confirmé : la sélection professionnelle existe déjà via Patch 004/004b.`
+- L131 — `sélection` — `- Aucun second moteur 2D, aucune duplication de sélection/topologie/projection.`
+- L138 — `sélection` — `- Ajout d'une couche CAD 2D persistante : entités, calques, sélection 2D.`
+- L140 — `port` — `- Export/import JSON enrichi avec `model.cad2d`.`
+- L155 — `drag` — `## PATCH 007d — Drag/resize souris et propriétés CAD compactes`
+### `docs/PDI_FOUNDATION.md`
+- L7 — `port` — `PD&I is an autonomous application. The Guide remains the portal and documentation/calculation platform.`
+- L20 — `port` — `├── DXF import/export`
+- L33 — `select` — `- Keep geometry and engineering validation deterministic; AI selects operations and interprets uncertain inputs.`
+### `docs/PDI_MIGRATION_MAP.md`
+- L9 — `port` — `The `pdi-foundation` branch is a migration workspace based on the GUIDE codebase. `src/App.tsx` is still the portal shell and must not be treated as the final PD&I application.`
+- L13 — `move` — `### Move to PD&I`
+- L17 — `fitting` — `- components/fittings/symbols used by the isometric editor`
+- L18 — `port` — `- dimensions, annotations, welds and viewport state`
+- L20 — `port` — `- DXF import/export adapters`
+- L28 — `port` — `- GUIDE-specific dashboards and portal modules`
+### `docs/PD_I_AGENTS_SKILLS_PYTHON.md`
+- L5 — `port` — `Le dépôt **PD-I** contient l'application SaaS, le workspace, le modèle JSON central, les imports/exports et l'interface.`
+- L9 — `port` — `## Règle importante`
+- L26 — `port` — `- validation réseau, ports, soudures ;`
+- L29 — `port` — `- génération PDF/DXF/rapports.`
+### `docs/PD_I_ORCHESTRATOR_PIPELINE_SKILLS.md`
+- L30 — `port` — `Calculs Python : longueurs, cotes, pentes, coordonnées ISO, DN/NPS, BOM, poids, validation ports/soudures, DXF/PDF.`
+### `docs/architecture/PD_I_RUNTIME_MAP.json`
+- L8 — `point` — `"entryPoint": "src/main.tsx",`
+- L19 — `port` — `"scale": "28 * viewport.zoom",`
+- L24 — `IsoNode` — `"nodes": "IsometrieModuleV48d.tsx -> nodes: IsoNode[]",`
+- L25 — `IsoSegment` — `"segments": "IsometrieModuleV48d.tsx -> segments: IsoSegment[]",`
+- L26 — `fitting` — `"fittings": "IsometrieModuleV48d.tsx -> segment.fittings: IsoFitting[] and equipment nodes",`
+- L27 — `port` — `"ports": "IsometrieModuleV48d.tsx -> node.ports: IsoPort[]",`
+- L32 — `port` — `"viewport": "IsometrieModuleV48d.tsx -> viewport: { zoom, panX, panY }",`
+- L33 — `selection` — `"selection": "IsometrieModuleV48d.tsx -> selectedNodeIds, selectedSegmentIds, selectedFitting, selectedDimensionId",`
+- L33 — `select` — `"selection": "IsometrieModuleV48d.tsx -> selectedNodeIds, selectedSegmentIds, selectedFitting, selectedDimensionId",`
+- L33 — `fitting` — `"selection": "IsometrieModuleV48d.tsx -> selectedNodeIds, selectedSegmentIds, selectedFitting, selectedDimensionId",`
+- L34 — `port` — `"persistence": "IsometrieModuleV48d.tsx -> exportProjectJson / importProjectJson (schemaVersion 4.7.4)"`
+### `docs/architecture/PD_I_SOURCE_OF_TRUTH.md`
+- L16 — `point` — `- **Application Entry Point**: `/src/main.tsx` -> `/src/App.tsx` -> `/src/pdi/app/PdiUnifiedApp.tsx`.`
+- L19 — `select` — `- In `PdiUnifiedApp.tsx`, selecting `"isometric"` mounts `<PdiIsometricEditor />`.`
+- L30 — `IsoNode` — `- Declares `PdiIsometricModel`, `PipingLine`, `IsoNode` (with `IsoPoint3D position`), and `IsoSegment` (`from`, `to`, `componentType`).`
+- L30 — `IsoSegment` — `- Declares `PdiIsometricModel`, `PipingLine`, `IsoNode` (with `IsoPoint3D position`), and `IsoSegment` (`from`, `to`, `componentType`).`
+- L30 — `point` — `- Declares `PdiIsometricModel`, `PipingLine`, `IsoNode` (with `IsoPoint3D position`), and `IsoSegment` (`from`, `to`, `componentType`).`
+- L31 — `port` — `- Pure structural schema designed for export/agent interoperability.`
+- L34 — `IsoNode` — `- `nodes`: `IsoNode[]` (`id`, `name`, `x`, `y`, `z`, `type`, `equipmentType`, `rotation`, `ports: IsoPort[]`, etc.)`
+- L34 — `port` — `- `nodes`: `IsoNode[]` (`id`, `name`, `x`, `y`, `z`, `type`, `equipmentType`, `rotation`, `ports: IsoPort[]`, etc.)`
+- L34 — `rotation` — `- `nodes`: `IsoNode[]` (`id`, `name`, `x`, `y`, `z`, `type`, `equipmentType`, `rotation`, `ports: IsoPort[]`, etc.)`
+- L35 — `IsoSegment` — `- `segments`: `IsoSegment[]` (`id`, `fromNodeId`, `fromPortId`, `toNodeId`, `toPortId`, `dn`, `pn`, `material`, `length`, `fittings: IsoFitting[]`, `lineId`)`
+- L35 — `fitting` — `- `segments`: `IsoSegment[]` (`id`, `fromNodeId`, `fromPortId`, `toNodeId`, `toPortId`, `dn`, `pn`, `material`, `length`, `fittings: IsoFitting[]`, `lineId`)`
+- L35 — `port` — `- `segments`: `IsoSegment[]` (`id`, `fromNodeId`, `fromPortId`, `toNodeId`, `toPortId`, `dn`, `pn`, `material`, `length`, `fittings: IsoFitting[]`, `lineId`)`
+- L36 — `anchor` — `- `dimensions`: `IsoDimension[]` (`id`, `type`, `a: IsoDimensionAnchor`, `b: IsoDimensionAnchor`, `label`, `offset`, `unit`)`
+- L37 — `port` — `- `viewport`: `{ zoom: number; panX: number; panY: number }``
+- L44 — `port` — `| **Node** | `id`, `position: {x,y,z}`, `kind` | `id`, `name`, `x`, `y`, `z`, `type`, `equipmentType`, `ports: IsoPort[]`, `rotation` | **V4.8d Runtime** | Low (V4.8d is richer, holds equipment & ports) |`
+- L44 — `rotation` — `| **Node** | `id`, `position: {x,y,z}`, `kind` | `id`, `name`, `x`, `y`, `z`, `type`, `equipmentType`, `ports: IsoPort[]`, `rotation` | **V4.8d Runtime** | Low (V4.8d is richer, holds equipment & ports) |`
+- L45 — `fitting` — `| **Segment** | `id`, `from`, `to`, `nominalDiameter` | `id`, `fromNodeId`, `fromPortId`, `toNodeId`, `toPortId`, `dn`, `pn`, `length`, `fittings: IsoFitting[]` | **V4.8d Runtime** | High if converted without preserving fittings/ports |`
+- L45 — `port` — `| **Segment** | `id`, `from`, `to`, `nominalDiameter` | `id`, `fromNodeId`, `fromPortId`, `toNodeId`, `toPortId`, `dn`, `pn`, `length`, `fittings: IsoFitting[]` | **V4.8d Runtime** | High if converted without preserving fittings/ports |`
+- L46 — `fitting` — `| **Fittings** | Nested under `componentType` | `IsoFitting[]` inside segments (`localPosition`, `cumulativePosition`, `orientation`, `dn`) | **V4.8d Runtime** | Medium |`
+- L47 — `IsoNode` — `| **Equipment** | `kind: 'equipment-port'` | `IsoNode` with `equipmentType`, `ports`, `rotation`, `bendDirection` | **V4.8d Runtime** | V4.8d treats equipment as full topology nodes |`
+- L47 — `port` — `| **Equipment** | `kind: 'equipment-port'` | `IsoNode` with `equipmentType`, `ports`, `rotation`, `bendDirection` | **V4.8d Runtime** | V4.8d treats equipment as full topology nodes |`
+- L47 — `rotation` — `| **Equipment** | `kind: 'equipment-port'` | `IsoNode` with `equipmentType`, `ports`, `rotation`, `bendDirection` | **V4.8d Runtime** | V4.8d treats equipment as full topology nodes |`
+- L48 — `port` — `| **Ports** | Not defined explicitly | `IsoPort[]` with relative `(dx, dy, dz)`, `connectionType`, `endPreparation` | **V4.8d Runtime** | Essential for weld generation |`
+- L49 — `port` — `| **Topology** | Implicit graph | Explicit node/port graph with `validateProjectGraph` and `normalizedGraphPorts` | **V4.8d Runtime** | Active graph integrity engine |`
+- L51 — `anchor` — `| **Dimensions** | Not defined | `IsoDimension[]` anchored to nodes/ports with SVG extension lines and labels | **V4.8d Runtime** | Full CAD dimension engine |`
+- L51 — `port` — `| **Dimensions** | Not defined | `IsoDimension[]` anchored to nodes/ports with SVG extension lines and labels | **V4.8d Runtime** | Full CAD dimension engine |`
+- L52 — `port` — `| **Viewport** | None | `{ zoom, panX, panY }` | **V4.8d Runtime** | Camera pan/zoom state |`
+- L63 — `snap` — `| Snapping Math | `snapToIsoAxis` in `isoProjection.ts` | `snapIsoV4` + dynamic reticle in `IsometrieModuleV48d.tsx` | **ACTIVE IN V4.8D** (`isoProjection.ts` unused) |`
+- L64 — `port` — `| Model JSON Schema | `src/pdi/model/serialization.ts` (`schemaVersion: "1.0"`) | `exportProjectJson` / `importProjectJson` (`schemaVersion: "4.7.4"`) | **ACTIVE IN V4.8D** (`serialization.ts` unused by active UI) |`
+- L73 — `point` — `1. **Pointer Event**: User clicks canvas -> `(clientX, clientY)`.`
+- L77 — `point` — `const pt = svg.createSVGPoint();`
+- L92 — `snap` — `4. **Snapping**:`
+- L93 — `snap` — `- Point snap: if cursor within 14px of node/port screen projection -> locks to exact node/port `(x, y, z)`.`
+- L93 — `port` — `- Point snap: if cursor within 14px of node/port screen projection -> locks to exact node/port `(x, y, z)`.`
+- L93 — `point` — `- Point snap: if cursor within 14px of node/port screen projection -> locks to exact node/port `(x, y, z)`.`
+- L94 — `snap` — `- Grid snap: `snapIsoV4(worldX, isoSnapStep)`.`
+- L113 — `select` — `1. User selects pipe segment `seg-1` (connecting `node-A` to `node-B`).`
+- L114 — `fitting` — `2. User double-clicks library fitting (e.g., `vanne_passage_total`).`
+- L116 — `point` — `- Calculates mid-point coordinates: `wx = (nodeA.x + nodeB.x)/2`, `wy = (nodeA.y + nodeB.y)/2`, `wz = (nodeA.z + nodeB.z)/2`.`
+- L117 — `IsoNode` — `- Creates new `IsoNode` with `equipmentType: "vanne_passage_total"` and 2 default ports.`
+- L117 — `port` — `- Creates new `IsoNode` with `equipmentType: "vanne_passage_total"` and 2 default ports.`
+- L119 — `port` — `- Segment 1: `nodeA (port 1)` -> `newNode (port 0)``
+- L120 — `port` — `- Segment 2: `newNode (port 1)` -> `nodeB (port 0)``
+- L123 — `port` — `- Detects butt weld connections between pipe segments and valve ports.`
+- L135 — `IsoNode` — `4. **Which model stores real piping objects?** Internal V4.8d graph model (`nodes: IsoNode[]`, `segments: IsoSegment[]`).`
+- L135 — `IsoSegment` — `4. **Which model stores real piping objects?** Internal V4.8d graph model (`nodes: IsoNode[]`, `segments: IsoSegment[]`).`
+- L138 — `port` — `7. **Where are ports created?** In `defaultEquipmentPorts()`, `defaultFreeNodePorts()`, `normalizedGraphPorts()` in `IsometrieModuleV48d.tsx`.`
+- L141 — `selection` — `10. **Where is selection stored?** In React state: `selectedNodeId`, `selectedNodeIds`, `selectedSegmentId`, `selectedSegmentIds`, `selectedFitting`, `selectedDimensionId`.`
+- L141 — `select` — `10. **Where is selection stored?** In React state: `selectedNodeId`, `selectedNodeIds`, `selectedSegmentId`, `selectedSegmentIds`, `selectedFitting`, `selectedDimensionId`.`
+- L141 — `fitting` — `10. **Where is selection stored?** In React state: `selectedNodeId`, `selectedNodeIds`, `selectedSegmentId`, `selectedSegmentIds`, `selectedFitting`, `selectedDimensionId`.`
+- L142 — `snap` — `11. **Where is snap calculated?** Inside `pointerMove` via `portWorldPosition`, `segmentEndpoints`, `isoUnprojectV4`, and `snapIsoV4`.`
+- L142 — `port` — `11. **Where is snap calculated?** Inside `pointerMove` via `portWorldPosition`, `segmentEndpoints`, `isoUnprojectV4`, and `snapIsoV4`.`
+- L142 — `point` — `11. **Where is snap calculated?** Inside `pointerMove` via `portWorldPosition`, `segmentEndpoints`, `isoUnprojectV4`, and `snapIsoV4`.`
+- L142 — `move` — `11. **Where is snap calculated?** Inside `pointerMove` via `portWorldPosition`, `segmentEndpoints`, `isoUnprojectV4`, and `snapIsoV4`.`
+- L144 — `IsoNode` — `13. **Where are X/Y/Z stored?** On each `IsoNode` as `{ x: number, y: number, z: number }`.`
+### `firebase-blueprint.json`
+- L38 — `port` — `"description": "Un projet de gazoduc de transport de la SONELGAZ avec ses phases d'étude, de travaux, d'autorisation et de planification.",`
+- L160 — `port` — `"description": "Collection de projets de transport de gaz de la SONELGAZ."`
+### `fix_all_croquis_and_tabs.py`
+- L1 — `port` — `import sys`
+- L2 — `port` — `import re`
+- L68 — `move` — `# remove trailing closing tags from after_svg_part`
+- L93 — `sélection` — `Sélectionnez un composant ci-dessous pour ouvrir sa fenêtre d'édition CAD paramétrique.`
+- L104 — `point` — `className={`px-3 py-1.5 text-xs font-black rounded-lg transition-all cursor-pointer ${`
+- L113 — `point` — `className={`px-3 py-1.5 text-xs font-black rounded-lg transition-all cursor-pointer ${`
+- L140 — `point` — `className="w-full py-1.5 px-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] rounded-xl transition-all flex items-center justify-center gap-1 shadow-xs cursor-pointer"`
+- L163 — `point` — `className="w-full py-1.5 px-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] rounded-xl transition-all flex items-center justify-center gap-1 shadow-xs cursor-pointer"`
+- L186 — `point` — `className="w-full py-1.5 px-2 bg-amber-600 hover:bg-amber-500 text-white font-bold text-[10px] rounded-xl transition-all flex items-center justify-center gap-1 shadow-xs cursor-pointer"`
+- L211 — `point` — `className="w-full py-1.5 px-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[10px] rounded-xl transition-all flex items-center justify-center gap-1 shadow-xs cursor-pointer"`
+- L236 — `point` — `className="w-full py-1.5 px-2 bg-amber-700 hover:bg-amber-600 text-white font-bold text-[10px] rounded-xl transition-all flex items-center justify-center gap-1 shadow-xs cursor-pointer"`
+- L259 — `point` — `className="w-full py-1.5 px-2 bg-purple-600 hover:bg-purple-500 text-white font-bold text-[10px] rounded-xl transition-all flex items-center justify-center gap-1 shadow-xs cursor-pointer"`
+- L266 — `port` — `{/* 7. Portails & Accès */}`
+- L272 — `port` — `<span className="truncate">Portails & Accès</span>`
+- L282 — `point` — `className="w-full py-1.5 px-2 bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-[10px] rounded-xl transition-all flex items-center justify-center gap-1 shadow-xs cursor-pointer"`
+### `fix_calculators_clean.py`
+- L1 — `port` — `import sys`
+- L17 — `anchor` — `blue_end_old = '''                                     <text x={mX + mW / 2} y={mY + mH / 2 + 3} fill="#fef3c7" fontSize="8" fontWeight="bold" textAnchor="middle">`
+- L30 — `anchor` — `blue_end_new = '''                                     <text x={mX + mW / 2} y={mY + mH / 2 + 3} fill="#fef3c7" fontSize="8" fontWeight="bold" textAnchor="middle">`
+### `fix_calculators_final.py`
+- L1 — `port` — `import re`
+### `fix_carre_bleu.py`
+- L5 — `anchor` — `target = '''                                     <text x={mX + mW / 2} y={mY + mH / 2 + 3} fill="#fef3c7" fontSize="8" fontWeight="bold" textAnchor="middle">`
+- L12 — `anchor` — `replacement = '''                                     <text x={mX + mW / 2} y={mY + mH / 2 + 3} fill="#fef3c7" fontSize="8" fontWeight="bold" textAnchor="middle">`
+### `fix_end_div.py`
+- L10 — `point` — `className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs rounded-xl shadow-md transition-all active:scale-95 flex items-center gap-2 cursor-pointer"`
+- L29 — `point` — `className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs rounded-xl shadow-md transition-all active:scale-95 flex items-center gap-2 cursor-pointer"`
+### `fix_exact_syntax.py`
+- L1 — `port` — `import sys`
+### `fix_syntax_clean.py`
+- L1 — `port` — `import sys`
+- L38 — `translate` — `<g transform={`translate(${svgW - 460}, ${svgH - 220})`}>'''`
+- L53 — `translate` — `<g transform="translate(7, 5)">'''`
+- L57 — `move` — `# Fix closing of the Cartouche SVG and remove orphaned IIFE lines`
+### `patch_4_8d1_workspace_cao.py`
+- L13 — `port` — `from pathlib import Path`
+- L14 — `port` — `import sys`
+- L92 — `group` — `const cadMenuGroups: Array<{`
+- L101 — `port` — `{ label: "Ouvrir JSON", hint: "import", run: () => importProjectRef.current?.click() },`
+- L102 — `port` — `{ label: "Sauver JSON", hint: "export", run: exportProjectJson },`
+- L108 — `undo` — `{ label: "Annuler", hint: "Ctrl+Z", run: undoGraph },`
+- L109 — `selection` — `{ label: "Supprimer sélection", hint: "Suppr", run: deleteSelection, disabled: !selectedCount },`
+- L109 — `sélection` — `{ label: "Supprimer sélection", hint: "Suppr", run: deleteSelection, disabled: !selectedCount },`
+- L109 — `select` — `{ label: "Supprimer sélection", hint: "Suppr", run: deleteSelection, disabled: !selectedCount },`
+- L110 — `selection` — `{ label: "Désélectionner", hint: "Esc", run: clearSelection },`
+- L110 — `sélection` — `{ label: "Désélectionner", hint: "Esc", run: clearSelection },`
+- L110 — `select` — `{ label: "Désélectionner", hint: "Esc", run: clearSelection },`
+- L127 — `sélection` — `{ label: "Sélection", hint: "V", run: () => { setInteractionMode("select"); setIsoDrawMode("select"); } },`
+- L127 — `select` — `{ label: "Sélection", hint: "V", run: () => { setInteractionMode("select"); setIsoDrawMode("select"); } },`
+- L129 — `select` — `{ label: "Nœud", hint: "N", run: () => { setInteractionMode("select"); setIsoDrawMode("node"); } },`
+- L130 — `select` — `{ label: "Tube", hint: "T", run: () => { setInteractionMode("select"); setIsoDrawMode("segment"); } },`
+- L131 — `select` — `{ label: "Té", hint: "E", run: () => { setInteractionMode("select"); setIsoDrawMode("te"); } },`
+- L132 — `select` — `{ label: "Coude", hint: "C", run: () => { setInteractionMode("select"); setIsoDrawMode("coude"); } },`
+- L138 — `select` — `{ label: "Créer cotation", hint: "M", run: () => { setInteractionMode("select"); setIsoDrawMode("dimension"); setDimensionPick(null); } },`
+- L140 — `select` — `{ label: "Supprimer dernière cote", hint: "⌫", run: removeSelectedDimensions, disabled: dimensions.length === 0 },`
+- L140 — `move` — `{ label: "Supprimer dernière cote", hint: "⌫", run: removeSelectedDimensions, disabled: dimensions.length === 0 },`
+- L144 — `align` — `title: "Alignement",`
+- L146 — `align` — `{ label: "Aligner X", hint: "AX", run: () => alignSelectedNodesAxis("x"), disabled: selectedNodeIds.length < 2 },`
+- L146 — `select` — `{ label: "Aligner X", hint: "AX", run: () => alignSelectedNodesAxis("x"), disabled: selectedNodeIds.length < 2 },`
+- L147 — `align` — `{ label: "Aligner Y", hint: "AY", run: () => alignSelectedNodesAxis("y"), disabled: selectedNodeIds.length < 2 },`
+- L147 — `select` — `{ label: "Aligner Y", hint: "AY", run: () => alignSelectedNodesAxis("y"), disabled: selectedNodeIds.length < 2 },`
+- L148 — `align` — `{ label: "Aligner Z", hint: "AZ", run: () => alignSelectedNodesAxis("z"), disabled: selectedNodeIds.length < 2 },`
+- L148 — `select` — `{ label: "Aligner Z", hint: "AZ", run: () => alignSelectedNodesAxis("z"), disabled: selectedNodeIds.length < 2 },`
+- L149 — `align` — `{ label: "Équipement sur tube", hint: "AT", run: alignSelectedEquipmentOnTube },`
+- L149 — `select` — `{ label: "Équipement sur tube", hint: "AT", run: alignSelectedEquipmentOnTube },`
+- L150 — `parallel` — `{ label: "Rendre parallèle", hint: "//", run: makeSelectedSegmentsParallel, disabled: selectedSegmentIds.length < 2 },`
+- L150 — `parallèle` — `{ label: "Rendre parallèle", hint: "//", run: makeSelectedSegmentsParallel, disabled: selectedSegmentIds.length < 2 },`
+- L150 — `select` — `{ label: "Rendre parallèle", hint: "//", run: makeSelectedSegmentsParallel, disabled: selectedSegmentIds.length < 2 },`
+- L151 — `selection` — `{ label: "Redresser ISO", hint: "ISO", run: redressIsoSelection, disabled: selectedSegmentIds.length < 1 },`
+- L151 — `select` — `{ label: "Redresser ISO", hint: "ISO", run: redressIsoSelection, disabled: selectedSegmentIds.length < 1 },`
+- L158 — `fitting` — `{ label: "Vanne par défaut", run: () => { setFitType("vanne_passage_total"); setFitLabel(FITTING_LABELS.vanne_passage_total); setLeftPanelOpen(true); } },`
+- L169 — `port` — `title: "Export",`
+- L171 — `port` — `{ label: "Exporter JSON", hint: "⇩", run: exportProjectJson },`
+- L200 — `align` — `'[data-pdi-studio] .pdi-rail-button{width:42px;height:42px;border:1px solid transparent;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#9CA3AF;background:#161B22;font-weight:900;font-size:11px}',`
+- L201 — `align` — `'''[data-pdi-studio] .pdi-cad-menubar{display:flex;align-items:center;gap:2px;min-width:0;overflow:visible}`
+- L207 — `align` — `[data-pdi-studio] .pdi-cad-menu-item{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;border-radius:7px;padding:7px 8px;color:#E5E7EB;background:transparent;text-align:left;font-size:11px;font-weight:800}`
+- L212 — `align` — `[data-pdi-studio] .pdi-rail-button{width:38px;height:38px;border:1px solid transparent;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#9CA3AF;background:#161B22;font-weight:900;font-size:14px}'''`
+- L216 — `port` — `'@media(max-width:900px){[data-pdi-studio].pdi-studio-root{padding-left:12px!important;padding-top:60px!important}[data-pdi-studio] .pdi-studio-rail{display:none!important}[data-pdi-studio] .pdi-brand-subtitle{display:none}}',`
+- L217 — `port` — `'''@media(max-width:900px){[data-pdi-studio].pdi-studio-root{padding-left:8px!important;padding-top:92px!important}[data-pdi-studio] .pdi-studio-rail{display:none!important}[data-pdi-studio] .pdi-brand-subtitle{display:none}[data-pdi-studio`
+- L223 — `group` — `{cadMenuGroups.map((group) => (`
+- L224 — `group` — `<div key={group.title} className="pdi-cad-menu">`
+- L226 — `group` — `{group.title}`
+- L229 — `group` — `{group.items.map((item) => (`
+- L231 — `group` — `key={`${group.title}-${item.label}`}`
+- L236 — `group` — `setStatusMessage(`${group.title} · ${item.label}`);`
+- L322 — `select` — `<svg ref={svgRef} viewBox="0 0 620 400" className="w-full h-[clamp(520px,70vh,820px)] select-none touch-none cursor-crosshair"''',`
+- L324 — `select` — `<svg ref={svgRef} viewBox="0 0 620 400" className={`${workspaceFullscreen ? "h-full min-h-[360px]" : "h-[clamp(520px,70vh,820px)]"} w-full select-none touch-none cursor-crosshair`}'''`
+- L332 — `select` — `className="w-full h-[clamp(520px,70vh,820px)] select-none touch-none cursor-crosshair"''',`
+- L337 — `select` — `className={`${workspaceFullscreen ? "h-full min-h-[360px]" : "h-[clamp(520px,70vh,820px)]"} w-full select-none touch-none cursor-crosshair`}'''`
+- L351 — `undo` — `'UNDO</button>': '↶</button>',`
+### `patch_croquis_voile_per.py`
+- L1 — `port` — `import sys`
+- L32 — `select` — `# STEP 1 — Retarget the "Saisir Voile" button to default to the selected`
+- L41 — `point` — `className="w-full py-1.5 px-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[10px] rounded-xl transition-all flex items-center justify-center gap-1 shadow-xs cursor-pointer"`
+- L49 — `select` — `setActiveVoileOuvrageId(selectedOuvrageId || ouvrages[0]?.id || null);`
+- L52 — `point` — `className="w-full py-1.5 px-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[10px] rounded-xl transition-all flex items-center justify-center gap-1 shadow-xs cursor-pointer"`
+- L68 — `point` — `<label className="flex items-center gap-2 cursor-pointer bg-indigo-50 p-3 rounded-xl border border-indigo-200">`
+- L148 — `select` — `<select`
+- L156 — `select` — `</select>`
+- L159 — `point` — `<label className="flex items-center gap-2 cursor-pointer bg-indigo-50 p-3 rounded-xl border border-indigo-200">`
+- L236 — `select` — `# STEP 3 — Render voile per selected side (and thickness), instead of always`
+- L255 — `sélection` — `'''                                    {/* Voile Béton Armé Périmétrique (par côté sélectionné) */}`
+- L290 — `anchor` — `print(f"  SKIP - {s}  (anchor not found — file may already differ; check manually)")`
+### `patch_per_ouvrage.py`
+- L1 — `port` — `import sys`
+- L41 — `port` — `name: "Portail Véhicules Principal",`
+- L42 — `port` — `type: "portail_5m",`
+- L50 — `port` — `name: "Portillon Piéton",`
+- L51 — `port` — `type: "portillon",`
+- L61 — `port` — `name: "Portail Véhicules Principal",`
+- L62 — `port` — `type: "portail_5m",`
+- L71 — `port` — `name: "Portillon Piéton",`
+- L72 — `port` — `type: "portillon",`
+- L83 — `select` — `"2. handleAddGate: default the new gate to the selected ouvrage, size it off that ouvrage's own dimensions",`
+- L84 — `port` — `'''  const handleAddGate = (type: "portail_5m" | "portail_custom" | "portillon" = "portail_5m") => {`
+- L86 — `port` — `const width = type === "portail_5m" ? 5 : type === "portillon" ? 1 : 4;`
+- L87 — `port` — `const name = type === "portillon" ? `Portillon Piéton ${gates.length + 1}` : `Portail Véhicules ${gates.length + 1}`;`
+- L100 — `select` — `setSelectedGateId(newId);`
+- L102 — `port` — `'''  const handleAddGate = (type: "portail_5m" | "portail_custom" | "portillon" = "portail_5m", targetOuvrageId?: string) => {`
+- L104 — `port` — `const width = type === "portail_5m" ? 5 : type === "portillon" ? 1 : 4;`
+- L105 — `select` — `const ouvrageId = targetOuvrageId || selectedOuvrageId || ouvrages[0]?.id || "ouvrage-1";`
+- L110 — `port` — `const name = type === "portillon" ? `Portillon Piéton ${existingOnOuvrage + 1}` : `Portail Véhicules ${existingOnOuvrage + 1}`;`
+- L124 — `select` — `setSelectedGateId(newId);`
+- L158 — `select` — `const isSelected = selectedGateId === g.id;`
+- L159 — `port` — `const isSmall = g.type === "portillon";`
+- L166 — `select` — `const isSelected = selectedGateId === g.id;`
+- L167 — `port` — `const isSmall = g.type === "portillon";`
+- L176 — `select` — `"5. gates modal: add an Ouvrage selector per gate row",`
+- L185 — `select` — `<select`
+- L193 — `select` — `</select>`
+- L202 — `select` — `# modal body to edit the SELECTED ouvrage's own gabionSides instead of the`
+- L207 — `select` — `"6. toolbar quick-add button: default gabion target to the selected ouvrage",`
+- L211 — `point` — `className="px-3 py-1.5 bg-amber-700 hover:bg-amber-600 text-white rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"`
+- L219 — `select` — `setActiveGabionOuvrageId(selectedOuvrageId || ouvrages[0]?.id || null);`
+- L222 — `point` — `className="px-3 py-1.5 bg-amber-700 hover:bg-amber-600 text-white rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"`
+- L230 — `select` — `"7. card button: default gabion target to the selected ouvrage",`
+- L234 — `point` — `className="w-full py-1.5 px-2 bg-amber-700 hover:bg-amber-600 text-white font-bold text-[10px] rounded-xl transition-all flex items-center justify-center gap-1 shadow-xs cursor-pointer"`
+- L242 — `select` — `setActiveGabionOuvrageId(selectedOuvrageId || ouvrages[0]?.id || null);`
+- L245 — `point` — `className="w-full py-1.5 px-2 bg-amber-700 hover:bg-amber-600 text-white font-bold text-[10px] rounded-xl transition-all flex items-center justify-center gap-1 shadow-xs cursor-pointer"`
+- L256 — `point` — `<label className="flex items-center gap-2 cursor-pointer">`
+- L271 — `select` — `{/* Side Tabs Selector */}`
+- L316 — `point` — `<label className="flex items-center gap-2 cursor-pointer">`
+- L444 — `select` — `<select`
+- L452 — `select` — `</select>`
+- L456 — `point` — `<label className="flex items-center gap-2 cursor-pointer">`
+- L471 — `select` — `{/* Side Tabs Selector */}`
+- L524 — `point` — `<label className="flex items-center gap-2 cursor-pointer">`
+- L644 — `move` — `"9. remove the global (ouvrage[0]-only) gabion render, per-ouvrage rendering already exists inside ouvrages.map",`
+- L685 — `anchor` — `textAnchor="middle"`
+- L706 — `anchor` — `print(f"  SKIP - {s}  (anchor not found — file may already differ; check manually)")`
+### `patches/006_pdi_workspace_primary.py`
+- L10 — `port` — `IMPORTANT :`
+- L30 — `port` — `from pathlib import Path`
+- L31 — `port` — `import shutil`
+- L32 — `port` — `import hashlib`
+- L33 — `port` — `import re`
+- L34 — `port` — `import sys`
+- L35 — `port` — `from datetime import datetime`
+- L92 — `port` — `def detect_export_name(engine_text: str):`
+- L93 — `port` — `# export default function IsometrieModuleV48d`
+- L95 — `port` — `r"export\s+default\s+function\s+([A-Za-z0-9_]+)",`
+- L99 — `group` — `return m.group(1)`
+- L101 — `port` — `# export default IsometrieModuleV48d`
+- L103 — `port` — `r"export\s+default\s+([A-Za-z0-9_]+)\s*;",`
+- L107 — `group` — `return m.group(1)`
+- L109 — `port` — `# export function ...`
+- L111 — `port` — `r"export\s+function\s+([A-Za-z0-9_]*Isometrie[A-Za-z0-9_]*)",`
+- L115 — `group` — `return m.group(1)`
+- L122 — `port` — `export_name = detect_export_name(engine_text)`
+- L127 — `port` — `__import__("os").path.relpath(engine, editor_dir)`
+- L134 — `port` — `import_path = "./" + relative`
+- L136 — `port` — `import_path = relative`
+- L147 — `port` — `import React from "react";`
+- L148 — `port` — `import {export_name} from "{import_path}";`
+- L150 — `port` — `export default function PdiIsometricEditor() {{`
+- L162 — `port` — `<{export_name} />`
+### `reorganize_croquis_layout.py`
+- L1 — `port` — `import sys`
+- L2 — `port` — `import re`
+- L67 — `sélection` — `Sélectionnez un composant ci-dessous pour ouvrir sa fenêtre d'édition CAD paramétrique.`
+- L78 — `point` — `className={`px-3 py-1.5 text-xs font-black rounded-lg transition-all cursor-pointer ${`
+- L87 — `point` — `className={`px-3 py-1.5 text-xs font-black rounded-lg transition-all cursor-pointer ${`
+- L114 — `point` — `className="w-full py-1.5 px-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] rounded-xl transition-all flex items-center justify-center gap-1 shadow-xs cursor-pointer"`
+- L137 — `point` — `className="w-full py-1.5 px-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] rounded-xl transition-all flex items-center justify-center gap-1 shadow-xs cursor-pointer"`
+- L160 — `point` — `className="w-full py-1.5 px-2 bg-amber-600 hover:bg-amber-500 text-white font-bold text-[10px] rounded-xl transition-all flex items-center justify-center gap-1 shadow-xs cursor-pointer"`
+- L185 — `point` — `className="w-full py-1.5 px-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[10px] rounded-xl transition-all flex items-center justify-center gap-1 shadow-xs cursor-pointer"`
+- L210 — `point` — `className="w-full py-1.5 px-2 bg-amber-700 hover:bg-amber-600 text-white font-bold text-[10px] rounded-xl transition-all flex items-center justify-center gap-1 shadow-xs cursor-pointer"`
+- L233 — `point` — `className="w-full py-1.5 px-2 bg-purple-600 hover:bg-purple-500 text-white font-bold text-[10px] rounded-xl transition-all flex items-center justify-center gap-1 shadow-xs cursor-pointer"`
+- L240 — `port` — `{/* 7. Portails & Accès */}`
+- L246 — `port` — `<span className="truncate">Portails & Accès</span>`
+- L256 — `point` — `className="w-full py-1.5 px-2 bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-[10px] rounded-xl transition-all flex items-center justify-center gap-1 shadow-xs cursor-pointer"`
+### `scripts/apply_svg_update.js`
+- L1 — `port` — `import fs from 'fs';`
+- L7 — `port` — `const endKey = 'onClick={() => setShowTechnicalReport(true)}';`
+- L25 — `port` — `portail_5m: {`
+- L26 — `port` — `title: "Portail 2 Vantaux (Largeur 5.00m)",`
+- L27 — `port` — `desc: \`Portail d'accès principal 2 vantaux battants en acier galvanisé profilé de largeur 5.00 ml et hauteur \${fenceHeight}m, équipé de serrure de sécurité, d'arrêt de battant et verrous de sol pour véhicules lourds.\``
+- L29 — `port` — `portillon_1m: {`
+- L30 — `port` — `title: "Portillon Piéton (Largeur 1.00m)",`
+- L31 — `port` — `desc: \`Portillon d'accès piéton 1 vantail battant en acier galvanisé profilé de largeur 1.00 ml et hauteur \${fenceHeight}m, pour le passage sécurisé des agents d'exploitation Sonelgaz.\``
+- L34 — `port` — `title: \`Abri de Télé-exploitation (\${teleShelterType === "01_porte" ? "01 Porte" : "02 Portes"})\`,`
+- L35 — `port` — `desc: \`Bâtiment maçonné fermé de \${teleShelterLength}m x \${teleShelterWidth}m abritant les armoires de télétransmission, calculateurs de débit gaz et alimentations de secours. Comporte \${teleShelterType === "01_porte" ? "1 porte blindée`
+- L39 — `port` — `desc: "Béton armé d'épaisseur 25cm dosé à 350kg/m³ de ciment CPA. Supporte les collecteurs d'entrée (HP), filtres régulateurs et détendeurs de pression."`
+- L47 — `ancrage` — `desc: "Dalle renforcée pour le sas de réception des racleurs (pigs). Dispositifs d'ancrage et bac de rétention des condensats."`
+- L74 — `port` — `pStartX = fX + Math.min(portailOffset, fenceA - 5) * scale;`
+- L77 — `port` — `pStartX = fX + Math.min(portailOffset, fenceA - 5) * scale;`
+- L80 — `port` — `pStartY = fY + Math.min(portailOffset, fenceB - 5) * scale;`
+- L84 — `port` — `pStartY = fY + Math.min(portailOffset, fenceB - 5) * scale;`
+- L88 — `port` — `// Portail 2 Vantaux 5m`
+- L89 — `port` — `if (nbPortails5m > 0) {`
+- L93 — `group` — `<g key="portail-5m" className="cursor-pointer group" onClick={() => setActiveTooltipCroquis("portail_5m")}>`
+- L93 — `port` — `<g key="portail-5m" className="cursor-pointer group" onClick={() => setActiveTooltipCroquis("portail_5m")}>`
+- L93 — `point` — `<g key="portail-5m" className="cursor-pointer group" onClick={() => setActiveTooltipCroquis("portail_5m")}>`
+- L105 — `anchor` — `<text x={pStartX + w5 / 2} y={pStartY + (gateSide === "sud" ? 28 : -22)} fill="#f59e0b" className="font-mono text-[7px] font-black" textAnchor="middle">`
+- L106 — `port` — `PORTAIL 2 BATTANTS (5.00m x H={fenceHeight}m)`
+- L112 — `group` — `<g key="portail-5m" className="cursor-pointer group" onClick={() => setActiveTooltipCroquis("portail_5m")}>`
+- L112 — `port` — `<g key="portail-5m" className="cursor-pointer group" onClick={() => setActiveTooltipCroquis("portail_5m")}>`
+- L112 — `point` — `<g key="portail-5m" className="cursor-pointer group" onClick={() => setActiveTooltipCroquis("portail_5m")}>`
+- L118 — `anchor` — `<text x={pStartX + (gateSide === "est" ? 26 : -26)} y={pStartY + w5 / 2 + 2} fill="#f59e0b" className="font-mono text-[6.5px] font-black" textAnchor="middle">`
+- L119 — `port` — `PORTAIL 5m`
+- L126 — `port` — `// Portillon 1m`
+- L131 — `port` — `poStartX = fX + Math.min(portillonOffset, fenceA - 1) * scale;`
+- L134 — `port` — `poStartX = fX + Math.min(portillonOffset, fenceA - 1) * scale;`
+- L137 — `port` — `poStartY = fY + Math.min(portillonOffset, fenceB - 1) * scale;`
+- L140 — `port` — `poStartY = fY + Math.min(portillonOffset, fenceB - 1) * scale;`
+- L143 — `port` — `if (nbPortillons1m > 0) {`
+- L147 — `group` — `<g key="portillon-1m" className="cursor-pointer group" onClick={() => setActiveTooltipCroquis("portillon_1m")}>`
+- L147 — `port` — `<g key="portillon-1m" className="cursor-pointer group" onClick={() => setActiveTooltipCroquis("portillon_1m")}>`
+- L147 — `point` — `<g key="portillon-1m" className="cursor-pointer group" onClick={() => setActiveTooltipCroquis("portillon_1m")}>`
+- L152 — `anchor` — `<text x={poStartX + Math.max(w1, 8) / 2} y={poStartY + (gateSide === "sud" ? 20 : -14)} fill="#06b6d4" className="font-mono text-[6.5px] font-black" textAnchor="middle">`
+- L153 — `port` — `PORTILLON 1m`
+- L159 — `group` — `<g key="portillon-1m" className="cursor-pointer group" onClick={() => setActiveTooltipCroquis("portillon_1m")}>`
+- L159 — `port` — `<g key="portillon-1m" className="cursor-pointer group" onClick={() => setActiveTooltipCroquis("portillon_1m")}>`
+- L159 — `point` — `<g key="portillon-1m" className="cursor-pointer group" onClick={() => setActiveTooltipCroquis("portillon_1m")}>`
+- L164 — `anchor` — `<text x={poStartX + (gateSide === "est" ? 18 : -18)} y={poStartY + Math.max(w1, 8) / 2 + 2} fill="#06b6d4" className="font-mono text-[6px] font-black" textAnchor="middle">`
+- L165 — `port` — `PORTILLON 1m`
+- L177 — `drag` — `{/* Banner for Drag and Drop & Cornière details */}`
+- L180 — `move` — `<Move className="w-4 h-4 text-cyan-400 animate-pulse" />`
+- L181 — `port` — `<span>Déplacement interactif : Glissez-déposez n'importe quelle dalle directement sur le plan!</span>`
+- L188 — `select` — `<div className="bg-slate-900 border border-slate-950 rounded-2xl overflow-hidden shadow-2xl relative select-none">`
+- L192 — `point` — `onPointerMove={(e) => {`
+- L192 — `move` — `onPointerMove={(e) => {`
+- L193 — `drag` — `if (draggingSlabId && dragStartPos) {`
+- L194 — `point` — `const dxPx = e.clientX - dragStartPos.pointerX;`
+- L194 — `drag` — `const dxPx = e.clientX - dragStartPos.pointerX;`
+- L195 — `point` — `const dyPx = e.clientY - dragStartPos.pointerY;`
+- L195 — `drag` — `const dyPx = e.clientY - dragStartPos.pointerY;`
+- L199 — `drag` — `const activeSlab = slabs.find(s => s.id === draggingSlabId);`
+- L201 — `drag` — `let newX = Math.round((dragStartPos.initX + dxM) * 10) / 10;`
+- L202 — `drag` — `let newY = Math.round((dragStartPos.initY + dyM) * 10) / 10;`
+- L207 — `drag` — `handleUpdateSlab(draggingSlabId, "xOffset", newX);`
+- L208 — `drag` — `handleUpdateSlab(draggingSlabId, "yOffset", newY);`
+- L212 — `point` — `onPointerUp={() => {`
+- L213 — `drag` — `setDraggingSlabId(null);`
+- L214 — `drag` — `setDragStartPos(null);`
+- L216 — `point` — `onPointerCancel={() => {`
+- L217 — `drag` — `setDraggingSlabId(null);`
+- L218 — `drag` — `setDragStartPos(null);`
+- L243 — `point` — `className="cursor-pointer hover:stroke-cyan-400 transition-colors"`
+- L251 — `translate` — `<g transform={\`translate(\${fX + fW - 175}, \${fY + 8})\`}>`
+- L253 — `anchor` — `<text x="85" y="11" fill="#ffffff" className="font-mono text-[6.5px] font-black" textAnchor="middle">`
+- L258 — `port` — `{/* Render Gates (Portail 5m & Portillon 1m) */}`
+- L286 — `group` — `className="cursor-pointer group"`
+- L286 — `point` — `className="cursor-pointer group"`
+- L299 — `group` — `className="group-hover:fill-opacity-65 transition-all"`
+- L303 — `port` — `{teleShelterType === "01_porte" ? (`
+- L306 — `anchor` — `<text x={tX + tW / 2} y={tY + tH + 8} fill="#f59e0b" className="font-mono text-[6px] font-black" textAnchor="middle">1 Porte</text>`
+- L306 — `port` — `<text x={tX + tW / 2} y={tY + tH + 8} fill="#f59e0b" className="font-mono text-[6px] font-black" textAnchor="middle">1 Porte</text>`
+- L312 — `anchor` — `<text x={tX + tW / 2} y={tY + tH + 8} fill="#f59e0b" className="font-mono text-[6px] font-black" textAnchor="middle">2 Portes</text>`
+- L312 — `port` — `<text x={tX + tW / 2} y={tY + tH + 8} fill="#f59e0b" className="font-mono text-[6px] font-black" textAnchor="middle">2 Portes</text>`
+- L316 — `anchor` — `<text x={tX + tW / 2} y={tY + tH / 2 + 2} fill="#ffffff" className="font-sans text-[7px] font-black uppercase" textAnchor="middle">`
+- L321 — `drag` — `{/* Dynamic Drag-and-Drop Slabs Render */}`
+- L329 — `select` — `const isSelected = selectedSlabId === slab.id;`
+- L330 — `drag` — `const isDragging = draggingSlabId === slab.id;`
+- L335 — `group` — `className="cursor-move group"`
+- L335 — `move` — `className="cursor-move group"`
+- L338 — `select` — `setSelectedSlabId(slab.id);`
+- L341 — `point` — `onPointerDown={(e) => {`
+- L344 — `point` — `e.currentTarget.setPointerCapture(e.pointerId);`
+- L346 — `select` — `setSelectedSlabId(slab.id);`
+- L347 — `drag` — `setDraggingSlabId(slab.id);`
+- L348 — `drag` — `setDragStartPos({`
+- L349 — `point` — `pointerX: e.clientX,`
+- L350 — `point` — `pointerY: e.clientY,`
+- L362 — `select` — `fillOpacity={isSelected || isDragging ? 0.75 : style.fillOpacity}`
+- L362 — `drag` — `fillOpacity={isSelected || isDragging ? 0.75 : style.fillOpacity}`
+- L363 — `select` — `stroke={isDragging ? "#38bdf8" : isSelected ? "#ffffff" : style.stroke}`
+- L363 — `drag` — `stroke={isDragging ? "#38bdf8" : isSelected ? "#ffffff" : style.stroke}`
+- L364 — `select` — `strokeWidth={isSelected || isDragging ? 2.5 : style.strokeWidth}`
+- L364 — `drag` — `strokeWidth={isSelected || isDragging ? 2.5 : style.strokeWidth}`
+- L369 — `select` — `{/* Dragging or Selected indicator handles */}`
+- L369 — `drag` — `{/* Dragging or Selected indicator handles */}`
+- … 7 occurrences supplémentaires.
+### `scripts/update_calculator_features.js`
+- L1 — `port` — `import fs from 'fs';`
+- L6 — `port` — `// 1. Update lucide-react imports to include Move, DoorOpen`
+- L6 — `move` — `// 1. Update lucide-react imports to include Move, DoorOpen`
+- L9 — `move` — `'  DoorClosed,\n  Move,\n  DoorOpen,\n  ShieldAlert,'`
+- L16 — `port` — `// Clôture Gates / Portails & Portillons State`
+- L17 — `port` — `const [nbPortails5m, setNbPortails5m] = useState<number>(1); // Portail 2 vantaux de 5.00 ml (H = fenceHeight)`
+- L18 — `port` — `const [nbPortillons1m, setNbPortillons1m] = useState<number>(1); // Portillon piéton de 1.00 ml (H = fenceHeight)`
+- L20 — `port` — `const [portailOffset, setPortailOffset] = useState<number>(5); // Pos en mètres sur la façade`
+- L21 — `port` — `const [portillonOffset, setPortillonOffset] = useState<number>(15); // Pos en mètres sur la façade`
+- L23 — `drag` — `// Interactive Drag & Drop state for Slabs`
+- L24 — `select` — `const [selectedSlabId, setSelectedSlabId] = useState<string | null>("slab-1");`
+- L25 — `drag` — `const [draggingSlabId, setDraggingSlabId] = useState<string | null>(null);`
+- L26 — `point` — `const [dragStartPos, setDragStartPos] = useState<{ pointerX: number; pointerY: number; initX: number; initY: number } | null>(null);`;`
+- L26 — `drag` — `const [dragStartPos, setDragStartPos] = useState<{ pointerX: number; pointerY: number; initX: number; initY: number } | null>(null);`;`
+- L31 — `port` — `console.log("Updated state & imports successfully!");`
+### `scripts/update_calculator_ui.js`
+- L1 — `port` — `import fs from 'fs';`
+- L6 — `port` — `// 1. Update Clôture Panneaux Profilés sidebar section + Add Portails & Portillons Section`
+- L23 — `port` — `// Add Gates/Portails section right after fence section and before Abri Télé-exploitation`
+- L32 — `port` — `{/* Portails & Portillons d'Accès Clôture */}`
+- L37 — `port` — `<span>Portails & Portillons (H={fenceHeight}m)</span>`
+- L40 — `port` — `{nbPortails5m}x 5m | {nbPortillons1m}x 1m`
+- L44 — `selection` — `{/* Façade Selection */}`
+- L44 — `select` — `{/* Façade Selection */}`
+- L65 — `port` — `{/* Portail 2 vantaux 5m */}`
+- L69 — `port` — `<span className="text-xs font-black text-amber-900 block">Portail 2 Vantaux (5.00 ml)</span>`
+- L75 — `port` — `onClick={() => setNbPortails5m(prev => Math.max(0, prev - 1))}`
+- L80 — `port` — `<span className="font-mono font-black text-xs w-4 text-center">{nbPortails5m}</span>`
+- L83 — `port` — `onClick={() => setNbPortails5m(prev => prev + 1)}`
+- L90 — `port` — `{nbPortails5m > 0 && (`
+- L93 — `port` — `<span>Position sur façade ({portailOffset} m) :</span>`
+- L99 — `port` — `value={portailOffset}`
+- L100 — `port` — `onChange={(e) => setPortailOffset(parseFloat(e.target.value))}`
+- L107 — `port` — `{/* Portillon piéton 1m */}`
+- L111 — `port` — `<span className="text-xs font-black text-cyan-900 block">Portillon Piéton (1.00 ml)</span>`
+- L117 — `port` — `onClick={() => setNbPortillons1m(prev => Math.max(0, prev - 1))}`
+- L122 — `port` — `<span className="font-mono font-black text-xs w-4 text-center">{nbPortillons1m}</span>`
+- L125 — `port` — `onClick={() => setNbPortillons1m(prev => prev + 1)}`
+- L132 — `port` — `{nbPortillons1m > 0 && (`
+- L135 — `port` — `<span>Position sur façade ({portillonOffset} m) :</span>`
+- L141 — `port` — `value={portillonOffset}`
+- L142 — `port` — `onChange={(e) => setPortillonOffset(parseFloat(e.target.value))}`
+### `scripts/update_cartouche.js`
+- L1 — `port` — `import fs from 'fs';`
+- L7 — `port` — `<span className="value">ABRI {teleShelterType === "01_porte" ? "01 PORTE" : "02 PORTES"} | PANNEAUX H={fenceHeight}m</span>`;`
+- L10 — `port` — `<span className="value">ABRI {teleShelterType === "01_porte" ? "01 PORTE" : "02 PORTES"} | CLÔTURE PROFILÉE (e=12mm) | {nbPortails5m}x PORTAIL 5m | {nbPortillons1m}x PORTILLON 1m</span>`;`
+### `scripts/update_svg_canvas.js`
+- L1 — `port` — `import fs from 'fs';`
+- L10 — `port` — `onClick={() => setShowTechnicalReport(true)}`;`
+- L25 — `port` — `portail_5m: {`
+- L26 — `port` — `title: "Portail 2 Vantaux (Largeur 5.00m)",`
+- L27 — `port` — `desc: \`Portail d'accès principal 2 vantaux battants en acier galvanisé profilé de largeur 5.00 ml et hauteur \${fenceHeight}m, équipé de serrure de sécurité, d'arrêt de battant et verrous de sol pour véhicules lourds.\``
+- L29 — `port` — `portillon_1m: {`
+- L30 — `port` — `title: "Portillon Piéton (Largeur 1.00m)",`
+- L31 — `port` — `desc: \`Portillon d'accès piéton 1 vantail battant en acier galvanisé profilé de largeur 1.00 ml et hauteur \${fenceHeight}m, pour le passage sécurisé des agents d'exploitation Sonelgaz.\``
+- L34 — `port` — `title: \`Abri de Télé-exploitation (\${teleShelterType === "01_porte" ? "01 Porte" : "02 Portes"})\`,`
+- L35 — `port` — `desc: \`Bâtiment maçonné fermé de \${teleShelterLength}m x \${teleShelterWidth}m abritant les armoires de télétransmission, calculateurs de débit gaz et alimentations de secours. Comporte \${teleShelterType === "01_porte" ? "1 porte blindée`
+- L39 — `port` — `desc: "Béton armé d'épaisseur 25cm dosé à 350kg/m³ de ciment CPA. Supporte les collecteurs d'entrée (HP), filtres régulateurs et détendeurs de pression."`
+- L47 — `ancrage` — `desc: "Dalle renforcée pour le sas de réception des racleurs (pigs). Dispositifs d'ancrage et bac de rétention des condensats."`
+- L74 — `port` — `pStartX = fX + Math.min(portailOffset, fenceA - 5) * scale;`
+- L77 — `port` — `pStartX = fX + Math.min(portailOffset, fenceA - 5) * scale;`
+- L80 — `port` — `pStartY = fY + Math.min(portailOffset, fenceB - 5) * scale;`
+- L84 — `port` — `pStartY = fY + Math.min(portailOffset, fenceB - 5) * scale;`
+- L88 — `port` — `// Portail 2 Vantaux 5m`
+- L89 — `port` — `if (nbPortails5m > 0) {`
+- L93 — `group` — `<g key="portail-5m" className="cursor-pointer group" onClick={() => setActiveTooltipCroquis("portail_5m")}>`
+- L93 — `port` — `<g key="portail-5m" className="cursor-pointer group" onClick={() => setActiveTooltipCroquis("portail_5m")}>`
+- L93 — `point` — `<g key="portail-5m" className="cursor-pointer group" onClick={() => setActiveTooltipCroquis("portail_5m")}>`
+- L105 — `anchor` — `<text x={pStartX + w5 / 2} y={pStartY + (gateSide === "sud" ? 28 : -22)} fill="#f59e0b" className="font-mono text-[7px] font-black" textAnchor="middle">`
+- L106 — `port` — `PORTAIL 2 BATTANTS (5.00m x H={fenceHeight}m)`
+- L112 — `group` — `<g key="portail-5m" className="cursor-pointer group" onClick={() => setActiveTooltipCroquis("portail_5m")}>`
+- L112 — `port` — `<g key="portail-5m" className="cursor-pointer group" onClick={() => setActiveTooltipCroquis("portail_5m")}>`
+- L112 — `point` — `<g key="portail-5m" className="cursor-pointer group" onClick={() => setActiveTooltipCroquis("portail_5m")}>`
+- L118 — `anchor` — `<text x={pStartX + (gateSide === "est" ? 26 : -26)} y={pStartY + w5 / 2 + 2} fill="#f59e0b" className="font-mono text-[6.5px] font-black" textAnchor="middle">`
+- L119 — `port` — `PORTAIL 5m`
+- L126 — `port` — `// Portillon 1m`
+- L131 — `port` — `poStartX = fX + Math.min(portillonOffset, fenceA - 1) * scale;`
+- L134 — `port` — `poStartX = fX + Math.min(portillonOffset, fenceA - 1) * scale;`
+- L137 — `port` — `poStartY = fY + Math.min(portillonOffset, fenceB - 1) * scale;`
+- L140 — `port` — `poStartY = fY + Math.min(portillonOffset, fenceB - 1) * scale;`
+- L143 — `port` — `if (nbPortillons1m > 0) {`
+- L147 — `group` — `<g key="portillon-1m" className="cursor-pointer group" onClick={() => setActiveTooltipCroquis("portillon_1m")}>`
+- L147 — `port` — `<g key="portillon-1m" className="cursor-pointer group" onClick={() => setActiveTooltipCroquis("portillon_1m")}>`
+- L147 — `point` — `<g key="portillon-1m" className="cursor-pointer group" onClick={() => setActiveTooltipCroquis("portillon_1m")}>`
+- L152 — `anchor` — `<text x={poStartX + Math.max(w1, 8) / 2} y={poStartY + (gateSide === "sud" ? 20 : -14)} fill="#06b6d4" className="font-mono text-[6.5px] font-black" textAnchor="middle">`
+- L153 — `port` — `PORTILLON 1m`
+- L159 — `group` — `<g key="portillon-1m" className="cursor-pointer group" onClick={() => setActiveTooltipCroquis("portillon_1m")}>`
+- L159 — `port` — `<g key="portillon-1m" className="cursor-pointer group" onClick={() => setActiveTooltipCroquis("portillon_1m")}>`
+- L159 — `point` — `<g key="portillon-1m" className="cursor-pointer group" onClick={() => setActiveTooltipCroquis("portillon_1m")}>`
+- L164 — `anchor` — `<text x={poStartX + (gateSide === "est" ? 18 : -18)} y={poStartY + Math.max(w1, 8) / 2 + 2} fill="#06b6d4" className="font-mono text-[6px] font-black" textAnchor="middle">`
+- L165 — `port` — `PORTILLON 1m`
+- L177 — `drag` — `{/* Banner for Drag and Drop & Cornière details */}`
+- L180 — `move` — `<Move className="w-4 h-4 text-cyan-400 animate-pulse" />`
+- L181 — `port` — `<span>Déplacement interactif : Glissez-déposez n'importe quelle dalle directement sur le plan!</span>`
+- L188 — `select` — `<div className="bg-slate-900 border border-slate-950 rounded-2xl overflow-hidden shadow-2xl relative select-none">`
+- L192 — `point` — `onPointerMove={(e) => {`
+- L192 — `move` — `onPointerMove={(e) => {`
+- L193 — `drag` — `if (draggingSlabId && dragStartPos) {`
+- L194 — `point` — `const dxPx = e.clientX - dragStartPos.pointerX;`
+- L194 — `drag` — `const dxPx = e.clientX - dragStartPos.pointerX;`
+- L195 — `point` — `const dyPx = e.clientY - dragStartPos.pointerY;`
+- L195 — `drag` — `const dyPx = e.clientY - dragStartPos.pointerY;`
+- L199 — `drag` — `const activeSlab = slabs.find(s => s.id === draggingSlabId);`
+- L201 — `drag` — `let newX = Math.round((dragStartPos.initX + dxM) * 10) / 10;`
+- L202 — `drag` — `let newY = Math.round((dragStartPos.initY + dyM) * 10) / 10;`
+- L207 — `drag` — `handleUpdateSlab(draggingSlabId, "xOffset", newX);`
+- L208 — `drag` — `handleUpdateSlab(draggingSlabId, "yOffset", newY);`
+- L212 — `point` — `onPointerUp={() => {`
+- L213 — `drag` — `setDraggingSlabId(null);`
+- L214 — `drag` — `setDragStartPos(null);`
+- L216 — `point` — `onPointerCancel={() => {`
+- L217 — `drag` — `setDraggingSlabId(null);`
+- L218 — `drag` — `setDragStartPos(null);`
+- L243 — `point` — `className="cursor-pointer hover:stroke-cyan-400 transition-colors"`
+- L251 — `translate` — `<g transform={\`translate(\${fX + fW - 175}, \${fY + 8})\`}>`
+- L253 — `anchor` — `<text x="85" y="11" fill="#ffffff" className="font-mono text-[6.5px] font-black" textAnchor="middle">`
+- L258 — `port` — `{/* Render Gates (Portail 5m & Portillon 1m) */}`
+- L286 — `group` — `className="cursor-pointer group"`
+- L286 — `point` — `className="cursor-pointer group"`
+- L299 — `group` — `className="group-hover:fill-opacity-65 transition-all"`
+- L303 — `port` — `{teleShelterType === "01_porte" ? (`
+- L306 — `anchor` — `<text x={tX + tW / 2} y={tY + tH + 8} fill="#f59e0b" className="font-mono text-[6px] font-black" textAnchor="middle">1 Porte</text>`
+- L306 — `port` — `<text x={tX + tW / 2} y={tY + tH + 8} fill="#f59e0b" className="font-mono text-[6px] font-black" textAnchor="middle">1 Porte</text>`
+- L312 — `anchor` — `<text x={tX + tW / 2} y={tY + tH + 8} fill="#f59e0b" className="font-mono text-[6px] font-black" textAnchor="middle">2 Portes</text>`
+- L312 — `port` — `<text x={tX + tW / 2} y={tY + tH + 8} fill="#f59e0b" className="font-mono text-[6px] font-black" textAnchor="middle">2 Portes</text>`
+- L316 — `anchor` — `<text x={tX + tW / 2} y={tY + tH / 2 + 2} fill="#ffffff" className="font-sans text-[7px] font-black uppercase" textAnchor="middle">`
+- L321 — `drag` — `{/* Dynamic Drag-and-Drop Slabs Render */}`
+- L329 — `select` — `const isSelected = selectedSlabId === slab.id;`
+- L330 — `drag` — `const isDragging = draggingSlabId === slab.id;`
+- L335 — `group` — `className="cursor-move group"`
+- L335 — `move` — `className="cursor-move group"`
+- L338 — `select` — `setSelectedSlabId(slab.id);`
+- L341 — `point` — `onPointerDown={(e) => {`
+- L344 — `point` — `e.currentTarget.setPointerCapture(e.pointerId);`
+- L346 — `select` — `setSelectedSlabId(slab.id);`
+- L347 — `drag` — `setDraggingSlabId(slab.id);`
+- L348 — `drag` — `setDragStartPos({`
+- L349 — `point` — `pointerX: e.clientX,`
+- L350 — `point` — `pointerY: e.clientY,`
+- L362 — `select` — `fillOpacity={isSelected || isDragging ? 0.75 : style.fillOpacity}`
+- L362 — `drag` — `fillOpacity={isSelected || isDragging ? 0.75 : style.fillOpacity}`
+- L363 — `select` — `stroke={isDragging ? "#38bdf8" : isSelected ? "#ffffff" : style.stroke}`
+- L363 — `drag` — `stroke={isDragging ? "#38bdf8" : isSelected ? "#ffffff" : style.stroke}`
+- L364 — `select` — `strokeWidth={isSelected || isDragging ? 2.5 : style.strokeWidth}`
+- L364 — `drag` — `strokeWidth={isSelected || isDragging ? 2.5 : style.strokeWidth}`
+- L369 — `select` — `{/* Dragging or Selected indicator handles */}`
+- L369 — `drag` — `{/* Dragging or Selected indicator handles */}`
+- … 8 occurrences supplémentaires.
+### `server.ts`
+- L6 — `port` — `import express from "express";`
+- L7 — `port` — `import path from "path";`
+- L9 — `port` — `import fs from "fs";`
+- L10 — `port` — `import dotenv from "dotenv";`
+- L11 — `port` — `import { GoogleGenAI } from "@google/genai";`
+- L12 — `port` — `import { createServer as createViteServer } from "vite";`
+- L13 — `port` — `import { requireAuth, AuthRequest } from "./src/middleware/auth.ts";`
+- L14 — `port` — `import {`
+- L21 — `port` — `import { getOrCreateUser } from "./src/db/users.ts";`
+- L26 — `port` — `const PORT = 3000;`
+- L30 — `point` — `// API health endpoint`
+- L35 — `point` — `// Cloud SQL User Sync & Projects Endpoints`
+- L113 — `port` — `// System instructions containing the exact knowledge database of the 7 Fascicules of Sonelgaz Transport Gaz`
+- L115 — `port` — `Vous êtes l'Adviser Technique IA expert pour la société "Sonelgaz - Transport du Gaz" (Algérie).`
+- L179 — `port` — `* Béton pour supports : 300 kg/m³`
+- L180 — `ancrage` — `* Béton pour massifs d'ancrage (massifs d'ancrage type poids/bouclier) : 350 kg/m³`
+- L197 — `port` — `* Contrôle d'air résiduel par purge d'un volume M d'eau. Rapport de chute de pression (Delta p1 / Delta po) acceptable si :`
+- L209 — `history` — `const { history } = req.body;`
+- L217 — `history` — `if (!history || !Array.isArray(history)) {`
+- L221 — `history` — `// Format history for the new @google/genai SDK`
+- L222 — `history` — `// The history needs to be mapped to the format the chat api expects, or we can just send the chat session`
+- L223 — `history` — `const lastMessage = history[history.length - 1]?.content || "";`
+- L282 — `point` — `// continue de pointer vers des assets haches qui n existent plus.`
+- L344 — `port` — `app.listen(PORT, "0.0.0.0", () => {`
+- L345 — `port` — `console.log(`Server running on http://0.0.0.0:${PORT}`);`
+### `src/App.tsx`
+- L1 — `port` — `import React from "react";`
+- L2 — `port` — `import PdiUnifiedApp from "./pdi/app/PdiUnifiedApp";`
+- L4 — `port` — `export default function App() {`
+### `src/GuideLegacyApp.tsx`
+- L6 — `port` — `import React, { useState, useEffect, useRef } from "react";`
+- L7 — `port` — `import { FASCICULES_DATA } from "./data/fascicules";`
+- L8 — `port` — `import { NetworkAnimation } from "./components/NetworkAnimation";`
+- L10 — `port` — `import InteractiveDiagrams from "./components/InteractiveDiagrams";`
+- L11 — `port` — `import Calculators from "./components/Calculators";`
+- L12 — `port` — `import Forms from "./components/Forms";`
+- L13 — `port` — `import AIAssistant from "./components/AIAssistant";`
+- L14 — `port` — `import ProjectManagement from "./components/ProjectManagement";`
+- L15 — `port` — `import DriveLinkConverter from "./components/DriveLinkConverter";`
+- L16 — `port` — `import { motion, AnimatePresence } from "motion/react";`
+- L17 — `port` — `import { auth, db, activeConfig, createNotification } from "./lib/firebase";`
+- L18 — `port` — `import { initializeApp } from "firebase/app";`
+- L19 — `port` — `import {`
+- L29 — `snap` — `import { doc, getDoc, setDoc, collection, onSnapshot, deleteDoc, query, where, getDocs } from "firebase/firestore";`
+- L29 — `port` — `import { doc, getDoc, setDoc, collection, onSnapshot, deleteDoc, query, where, getDocs } from "firebase/firestore";`
+- L30 — `port` — `import {`
+- L38 — `history` — `History,`
+- L51 — `port` — `import {`
+- L68 — `move` — `Move,`
+- L80 — `port` — `// Import local images statically to ensure proper bundling in production and offline robustness`
+- L81 — `port` — `import defaultLogo from "./assets/images/sonelgaz_logo_1783415417090.jpg";`
+- L82 — `port` — `import defaultBg from "./assets/images/sonelgaz_bg_1783414375853.jpg";`
+- L83 — `port` — `import slideDesert from "./assets/images/gazoduc_desert_sunset_1783427970931.jpg";`
+- L84 — `port` — `import slideValves from "./assets/images/gazoduc_station_valves_1783427984252.jpg";`
+- L85 — `port` — `import { GuidesTabContent } from "./components/GuidesTabContent";`
+- L87 — `port` — `import { pdiAlert } from "./pdi/ui/PdiNotice";`
+- L173 — `port` — `export default function App() {`
+- L197 — `snap` — `const unsubscribe = onSnapshot(doc(db, "settings", "widgets"), (snapshot) => {`
+- L198 — `snap` — `if (snapshot.exists()) {`
+- L199 — `snap` — `const data = snapshot.data();`
+- L222 — `snap` — `const unsubscribe = onSnapshot(collection(db, "slides"), (snapshot) => {`
+- L224 — `snap` — `snapshot.forEach((docSnap) => {`
+- L225 — `snap` — `list.push({ id: docSnap.id, ...docSnap.data() });`
+- L252 — `snap` — `const unsubscribe = onSnapshot(collection(db, "projects"), (snapshot) => {`
+- L254 — `snap` — `snapshot.forEach((docSnap) => {`
+- L255 — `snap` — `list.push({ id: docSnap.id, ...docSnap.data() });`
+- L264 — `snap` — `const unsubscribe = onSnapshot(doc(db, "settings", "branding"), (snapshot) => {`
+- L265 — `snap` — `if (snapshot.exists()) {`
+- L266 — `snap` — `const data = snapshot.data();`
+- L280 — `snap` — `console.warn("Failed to listen to branding snapshot in Firestore:", error);`
+- L309 — `snap` — `const unsubscribe = onSnapshot(q, (snapshot) => {`
+- L311 — `snap` — `snapshot.forEach((docSnap) => {`
+- L312 — `snap` — `list.push({ id: docSnap.id, ...docSnap.data() });`
+- L336 — `snap` — `const docSnap = await getDoc(docRef);`
+- L338 — `snap` — `if (!docSnap.exists()) {`
+- L341 — `port` — `projectName: "Rapports Mensuels d'Archivage",`
+- L396 — `snap` — `const unsubscribe = onSnapshot(profileRef, (docSnap) => {`
+- L397 — `snap` — `if (docSnap.exists()) {`
+- L398 — `snap` — `const data = docSnap.data();`
+- L418 — `move` — `localStorage.removeItem("pdi.userProfile.v1");`
+- L419 — `move` — `localStorage.removeItem("sonelgaz_user_profile");`
+- L556 — `snap` — `const unsubscribe = onSnapshot(collection(db, "plans"), (snapshot) => {`
+- L558 — `snap` — `snapshot.forEach((doc) => {`
+- L626 — `drag` — `// File Drag-and-Drop / Base64 Reader`
+- L627 — `drag` — `const handleQuickPlanFileDrop = (e: React.DragEvent<HTMLDivElement>) => {`
+- L635 — `select` — `const handleQuickPlanFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {`
+- L662 — `select` — `const [selectedFasciculeId, setSelectedFasciculeId] = useState("fascicule_01");`
+- L666 — `select` — `const [selectedSectionDetails, setSelectedSectionDetails] = useState<any | null>(null);`
+- L694 — `drag` — `// High-fidelity image preview states (Zoom, Pan, Drag)`
+- L697 — `drag` — `const [previewIsDragging, setPreviewIsDragging] = useState(false);`
+- L698 — `drag` — `const [previewDragStart, setPreviewDragStart] = useState({ x: 0, y: 0 });`
+- L709 — `drag` — `setPreviewIsDragging(true);`
+- L710 — `drag` — `setPreviewDragStart({ x: e.clientX - previewPosition.x, y: e.clientY - previewPosition.y });`
+- L713 — `move` — `const handleMouseMove = (e: React.MouseEvent) => {`
+- L714 — `drag` — `if (!previewIsDragging) return;`
+- L716 — `drag` — `x: e.clientX - previewDragStart.x,`
+- L717 — `drag` — `y: e.clientY - previewDragStart.y,`
+- L722 — `drag` — `setPreviewIsDragging(false);`
+- L744 — `select` — `const handleSelectFascicule = (id: string) => {`
+- L745 — `select` — `setSelectedFasciculeId(id);`
+- L750 — `select` — `const selectedFascicule = FASCICULES_DATA.find((f) => f.id === selectedFasciculeId)!;`
+- L802 — `point` — `<div className="absolute top-1/4 left-1/4 w-96 h-96 bg-orange-500/10 rounded-full filter blur-3xl pointer-events-none animate-pulse" />`
+- L803 — `point` — `<div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full filter blur-3xl pointer-events-none" />`
+- L834 — `point` — `className="w-full py-3 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 active:scale-95 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer shadow-lg shadow`
+- L852 — `align` — `alignItems: 'center',`
+- L944 — `align` — `alignItems: 'center',`
+- L1013 — `align` — `alignItems: 'center',`
+- L1023 — `point` — `cursor: 'pointer',`
+- L1026 — `group` — `className="group inline-flex items-center gap-2 px-9 py-4 bg-orange-500 hover:bg-orange-600 active:scale-95 text-white font-black text-base rounded-2xl shadow-xl shadow-orange-500/25 transition-all duration-200"`
+- L1030 — `group` — `<ChevronRight className="w-5 h-5 transition-transform group-hover:translate-x-1" style={{ width: '20px', height: '20px' }} />`
+- L1030 — `translate` — `<ChevronRight className="w-5 h-5 transition-transform group-hover:translate-x-1" style={{ width: '20px', height: '20px' }} />`
+- L1039 — `align` — `style={{ position: 'absolute', bottom: '24px', left: 0, right: 0, textAlign: 'center', zIndex: 20, fontSize: '11px', color: '#64748b', fontFamily: 'monospace' }}`
+- L1049 — `selection` — `<div className="min-h-screen bg-slate-50 text-slate-800 font-sans selection:bg-orange-500 selection:text-white pb-12 relative overflow-x-hidden">`
+- L1049 — `select` — `<div className="min-h-screen bg-slate-50 text-slate-800 font-sans selection:bg-orange-500 selection:text-white pb-12 relative overflow-x-hidden">`
+- L1052 — `point` — `className="fixed inset-0 pointer-events-none z-0 bg-cover bg-center bg-no-repeat opacity-[0.06] filter blur-[1px]"`
+- L1065 — `port` — `? `${(userProfile.role || "Ingénieur").toUpperCase()} - ${(userProfile.structure || "SONELGAZ-TRANSPORT GAZ").toUpperCase()}``
+- L1066 — `port` — `: "SONELGAZ-TRANSPORT GAZ"`
+- L1076 — `point` — `className="font-extrabold text-white bg-slate-900 hover:bg-slate-800 border border-slate-800 px-2.5 py-1 rounded-lg flex items-center gap-1.5 transition-all cursor-pointer"`
+- L1095 — `point` — `className="bg-orange-500 hover:bg-orange-600 text-white font-black text-[10px] px-3 py-1 rounded-lg shadow-sm shadow-orange-500/10 transition-all uppercase tracking-wider cursor-pointer active:scale-95"`
+- L1109 — `point` — `className="absolute inset-0 z-0 bg-cover bg-center opacity-15 mix-blend-overlay pointer-events-none"`
+- L1113 — `point` — `<div className="absolute inset-0 z-0 bg-gradient-to-r from-amber-500/15 via-transparent to-blue-500/10 mix-blend-screen pointer-events-none" />`
+- L1114 — `point` — `<div className="absolute -left-16 -top-16 w-64 h-64 bg-orange-400/15 rounded-full blur-3xl pointer-events-none" />`
+- L1115 — `point` — `<div className="absolute -right-16 -bottom-16 w-64 h-64 bg-blue-400/10 rounded-full blur-3xl pointer-events-none" />`
+- L1132 — `align` — `alignItems: 'center',`
+- L1162 — `snap` — `<nav className="flex overflow-x-auto md:flex-wrap bg-blue-900/50 p-1 rounded-xl border border-blue-800 gap-1 max-w-full scrollbar-none snap-x">`
+- L1165 — `snap` — `className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer shrink-0 snap-start ${`
+- L1165 — `point` — `className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer shrink-0 snap-start ${`
+- L1176 — `snap` — `className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer shrink-0 snap-start ${`
+- L1176 — `point` — `className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer shrink-0 snap-start ${`
+- L1184 — `snap` — `className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer shrink-0 snap-start ${`
+- … 407 occurrences supplémentaires.
+### `src/assets/pdiLogos.ts`
+- L3 — `port` — `export const PDI_LOGO_HORIZONTAL_DATA_URL = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABLAAAAFACAMAAACbVXVDAAADAFBMVEUEBwsEBwoDBwwCBAcEBgoDBQgDBgn///8IFh8ADQ0FCQ0LHywLHSkBAgQKHCkFCg4EChALHisciOUCBAYJGSMFCAwKGyUJGCIJFyEGEhkHExwFDBEAg48FD`
+- L4 — `port` — `export const PDI_LOGO_SQUARE_DATA_URL = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABAAAAAQACAMAAABIw9uxAAADAFBMVEUGDBQFCxIFChEGDBMLHisSPlYGCxMEBwv///8ADQ0ECA0NJDMciOUFChADBwwGDhYCBgsECA4BBAcAg48FDBUGCxILIjAECQ8NR6EDBQgFCQ8NIzIDBgr7jADmU`
+- L6 — `port` — `export const PDI_LOGO_HORIZONTAL_SRC = PDI_LOGO_HORIZONTAL_DATA_URL;`
+- L7 — `port` — `export const PDI_LOGO_SQUARE_SRC = PDI_LOGO_SQUARE_DATA_URL;`
+- L9 — `port` — `export default {`
+### `src/components/AIAssistant.tsx`
+- L6 — `port` — `import { useState, useRef, useEffect } from "react";`
+- L7 — `port` — `import { Message } from "../types";`
+- L8 — `port` — `import { Send, Sparkles, MessageSquare, AlertCircle, Bot, User, CheckCircle2 } from "lucide-react";`
+- L10 — `port` — `export default function AIAssistant() {`
+- L14 — `port` — `content: "Bonjour ! Je suis votre Conseiller Technique IA spécialisé dans le Cahier des Charges de **Sonelgaz - Transport du Gaz** (Édition Octobre 2025).\n\nJe peux vous aider à vérifier les normes, cotes réglementaires, formules de calcul`
+- L47 — `history` — `history: [...messages, userMsg]`
+### `src/components/Calculators.tsx`
+- L1 — `port` — `import { pdiFeuilleImpression017L, PDI_STYLE_IMPRESSION_017L } from "../pdi/impression/pdiImpression017L";`
+- L7 — `port` — `import { useState, useRef, useEffect } from "react";`
+- L8 — `port` — `import defaultLogo from "../assets/images/sonelgaz_logo_1783415417090.jpg";`
+- L9 — `port` — `import { SPARE_PARTS_RULES, RIGHT_OF_WAY_TABLE, COLD_BENDING_DATA } from "../data/fascicules";`
+- L10 — `snap` — `import { collection, onSnapshot } from "firebase/firestore";`
+- L10 — `port` — `import { collection, onSnapshot } from "firebase/firestore";`
+- L11 — `port` — `import { db } from "../lib/firebase";`
+- L12 — `port` — `import { ParametricSlab, ParametricAbri, ParametricMassif, ParametricGate, OuvrageBlock, SlabType } from "../types";`
+- L13 — `port` — `import {`
+- L35 — `undo` — `Undo,`
+- L44 — `point` — `MousePointer,`
+- L47 — `undo` — `Undo2,`
+- L48 — `redo` — `Redo2,`
+- L64 — `move` — `Move,`
+- L74 — `align` — `AlignLeft,`
+- L75 — `align` — `AlignCenter,`
+- L76 — `align` — `AlignRight,`
+- L83 — `port` — `import { motion } from "motion/react";`
+- L87 — `point` — `function pdiGetCanvasLocalPoint008e(event: any, canvas: any) {`
+- L113 — `point` — `pointRaccordement?: string;`
+- L126 — `select` — `className="h-16 max-h-20 w-auto object-contain select-none"`
+- L138 — `port` — `Société algérienne de l'électricité et du gaz – Transport du Gaz`
+- L145 — `port` — `export default function Calculators() {`
+- L152 — `select` — `const [bordereauSelectedProjectId, setBordereauSelectedProjectId] = useState<string>("all");`
+- L186 — `snap` — `const unsubscribe = onSnapshot(collection(db, "projects"), (snapshot) => {`
+- L188 — `snap` — `snapshot.forEach((doc) => {`
+- L202 — `select` — `const [selectedSpareId, setSelectedSpareId] = useState(SPARE_PARTS_RULES[0].id);`
+- L206 — `select` — `const [selectedRowIndex, setSelectedRowIndex] = useState(0);`
+- L209 — `select` — `const [selectedBendingIndex, setSelectedBendingIndex] = useState(0);`
+- L210 — `select` — `const [selectedThickness, setSelectedThickness] = useState<number>(6);`
+- L223 — `point` — `const [altHigh, setAltHigh] = useState<number>(250); // Altitude Point Haut Z_haut (m)`
+- L224 — `point` — `const [altLow, setAltLow] = useState<number>(180); // Altitude Point Bas Z_bas (m)`
+- L225 — `point` — `const [testPressureHigh, setTestPressureHigh] = useState<number>(80); // Pression d'épreuve au point haut (bar)`
+- L287 — `port` — `// Dynamic Clôture Gates / Portails & Portillons State`
+- L291 — `port` — `name: "Portail Véhicules Principal",`
+- L292 — `port` — `type: "portail_5m",`
+- L301 — `port` — `name: "Portillon Piéton",`
+- L302 — `port` — `type: "portillon",`
+- L311 — `select` — `const [selectedGateId, setSelectedGateId] = useState<string | null>(null);`
+- L312 — `drag` — `const [draggingGateId, setDraggingGateId] = useState<string | null>(null);`
+- L314 — `port` — `const handleAddGate = (type: "portail_5m" | "portail_custom" | "portillon" = "portail_5m", targetOuvrageId?: string) => {`
+- L316 — `port` — `const width = type === "portail_5m" ? 5 : type === "portillon" ? 1 : 4;`
+- L317 — `select` — `const ouvrageId = targetOuvrageId || selectedOuvrageId || ouvrages[0]?.id || "ouvrage-1";`
+- L322 — `port` — `const name = type === "portillon" ? `Portillon Piéton ${existingOnOuvrage + 1}` : `Portail Véhicules ${existingOnOuvrage + 1}`;`
+- L336 — `select` — `setSelectedGateId(newId);`
+- L339 — `move` — `const handleRemoveGate = (id: string) => {`
+- L341 — `select` — `if (selectedGateId === id) setSelectedGateId(null);`
+- L372 — `select` — `setSelectedGateId(newId);`
+- L379 — `ancrage` — `name: "Massif Ancrage Filtre",`
+- L398 — `select` — `const [selectedMassifId, setSelectedMassifId] = useState<string | null>(null);`
+- L399 — `drag` — `const [draggingMassifId, setDraggingMassifId] = useState<string | null>(null);`
+- L419 — `select` — `setSelectedMassifId(newId);`
+- L420 — `select` — `setSelectedSlabId(null);`
+- L421 — `select` — `setSelectedAbriId(null);`
+- L424 — `move` — `const handleRemoveMassif = (id: string) => {`
+- L426 — `select` — `if (selectedMassifId === id) setSelectedMassifId(null);`
+- L447 — `select` — `setSelectedMassifId(newId);`
+- L450 — `drag` — `// Interactive Drag & Drop state for Slabs`
+- L451 — `select` — `const [selectedSlabId, setSelectedSlabId] = useState<string | null>("slab-1");`
+- L452 — `drag` — `const [draggingSlabId, setDraggingSlabId] = useState<string | null>(null);`
+- L453 — `point` — `const [dragStartPos, setDragStartPos] = useState<{ pointerX: number; pointerY: number; initX: number; initY: number } | null>(null);`
+- L453 — `drag` — `const [dragStartPos, setDragStartPos] = useState<{ pointerX: number; pointerY: number; initX: number; initY: number } | null>(null);`
+- L457 — `select` — `const [cotationFilter, setCotationFilter] = useState<"all" | "selected">("all");`
+- L467 — `port` — `type: "02_portes",`
+- L473 — `select` — `const [selectedAbriId, setSelectedAbriId] = useState<string | null>("abri-1");`
+- L474 — `drag` — `const [draggingAbriId, setDraggingAbriId] = useState<string | null>(null);`
+- L477 — `select` — `const primaryAbri = abris.find(a => a.id === selectedAbriId) || abris[0] || {`
+- L482 — `port` — `type: "02_portes" as const,`
+- L499 — `port` — `const setTeleShelterType = (t: "01_porte" | "02_portes") => {`
+- L506 — `port` — `const nbPortails5m = gates.filter(g => g.type === "portail_5m" || g.type === "portail_custom").length;`
+- L507 — `port` — `const nbPortillons1m = gates.filter(g => g.type === "portillon").length;`
+- L577 — `select` — `const [selectedOuvrageId, setSelectedOuvrageId] = useState<string | null>("ouvrage-1");`
+- L578 — `drag` — `const [draggingOuvrageId, setDraggingOuvrageId] = useState<string | null>(null);`
+- L623 — `select` — `setSelectedOuvrageId(newId);`
+- L640 — `select` — `setSelectedOuvrageId(newId);`
+- L643 — `move` — `const handleRemoveOuvrage = (id: string) => {`
+- L646 — `select` — `if (selectedOuvrageId === id) setSelectedOuvrageId(null);`
+- L665 — `port` — `approverName: "Directeur Transport Gaz",`
+- L691 — `select` — `setSelectedSlabId(newId);`
+- L708 — `select` — `setSelectedAbriId(newId);`
+- L721 — `port` — `type: "01_porte",`
+- L727 — `select` — `setSelectedAbriId(newId);`
+- L728 — `select` — `setSelectedSlabId(null);`
+- L731 — `move` — `const handleRemoveAbri = (id: string) => {`
+- L733 — `select` — `if (selectedAbriId === id) setSelectedAbriId(null);`
+- L748 — `drag` — `// the SVG render AND by every drag handler so editing stays 1:1 with what`
+- L847 — `move` — `const handleRemoveSlab = (id: string) => {`
+- L856 — `port` — `const [showTechnicalReport, setShowTechnicalReport] = useState<boolean>(false);`
+- L927 — `anchor` — `<text x="${x + d / 2}" y="${y + h / 2 - 2}" fill="#0f172a" font-size="8" font-weight="bold" text-anchor="middle">Ét.${idx + 1}</text>`
+- L928 — `anchor` — `<text x="${x + d / 2}" y="${y + h / 2 + 8}" fill="#0072bc" font-size="7" font-weight="800" text-anchor="middle">H=${t.height}m P=${t.depth}m</text>`
+- L935 — `align` — `<div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1.5px solid #0072bc; padding-bottom: 2px; margin-bottom: 3px; flex-shrink: 0;">`
+- L947 — `anchor` — `<text x="20" y="21" fill="#ffffff" font-size="8" font-weight="900" text-anchor="middle">${sec.blockLetter}</text>`
+- L949 — `anchor` — `<text x="460" y="21" fill="#ffffff" font-size="8" font-weight="900" text-anchor="middle">${sec.sideLetter}</text>`
+- L976 — `port` — `width: 100% !important;`
+- L977 — `port` — `height: 100vh !important;`
+- L978 — `port` — `margin: 0 !important;`
+- L979 — `port` — `padding: 0 !important;`
+- L980 — `port` — `overflow: hidden !important;`
+- L981 — `port` — `-webkit-print-color-adjust: exact !important;`
+- L982 — `port` — `print-color-adjust: exact !important;`
+- … 902 occurrences supplémentaires.
+### `src/components/DriveLinkConverter.tsx`
+- L1 — `port` — `import React, { useState } from "react";`
+- L2 — `port` — `import { Link2, Copy, Check, Info, FileImage, ClipboardCopy } from "lucide-react";`
+- L4 — `port` — `export function convertDriveLink(url: string): string {`
+- L53 — `port` — `export default function DriveLinkConverter({ onUseLink, compact = false }: DriveLinkConverterProps) {`
+- L129 — `select` — `className="flex-1 bg-white/80 border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono text-blue-600 select-all shadow-sm"`
+- L135 — `point` — `className="px-3 bg-white hover:bg-slate-50 text-slate-700 hover:text-blue-600 rounded-xl border border-slate-200 transition-all flex items-center justify-center shadow-sm cursor-pointer active:scale-95 shrink-0"`
+- L145 — `point` — `className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md transition-all active:scale-95 cursor-pointer shrink-0"`
+### `src/components/ErrorBoundary.tsx`
+- L1 — `port` — `import React, { Component, ErrorInfo, ReactNode } from "react";`
+- L13 — `port` — `export class ErrorBoundary extends React.Component<Props, State> {`
+- L65 — `point` — `className="px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs rounded-xl transition-all cursor-pointer active:scale-95"`
+### `src/components/Forms.tsx`
+- L6 — `port` — `import { useState } from "react";`
+- L7 — `port` — `import {`
+- L19 — `port` — `import defaultLogo from "../assets/images/sonelgaz_logo_1783415417090.jpg";`
+- L20 — `port` — `import TravauxForms, { TRAVAUX_TEMPLATES } from "./TravauxForms";`
+- L22 — `port` — `import { pdiAlert } from "../pdi/ui/PdiNotice";`
+- L42 — `port` — `export default function Forms() {`
+- L142 — `port` — `prelimControle: "Rapport d'avant-projet sommaire",`
+- L192 — `port` — `maitreOuvrage: "SONELGAZ TRANSPORT DU GAZ",`
+- L205 — `port` — `distanceMin: "0.50 m par rapport à la génératrice supérieure de la conduite de gaz",`
+- L211 — `port` — `signLeftTitle: "P/ Maitre de l'ouvrage\nSonelgaz- Transport du Gaz",`
+- L253 — `move` — `// Table add/remove row handlers`
+- L261 — `move` — `const handleRemoveEstimRow = (index: number) => {`
+- L275 — `move` — `const handleRemoveConstatRow = (index: number) => {`
+- L289 — `move` — `const handleRemoveRhRow = (index: number) => {`
+- L300 — `port` — `const handleExportWord = () => {`
+- L303 — `port` — `void pdiAlert("Impossible de trouver le document à exporter.");`
+- L316 — `select` — `const originalInputs = cardEl.querySelectorAll("input, textarea");`
+- L317 — `select` — `const clonedInputs = clone.querySelectorAll("input, textarea");`
+- L337 — `port` — `span.style.color = "#1e3a8a"; // nice deep blue for export visibility`
+- L347 — `port` — `// Remove any elements that shouldn't appear in the print/export`
+- L347 — `move` — `// Remove any elements that shouldn't appear in the print/export`
+- L348 — `select` — `const printHiddenEls = clone.querySelectorAll(".print\\:hidden, button");`
+- L349 — `move` — `printHiddenEls.forEach(el => el.remove());`
+- L395 — `align` — `text-align: left;`
+- L402 — `align` — `.text-center { text-align: center; }`
+- L403 — `align` — `.text-right { text-align: right; }`
+- L435 — `move` — `document.body.removeChild(link);`
+- L469 — `select` — `<div className="w-[18%] border-r-2 border-slate-900 flex flex-col items-center justify-center p-1 bg-white select-none">`
+- L482 — `select` — `<div className="font-extrabold text-[12px] uppercase text-slate-800 tracking-wide pt-1 select-none">`
+- L483 — `port` — `SONELGAZ-Transport du Gaz`
+- L502 — `select` — `<span className="font-bold w-12 border-r border-slate-300 mr-2 select-none">CODE</span>`
+- L511 — `select` — `<span className="font-bold w-12 border-r border-slate-300 mr-2 select-none">DATE</span>`
+- L528 — `select` — `<span className="font-bold w-12 border-r border-slate-300 mr-2 select-none">PAGE</span>`
+- L560 — `sélection` — `<p className="text-sm text-slate-500">Sélectionnez la section pour générer et éditer un PV officiel de Sonelgaz en direct.</p>`
+- L565 — `translate` — `<Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />`
+- L576 — `translate` — `className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"`
+- L583 — `select` — `{/* PV Template Selector Buttons */}`
+- L659 — `port` — `Cliquez sur n'importe quel champ en pointillés sur le PV pour le modifier en temps réel. Les pointillés s'effaceront automatiquement à l'impression.`
+- L659 — `point` — `Cliquez sur n'importe quel champ en pointillés sur le PV pour le modifier en temps réel. Les pointillés s'effaceront automatiquement à l'impression.`
+- L674 — `port` — `id="btn_export_pv_word"`
+- L675 — `port` — `onClick={handleExportWord}`
+- L678 — `port` — `<FileDown className="w-5 h-5" /> Exporter au format Word (.doc)`
+- L843 — `group` — `<tr key={idx} className="group/row">`
+- L862 — `group` — `<button onClick={() => handleRemoveEstimRow(idx)} className="absolute right-0 text-red-500 opacity-0 group-hover/row:opacity-100 transition-opacity p-0.5 print:hidden">×</button>`
+- L862 — `move` — `<button onClick={() => handleRemoveEstimRow(idx)} className="absolute right-0 text-red-500 opacity-0 group-hover/row:opacity-100 transition-opacity p-0.5 print:hidden">×</button>`
+- L964 — `group` — `<tr key={idx} className="group/row">`
+- L986 — `group` — `<button onClick={() => handleRemoveConstatRow(idx)} className="absolute right-0 text-red-500 opacity-0 group-hover/row:opacity-100 transition-opacity p-0.5 print:hidden">×</button>`
+- L986 — `move` — `<button onClick={() => handleRemoveConstatRow(idx)} className="absolute right-0 text-red-500 opacity-0 group-hover/row:opacity-100 transition-opacity p-0.5 print:hidden">×</button>`
+- L1220 — `group` — `<tr key={idx} className="group/row">`
+- L1233 — `group` — `<button onClick={() => handleRemoveRhRow(idx)} className="absolute right-0 text-red-500 opacity-0 group-hover/row:opacity-100 transition-opacity p-0.5 print:hidden">×</button>`
+- L1233 — `move` — `<button onClick={() => handleRemoveRhRow(idx)} className="absolute right-0 text-red-500 opacity-0 group-hover/row:opacity-100 transition-opacity p-0.5 print:hidden">×</button>`
+- L1436 — `port` — `<span className="text-[10px] font-black text-blue-700 uppercase">3. Nature des fluides transportés</span>`
+- L1443 — `port` — `{renderDottedField("Distance minimale par rapport à d'autres installations", telecom.distanceMin, val => setTelecom({ ...telecom, distanceMin: val }))}`
+- L1461 — `port` — `{renderDottedField("Région Transport Gaz", telecom.siteNom, val => setTelecom({ ...telecom, siteNom: val }))}`
+- L1487 — `select` — `<div className="border-t border-slate-200 pt-4 text-[9px] text-slate-400 text-center flex justify-between uppercase font-bold mt-12 print:mt-6 select-none">`
+- L1488 — `port` — `<span>SONELGAZ Transport Gaz - Cahier des charges réalisation des ouvrages</span>`
+### `src/components/GoogleDriveWorkspace.tsx`
+- L1 — `port` — `import React, { useState, useEffect } from 'react';`
+- L2 — `port` — `import {`
+- L16 — `port` — `import { googleSignIn, logoutGoogle, initAuth, getAccessToken } from '../lib/googleAuth.ts';`
+- L17 — `port` — `import {`
+- L25 — `port` — `import { User } from 'firebase/auth';`
+- L32 — `port` — `export const GoogleDriveWorkspace: React.FC<GoogleDriveWorkspaceProps> = ({`
+- L48 — `port` — `// Export/Upload Modal`
+- L49 — `port` — `const [showExportModal, setShowExportModal] = useState(false);`
+- L50 — `port` — `const [exportFileName, setExportFileName] = useState('Projet_ISO_' + new Date().toISOString().slice(0, 10));`
+- L134 — `port` — `const handleExportIsoToDrive = async (e: React.FormEvent) => {`
+- L136 — `port` — `if (!accessToken || !exportFileName.trim()) return;`
+- L140 — `port` — `name: exportFileName,`
+- L143 — `port` — `exportedAt: new Date().toISOString(),`
+- L148 — `port` — `const file = await uploadJsonToDrive(accessToken, exportFileName.trim(), payload);`
+- L150 — `port` — `setShowExportModal(false);`
+- L153 — `port` — `setFeedback({ type: 'error', message: err.message || 'Erreur lors de l\'export vers Google Drive' });`
+- L159 — `port` — `const handleImportFile = async (file: GoogleDriveFile) => {`
+- L167 — `port` — `setFeedback({ type: 'success', message: `Projet "${file.name}" importé dans l'éditeur ISO !` });`
+- L172 — `sélection` — `setFeedback({ type: 'error', message: err.message || 'Impossible de parser le fichier sélectionné en projet PD&I.' });`
+- L277 — `translate` — `<Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />`
+- L335 — `port` — `id="drive-export-iso-btn"`
+- L336 — `port` — `onClick={() => setShowExportModal(true)}`
+- L363 — `port` — `<p className="text-xs text-slate-500">Utilisez "Enregistrer ISO actuel" pour exporter votre premier plan vers Google Drive.</p>`
+- L374 — `group` — `className="group bg-slate-950/70 hover:bg-slate-800/60 border border-slate-800 hover:border-cyan-500/50 rounded-xl p-3.5 transition-all flex flex-col justify-between gap-3 shadow-sm hover:shadow-cyan-500/5"`
+- L387 — `group` — `<p className="text-xs font-bold text-white truncate group-hover:text-cyan-300 transition-colors" title={file.name}>`
+- L401 — `port` — `onClick={() => handleImportFile(file)}`
+- L446 — `port` — `Autorisez l'application à accéder à votre Google Drive pour synchroniser, exporter et archiver vos projets industriels de tuyauterie.`
+- L460 — `port` — `{/* Modal: Export / Save to Drive */}`
+- L461 — `port` — `{showExportModal && (`
+- L468 — `port` — `<form onSubmit={handleExportIsoToDrive} className="space-y-4">`
+- L474 — `port` — `value={exportFileName}`
+- L475 — `port` — `onChange={(e) => setExportFileName(e.target.value)}`
+- L482 — `port` — `onClick={() => setShowExportModal(false)}`
+### `src/components/GuidesTabContent.tsx`
+- L1 — `port` — `import React, { useState } from "react";`
+- L2 — `port` — `import {`
+- L18 — `port` — `import { motion } from "motion/react";`
+- L25 — `port` — `export function GuidesTabContent({ isAdmin, userProfile }: GuidesTabContentProps) {`
+- L27 — `select` — `const [selectedUserSection, setSelectedUserSection] = useState<number>(0);`
+- L28 — `select` — `const [selectedAdminSection, setSelectedAdminSection] = useState<number>(0);`
+- L39 — `port` — `"Carte de transport gaz : Activez les couches de base (Satellite, Plan, Relief) et cliquez sur les tracés haute pression pour obtenir les caractéristiques détaillées.",`
+- L59 — `port` — `intro: "Réalisez des calculs dimensionnels précis conformes aux normes de sécurité de transport de gaz.",`
+- L62 — `sélection` — `"Durée de purge d'azote : Estimez le temps requis pour l'inertage d'un ouvrage de raccordement selon le débit d'injection de sécurité sélectionné.",`
+- L64 — `port` — `"Export : Copiez directement les résultats formatés dans le presse-papiers pour les insérer dans vos notes de calcul techniques."`
+- L71 — `port` — `intro: "Générez des rapports de conformité de chantier réglementaires avec signature numérique intégrée.",`
+- L76 — `port` — `"Export PDF : Générez un document de procès-verbal finalisé intégrant l'en-tête officiel de la plateforme."`
+- L83 — `port` — `intro: "Posez vos questions techniques à notre assistant intelligent entraîné sur les clauses réglementaires du transport de gaz.",`
+- L87 — `sélection` — `"Contextes de projets : L'IA peut analyser un projet sélectionné pour vous recommander des fiches de contrôle spécifiques à réaliser."`
+- L123 — `port` — `"Conversion Google Drive : Pour utiliser une image hébergée sur Google Drive, remplacez la structure 'drive.google.com/file/d/ID/view' par l'URL d'affichage direct 'drive.google.com/uc?export=view&id=ID' pour contourner le blocage d'iframe.`
+- L124 — `port` — `"Importation de données : Utilisez la console d'administration pour charger des bases de données de canalisations ou de documents techniques au format JSON."`
+- L140 — `select` — `const selectedIndex = guideType === "user" ? selectedUserSection : selectedAdminSection;`
+- L141 — `select` — `const setSelectedIndex = guideType === "user" ? setSelectedUserSection : setSelectedAdminSection;`
+- L147 — `point` — `<div className="absolute top-0 right-0 w-80 h-80 bg-blue-500/[0.08] rounded-full filter blur-3xl pointer-events-none" />`
+- L148 — `point` — `<div className="absolute -bottom-10 -left-10 w-60 h-60 bg-amber-500/[0.05] rounded-full filter blur-2xl pointer-events-none" />`
+- L164 — `selection` — `{/* Role-based selection toggle */}`
+- L164 — `select` — `{/* Role-based selection toggle */}`
+- L169 — `point` — `className={`flex-1 md:flex-initial px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${`
+- L180 — `point` — `className={`flex-1 md:flex-initial px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${`
+- L204 — `select` — `const isSelected = selectedIndex === idx;`
+- L208 — `select` — `onClick={() => setSelectedIndex(idx)}`
+- L209 — `point` — `className={`w-full p-4 rounded-2xl border text-left transition-all flex items-center gap-3 cursor-pointer ${`
+- L210 — `select` — `isSelected`
+- L227 — `select` — `isSelected ? "text-blue-500 translate-x-1" : "text-slate-300"`
+- L227 — `translate` — `isSelected ? "text-blue-500 translate-x-1" : "text-slate-300"`
+- L249 — `select` — `const activeSection = currentSections[selectedIndex];`
+- L253 — `select` — `key={`${guideType}-${selectedIndex}`}`
+- L285 — `group` — `<div key={sIdx} className="flex gap-4 items-start group">`
+- L286 — `group` — `<div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-50 text-[10px] font-black text-blue-600 border border-blue-100 group-hover:bg-blue-600 group-hover:text-white group-hover:border-blue-600 transition-all `
+- L290 — `group` — `<h5 className="text-xs font-extrabold text-slate-800 group-hover:text-blue-600 transition-colors">`
+### `src/components/InteractiveDiagrams.tsx`
+- L7 — `port` — `import React, { useState, useRef, useEffect } from "react";`
+- L8 — `port` — `import {`
+- L23 — `move` — `Move,`
+- L34 — `snap` — `import { onSnapshot, collection, doc, setDoc, deleteDoc } from "firebase/firestore";`
+- L34 — `port` — `import { onSnapshot, collection, doc, setDoc, deleteDoc } from "firebase/firestore";`
+- L35 — `port` — `import { db } from "../lib/firebase";`
+- L36 — `port` — `import { COLD_BENDING_DATA } from "../data/fascicules";`
+- L37 — `port` — `import DriveLinkConverter from "./DriveLinkConverter";`
+- L39 — `port` — `// Import local images statically to let Vite bundle them correctly for production`
+- L40 — `port` — `import trenchImg from "../assets/images/trench_technical_sheet_1783361610351.jpg";`
+- L41 — `port` — `import sandbagImg from "../assets/images/sandbag_protection_1783362513651.jpg";`
+- L42 — `port` — `import cableImg from "../assets/images/cable_crossing_protection_1783362523438.jpg";`
+- L43 — `port` — `import crossingImg from "../assets/images/crossing_technical_sheet_1783361623788.jpg";`
+- L44 — `port` — `import ouedImg from "../assets/images/oued_technical_sheet_1783361638299.jpg";`
+- L45 — `port` — `import bendingImg from "../assets/images/cintrage_abaque_1783362534158.jpg";`
+- L46 — `port` — `import posteImg from "../assets/images/poste_technical_sheet_1783361652494.jpg";`
+- L137 — `port` — `export default function InteractiveDiagrams({ isAdmin = false, isSuperAdmin = false }: InteractiveDiagramsProps) {`
+- L143 — `snap` — `const unsubscribe = onSnapshot(collection(db, "plans"), async (snapshot) => {`
+- L144 — `snap` — `if (snapshot.empty) {`
+- L156 — `snap` — `snapshot.forEach((doc) => {`
+- L233 — `drag` — `const [isDragOver, setIsDragOver] = useState(false);`
+- L294 — `select` — `const [selectedDiagram, setSelectedDiagram] = useState<`
+- L295 — `ancrage` — `"trench" | "crossing" | "cable" | "sandbag" | "oued" | "ancrage" | "poste_layout" | "bending_abaque" | "gare_racleur"`
+- L303 — `parallel` — `const [cableSubTab, setCableSubTab] = useState<"souterrain_croise" | "souterrain_parallele" | "aerien">("souterrain_croise");`
+- L303 — `parallele` — `const [cableSubTab, setCableSubTab] = useState<"souterrain_croise" | "souterrain_parallele" | "aerien">("souterrain_croise");`
+- L313 — `drag` — `const [isDragging, setIsDragging] = useState(false);`
+- L314 — `drag` — `const dragStart = useRef({ x: 0, y: 0 });`
+- L345 — `parallèle` — `cable_underground_para_dist: "Distance de parallélisme standard : Distance horizontale minimale de 1,00 m exigée entre la canalisation de gaz et tout câble d'énergie souterrain posé parallèlement en tranchée séparée.",`
+- L349 — `port` — `cable_aerial_cross_ground: "Servitude et distance d'implantation : Aucun support de ligne électrique (pylône de transport en treillis ou poteau en béton) ne doit être construit ou implanté à moins de 10,00 m de part et d'autre de l'axe de l`
+- L350 — `port` — `cable_aerial_cross_cathodic: "Mise à la terre équipotentielle & Cathodique : Les tensions d'induction et de foudre induites par les lignes HT aériennes de transport d'électricité sur l'acier du gazoduc doivent être drainées par des piquets `
+- L353 — `ancrage` — `sandbag_barrage: "Barrage d'ancrage en sacs de sable : Placé tous les 10m à 15m dans les fortes pentes (> 15%) pour empêcher le sable et le remblai de glisser sous l'effet des eaux pluviales.",`
+- L363 — `ancrage` — `// Massif d'Ancrage (Fascicule 7)`
+- L364 — `ancrage` — `ancrage_force: "Poussée hydraulique de calcul (Fp) : Résultante des forces de pression interne au niveau du coude. Calculée selon Fp = 2 * P * S * sin(θ/2) où θ est l'angle du coude.",`
+- L365 — `ancrage` — `ancrage_beton: "Béton de butée : Massif d'ancrage de type poids en béton armé dosé à 350 kg/m³. Coulé directement contre les parois de la fouille non remaniée pour maximiser la réaction passive du sol.",`
+- L366 — `ancrage` — `ancrage_joint: "Protection de paroi : Manchette en élastomère souple entourant le tube au passage du béton pour éviter le cisaillement du revêtement lors des mouvements de dilatation.",`
+- L379 — `port` — `gare_closure: "Porte à fermeture rapide filetée (Quick Opening Closure) : Hublot d'extrémité étanche avec loquet de sécurité d'interlock mécanique. Empêche l'ouverture physique du sas tant que la pression interne n'est pas tombée à 0 bar.",`
+- L405 — `drag` — `setIsDragging(true);`
+- L406 — `drag` — `dragStart.current = { x: e.clientX - position.x, y: e.clientY - position.y };`
+- L409 — `move` — `const handleMouseMove = (e: React.MouseEvent) => {`
+- L410 — `drag` — `if (!isDragging) return;`
+- L412 — `drag` — `x: e.clientX - dragStart.current.x,`
+- L413 — `drag` — `y: e.clientY - dragStart.current.y`
+- L418 — `drag` — `setIsDragging(false);`
+- L492 — `select` — `onClick={() => { setSelectedDiagram("trench"); setActiveTooltip(null); }}`
+- L494 — `select` — `selectedDiagram === "trench" ? "bg-blue-600 text-white shadow-sm" : "text-slate-600 hover:bg-slate-50 hover:text-slate-800"`
+- L502 — `select` — `onClick={() => { setSelectedDiagram("sandbag"); setActiveTooltip(null); }}`
+- L504 — `select` — `selectedDiagram === "sandbag" ? "bg-blue-600 text-white shadow-sm" : "text-slate-600 hover:bg-slate-50 hover:text-slate-800"`
+- L512 — `select` — `onClick={() => { setSelectedDiagram("crossing"); setActiveTooltip(null); }}`
+- L514 — `select` — `selectedDiagram === "crossing" ? "bg-blue-600 text-white shadow-sm" : "text-slate-600 hover:bg-slate-50 hover:text-slate-800"`
+- L522 — `select` — `onClick={() => { setSelectedDiagram("cable"); setActiveTooltip(null); }}`
+- L524 — `select` — `selectedDiagram === "cable" ? "bg-blue-600 text-white shadow-sm" : "text-slate-600 hover:bg-slate-50 hover:text-slate-800"`
+- L536 — `select` — `onClick={() => { setSelectedDiagram("oued"); setActiveTooltip(null); }}`
+- L538 — `select` — `selectedDiagram === "oued" ? "bg-blue-600 text-white shadow-sm" : "text-slate-600 hover:bg-slate-50 hover:text-slate-800"`
+- L546 — `ancrage` — `onClick={() => { setSelectedDiagram("ancrage"); setActiveTooltip(null); }}`
+- L546 — `select` — `onClick={() => { setSelectedDiagram("ancrage"); setActiveTooltip(null); }}`
+- L548 — `ancrage` — `selectedDiagram === "ancrage" ? "bg-blue-600 text-white shadow-sm" : "text-slate-600 hover:bg-slate-50 hover:text-slate-800"`
+- L548 — `select` — `selectedDiagram === "ancrage" ? "bg-blue-600 text-white shadow-sm" : "text-slate-600 hover:bg-slate-50 hover:text-slate-800"`
+- L551 — `ancrage` — `<span>Massif d'Ancrage</span>`
+- L556 — `select` — `onClick={() => { setSelectedDiagram("poste_layout"); setActiveTooltip(null); }}`
+- L558 — `select` — `selectedDiagram === "poste_layout" ? "bg-blue-600 text-white shadow-sm" : "text-slate-600 hover:bg-slate-50 hover:text-slate-800"`
+- L566 — `select` — `onClick={() => { setSelectedDiagram("gare_racleur"); setActiveTooltip(null); }}`
+- L568 — `select` — `selectedDiagram === "gare_racleur" ? "bg-blue-600 text-white shadow-sm" : "text-slate-600 hover:bg-slate-50 hover:text-slate-800"`
+- L580 — `select` — `onClick={() => { setSelectedDiagram("bending_abaque"); setActiveTooltip(null); }}`
+- L582 — `select` — `selectedDiagram === "bending_abaque" ? "bg-blue-600 text-white shadow-sm" : "text-slate-600 hover:bg-slate-50 hover:text-slate-800"`
+- L594 — `point` — `<div className="absolute inset-0 bg-blueprint-grid opacity-10 pointer-events-none" />`
+- L600 — `select` — `{selectedDiagram === "trench" && "T-01 PROFIL DE TRANCHÉE"}`
+- L601 — `select` — `{selectedDiagram === "sandbag" && "T-02 PROTECTION FORTE PENTE SACS DE SABLE"}`
+- L602 — `select` — `{selectedDiagram === "crossing" && "T-03 TRAVERSÉE ROUTE"}`
+- L603 — `select` — `{selectedDiagram === "cable" && "T-04 CROISEMENT DE RÉSEAUX"}`
+- L604 — `select` — `{selectedDiagram === "oued" && "A-05 TRAVERSÉE OUED & LESTAGE"}`
+- L605 — `ancrage` — `{selectedDiagram === "ancrage" && "A-06 MASSIF D'ANCRAGE COUDE"}`
+- L605 — `select` — `{selectedDiagram === "ancrage" && "A-06 MASSIF D'ANCRAGE COUDE"}`
+- L606 — `select` — `{selectedDiagram === "poste_layout" && "GC-07 IMPLANTATION GÉNIE CIVIL POSTE"}`
+- L607 — `select` — `{selectedDiagram === "bending_abaque" && "AB-08 ABAQUE DE CINTRAGE À FROID"}`
+- L608 — `select` — `{selectedDiagram === "gare_racleur" && "GP-09 GARE DE RACLEUR EXPÉDITION / RÉCEPTION"}`
+- L615 — `select` — `{selectedDiagram === "trench" && (`
+- L616 — `select` — `<svg viewBox="0 0 400 350" className="w-full max-w-[380px] select-none">`
+- L637 — `anchor` — `<text x="200" y="213" fill="#fff" className="font-mono text-[9px] font-bold" textAnchor="middle">Ø CANALISATION</text>`
+- L638 — `anchor` — `<text x="200" y="288" fill="#eab308" className="font-mono text-[8px] font-bold" textAnchor="middle">LIT DE POSE (SABLE 10cm)</text>`
+- L639 — `anchor` — `<text x="200" y="110" fill="#f97316" className="font-mono text-[8px] font-bold" textAnchor="middle">GRILLAGE AVERTISSEUR ORANGE</text>`
+- L640 — `anchor` — `<text x="200" y="150" fill="#94a3b8" className="font-mono text-[8px]" textAnchor="middle">Remblai de terre tamisée (20cm)</text>`
+- L644 — `point` — `<polygon points="330,80 327,86 333,86" fill="#38bdf8" />`
+- L645 — `point` — `<polygon points="330,165 327,159 333,159" fill="#38bdf8" />`
+- L650 — `point` — `<g className="cursor-pointer" onClick={() => setActiveTooltip("h_recouvrement")}>`
+- L652 — `anchor` — `<text x="330" y="123" fill="#fff" className="font-extrabold text-[8px]" textAnchor="middle">1</text>`
+- L654 — `point` — `<g className="cursor-pointer" onClick={() => setActiveTooltip("lit_pose")}>`
+- L656 — `anchor` — `<text x="200" y="293" fill="#fff" className="font-extrabold text-[8px]" textAnchor="middle">2</text>`
+- L658 — `point` — `<g className="cursor-pointer" onClick={() => setActiveTooltip("remblai")}>`
+- L660 — `anchor` — `<text x="200" y="148" fill="#fff" className="font-extrabold text-[8px]" textAnchor="middle">3</text>`
+- L665 — `select` — `{selectedDiagram === "sandbag" && (`
+- L666 — `select` — `<svg viewBox="0 0 400 350" className="w-full max-w-[380px] select-none">`
+- L700 — `anchor` — `<text x="200" y="310" fill="#fff" className="font-mono text-[9px] font-bold" textAnchor="middle">GAZODUC EN PENTE (&gt; 15%)</text>`
+- L701 — `anchor` — `<text x="135" y="130" fill="#f59e0b" className="font-mono text-[8.5px] font-bold" textAnchor="middle">SACS DE SABLE COULÉS</text>`
+- L702 — `anchor` — `<text x="200" y="75" fill="#ea580c" className="font-mono text-[9px] font-extrabold" textAnchor="middle">PENTE SANS RAVINEMENT INTERNE</text>`
+- L706 — `point` — `<g className="cursor-pointer" onClick={() => setActiveTooltip("sandbag_barrage")}>`
+- L708 — `anchor` — `<text x="130" y="183" fill="#fff" className="font-extrabold text-[8px]" textAnchor="middle">1</text>`
+- L710 — `point` — `<g className="cursor-pointer" onClick={() => setActiveTooltip("sandbag_slope")}>`
+- L712 — `anchor` — `<text x="200" y="98" fill="#fff" className="font-extrabold text-[8px]" textAnchor="middle">2</text>`
+- L714 — `point` — `<g className="cursor-pointer" onClick={() => setActiveTooltip("sandbag_bedding")}>`
+- L716 — `anchor` — `<text x="220" y="273" fill="#fff" className="font-extrabold text-[8px]" textAnchor="middle">3</text>`
+- … 222 occurrences supplémentaires.
+### `src/components/NetworkAnimation.tsx`
+- L1 — `port` — `import React from 'react';`
+- L8 — `port` — `export const NetworkAnimation: React.FC<NetworkAnimationProps> = ({ className }) => {`
+- L10 — `group` — `<div className={`relative w-full h-[520px] sm:h-[600px] lg:h-[650px] rounded-3xl overflow-hidden shadow-2xl border border-blue-500/20 bg-[#05060b] group ${className || ''}`}>`
+- L14 — `select` — `className="w-full h-full border-0 overflow-hidden select-none"`
+### `src/components/ProjectAltitudeProfile.tsx`
+- L1 — `port` — `import React, { useState, useRef, useEffect } from "react";`
+- L2 — `port` — `import JSZip from "jszip";`
+- L3 — `port` — `import {`
+- L17 — `port` — `import { Project } from "./ProjectManagement";`
+- L23 — `point` — `interface ProfilePoint {`
+- L31 — `point` — `function parseKmlCoordinates(kmlText: string): ProfilePoint[] {`
+- L67 — `point` — `const parsedPoints: ProfilePoint[] = [];`
+- L97 — `point` — `parsedPoints.push({`
+- L111 — `point` — `if (parsedPoints.length > 0) {`
+- L112 — `point` — `const hasAltitudes = parsedPoints.some((p) => p.altitude > 0);`
+- L114 — `point` — `parsedPoints.forEach((p, idx) => {`
+- L115 — `point` — `const x = idx / parsedPoints.length;`
+- L126 — `point` — `return parsedPoints;`
+- L129 — `point` — `function generateSyntheticPoints(defaultLength: number, wilaya: string): ProfilePoint[] {`
+- L130 — `point` — `const list: ProfilePoint[] = [];`
+- L131 — `point` — `const numPoints = 40;`
+- L149 — `point` — `for (let i = 0; i <= numPoints; i++) {`
+- L150 — `point` — `const frac = i / numPoints;`
+- L193 — `port` — `export default function ProjectAltitudeProfile({ project }: ProjectAltitudeProfileProps) {`
+- L195 — `point` — `const [hoveredPoint, setHoveredPoint] = useState<ProfilePoint | null>(null);`
+- L199 — `point` — `const [points, setPoints] = useState<ProfilePoint[]>([]);`
+- L213 — `point` — `setPoints(generateSyntheticPoints(defaultLength, wilaya));`
+- L244 — `point` — `setPoints(parsed);`
+- L254 — `point` — `setPoints(generateSyntheticPoints(defaultLength, wilaya));`
+- L273 — `point` — `if (points.length === 0) return { min: 0, max: 0, avg: 0, climb: 0, maxSlope: 0 };`
+- L275 — `point` — `const altitudes = points.map((p) => p.altitude);`
+- L283 — `point` — `for (let i = 1; i < points.length; i++) {`
+- L284 — `point` — `const diffAlt = points[i].altitude - points[i - 1].altitude;`
+- L290 — `point` — `const diffDistMeters = (points[i].distance - points[i - 1].distance) * 1000;`
+- L304 — `point` — `}, [points]);`
+- L315 — `point` — `const maxDist = points[points.length - 1]?.distance || 1;`
+- L320 — `point` — `const getCoords = (p: ProfilePoint) => {`
+- L328 — `point` — `if (points.length === 0) return "";`
+- L329 — `point` — `return points.reduce((acc, p, idx) => {`
+- L333 — `point` — `}, [points, chartWidth, chartHeight, minAlt, maxAlt]);`
+- L337 — `point` — `if (points.length === 0) return "";`
+- L338 — `point` — `const firstCoords = getCoords(points[0]);`
+- L339 — `point` — `const lastCoords = getCoords(points[points.length - 1]);`
+- L342 — `point` — `}, [pathD, points, chartHeight]);`
+- L345 — `move` — `const handleMouseMove = (e: React.MouseEvent<SVGSVGElement, MouseEvent>) => {`
+- L346 — `point` — `if (!svgRef.current || points.length === 0) return;`
+- L351 — `translate` — `// Translate mouseX back to chart coordinate system`
+- L354 — `point` — `setHoveredPoint(null);`
+- L361 — `point` — `// Find closest point in points array`
+- L362 — `point` — `let closestPoint = points[0];`
+- L363 — `point` — `let minDiff = Math.abs(points[0].distance - hoveredDistance);`
+- L365 — `point` — `points.forEach((p) => {`
+- L369 — `point` — `closestPoint = p;`
+- L373 — `point` — `const { x } = getCoords(closestPoint);`
+- L374 — `point` — `setHoveredPoint(closestPoint);`
+- L379 — `point` — `setHoveredPoint(null);`
+- L383 — `port` — `// Export altitude profile as technical text/CSV`
+- L384 — `port` — `const handleExportCSV = () => {`
+- L386 — `point` — `const rows = points.map(p => `${p.distance},${p.altitude},${p.lat},${p.lng}`).join("\n");`
+- L395 — `move` — `document.body.removeChild(link);`
+- L403 — `point` — `className="w-full px-5 py-4 bg-slate-50 hover:bg-slate-100/80 transition-colors flex items-center justify-between cursor-pointer border-b border-slate-100"`
+- L477 — `select` — `<div className="relative bg-slate-900 rounded-xl p-3 border border-slate-950/40 shadow-inner select-none">`
+- L483 — `move` — `onMouseMove={handleMouseMove}`
+- L513 — `anchor` — `textAnchor="end"`
+- L542 — `anchor` — `textAnchor="middle"`
+- L568 — `point` — `{hoverX !== null && hoveredPoint && (`
+- L581 — `point` — `cy={getCoords(hoveredPoint).y}`
+- L592 — `point` — `{hoveredPoint && (`
+- L594 — `point` — `className="absolute bg-slate-950/95 border border-slate-800 text-white rounded-lg p-2.5 shadow-xl text-[10px] pointer-events-none space-y-1 z-30 font-semibold"`
+- L602 — `point` — `<span>PK {hoveredPoint.distance} km</span>`
+- L605 — `point` — `<p className="text-amber-400">Altitude: <span className="font-bold text-[10px]">{hoveredPoint.altitude} m</span></p>`
+- L606 — `point` — `<p className="text-slate-400">Lat: {hoveredPoint.lat.toFixed(5)}°</p>`
+- L607 — `point` — `<p className="text-slate-400">Lng: {hoveredPoint.lng.toFixed(5)}°</p>`
+- L618 — `point` — `Survolez le graphique pour explorer les altitudes en chaque point kilométrique. {project.identity.kmzFileData ? "Données extraites en temps réel depuis le fichier KMZ/KML." : "Tracé estimé par l'algorithme topographique d'après la Wilaya."}`
+- L622 — `port` — `onClick={handleExportCSV}`
+- L623 — `point` — `className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg border border-slate-200 flex items-center justify-center gap-1.5 transition-colors cursor-pointer self-start sm:self-center"`
+- L626 — `port` — `<span>Exporter Profil (.CSV)</span>`
+### `src/components/ProjectManagement.tsx`
+- L1 — `port` — `import { pdiFeuilleImpression017L, PDI_STYLE_IMPRESSION_017L } from "../pdi/impression/pdiImpression017L";`
+- L2 — `port` — `import defaultLogo from "../assets/images/sonelgaz_logo_1783415417090.jpg";`
+- L3 — `port` — `import React, { useState, useEffect } from "react";`
+- L4 — `port` — `import { motion, AnimatePresence } from "motion/react";`
+- L5 — `port` — `import { db, createNotification } from "../lib/firebase";`
+- L6 — `port` — `import { jsPDF } from "jspdf";`
+- L7 — `port` — `import html2canvas from "html2canvas";`
+- L8 — `port` — `import {`
+- L10 — `snap` — `onSnapshot,`
+- L17 — `port` — `import {`
+- L67 — `port` — `import ProjectMapViewer from "./ProjectMapViewer";`
+- L68 — `port` — `import ProjectAltitudeProfile from "./ProjectAltitudeProfile";`
+- L70 — `port` — `import { pdiAlert } from "../pdi/ui/PdiNotice";`
+- L73 — `port` — `export interface PlanDeControleItemStatus {`
+- L83 — `port` — `export interface FicheSuivi {`
+- L141 — `port` — `export interface ContractDetails {`
+- L152 — `port` — `export interface ProjectLot {`
+- L175 — `port` — `export interface Project {`
+- L244 — `point` — `pointRaccordement?: string;`
+- L301 — `port` — `// Contracts and Multi-lot support`
+- L327 — `port` — `export const DEFAULT_TRAVAUX_LIGNE = [`
+- L338 — `port` — `export const DEFAULT_TRAVAUX_POSTES = [`
+- L346 — `port` — `export const computeProgressFromCanvas = (`
+- L356 — `align` — `let mecaLigneSum = 0;`
+- L372 — `align` — `mecaLigneSum += itemPct * pond;`
+- L377 — `align` — `const mecaLignePct = Math.min(100, Math.max(0, mecaLigneSum / 50));`
+- L417 — `align` — `finalMeca = Math.round((mecaLignePct * 0.8) + (mecaPostesPct * 0.2));`
+- L428 — `port` — `export function getProjectDisplayLength(project: any): string {`
+- L446 — `port` — `export function createDefaultFicheSuivi(): FicheSuivi {`
+- L500 — `port` — `export interface PlanDeControleItem {`
+- L509 — `port` — `export const STATIC_PLAN_DE_CONTROLE_TASKS: PlanDeControleItem[] = [`
+- L516 — `port` — `critere: "Installation conforme par rapport aux exigences du contrat de travaux"`
+- L576 — `align` — `tache: "Bardage et pré-alignement des tubes acier",`
+- L580 — `align` — `critere: "Tubes alignés de manière stable, reposant sur cales en bois ou sacs de terre meuble"`
+- L660 — `align` — `critere: "Alignement parallèle de la gaine, profondeur, pose de grillage avertisseur vert et chambres de tirage"`
+- L660 — `parallèle` — `critere: "Alignement parallèle de la gaine, profondeur, pose de grillage avertisseur vert et chambres de tirage"`
+- L676 — `align` — `critere: "Absence de défaut d'isolement lors de la descente en fouille. Alignement des tubes sans contraintes"`
+- L680 — `point` — `tache: "Réalisation des points spéciaux (Traversées de routes / oueds)",`
+- L688 — `point` — `tache: "Réalisation des points particuliers (Coudes, piquages)",`
+- L691 — `port` — `etalonnage: "Rapporteur d'angle, Niveau",`
+- L763 — `point` — `etalonnage: "Hygromètre de point de rosée",`
+- L764 — `point` — `critere: "Point de rosée de l'air ou de l'azote de balayage ≤ -20°C (ou conforme à la spécification)"`
+- L780 — `port` — `critere: "Rapport de test d'usine vérifié, absence de contraintes ou de cassures physiques de la fibre"`
+- L808 — `port` — `"Région de transport gaz Constantine",`
+- L809 — `port` — `"Région de transport gaz Ouargla",`
+- L810 — `port` — `"Région de transport gaz Alger",`
+- L811 — `port` — `"Région de transport gaz Oran",`
+- L812 — `port` — `"Région de transport gaz Blida",`
+- L813 — `port` — `"Région de transport gaz Béchar"`
+- L985 — `point` — `// Build path points`
+- L987 — `point` — `const pathPoints: { lat: number; lng: number }[] = [];`
+- L997 — `point` — `pathPoints.push({`
+- L1003 — `point` — `const pathCoordsString = pathPoints.map(p => `${p.lng},${p.lat},0`).join(" ");`
+- L1029 — `point` — `<Point>`
+- L1030 — `point` — `<coordinates>${pathPoints[0].lng},${pathPoints[0].lat},0</coordinates>`
+- L1031 — `point` — `</Point>`
+- L1039 — `point` — `const idx = Math.floor(fraction * pathPoints.length);`
+- L1040 — `point` — `const p = pathPoints[idx] || pathPoints[Math.floor(pathPoints.length / 2)];`
+- L1045 — `point` — `<Point>`
+- L1047 — `point` — `</Point>`
+- L1057 — `point` — `<Point>`
+- L1058 — `point` — `<coordinates>${pathPoints[pathPoints.length - 1].lng},${pathPoints[pathPoints.length - 1].lat},0</coordinates>`
+- L1059 — `point` — `</Point>`
+- L1091 — `port` — `region: "Région de transport gaz Constantine",`
+- L1098 — `port` — `structureChargee: "Division Engineering Transport Gaz",`
+- L1159 — `port` — `region: "Région de transport gaz Alger",`
+- L1207 — `port` — `{ id: "1", name: "Rapport d'épreuve hydrostatique validé_VERITAL.pdf", category: "PV d'essais", addedAt: "2026-06-20" },`
+- L1223 — `point` — `if (caracteristiques?.hasPiquage || caracteristiques?.pointRaccordement) {`
+- L1227 — `point` — `label: caracteristiques?.pointRaccordement || "Piquage / Raccordement",`
+- L1318 — `port` — `const cleanUser = d.toLowerCase().replace(/dr/g, "").replace(/tg/g, "").replace(/region de transport/g, "").trim();`
+- L1319 — `port` — `const cleanProj = projectRegion.toLowerCase().replace(/dr/g, "").replace(/tg/g, "").replace(/region de transport/g, "").trim();`
+- L1345 — `port` — `export default function ProjectManagement({ isAdmin, currentUser, userProfile }: ProjectManagementProps) {`
+- L1408 — `snap` — `const unsubscribe = onSnapshot(collection(db, "profiles"), (snapshot) => {`
+- L1410 — `snap` — `snapshot.forEach((doc) => {`
+- L1417 — `select` — `const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);`
+- L1424 — `port` — `// Navigation module state (Plan de charge, Gestion, Tableau de bord, Rapport mensuel, Bordereau des prix)`
+- L1425 — `port` — `const [activeModule, setActiveModule] = useState<"charge" | "gestion" | "dashboard" | "report" | "bordereau">("charge");`
+- L1438 — `select` — `const [meetingSelectedProject, setMeetingSelectedProject] = useState<Project | null>(null);`
+- L1441 — `select` — `const [showColumnSelector, setShowColumnSelector] = useState<boolean>(false);`
+- L1465 — `move` — `window.removeEventListener("keydown", handleKeyDown);`
+- L1517 — `move` — `document.body.removeChild(link);`
+- L1591 — `align` — `text-align: left;`
+- L1598 — `align` — `.text-center { text-align: center; }`
+- L1599 — `align` — `.text-right { text-align: right; }`
+- L1619 — `move` — `document.body.removeChild(link);`
+- L1657 — `align` — `<div style="text-align: center; margin-bottom: 25px; border-bottom: 3px double #1e3a8a; padding-bottom: 15px;">`
+- L1658 — `port` — `<h1 style="color: #1e3a8a; font-size: 22pt; margin: 0; font-weight: bold; text-transform: uppercase; border: none; padding: 0;">SONELGAZ - TRANSPORT GAZ</h1>`
+- L1683 — `align` — `<th style="border: 1px solid #94a3b8; padding: 6px; font-size: 8.5pt; text-align: left; color: white; background-color: #1e3a8a;">Ouvrage</th>`
+- L1684 — `align` — `<th style="border: 1px solid #94a3b8; padding: 6px; font-size: 8.5pt; text-align: left; color: white; background-color: #1e3a8a;">Wilaya</th>`
+- L1685 — `align` — `<th style="border: 1px solid #94a3b8; padding: 6px; font-size: 8.5pt; text-align: left; color: white; background-color: #1e3a8a;">Pôle</th>`
+- L1686 — `align` — `<th style="border: 1px solid #94a3b8; padding: 6px; font-size: 8.5pt; text-align: left; color: white; background-color: #1e3a8a;">Région / Direction</th>`
+- L1687 — `align` — `<th style="border: 1px solid #94a3b8; padding: 6px; font-size: 8.5pt; text-align: left; color: white; background-color: #1e3a8a;">Phase</th>`
+- L1688 — `align` — `<th style="border: 1px solid #94a3b8; padding: 6px; font-size: 8.5pt; text-align: left; color: white; background-color: #1e3a8a;">Objectif Prévu</th>`
+- L1689 — `align` — `<th style="border: 1px solid #94a3b8; padding: 6px; font-size: 8.5pt; text-align: left; color: white; background-color: #1e3a8a;">Diamètre</th>`
+- L1690 — `align` — `<th style="border: 1px solid #94a3b8; padding: 6px; font-size: 8.5pt; text-align: left; color: white; background-color: #1e3a8a;">Longueur</th>`
+- L1691 — `align` — `<th style="border: 1px solid #94a3b8; padding: 6px; font-size: 8.5pt; text-align: left; color: white; background-color: #1e3a8a;">Capacité Poste</th>`
+- L1692 — `align` — `<th style="border: 1px solid #94a3b8; padding: 6px; font-size: 8.5pt; text-align: center; color: white; background-color: #1e3a8a;">Av. GC</th>`
+- L1693 — `align` — `<th style="border: 1px solid #94a3b8; padding: 6px; font-size: 8.5pt; text-align: center; color: white; background-color: #1e3a8a;">Av. Méca</th>`
+- L1694 — `align` — `<th style="border: 1px solid #94a3b8; padding: 6px; font-size: 8.5pt; text-align: center; color: white; background-color: #1e3a8a;">Av. Global</th>`
+- L1695 — `align` — `<th style="border: 1px solid #94a3b8; padding: 6px; font-size: 8.5pt; text-align: left; color: white; background-color: #1e3a8a;">Contrainte Majeure</th>`
+- … 661 occurrences supplémentaires.
+### `src/components/ProjectMapViewer.tsx`
+- L1 — `port` — `import React, { useEffect, useRef, useState } from "react";`
+- L2 — `port` — `import { createPortal } from "react-dom";`
+- L3 — `port` — `import L from "leaflet";`
+- L6 — `port` — `import { Info, Map as MapIcon, Globe, Layers, Compass, Maximize2, Minimize2, Check, RefreshCw } from "lucide-react";`
+- L7 — `port` — `import { Project } from "./ProjectManagement";`
+- L10 — `port` — `export function getWilayaCoordinates(wilayaName: string): { lat: number; lng: number } {`
+- L92 — `port` — `export function generateKMLString(project: Project): string {`
+- L106 — `point` — `// Build path points`
+- L108 — `point` — `const pathPoints: { lat: number; lng: number }[] = [];`
+- L118 — `point` — `pathPoints.push({`
+- L124 — `point` — `const pathCoordsString = pathPoints.map(p => `${p.lng},${p.lat},0`).join(" ");`
+- L150 — `point` — `<Point>`
+- L151 — `point` — `<coordinates>${pathPoints[0].lng},${pathPoints[0].lat},0</coordinates>`
+- L152 — `point` — `</Point>`
+- L160 — `point` — `const idx = Math.floor(fraction * pathPoints.length);`
+- L161 — `point` — `const p = pathPoints[idx] || pathPoints[Math.floor(pathPoints.length / 2)];`
+- L166 — `point` — `<Point>`
+- L168 — `point` — `</Point>`
+- L178 — `point` — `<Point>`
+- L179 — `point` — `<coordinates>${pathPoints[pathPoints.length - 1].lng},${pathPoints[pathPoints.length - 1].lat},0</coordinates>`
+- L180 — `point` — `</Point>`
+- L195 — `port` — `export interface KmlData {`
+- L197 — `point` — `points: {`
+- L206 — `port` — `export function parseKML(kmlText: string): KmlData {`
+- L208 — `point` — `const points: KmlData["points"] = [];`
+- L216 — `point` — `return { lines, points };`
+- L246 — `point` — `const pointNode = pm.getElementsByTagName("Point")[0];`
+- L247 — `point` — `if (pointNode) {`
+- L248 — `point` — `const coordNode = pointNode.getElementsByTagName("coordinates")[0];`
+- L271 — `point` — `points.push({ name, description, lat, lng, type });`
+- L280 — `point` — `// Fallback if no lines parsed, but points exist (create a connect-the-dots line)`
+- L281 — `point` — `if (lines.length === 0 && points.length > 1) {`
+- L282 — `point` — `const sortedPoints = [...points].sort((a, b) => {`
+- L289 — `point` — `lines.push(sortedPoints.map(p => [p.lat, p.lng] as [number, number]));`
+- L292 — `point` — `return { lines, points };`
+- L299 — `port` — `export default function ProjectMapViewer({ project }: ProjectMapViewerProps) {`
+- L312 — `select` — `const [selectedElement, setSelectedElement] = useState<{ name: string; description: string } | null>(null);`
+- L328 — `port` — `// KML contents state loaded asynchronously (supporting KML and KMZ/zip unzipping)`
+- L330 — `point` — `const [parsedData, setParsedData] = useState<KmlData>({ lines: [], points: [] });`
+- L388 — `port` — `const JSZip = (await import("jszip")).default;`
+- L444 — `move` — `mapRef.current.remove();`
+- L450 — `point` — `const centerLatLng: [number, number] = parsedData.points.length > 0`
+- L451 — `point` — `? [parsedData.points[0].lat, parsedData.points[0].lng]`
+- L554 — `select` — `setSelectedElement({`
+- L593 — `point` — `parsedData.points.forEach(pt => {`
+- L627 — `anchor` — `iconAnchor: [12, 12]`
+- L634 — `select` — `setSelectedElement({ name: pt.name, description: pt.description });`
+- L665 — `move` — `mapRef.current.remove();`
+- L688 — `point` — `if (showPipeline && (parsedData.lines.length > 0 || parsedData.points.length > 0)) {`
+- L690 — `point` — `parsedData.points.forEach(pt => bounds.extend([pt.lat, pt.lng]));`
+- L709 — `point` — `className="px-3 py-2 bg-slate-950/95 backdrop-blur-md text-indigo-400 hover:text-white rounded-xl border border-slate-800 shadow-xl flex items-center gap-2 text-xs font-black uppercase tracking-wider transition-all duration-200 cursor-point`
+- L725 — `port` — `<span>Portail SIG</span>`
+- L737 — `point` — `className="w-6 h-6 flex items-center justify-center bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg border border-slate-800 text-sm font-black transition-colors cursor-pointer"`
+- L748 — `select` — `<label className="flex items-center gap-2.5 cursor-pointer text-[10px] font-extrabold text-slate-300 hover:text-white select-none">`
+- L748 — `point` — `<label className="flex items-center gap-2.5 cursor-pointer text-[10px] font-extrabold text-slate-300 hover:text-white select-none">`
+- L762 — `select` — `<label className="flex items-center gap-2.5 cursor-pointer text-[10px] font-extrabold text-slate-300 hover:text-white select-none">`
+- L762 — `point` — `<label className="flex items-center gap-2.5 cursor-pointer text-[10px] font-extrabold text-slate-300 hover:text-white select-none">`
+- L777 — `select` — `<label className="flex items-center gap-2.5 cursor-pointer text-[10px] font-extrabold text-slate-300 hover:text-white select-none">`
+- L777 — `point` — `<label className="flex items-center gap-2.5 cursor-pointer text-[10px] font-extrabold text-slate-300 hover:text-white select-none">`
+- L819 — `point` — `className="p-2.5 bg-slate-950/90 backdrop-blur-md text-slate-300 hover:text-white rounded-xl border border-slate-800 shadow-xl cursor-pointer hover:bg-slate-900 transition-colors"`
+- L828 — `point` — `className="p-2.5 bg-slate-950/90 backdrop-blur-md text-slate-300 hover:text-white rounded-xl border border-slate-800 shadow-xl cursor-pointer hover:bg-slate-900 transition-colors animate-pulse"`
+- L843 — `point` — `className="px-3 py-2 bg-slate-950/95 backdrop-blur-md text-indigo-400 hover:text-white rounded-xl border border-slate-800 shadow-xl flex items-center gap-2 text-xs font-black uppercase tracking-wider transition-all duration-200 cursor-point`
+- L855 — `point` — `className="absolute -top-2.5 -right-2.5 z-[1010] w-6 h-6 flex items-center justify-center bg-slate-900 hover:bg-slate-850 text-slate-400 hover:text-white rounded-full border border-slate-800 text-sm font-black shadow-lg transition-transform`
+- L866 — `select` — `<span>{selectedElement?.name || "Légende Technique SIG"}</span>`
+- L869 — `select` — `{selectedElement?.description || "Cliquez sur un élément de l'ouvrage (PC, Gare de Racleur, Tracé) ou survolez les communes d'Algérie pour charger des informations techniques."}`
+- L901 — `port` — `{/* Placeholder Element: Keeps layout stable while the map is projected as a portal */}`
+- L907 — `point` — `className="px-4 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-indigo-400 hover:text-white rounded-xl text-[10px] uppercase font-black tracking-wider transition-colors cursor-pointer"`
+- L913 — `port` — `{createPortal(`
+### `src/components/TravauxForms.tsx`
+- L1 — `port` — `import { useState } from "react";`
+- L2 — `port` — `import {`
+- L19 — `port` — `import defaultLogo from "../assets/images/sonelgaz_logo_1783415417090.jpg";`
+- L21 — `port` — `export interface TravauxTemplate {`
+- L32 — `port` — `export const TRAVAUX_TEMPLATES: TravauxTemplate[] = [`
+- L45 — `port` — `{ id: "controle_radio_ligne", label: "PV de Contrôle Radiographique Ligne", code: "PR.INFR.01.V01", imp: "IMP.INFR.13", procedure: "PROCEDURE REALISATION DES TRAVAUX DE DEVELOPPEMENT", type: "pv_test", desc: "Rapport de contrôle non destruc`
+- L57 — `port` — `{ id: "pv_essuyage", label: "PV d'Essuyage de la Conduite", code: "MOP.INFR.08.V00", imp: "IMP.INFR.25", procedure: "MODE OPERATOIRE SECHAGE DES OUVRAGES DE TRANSPORT", type: "certif", desc: "Essai de raclage et d'essuyage de l'intérieur de`
+- L58 — `port` — `{ id: "pv_sechage", label: "PV de Séchage de la Conduite", code: "MOP.INFR.08.V00", imp: "IMP.INFR.26", procedure: "MODE OPERATOIRE SECHAGE DES OUVRAGES DE TRANSPORT", type: "certif", desc: "Mesure de point de rosée et de teneur en eau", pa`
+- L58 — `point` — `{ id: "pv_sechage", label: "PV de Séchage de la Conduite", code: "MOP.INFR.08.V00", imp: "IMP.INFR.26", procedure: "MODE OPERATOIRE SECHAGE DES OUVRAGES DE TRANSPORT", type: "certif", desc: "Mesure de point de rosée et de teneur en eau", pa`
+- L59 — `port` — `{ id: "pv_soufflage", label: "PV de Soufflage de Poste", code: "MOP.INFR.08.V00", imp: "IMP.INFR.27", procedure: "MODE OPERATOIRE SECHAGE DES OUVRAGES DE TRANSPORT", type: "certif", desc: "Nettoyage et soufflage à l'air sec des équipements"`
+- L63 — `port` — `{ id: "carnet_chantier", label: "Carnet de Chantier (Journal)", code: "PR.INFR.03.V01", imp: "IMP.INFR.31", procedure: "PROCEDURE DE CONTRÔLE DES TRAVAUX", type: "telecom", desc: "Rapport quotidien des conditions, moyens et tâches", pageCou`
+- L64 — `port` — `{ id: "rapport_hebdo_avancement", label: "Rapport Hebdomadaire d'Avancement", code: "PR.INR.03.V01", imp: "IMP.INFR.33", procedure: "PROCEDURE DE CONTRÔLE DES TRAVAUX", type: "table_rows", desc: "Situation d'avancement des phases physiques"`
+- L65 — `port` — `{ id: "rapport_final_execution", label: "Rapport Final de Fin d'Exécution", code: "PR.INFR.01.V01", imp: "IMP.INFR.34", procedure: "PROCEDURE REALISATION DES TRAVAUX DE DEVELOPPEMENT", type: "telecom", desc: "Rapport de synthèse contractuel`
+- L74 — `port` — `{ id: "pv_constat_travaux_fo", label: "PV de Constat des Travaux (FO)", code: "MOP.INFR.06.V00", imp: "IMP.INFR.43", procedure: "TESTS ET RECEPTION SUR SITE FIBRE OPTIQUE", type: "certif", desc: "Rapport de constat d'anomalies ou d'avanceme`
+- L82 — `port` — `export default function TravauxForms({ formType }: TravauxFormsProps) {`
+- L87 — `port` — `direction: "DIRECTION REGIONALE TRANSPORT GAZ SIDI AISSA",`
+- L121 — `align` — `{ des: "Bardage et alignement des tubes 12\"", uni: "Ml", qAnt: "4000.00", qFact: "1500.00", qCum: "5500.00", nPri: "102", obs: "Fouille en cours" },`
+- L189 — `port` — `{ item: "02", desig: "Etiquetage du Patch Panel", existant: "Oui", nonExist: "Non", conf: "Oui", nonConf: "Non", obs: "Identification claire des ports" },`
+- L242 — `port` — `signRightTitle: "P/ SONELGAZ TRANSPORT DU GAZ",`
+- L255 — `port` — `pvDemarrageIntro: "Nous soussignés, représentants de SONELGAZ Transport du Gaz et du prestataire, certifions que toutes les conditions d'ouverture de chantier sont réunies :",`
+- L256 — `port` — `certifConformiteLigneText: "Nous soussignés, réalisateur représenté par son responsable habilité, certifions avoir réalisé les travaux de pipeline de transport :\n- D'ouverture de tranchée\n- De soudage, radiographie et enrobage des tubes a`
+- L261 — `point` — `pvSechageText: "Séchage de la conduite : Par circulation d'air sec déshydraté.\n\nTempérature ambiante : 28°C\nPoint de rosée atteint à la sortie : -45°C",`
+- L295 — `sélection` — `Veuillez sélectionner un PV pour l'afficher ici.`
+- L349 — `select` — `<div className="w-[18%] border-r-2 border-slate-900 flex flex-col items-center justify-center p-1 bg-white select-none">`
+- L361 — `select` — `<div className="font-extrabold text-[11px] uppercase text-slate-800 tracking-wide pt-0.5 select-none">`
+- L362 — `port` — `SONELGAZ-Transport du Gaz`
+- L380 — `select` — `<span className="font-bold w-10 border-r border-slate-300 mr-1.5 shrink-0 select-none">CODE</span>`
+- L389 — `select` — `<span className="font-bold w-10 border-r border-slate-300 mr-1.5 shrink-0 select-none">DATE</span>`
+- L406 — `select` — `<span className="font-bold w-10 border-r border-slate-300 mr-1.5 shrink-0 select-none">PAGE</span>`
+- L508 — `port` — `{renderDottedField("Maitre de l'ouvrage", "SONELGAZ TRANSPORT DU GAZ", "direction")}`
+- L705 — `port` — `{renderDottedField("Ouvrage de transport", state.ouvrage, "ouvrage")}`
+- L888 — `select` — `<div className="overflow-x-auto border rounded-lg bg-white mt-4 select-text">`
+- L1819 — `port` — `<span className="text-[8px] text-slate-400 font-normal font-mono">SONELGAZ TRANSPORT DU GAZ</span>`
+- L1837 — `select` — `<div className="border border-slate-200 rounded-lg overflow-hidden bg-white mt-4 select-text">`
+- L2161 — `port` — `Rapport d'Essai et Synthèse Technique`
+- L2195 — `port` — `{/* Rapport Final de Fin d'Exécution (IMP.INFR.34) */}`
+- L2196 — `port` — `{currentTemplate.id === "rapport_final_execution" && (`
+- L2199 — `port` — `Le présent rapport récapitule la fin physique des travaux d'exécution du contrat <span className="font-bold">{state.contratNo}</span>.`
+- L2205 — `port` — `<p>• Documents as-built remis : Plans de récolement, rapports de radiographie 100%, fiches d'étanchéité.</p>`
+### `src/components/usePdiIsoPrecisionViewport.js`
+- L1 — `port` — `import { useCallback, useEffect, useRef, useState } from "react";`
+- L11 — `port` — `export function usePdiIsoPrecisionViewport(canvasRef, options = {}) {`
+- L62 — `snap` — `const snapPoint = useCallback((point, step = 25) => ({`
+- L62 — `point` — `const snapPoint = useCallback((point, step = 25) => ({`
+- L63 — `point` — `x: Math.round(point.x / step) * step,`
+- L64 — `point` — `y: Math.round(point.y / step) * step,`
+- L84 — `point` — `const handlePointerMove = useCallback((event) => {`
+- L84 — `move` — `const handlePointerMove = useCallback((event) => {`
+- L111 — `move` — `return () => canvas.removeEventListener("wheel", handleWheel);`
+- L117 — `move` — `return () => window.removeEventListener("resize", resizeCanvasForDpr);`
+- L120 — `snap` — `return { zoom, pan, cursorWorld, setZoom, setPan, resizeCanvasForDpr, screenToWorld, worldToScreen, snapPoint, handleWheel, handlePointerMove, startPan, stopPan };`
+- L120 — `point` — `return { zoom, pan, cursorWorld, setZoom, setPan, resizeCanvasForDpr, screenToWorld, worldToScreen, snapPoint, handleWheel, handlePointerMove, startPan, stopPan };`
+- L120 — `move` — `return { zoom, pan, cursorWorld, setZoom, setPan, resizeCanvasForDpr, screenToWorld, worldToScreen, snapPoint, handleWheel, handlePointerMove, startPan, stopPan };`
+### `src/data/fascicules.ts`
+- L6 — `port` — `import { Fascicule, SparePartItem, BendingRecord } from "../types";`
+- L8 — `port` — `import trenchImg from "../assets/images/trench_technical_sheet_1783361610351.jpg";`
+- L9 — `port` — `import sandbagImg from "../assets/images/sandbag_protection_1783362513651.jpg";`
+- L10 — `port` — `import cableImg from "../assets/images/cable_crossing_protection_1783362523438.jpg";`
+- L11 — `port` — `import crossingImg from "../assets/images/crossing_technical_sheet_1783361623788.jpg";`
+- L12 — `port` — `import ouedImg from "../assets/images/oued_technical_sheet_1783361638299.jpg";`
+- L13 — `port` — `import bendingImg from "../assets/images/cintrage_abaque_1783362534158.jpg";`
+- L14 — `port` — `import posteImg from "../assets/images/poste_technical_sheet_1783361652494.jpg";`
+- L16 — `port` — `export const FASCICULES_DATA: Fascicule[] = [`
+- L27 — `port` — `content: "Les présentes prescriptions techniques générales s'appliquent à l'exécution de l'ensemble des travaux de transport de gaz par canalisations en acier (gazoducs) ainsi qu'aux postes de sectionnement, de dérivation, de coupure, de dé`
+- L34 — `point` — `points: [`
+- L44 — `port` — `content: "Tous les documents écrits et graphiques doivent être rédigés en langue française et utiliser exclusivement les unités du Système International (S.I.). Les plans doivent comporter la cartouche agréée du Maître de l'Ouvrage avec l'é`
+- L45 — `point` — `points: [`
+- L46 — `port` — `"Documents écrits (notes de calcul, notices techniques, procès-verbaux, rapports d'avancement) : Format standardisé A4 (297 x 210 mm) sous reliure.",`
+- L48 — `port` — `"Chaque document ou plan doit porter un numéro de codification uniforme conformément aux exigences de la SONELGAZ, permettant une identification rapide et un classement rigoureux dans les archives techniques."`
+- L55 — `port` — `content: "L'Entrepreneur a la charge exclusive de fournir, de transporter et de remettre en parfait état au Maître de l'Ouvrage la totalité des matériels de rechange (M.R.) strictement interchangeables avec les matériels installés (M.I.).",`
+- L56 — `point` — `points: [`
+- L82 — `ancrage` — `caption: "Dessin d'exécution technique pour la protection contre l'érosion et le ravinement dans les pentes supérieures à 15%. Indique la disposition des barrages en sacs de sable ('sacs de sable en barrage de retenue'), le lit de pose de s`
+- L117 — `port` — `caption: "Plan type d'ingénierie Sonelgaz décrivant le passage en dessus ou en dessous d'un câble souterrain. Spécifie la distance libre minimale E (0.40 m pour télécom/fibre, 0.50 m pour lignes électriques), le doublement du revêtement de `
+- L127 — `point` — `points: [`
+- L141 — `port` — `tolerances: ["Largeur de piste : ± 0.50m par rapport aux limites approuvées", "Profondeur de décapage terre végétale : 15 à 20cm"]`
+- L155 — `port` — `content: "Le piquetage général consiste à reporter sur le terrain l'axe de la canalisation défini par le plan de tracé approuvé. Il est matérialisé par des piquets en bois ou métalliques solidement implantés.",`
+- L156 — `point` — `points: [`
+- L158 — `port` — `"Chaque piquet d'axe doit porter l'indication du PK (point kilométrique). Aux points d'inflexion (angles de courbe), le piquet d'angle portera le numéro de l'angle et le rayon théorique de cintrage correspondant.",`
+- L158 — `point` — `"Chaque piquet d'axe doit porter l'indication du PK (point kilométrique). Aux points d'inflexion (angles de courbe), le piquet d'angle portera le numéro de l'angle et le rayon théorique de cintrage correspondant.",`
+- L159 — `port` — `"Le piquetage de sécurité sous les lignes de transport d'énergie électrique aériennes haute tension (HT) doit comporter des balises de limitation de gabarit de hauteur pour les engins de levage."`
+- L165 — `point` — `"Implantation des piquets d'axe aux espacements réglementaires et aux points kilométriques (PK) précis.",`
+- L167 — `port` — `"Mise en place de piquets témoins de déport (en dehors de l'emprise des terrassements) pour conserver l'axe.",`
+- L176 — `port` — `"Piquets de déport implantés pour sécuriser la reconstruction de l'axe après passage de la pelle."`
+- L184 — `point` — `points: [`
+- L195 — `point` — `"Purge systématique du fond de tranchée pour éliminer les saillies rocheuses ou pointues.",`
+- L213 — `point` — `points: [`
+- L227 — `port` — `equipment: ["Crible mécanique portatif", "Camion benne pour apport de sable", "Dame sauteuse ou compacteur à plaque vibrante"],`
+- L242 — `point` — `points: [`
+- L244 — `port` — `"Le rayon de courbure minimal pour un cintrage à froid ne doit pas être inférieur à 30 fois le diamètre extérieur nominal du tube (R ≥ 30 * Dn). En cas d'épaisseur importante ou d'aciers spéciaux, se référer aux abaques du Fascicule 7.",`
+- L251 — `sélection` — `"Sélection et inspection visuelle du tube en acier de ligne à cintrer.",`
+- L272 — `point` — `points: [`
+- L273 — `port` — `"Le diamètre extérieur de la gaine de protection doit dépasser d'au moins 20 cm le diamètre extérieur du tube de transport pour permettre une isolation électrique parfaite.",`
+- L280 — `align` — `"Alignement topographique rigoureux et excavation de la fosse de départ et d'arrivée de fonçage.",`
+- L282 — `port` — `"Soudage des colliers de centrage et d'isolation isolants en PEHD sur le tube de gaz de transport tous les 1.50 m.",`
+- L283 — `port` — `"Enfilage (tirage) contrôlé du tube de transport revêtu à l'intérieur de la gaine d'acier.",`
+- L287 — `port` — `equipment: ["Unité de fonçage horizontal (tarière ou pousse-tube)", "Grue ou excavatrice de forte capacité", "Holiday detector portable pour revêtement"],`
+- L291 — `port` — `"Mesure de la résistance d'isolement électrique (mégohmmètre) entre le tube de transport et la gaine d'acier.",`
+- L292 — `align` — `"Contrôle de l'alignement et de la pente de la gaine posée.",`
+- L309 — `groupe` — `caption: "Tableau officiel répertoriant les défauts de soudage selon les Groupes 3 et 4. Illustre et classifie les inclusions solides (inclusion de laitier 301, de flux 302, d'oxyde 303, métallique 304) et les manques de fusion (manque de f`
+- L309 — `group` — `caption: "Tableau officiel répertoriant les défauts de soudage selon les Groupes 3 et 4. Illustre et classifie les inclusions solides (inclusion de laitier 301, de flux 302, d'oxyde 303, métallique 304) et les manques de fusion (manque de f`
+- L319 — `point` — `points: [`
+- L329 — `point` — `points: [`
+- L343 — `port` — `equipment: ["Poste à souder régulé de chantier", "Gabarit de chanfreinage", "Étuve portable de chantier", "Matrice de pliage de laboratoire"],`
+- L357 — `port` — `content: "Les produits d'apport (électrodes enrobées, fils) doivent être stockés dans leur emballage d'origine scellé, à l'abri de l'humidité, dans un local chauffé et ventilé.",`
+- L358 — `point` — `points: [`
+- L360 — `port` — `"Sur le chantier, les soudeurs doivent transporter les électrodes basiques dans des carquois chauffants individuels portatifs maintenus à une température d'au moins 70°C.",`
+- L368 — `port` — `content: "Toutes les soudures bout à bout exécutées sur le tracé de la canalisation de transport de gaz de la SONELGAZ doivent être contrôlées à 100% par des méthodes non destructives (radiographie industrielle par rayons X, ou à défaut par`
+- L369 — `point` — `points: [`
+- L391 — `port` — `"Rapport de contrôle radiographique officiel signé avec plan de localisation des clichés."`
+- L401 — `ancrage` — `summary: "Génie civil, massifs d'ancrage, supports de tuyauteries, clôtures de postes, et systèmes de peinture industrielle de protection anticorrosion.",`
+- L401 — `port` — `summary: "Génie civil, massifs d'ancrage, supports de tuyauteries, clôtures de postes, et systèmes de peinture industrielle de protection anticorrosion.",`
+- L407 — `port` — `caption: "Aperçu authentique d'implantation générale de génie civil d'un poste de détente standard de la Sonelgaz. Comprend la dalle de l'abri principal, les longrines de clôture, les massifs supports de tuyauteries aériennes et la disposit`
+- L416 — `ancrage` — `content: "Les travaux de génie civil concernent la construction des fondations d'équipements, des dalles d'abri de détente, des massifs de butée et d'ancrage, ainsi que les clôtures de sécurité des différents postes du réseau de transport."`
+- L416 — `port` — `content: "Les travaux de génie civil concernent la construction des fondations d'équipements, des dalles d'abri de détente, des massifs de butée et d'ancrage, ainsi que les clôtures de sécurité des différents postes du réseau de transport."`
+- L417 — `point` — `points: [`
+- L419 — `ancrage` — `"Les fouilles pour massifs d'ancrage doivent être creusées de manière à ce que le béton de butée soit coulé directement contre les parois de terre non remuée du terrain naturel, afin de garantir une reprise de poussée optimale.",`
+- L425 — `ancrage` — `title: "Article 2 - Supports Métalliques & Ancrages Autoportants",`
+- L425 — `port` — `title: "Article 2 - Supports Métalliques & Ancrages Autoportants",`
+- L427 — `ancrage` — `content: "Les canalisations aériennes à l'intérieur des postes doivent être supportées par des massifs en béton surmontés de berceaux de glissement métalliques ou de colliers d'ancrage.",`
+- L427 — `port` — `content: "Les canalisations aériennes à l'intérieur des postes doivent être supportées par des massifs en béton surmontés de berceaux de glissement métalliques ou de colliers d'ancrage.",`
+- L428 — `point` — `points: [`
+- L429 — `port` — `"Un isolement électrique complet et durable doit être assuré entre la conduite en acier et le support métallique ou le béton. Cet isolement est réalisé par l'interposition d'une plaque d'élastomère résiliente d'au moins 5 mm d'épaisseur.",`
+- L430 — `ancrage` — `"Les massifs d'ancrage situés sur les coudes ou changements brusques de direction doivent être calculés pour s'opposer aux forces de poussée dynamiques générées par la pression hydrostatique interne sous débit maximal."`
+- L437 — `port` — `content: "Toutes les surfaces métalliques aériennes non enterrées (tubes, vannes, structures de support, abris métalliques) doivent faire l'objet d'un traitement anticorrosion complet par peinture industrielle appliqué selon un processus ri`
+- L438 — `point` — `points: [`
+- L460 — `point` — `"Mesure continue des conditions hygrométriques de l'air (humidité relative ≤ 85% et température d'acier ≥ point de rosée + 3°C).",`
+- L515 — `point` — `points: [`
+- L526 — `point` — `points: [`
+- L556 — `point` — `points: [`
+- L558 — `port` — `"On effectue un test de présence d'air résiduel par une décompression contrôlée en mesurant la quantité d'eau extraite. Le rapport de la chute de pression réelle sur la chute théorique doit être compris entre 0,90 et 1,00.",`
+- L568 — `point` — `"Relevé horaire minutieux sur 24 heures de la pression (P) et des températures de sol (T) aux points de mesure désignés.",`
+- L573 — `port` — `tolerances: ["Rapport du test d'air résiduel : 0.90 à 1.00", "Seuil d'erreur Gauvin admissible : ≤ 0.02 bar d'écart sur 24 heures"]`
+- L594 — `port` — `content: "L'Entrepreneur doit préparer et soumettre au Maître de l'Ouvrage le dossier complet exigé par l'Administration chargée du Contrôle de la Sécurité des Canalisations de Transport de Gaz en vue de l'obtention de l'autorisation offici`
+- L595 — `point` — `points: [`
+- L604 — `groupe` — `content: "Ce dossier regroupe toutes les informations indispensables à l'exploitation et à la maintenance courante de la canalisation et de ses postes annexes par le personnel d'exploitation de la SONELGAZ.",`
+- L604 — `group` — `content: "Ce dossier regroupe toutes les informations indispensables à l'exploitation et à la maintenance courante de la canalisation et de ses postes annexes par le personnel d'exploitation de la SONELGAZ.",`
+- L605 — `point` — `points: [`
+- L661 — `point` — `points: [`
+- L673 — `point` — `points: [`
+- L684 — `ancrage` — `content: "Dans les sections à forte pente supérieure à 15%, le ruissellement des eaux de pluie présente un risque d'érosion interne de la tranchée. Le cahier des charges impose la pose d'ancrages par barrages de retenue de sacs de sable dis`
+- L685 — `point` — `points: [`
+- L697 — `point` — `points: [`
+- L709 — `point` — `points: [`
+- L710 — `parallèle` — `"Distance horizontale réglementaire minimale de 1,00 m en ligne droite en tracé parallèle courant.",`
+- L713 — `parallèle` — `"Pose obligatoire de rubans ou grillages avertisseurs distincts parallèles : rouge spécifique pour l'électricité et jaune ou orange pour le gaz."`
+- L720 — `port` — `content: "Le franchissement aérien du tracé d'un gazoduc de transport par des lignes d'énergie électrique à haute tension (HTA/HTB) présente des risques d'influences électromagnétiques induites en régime permanent et transitoire (courts-cir`
+- L721 — `point` — `points: [`
+- L722 — `port` — `"Gabarit vertical de sécurité minimal : Distance verticale d'au moins 8,00 m (lignes < 50 kV) ou 12,00 m (lignes ≥ 50 kV) sous flèche maximale des conducteurs par rapport au sol.",`
+- L723 — `port` — `"Aucun pylône de support de la ligne aérienne ne doit être implanté à moins de 10 m de la génératrice supérieure du tube de gaz (hors zone de servitude d'utilité publique).",`
+- L724 — `point` — `"Installation obligatoire d'anneaux de terre équipotentiels (mise à la terre locale du tube) aux points d'induction maximale pour dériver les courants alternatifs vers le sol.",`
+- L732 — `port` — `content: "Les traversées de routes nationales ou départementales s'effectuent sous gaine de protection en acier pour éviter la transmission directe des charges de trafic routier lourdes à la conduite de gaz de transport. La canalisation de `
+- L733 — `point` — `points: [`
+- L745 — `point` — `points: [`
+- L754 — `ancrage` — `title: "Annexe 6 Bis - Massifs d'Ancrage de Coudes en Béton",`
+- … 63 occurrences supplémentaires.
+### `src/db/drizzle.config.ts`
+- L1 — `port` — `import { defineConfig } from "drizzle-kit";`
+- L2 — `port` — `import * as dotenv from "dotenv";`
+- L25 — `port` — `export default defineConfig({`
+### `src/db/index.ts`
+- L1 — `port` — `import { drizzle } from 'drizzle-orm/node-postgres';`
+- L2 — `port` — `import { Pool } from 'pg';`
+- L3 — `port` — `import * as schema from './schema.ts';`
+- L11 — `port` — `export const createPool = () => {`
+- L34 — `port` — `export const db = drizzle(pool, { schema });`
+### `src/db/projects.ts`
+- L1 — `port` — `import { db } from './index.ts';`
+- L2 — `port` — `import { projects, driveFiles } from './schema.ts';`
+- L3 — `port` — `import { eq, desc, and } from 'drizzle-orm';`
+- L5 — `port` — `export async function getUserProjects(uid: string) {`
+- L7 — `select` — `return await db.select().from(projects).where(eq(projects.uid, uid)).orderBy(desc(projects.updatedAt));`
+- L14 — `port` — `export async function createOrUpdateProject(`
+- L67 — `port` — `export async function deleteUserProject(uid: string, projectId: number) {`
+- L76 — `port` — `export async function getDriveFiles(uid: string) {`
+- L78 — `select` — `return await db.select().from(driveFiles).where(eq(driveFiles.uid, uid)).orderBy(desc(driveFiles.lastSyncedAt));`
+- L85 — `port` — `export async function saveDriveFileRecord(`
+### `src/db/schema.ts`
+- L1 — `port` — `import { relations } from 'drizzle-orm';`
+- L2 — `port` — `import { integer, pgTable, serial, text, timestamp, jsonb, boolean } from 'drizzle-orm/pg-core';`
+- L5 — `port` — `export const users = pgTable('users', {`
+- L17 — `port` — `export const projects = pgTable('projects', {`
+- L33 — `port` — `export const driveFiles = pgTable('drive_files', {`
+- L49 — `port` — `export const usersRelations = relations(users, ({ many }) => ({`
+- L54 — `port` — `export const projectsRelations = relations(projects, ({ one }) => ({`
+- L61 — `port` — `export const driveFilesRelations = relations(driveFiles, ({ one }) => ({`
+### `src/db/users.ts`
+- L1 — `port` — `import { db } from './index.ts';`
+- L2 — `port` — `import { users } from './schema.ts';`
+- L3 — `port` — `import { eq } from 'drizzle-orm';`
+- L5 — `port` — `export async function getOrCreateUser(uid: string, email: string, displayName?: string, photoUrl?: string) {`
+- L32 — `port` — `export async function getUserByUid(uid: string) {`
+- L34 — `select` — `const result = await db.select().from(users).where(eq(users.uid, uid)).limit(1);`
+### `src/index.css`
+- L1 — `port` — `@import "tailwindcss";`
+- L5 — `port` — `* that might not support Tailwind v4 modern CSS Custom Properties.`
+- L16 — `port` — `background-color: #020617 !important;`
+- L17 — `port` — `color: #ffffff !important;`
+- L18 — `port` — `display: flex !important;`
+- L19 — `port` — `flex-direction: column !important;`
+- L20 — `align` — `align-items: center !important;`
+- L20 — `port` — `align-items: center !important;`
+- L21 — `port` — `justify-content: center !important;`
+- L22 — `port` — `min-height: 100vh !important;`
+- L23 — `port` — `position: relative !important;`
+- L24 — `port` — `box-sizing: border-box !important;`
+- L25 — `align` — `text-align: center !important;`
+- L25 — `port` — `text-align: center !important;`
+- L26 — `port` — `padding: 16px !important;`
+- L30 — `port` — `color: #ffffff !important;`
+- L34 — `port` — `background-color: #f97316 !important; /* bg-orange-500 */`
+- L35 — `port` — `color: #ffffff !important;`
+- L36 — `port` — `border: none !important;`
+- L37 — `port` — `border-radius: 16px !important;`
+- L38 — `port` — `padding: 16px 32px !important;`
+- L39 — `port` — `font-size: 14px !important;`
+- L40 — `port` — `font-weight: 900 !important;`
+- L41 — `port` — `cursor: pointer !important;`
+- L41 — `point` — `cursor: pointer !important;`
+- L42 — `port` — `display: inline-flex !important;`
+- L43 — `align` — `align-items: center !important;`
+- L43 — `port` — `align-items: center !important;`
+- L44 — `port` — `gap: 8px !important;`
+- L45 — `port` — `transition: all 0.2s ease-in-out !important;`
+- L46 — `port` — `text-decoration: none !important;`
+- L47 — `port` — `box-shadow: 0 10px 15px -3px rgba(249, 115, 22, 0.3) !important;`
+- L51 — `port` — `background-color: #ea580c !important; /* bg-orange-600 */`
+- L62 — `port` — `background-color: transparent !important;`
+- L63 — `port` — `background: transparent !important;`
+- L64 — `port` — `border: none !important;`
+- L65 — `port` — `outline: none !important;`
+- L66 — `port` — `color: #ffffff !important;`
+- L67 — `port` — `box-shadow: none !important;`
+- L71 — `port` — `color: #cbd5e1 !important; /* slate-300 */`
+- L72 — `port` — `opacity: 0.8 !important;`
+- L104 — `port` — `border: none !important;`
+- L105 — `port` — `background: transparent !important;`
+- L106 — `port` — `padding: 0 !important;`
+- L107 — `port` — `box-shadow: none !important;`
+- L108 — `port` — `outline: none !important;`
+- L109 — `port` — `border-bottom: none !important;`
+- L110 — `port` — `border-radius: 0 !important;`
+- L114 — `port` — `color: transparent !important;`
+- L115 — `port` — `opacity: 0 !important;`
+- L118 — `select` — `select.pv-inline-input {`
+- L119 — `port` — `appearance: none !important;`
+- L120 — `port` — `-webkit-appearance: none !important;`
+- L121 — `port` — `-moz-appearance: none !important;`
+### `src/lib/firebase-admin.ts`
+- L1 — `port` — `import { initializeApp, getApps } from 'firebase-admin/app';`
+- L2 — `port` — `import { getAuth } from 'firebase-admin/auth';`
+- L4 — `port` — `const metaEnv = (typeof import.meta !== 'undefined' && (import.meta as any)?.env) || {};`
+- L26 — `port` — `export const adminAuth = getAuth();`
+### `src/lib/firebase.ts`
+- L1 — `port` — `import { initializeApp, getApps, getApp } from "firebase/app";`
+- L2 — `port` — `import {`
+- L14 — `port` — `import { getAuth } from "firebase/auth";`
+- L16 — `port` — `const metaEnv = (import.meta as any).env || {};`
+- L50 — `port` — `export { db, auth, activeConfig };`
+- L53 — `port` — `export interface EngineeringPlan {`
+- L71 — `port` — `export async function fetchPlans(): Promise<EngineeringPlan[]> {`
+- L73 — `snap` — `const querySnapshot = await getDocs(collection(db, PLANS_COLLECTION));`
+- L75 — `snap` — `querySnapshot.forEach((doc) => {`
+- L86 — `port` — `export async function savePlan(plan: Omit<EngineeringPlan, "id"> & { id?: string }): Promise<string> {`
+- L102 — `port` — `export async function deletePlanFromDb(id: string): Promise<void> {`
+- L112 — `port` — `export async function seedPlansIfEmpty(defaultPlans: EngineeringPlan[]): Promise<void> {`
+- L114 — `snap` — `const querySnapshot = await getDocs(collection(db, PLANS_COLLECTION));`
+- L115 — `snap` — `if (querySnapshot.empty) {`
+- L127 — `port` — `export enum OperationType {`
+- L136 — `port` — `export interface FirestoreErrorInfo {`
+- L153 — `port` — `export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {`
+- L174 — `port` — `export interface ProjectNotification {`
+- L189 — `port` — `export async function createNotification(notif: Omit<ProjectNotification, "timestamp">): Promise<string> {`
+### `src/lib/googleAuth.ts`
+- L1 — `port` — `import {`
+- L9 — `port` — `import { auth } from './firebase.ts';`
+- L11 — `port` — `export const DRIVE_SCOPES = [`
+- L24 — `port` — `export const initAuth = (`
+- L43 — `port` — `export const googleSignIn = async (): Promise<{ user: User; accessToken: string | null } | null> => {`
+- L60 — `port` — `export const getAccessToken = async (): Promise<string | null> => {`
+- L64 — `port` — `export const setAccessToken = (token: string | null) => {`
+- L68 — `port` — `export const logoutGoogle = async () => {`
+### `src/lib/googleDriveApi.ts`
+- L1 — `port` — `export interface GoogleDriveFile {`
+- L15 — `port` — `export async function listDriveFiles(`
+- L49 — `port` — `export async function createDriveFolder(accessToken: string, folderName: string): Promise<GoogleDriveFile> {`
+- L72 — `port` — `export async function uploadJsonToDrive(`
+- L116 — `port` — `export async function deleteDriveFile(accessToken: string, fileId: string): Promise<boolean> {`
+- L132 — `port` — `export async function downloadDriveFileContent(accessToken: string, fileId: string): Promise<string> {`
+### `src/main.tsx`
+- L2 — `port` — `// pdiInlineStyles importe chaque feuille en "?inline" et l injecte au demarrage.`
+- L3 — `port` — `import "./pdiInlineStyles";`
+- L4 — `port` — `import "./pdiIsoUxRuntimePatch.js";`
+- L5 — `port` — `import {StrictMode} from 'react';`
+- L6 — `port` — `import {createRoot} from 'react-dom/client';`
+- L7 — `port` — `import App from './App.tsx';`
+- L8 — `port` — `import { ErrorBoundary } from './components/ErrorBoundary.tsx';`
+- L17 — `align` — `<div style="background-color: #020617; color: #ffffff; min-height: 100vh; display: flex; align-items: center; justify-content: center; font-family: system-ui, -apple-system, sans-serif; padding: 24px; box-sizing: border-box;">`
+- L19 — `align` — `<div style="display: flex; align-items: center; gap: 16px; color: #ef4444; margin-bottom: 24px;">`
+- L30 — `align` — `<div style="margin-top: 24px; display: flex; justify-content: space-between; align-items: center;">`
+- L32 — `point` — `<button onclick="window.location.reload()" style="background-color: #f97316; hover:background-color: #ea580c; color: #ffffff; border: none; padding: 10px 20px; border-radius: 12px; font-size: 12px; font-weight: bold; cursor: pointer; transi`
+- L59 — `move` — `probe.remove();`
+- L61 — `move` — `document.documentElement.classList.remove("pdi-no-tailwind");`
+- L63 — `move` — `if (old) old.remove();`
+- L92 — `point` — `// Cas traite : dist/index.html en cache pointe sur un asset disparu, ou la`
+- L99 — `select` — `const already = Array.from(document.querySelectorAll('link[rel="stylesheet"]')).some(`
+### `src/middleware/auth.ts`
+- L1 — `port` — `import { Request, Response, NextFunction } from 'express';`
+- L2 — `port` — `import { adminAuth } from '../lib/firebase-admin.ts';`
+- L3 — `port` — `import { DecodedIdToken } from 'firebase-admin/auth';`
+- L5 — `port` — `export interface AuthRequest extends Request {`
+- L9 — `port` — `export const requireAuth = async (`
+### `src/patch_script1.py`
+- L1 — `port` — `import sys`
+- L22 — `move` — `# removed earlier in favor of click-drag panning) with a Cotations toggle,`
+- L22 — `drag` — `# removed earlier in favor of click-drag panning) with a Cotations toggle,`
+- L35 — `point` — `className={`px-2 py-1 text-[10px] font-mono font-bold rounded-xl transition-all border flex items-center gap-1 cursor-pointer ${`
+- L48 — `select` — `# showCotations; respects cotationFilter ("all" vs "selected" element only).`
+- L55 — `port` — `'''                              {/* ==================== RENDERING PARAMETRIC GATES & PORTILLONS ==================== */}`
+- L80 — `select` — `const filteredBoxes = cotationFilter === "selected"`
+- L81 — `select` — `? boxes.filter(b => b.id === selectedSlabId || b.id === selectedAbriId)`
+- L93 — `anchor` — `<text x={midX} y={midY + 3} fill={color} fontSize="7.5" fontWeight="bold" textAnchor="middle">{label}</text>`
+- L163 — `port` — `{/* ==================== RENDERING PARAMETRIC GATES & PORTILLONS ==================== */}`
+- L174 — `anchor` — `print(f"  SKIP - {s}  (anchor not found — file may already differ; check manually)")`
+### `src/patch_script2.py`
+- L1 — `port` — `import sys`
+- L21 — `move` — `# STEP 1 — Data model: gabionSides[side] moves from a single etages/width/`
+- L71 — `group` — `# draggable as a single whole-wall group (offset stays at the side level).`
+- L71 — `drag` — `# draggable as a single whole-wall group (offset stays at the side level).`
+- L95 — `move` — `className="cursor-move"`
+- L98 — `drag` — `setDraggingGabionKey(`${ov.id}:${side}`);`
+- L101 — `drag` — `setDragStartPos({`
+- L102 — `point` — `pointerX: e.clientX - svgRect.left,`
+- L103 — `point` — `pointerY: e.clientY - svgRect.top,`
+- L120 — `anchor` — `<text x={gx + gw / 2} y={gy + gh / 2 + 3} fill="#fbbf24" fontSize="8" fontWeight="bold" textAnchor="middle">`
+- L152 — `move` — `className="cursor-move"`
+- L155 — `drag` — `setDraggingGabionKey(`${ov.id}:${side}`);`
+- L158 — `drag` — `setDragStartPos({`
+- L159 — `point` — `pointerX: e.clientX - svgRect.left,`
+- L160 — `point` — `pointerY: e.clientY - svgRect.top,`
+- L189 — `anchor` — `textAnchor="middle"`
+- L246 — `point` — `<label className="flex items-center gap-2 cursor-pointer">`
+- L386 — `move` — `const removeTier = (idx: number) => {`
+- L395 — `point` — `<label className="flex items-center gap-2 cursor-pointer">`
+- L447 — `anchor` — `<text x="200" y="110" fill="#64748b" fontSize="11" textAnchor="middle">Aucun étage configuré</text>`
+- L466 — `anchor` — `<text x={x + d / 2} y={y + h / 2 + 3} fill="#fef3c7" fontSize="8" fontWeight="bold" textAnchor="middle">Ét.{idx + 1}</text>`
+- L474 — `anchor` — `<text x="200" y="210" fill="#64748b" fontSize="9" textAnchor="middle">Hauteur totale ≈ {totalHeight.toFixed(2)} m</text>`
+- L492 — `move` — `<button type="button" onClick={() => removeTier(idx)} className="text-red-500 hover:text-red-700">`
+- L519 — `select` — `<select`
+- L526 — `select` — `</select>`
+- L551 — `drag` — `# STEP 4 — Keep the drag fallback shape consistent (drag only reads/writes`
+- L556 — `drag` — `"6. drag handler: fallback default shape for gabion sides becomes tier-based",`
+- L568 — `anchor` — `print(f"  SKIP - {s}  (anchor not found — file may already differ; check manually)")`
+### `src/pdi/README.md`
+- L12 — `port` — `- `cad/` — DXF import/export adapters`
+### `src/pdi/app/PdiApp.tsx`
+- L2 — `port` — `import React, { useState } from "react";`
+- L3 — `port` — `import PdiIsometricEditor from "../isometric/PdiIsometricEditor";`
+- L4 — `port` — `import PdiBrandMark from "./PdiBrandMark";`
+- L44 — `port` — `export default function PdiApp() {`
+- L62 — `move` — `return () => window.removeEventListener("keydown", onKeyDown);`
+- L145 — `group` — `className={`group mb-1 flex w-12 flex-col items-center rounded-md py-2 transition ${active ? "bg-cyan-500/10 text-cyan-300" : "text-slate-600 hover:bg-slate-800 hover:text-slate-300"}`}`
+- L150 — `group` — `<span className="mt-1 hidden text-[8px] leading-3 group-hover:block">{item.label}</span>`
+### `src/pdi/app/PdiBrandMark.tsx`
+- L1 — `port` — `import React, { useState } from "react";`
+- L2 — `port` — `import pdiLogoHorizontalAsset from "../../assets/images/pdi_logo_horizontal_1786833058854.jpg";`
+- L3 — `port` — `import pdiLogoSquareAsset from "../../assets/images/pdi_logo_square_1786833049529.jpg";`
+- L4 — `port` — `import {`
+- L26 — `port` — `export type PdiBrandMarkProps = {`
+- L35 — `port` — `export default function PdiBrandMark({`
+- L63 — `select` — `className={`pdi-brand-mark inline-flex items-center select-none ${className} ${onClick ? "cursor-pointer" : ""}`}`
+- L63 — `point` — `className={`pdi-brand-mark inline-flex items-center select-none ${className} ${onClick ? "cursor-pointer" : ""}`}`
+- L82 — `drag` — `draggable={false}`
+### `src/pdi/app/PdiUnifiedApp.tsx`
+- L7 — `port` — `import React, { useEffect, useMemo, useState } from "react";`
+- L34 — `move` — `keys.forEach(k => window.localStorage.removeItem(k));`
+- L52 — `point` — `<button type="button" onClick={this.resetWorkspace} style={{ marginTop: 12, border: 0, borderRadius: 14, padding: "12px 16px", fontWeight: 900, color: "white", background: "linear-gradient(135deg,#0284C7,#22D3EE)", cursor: "pointer" }}>`
+- L60 — `port` — `import PdiBrandMark from "./PdiBrandMark";`
+- L61 — `port` — `import PdiIsometricEditor from "../isometric/PdiIsometricEditor";`
+- L63 — `port` — `import PdiLandingV4 from "../landing/PdiLandingV4";`
+- L64 — `port` — `import { GoogleDriveWorkspace } from "../../components/GoogleDriveWorkspace";`
+- L65 — `port` — `import isoPiping3D from "../../assets/images/pdi_iso_piping_3d_1787006532562.jpg";`
+- L66 — `port` — `import valve3D from "../../assets/images/pdi_valve_3d_1787006543831.jpg";`
+- L67 — `port` — `import plantScan3D from "../../assets/images/pdi_plant_scan_3d_1787006555680.jpg";`
+- L68 — `port` — `import cadSpool3D from "../../assets/images/pdi_cad_spool_3d_1787006567003.jpg";`
+- L70 — `port` — `import { pdiConfirm } from "../ui/PdiConfirm";`
+- L72 — `port` — `import { pdiAlert } from "../ui/PdiNotice";`
+- L74 — `port` — `import { PdiCompanyPanel } from "../ui/PdiCompanyPanel";`
+- L123 — `move` — `function pdiRemoveProject(projectId: string) {`
+- L131 — `move` — `doomed.forEach((key) => window.localStorage.removeItem(key));`
+- L162 — `snap` — `const snap = JSON.parse(raw);`
+- L163 — `snap` — `const nodes = Array.isArray(snap?.model?.nodes) ? snap.model.nodes.length : 0;`
+- L164 — `snap` — `const segments = Array.isArray(snap?.model?.segments) ? snap.model.segments.length : 0;`
+- L166 — `port` — `// PATCH 017F2 : identification du projet porteur de la sauvegarde.`
+- L173 — `snap` — `name: String(snap?.project?.name || "Projet isometrique"),`
+- L176 — `snap` — `updatedAt: String(snap?.project?.updatedAt || "").slice(0, 16).replace("T", " "),`
+- L224 — `align` — `{ id: "isometric", title: "Dessin isométrique", subtitle: "Créer un projet manuel avec nœuds, tubes, équipements, cotations et alignements.", badge: "V4.8d1", icon: "ISO", ready: true },`
+- L225 — `port` — `{ id: "drive", title: "Google Drive & Cloud SQL", subtitle: "Synchroniser, archiver et exporter vos plans et projets ISO sur Google Drive et PostgreSQL.", badge: "Drive & SQL", icon: "DRV", ready: true },`
+- L227 — `port` — `{ id: "sketch", title: "Croquis → ISO", subtitle: "Importer un dessin à la main, extraire le réseau, valider le JSON puis générer l’ISO.", badge: "Croquis", icon: "CRQ" },`
+- L228 — `port` — `{ id: "cad", title: "Importer CAO / DXF", subtitle: "Lire un DXF/PDF, extraire calques/lignes/blocs et convertir vers JSON PD&I.", badge: "DXF/PDF", icon: "DX" },`
+- L230 — `port` — `{ id: "pdf", title: "Impression / exports", subtitle: "Préparer PDF, DXF, planches A4/A3/A2/A1, cartouche et nomenclature.", badge: "PDF/DXF", icon: "OUT" },`
+- L236 — `align` — `text: "Moteur vectoriel temps-réel, tubes DN, robinetterie, cotations automatiques et alignements spatiaux.",`
+- L268 — `port` — `text: "Exportation PDF/DXF normalisée A4/A3/A2/A1 avec nomenclature automatique (BOM).",`
+- L269 — `port` — `tag: "EXPORT",`
+- L294 — `port` — `{ id: "cad", label: "CAO", icon: "DX", title: "Import CAD/DXF/PDF" },`
+- L296 — `port` — `{ id: "pdf", label: "Export", icon: "PDF", title: "PDF / DXF / Impression" },`
+- L304 — `port` — `export default function PdiUnifiedApp() {`
+- L340 — `move` — `const activateSimulatedAccount = () => { setAuthMode("client"); try { window.localStorage.removeItem("pdi.activation.pendingToken.v1"); window.localStorage.setItem(PDI_AUTH_KEY,"client"); window.sessionStorage.setItem(PDI_STAGE_KEY,"app"); `
+- L468 — `move` — `window.sessionStorage.removeItem(PDI_STAGE_KEY);`
+- L469 — `move` — `window.localStorage.removeItem("pdi.force.app.v1");`
+- L500 — `move` — `try { window.sessionStorage.removeItem(PDI_STAGE_KEY); window.localStorage.removeItem("pdi.force.app.v1"); } catch {}`
+- L511 — `move` — `try { window.sessionStorage.removeItem(PDI_STAGE_KEY); } catch {}`
+- L522 — `move` — `return () => window.removeEventListener("pdi:navigate", onNavigate as EventListener);`
+- L542 — `port` — `// dans le logiciel, ce qui preserve le comportement existant.`
+- L549 — `align` — `<div style={{ position: "fixed", left: 100, bottom: 56, zIndex: 10040, display: "flex", alignItems: "center", gap: 6, padding: "4px 6px", borderRadius: 12, border: "1px solid rgba(103,232,249,.35)", background: "rgba(2,6,23,.92)", boxShadow`
+- L550 — `point` — `<button type="button" onClick={() => setIsoTabDockOpen(v => !v)} title="Onglets PD&I" style={{ border: "1px solid rgba(103,232,249,.35)", background: "linear-gradient(135deg,#0284C7,#22D3EE)", color: "white", borderRadius: 8, height: 24, pa`
+- L557 — `point` — `<button key={tab.id} type="button" onClick={() => switchTab(tab.id)} onDoubleClick={() => beginRenameTab(tab)} title={tab.title + " - double-clic pour renommer"} style={{ border: activeTabId === tab.id ? "1px solid #67E8F9" : "1px solid #26`
+- L562 — `point` — `{isoTabDockOpen && <button type="button" onClick={() => openModuleInTab("isometric", "Nouveau plan ISO")} title="Nouvel onglet ISO" style={{ border: "1px solid #263241", background: "#111827", color: "#CBD5E1", borderRadius: 8, height: 24, `
+- L563 — `point` — `{isoTabDockOpen && <button type="button" onClick={() => setActiveModule("projects")} title="Mes projets PD&I" style={{ border: "1px solid #263241", background: "#111827", color: "#CBD5E1", borderRadius: 8, height: 24, padding: "0 8px", font`
+- L575 — `align` — `.pdi-unified-root{height:100vh;width:100vw;overflow:hidden;background:#070B12;color:#E5EDF8;font-family:Inter,ui-sans-serif,system-ui,sans-serif;display:grid;grid-template-columns:96px 1fr;grid-template-rows:72px 40px 1fr}.pdi-unified-topba`
+- L575 — `select` — `.pdi-unified-root{height:100vh;width:100vw;overflow:hidden;background:#070B12;color:#E5EDF8;font-family:Inter,ui-sans-serif,system-ui,sans-serif;display:grid;grid-template-columns:96px 1fr;grid-template-rows:72px 40px 1fr}.pdi-unified-topba`
+- L575 — `port` — `.pdi-unified-root{height:100vh;width:100vw;overflow:hidden;background:#070B12;color:#E5EDF8;font-family:Inter,ui-sans-serif,system-ui,sans-serif;display:grid;grid-template-columns:96px 1fr;grid-template-rows:72px 40px 1fr}.pdi-unified-topba`
+- L575 — `point` — `.pdi-unified-root{height:100vh;width:100vw;overflow:hidden;background:#070B12;color:#E5EDF8;font-family:Inter,ui-sans-serif,system-ui,sans-serif;display:grid;grid-template-columns:96px 1fr;grid-template-rows:72px 40px 1fr}.pdi-unified-topba`
+- L575 — `translate` — `.pdi-unified-root{height:100vh;width:100vw;overflow:hidden;background:#070B12;color:#E5EDF8;font-family:Inter,ui-sans-serif,system-ui,sans-serif;display:grid;grid-template-columns:96px 1fr;grid-template-rows:72px 40px 1fr}.pdi-unified-topba`
+- L577 — `move` — `<header className="pdi-unified-topbar"><div className="pdi-unified-brand"><PdiBrandMark variant="horizontal" size="sm" /></div><div className="pdi-project-title"><small>Projet actif</small><strong>{moduleTitle}</strong></div><div className=`
+- L579 — `align` — `{activeModule !== "home" && <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 14px", background: "#070B12", borderBottom: "1px solid rgba(148,163,184,.14)" }}>`
+- L580 — `align` — `<button type="button" onClick={pdiGoBack017K} title="Retour au niveau precedent" style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 10px", borderRadius: 8, border: "1px solid rgba(103,232,249,.35)", background: "#0`
+- L580 — `point` — `<button type="button" onClick={pdiGoBack017K} title="Retour au niveau precedent" style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 10px", borderRadius: 8, border: "1px solid rgba(103,232,249,.35)", background: "#0`
+- L583 — `point` — `<button type="button" onClick={() => setActiveModule("home")} style={{ background: "none", border: "none", color: "#94A3B8", fontSize: 11, fontWeight: 800, cursor: "pointer", padding: 0 }}>Accueil</button>`
+- L603 — `select` — `{authPanelMode === "register" && <div className="pdi-auth-form"><input placeholder="Nom complet" value={authDraft.name} onChange={e=>setAuthDraft({...authDraft,name:e.target.value})}/><input placeholder="Email" value={authDraft.email} onCha`
+- L616 — `port` — `<p>PD&I devient le logiciel principal : dessin manuel, Vision PD&I photo/croquis, import CAO/DXF/PDF, JSON central, exports et validation engineering.</p>`
+- L657 — `port` — `{activeModule === "sketch" && <ComingSoonPanel title="Croquis → JSON / ISO"><p>Import croquis main, reconnaissance lignes/symboles, conversion vers JSON central, validation humaine, puis génération ISO.</p></ComingSoonPanel>}`
+- L658 — `port` — `{activeModule === "cad" && <ComingSoonPanel title="Import CAO / DXF / PDF"><p>Import DXF/PDF, lecture des calques et entités, conversion déterministe Python vers JSON PD&I.</p></ComingSoonPanel>}`
+- L659 — `port` — `{activeModule === "json" && <ComingSoonPanel title="Modèle JSON PD&I"><p>Le JSON devient la source de vérité : lignes, nœuds, équipements, ports, soudures, cotations, niveaux Z, massifs, dalle, exports.</p></ComingSoonPanel>}`
+- L660 — `port` — `{activeModule === "pdf" && <ComingSoonPanel title="Impression / Exports"><p>Préparation V4.8e : A4/A3/A2/A1, portrait/paysage, PDF, DXF/CAD, cartouche, nomenclature.</p></ComingSoonPanel>}`
+- L685 — `port` — `["Rapports", "Journalier + sécurité + assets PNG"]`
+- L693 — `select` — `<section className="pdi-license-form"><h3>Créer une clé</h3><label>Type<select value={licenseDraft.type} onChange={e=>setLicenseDraft({...licenseDraft,type:e.target.value})}><option>TRIAL_7</option><option>TRIAL_30</option><option>GUEST</op`
+- L705 — `align` — `<div key={entry.projectId} style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, border: "1px solid rgba(103,232,249,.35)", borderRadius: 14, padding: "10px 12px", background: "#0B111A" }}>`
+- L710 — `point` — `<button type="button" style={{ padding: "8px 12px", borderRadius: 10, border: "1px solid #7F1D1D", background: "#1F0B0B", color: "#FCA5A5", fontSize: 11, fontWeight: 900, cursor: "pointer" }} onClick={() => { pdiConfirm({ title: "Supprimer `
+- L710 — `move` — `<button type="button" style={{ padding: "8px 12px", borderRadius: 10, border: "1px solid #7F1D1D", background: "#1F0B0B", color: "#FCA5A5", fontSize: 11, fontWeight: 900, cursor: "pointer" }} onClick={() => { pdiConfirm({ title: "Supprimer `
+- L718 — `align` — `<div key={session.key} style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, border: "1px solid rgba(103,232,249,.25)", borderRadius: 14, padding: "10px 12px", background: "#0B111A" }}>`
+### `src/pdi/app/index.ts`
+- L1 — `port` — `export { default as PdiApp } from "./PdiApp";`
+### `src/pdi/branding/pdiBranding.ts`
+- L5 — `port` — `export const PDI_BRANDING_KEY = "pdi.branding.v1";`
+- L6 — `port` — `export const PDI_BRANDING_FALLBACK_COMPANY = "Societe non renseignee";`
+- L8 — `port` — `export type PdiBranding = {`
+- L17 — `port` — `export const PDI_DEFAULT_BRANDING: PdiBranding = {`
+- L26 — `port` — `export function pdiLoadBranding(): PdiBranding {`
+- L37 — `port` — `export function pdiSaveBranding(next: Partial<PdiBranding>): PdiBranding {`
+- L49 — `port` — `export function pdiCompanyName(): string {`
+- L54 — `port` — `export function pdiStandardsNote(): string {`
+- L59 — `port` — `export function pdiDocumentPrefix(): string {`
+### `src/pdi/droits/pdiDroits017L.ts`
+- L1 — `port` — `// PATCH 017L - porte des droits centrale`
+- L3 — `point` — `// Avance du 023. Un seul point de decision pour savoir si un module est`
+- L4 — `port` — `// accessible, au lieu de conditions dispersees. Aujourd hui la porte laisse`
+- L6 — `port` — `// aucun comportement existant. Le 023 y branchera les licences.`
+- L8 — `port` — `export type PdiModule017L =`
+- L35 — `port` — `export function pdiCan(module: PdiModule017L): boolean {`
+- L44 — `port` — `export function pdiSetCan017L(module: PdiModule017L, actif: boolean): void {`
+- L50 — `port` — `// stockage indisponible : la porte retombe sur les valeurs par defaut`
+- L55 — `port` — `export function pdiModulesOuverts017L(): PdiModule017L[] {`
+### `src/pdi/impression/pdiImpression017L.ts`
+- L16 — `port` — `export function pdiFeuilleImpression017L(): string {`
+- L32 — `port` — `export const PDI_STYLE_IMPRESSION_017L = [`
+- L33 — `port` — `"@media print { .pdi-no-print { display: none !important; } }",`
+### `src/pdi/isometric/IsoProfessionalWorkspace.tsx`
+- L6 — `port` — `import React from "react";`
+- L7 — `port` — `import IsoWorkspace from "./IsoWorkspace";`
+- L9 — `port` — `export const IsoProfessionalWorkspace: React.FC = () => {`
+- L13 — `port` — `export default IsoProfessionalWorkspace;`
+### `src/pdi/isometric/IsoWorkspace.tsx`
+- L6 — `port` — `import React from "react";`
+- L7 — `port` — `import IsometrieModule from "./engine/IsometrieModuleV48d";`
+- L9 — `port` — `export interface IsoWorkspaceProps {`
+- L14 — `port` — `export const IsoWorkspace: React.FC<IsoWorkspaceProps> = () => {`
+- L25 — `port` — `export default IsoWorkspace;`
+### `src/pdi/isometric/PdiIsometricEditor.tsx`
+- L14 — `port` — `import React from "react";`
+- L15 — `port` — `import IsometrieModule from "./engine/IsometrieModuleV48d";`
+- L18 — `port` — `export default function PdiIsometricEditor(props: { projectId?: string }) {`
+### `src/pdi/isometric/components/CadCommandLineBar.tsx`
+- L1 — `port` — `import React, { useState, useEffect, useRef } from "react";`
+- L2 — `port` — `import {`
+- L12 — `move` — `Move,`
+- L23 — `undo` — `Undo2,`
+- L24 — `redo` — `Redo2,`
+- L27 — `port` — `import { AUTOCAD_COMMANDS, searchCadCommands, CadCommandItem } from "../engine/CadAutocadEngine";`
+- L29 — `port` — `export interface CadCommandLineBarProps {`
+- L37 — `select` — `onSelectCommandByName?: (cmdId: string) => void;`
+- L41 — `port` — `export const CadCommandLineBar: React.FC<CadCommandLineBarProps> = ({`
+- L53 — `select` — `const [selectedIndex, setSelectedIndex] = useState(0);`
+- L56 — `history` — `const [history, setHistory] = useState<string[]>([]);`
+- L83 — `select` — `setSelectedIndex(0);`
+- L88 — `move` — `return () => window.removeEventListener("keydown", onEscape, true);`
+- L92 — `select` — `setSelectedIndex(0);`
+- L122 — `select` — `runCommandItem(suggestions[selectedIndex] || suggestions[0]);`
+- L128 — `select` — `const target = suggestions[selectedIndex] || suggestions[0];`
+- L131 — `history` — `setHistory((prev) => [trimmed, ...prev.filter((h) => h !== trimmed)].slice(0, 10));`
+- L141 — `history` — `setHistory((prev) => [payload, ...prev.filter((h) => h !== payload)].slice(0, 10));`
+- L151 — `select` — `setSelectedIndex((prev) => (prev + 1) % Math.max(1, suggestions.length));`
+- L154 — `select` — `setSelectedIndex((prev) => (prev - 1 + suggestions.length) % Math.max(1, suggestions.length));`
+- L165 — `select` — `const top = suggestions[selectedIndex] || suggestions[0];`
+- L179 — `move` — `case "Move": return <Move className="w-3.5 h-3.5 text-blue-400" />;`
+- L187 — `undo` — `case "Undo2": return <Undo2 className="w-3.5 h-3.5 text-rose-400" />;`
+- L188 — `redo` — `case "Redo2": return <Redo2 className="w-3.5 h-3.5 text-cyan-400" />;`
+- L195 — `select` — `<div className={`pdi-cad-command-wrapper relative select-none ${className}`}>`
+- L211 — `select` — `const isSelected = idx === selectedIndex;`
+- L217 — `select` — `onMouseEnter={() => setSelectedIndex(idx)}`
+- L218 — `point` — `className={`w-full text-left px-3 py-2 rounded-lg flex items-center justify-between gap-3 transition-colors cursor-pointer ${`
+- L219 — `select` — `isSelected ? "bg-cyan-950/90 text-white border border-cyan-500/50 shadow-inner" : "hover:bg-slate-800/70 text-slate-200"`
+- L328 — `translate` — `className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"`
+- L379 — `point` — `className="px-2 py-1 bg-cyan-600 hover:bg-cyan-500 active:bg-cyan-700 text-white rounded-lg text-[10px] font-bold font-mono flex items-center gap-1 shadow transition-colors cursor-pointer shrink-0 h-7"`
+### `src/pdi/isometric/components/CadShapeToolbar.tsx`
+- L1 — `port` — `import React, { useState, useRef, useEffect } from "react";`
+- L2 — `port` — `import {`
+- L19 — `port` — `import { TriangleType, ArcCreationMode } from "../engine/CadAutocadEngine";`
+- L21 — `port` — `export interface CadShapeToolbarProps {`
+- L29 — `selection` — `onCopySelection: () => void;`
+- L29 — `select` — `onCopySelection: () => void;`
+- L30 — `point` — `onStartPasteAtPoint: () => void;`
+- L31 — `selection` — `onDeleteSelection: () => void;`
+- L31 — `select` — `onDeleteSelection: () => void;`
+- L32 — `selection` — `hasSelection: boolean;`
+- L32 — `select` — `hasSelection: boolean;`
+- L36 — `port` — `export const CadShapeToolbar: React.FC<CadShapeToolbarProps> = ({`
+- L44 — `selection` — `onCopySelection,`
+- L44 — `select` — `onCopySelection,`
+- L45 — `point` — `onStartPasteAtPoint,`
+- L46 — `selection` — `onDeleteSelection,`
+- L46 — `select` — `onDeleteSelection,`
+- L47 — `selection` — `hasSelection,`
+- L47 — `select` — `hasSelection,`
+- L66 — `move` — `return () => window.removeEventListener("click", handleClickOutside);`
+- L69 — `point` — `const handlePointerDown = (openMenu: () => void) => {`
+- L78 — `point` — `const handlePointerUp = () => {`
+- L87 — `select` — `className={`pdi-cad-shape-toolbar bg-slate-950/90 backdrop-blur-md border border-slate-800 rounded-2xl p-1.5 shadow-2xl flex flex-wrap items-center gap-1 text-xs select-none ${className}`}`
+- L101 — `point` — `className={`px-2.5 py-1.5 rounded-xl font-bold font-mono text-[11px] flex items-center gap-1.5 transition-all cursor-pointer ${`
+- L106 — `point` — `title="Rectangle interactif style AutoCAD : 1er point -> Direction/Longueur L -> Direction/Largeur W"`
+- L112 — `point` — `{/* TRIANGLE (With Long-Press & Dropdown for Equilateral, Right, Isosceles, 3 points) */}`
+- L117 — `point` — `onPointerDown={() => handlePointerDown(() => setTriangleMenuOpen(true))}`
+- L118 — `point` — `onPointerUp={handlePointerUp}`
+- L119 — `point` — `onPointerLeave={handlePointerUp}`
+- L125 — `point` — `className={`px-2.5 py-1.5 rounded-l-xl font-bold font-mono text-[11px] flex items-center gap-1.5 transition-all cursor-pointer ${`
+- L130 — `point` — `title="Triangle : Clic simple pour Équilatéral, ou appui long pour choisir le type (Rectangle, Isocèle, 3 points)"`
+- L143 — `point` — `className={`px-1 py-1.5 rounded-r-xl border-y border-r border-slate-700/80 transition-colors cursor-pointer ${`
+- L223 — `point` — `<span>Triangle par 3 Points</span>`
+- L232 — `selection` — `{/* POLYGON (With Long-Press & Sides count selection: 3 to 32) */}`
+- L232 — `select` — `{/* POLYGON (With Long-Press & Sides count selection: 3 to 32) */}`
+- L237 — `point` — `onPointerDown={() => handlePointerDown(() => setPolygonMenuOpen(true))}`
+- L238 — `point` — `onPointerUp={handlePointerUp}`
+- L239 — `point` — `onPointerLeave={handlePointerUp}`
+- L245 — `point` — `className={`px-2.5 py-1.5 rounded-l-xl font-bold font-mono text-[11px] flex items-center gap-1.5 transition-all cursor-pointer ${`
+- L263 — `point` — `className={`px-1 py-1.5 rounded-r-xl border-y border-r border-slate-700/80 transition-colors cursor-pointer ${`
+- L334 — `point` — `{/* ARC (With Long-Press & Dropdown for 3-Points or Center-Radius-Angle) */}`
+- L339 — `point` — `onPointerDown={() => handlePointerDown(() => setArcMenuOpen(true))}`
+- L340 — `point` — `onPointerUp={handlePointerUp}`
+- L341 — `point` — `onPointerLeave={handlePointerUp}`
+- L344 — `point` — `onStartArc("3points");`
+- L347 — `point` — `className={`px-2.5 py-1.5 rounded-l-xl font-bold font-mono text-[11px] flex items-center gap-1.5 transition-all cursor-pointer ${`
+- L352 — `point` — `title="Arc de cercle : Clic pour Arc par 3 points, ou appui long pour mode Centre/Rayon/Angle"`
+- L365 — `point` — `className={`px-1 py-1.5 rounded-r-xl border-y border-r border-slate-700/80 transition-colors cursor-pointer ${`
+- L385 — `point` — `onStartArc("3points");`
+- L392 — `point` — `<span>Arc par 3 Points</span>`
+- L470 — `selection` — `onClick={onCopySelection}`
+- L470 — `select` — `onClick={onCopySelection}`
+- L471 — `selection` — `disabled={!hasSelection}`
+- L471 — `select` — `disabled={!hasSelection}`
+- L473 — `sélection` — `title="Copier la sélection dans le presse-papiers (Ctrl+C / Commande: copier)"`
+- L481 — `point` — `onClick={onStartPasteAtPoint}`
+- L483 — `point` — `title="Coller au point cliqué sur le plan (Ctrl+V / Commande: collez)"`
+- L491 — `selection` — `onClick={onDeleteSelection}`
+- L491 — `select` — `onClick={onDeleteSelection}`
+- L492 — `selection` — `disabled={!hasSelection}`
+- L492 — `select` — `disabled={!hasSelection}`
+- L494 — `sélection` — `title="Supprimer la sélection (Suppr / Commande: effacer)"`
+### `src/pdi/isometric/engine/CadAutocadEngine.ts`
+- L6 — `port` — `export type TriangleType = "equilateral" | "rectangle" | "isocele" | "scalene" | "3pts";`
+- L7 — `port` — `export type ArcCreationMode = "3points" | "center_radius_angle" | "start_end_radius";`
+- L7 — `point` — `export type ArcCreationMode = "3points" | "center_radius_angle" | "start_end_radius";`
+- L9 — `port` — `export interface Cad2dPoint {`
+- L9 — `point` — `export interface Cad2dPoint {`
+- L14 — `point` — `/** Distance euclidienne entre 2 points 2D */`
+- L15 — `port` — `export function cadDist(a: Cad2dPoint, b: Cad2dPoint): number {`
+- L15 — `point` — `export function cadDist(a: Cad2dPoint, b: Cad2dPoint): number {`
+- L20 — `port` — `export function cadAngleDeg(a: Cad2dPoint, b: Cad2dPoint): number {`
+- L20 — `point` — `export function cadAngleDeg(a: Cad2dPoint, b: Cad2dPoint): number {`
+- L24 — `point` — `/** Rotation d'un point autour d'un pivot en degrés */`
+- L24 — `rotation` — `/** Rotation d'un point autour d'un pivot en degrés */`
+- L25 — `port` — `export function cadRotatePoint(point: Cad2dPoint, pivot: Cad2dPoint, angleDeg: number): Cad2dPoint {`
+- L25 — `point` — `export function cadRotatePoint(point: Cad2dPoint, pivot: Cad2dPoint, angleDeg: number): Cad2dPoint {`
+- L29 — `point` — `const dx = point.x - pivot.x;`
+- L30 — `point` — `const dy = point.y - pivot.y;`
+- L38 — `point` — `* Génère un triangle équilatéral à partir de 2 points (base ou centre/sommet)`
+- L40 — `port` — `export function buildEquilateralTriangle(p1: Cad2dPoint, p2: Cad2dPoint): Cad2dPoint[] {`
+- L40 — `point` — `export function buildEquilateralTriangle(p1: Cad2dPoint, p2: Cad2dPoint): Cad2dPoint[] {`
+- L43 — `point` — `const p3 = cadRotatePoint(p2, p1, 60);`
+- L53 — `port` — `export function buildRightTriangle(p1: Cad2dPoint, p2: Cad2dPoint, height: number = 0, mousePoint?: Cad2dPoint): Cad2dPoint[] {`
+- L53 — `point` — `export function buildRightTriangle(p1: Cad2dPoint, p2: Cad2dPoint, height: number = 0, mousePoint?: Cad2dPoint): Cad2dPoint[] {`
+- L64 — `point` — `if (mousePoint) {`
+- L65 — `point` — `const dot = (mousePoint.x - p1.x) * nx + (mousePoint.y - p1.y) * ny;`
+- L71 — `point` — `const h = Math.abs(height) > 0.001 ? Math.abs(height) : (mousePoint ? Math.max(0.2, Math.abs((mousePoint.x - p1.x) * nx + (mousePoint.y - p1.y) * ny)) : baseLen * 0.75);`
+- L72 — `point` — `const p3: Cad2dPoint = {`
+- L84 — `port` — `export function buildIsoscelesTriangle(p1: Cad2dPoint, p2: Cad2dPoint, height: number = 0, mousePoint?: Cad2dPoint): Cad2dPoint[] {`
+- L84 — `point` — `export function buildIsoscelesTriangle(p1: Cad2dPoint, p2: Cad2dPoint, height: number = 0, mousePoint?: Cad2dPoint): Cad2dPoint[] {`
+- L96 — `point` — `if (mousePoint) {`
+- L97 — `point` — `const dot = (mousePoint.x - mx) * nx + (mousePoint.y - my) * ny;`
+- L103 — `point` — `const h = Math.abs(height) > 0.001 ? Math.abs(height) : (mousePoint ? Math.max(0.2, Math.abs((mousePoint.x - mx) * nx + (mousePoint.y - my) * ny)) : baseLen * 0.86);`
+- L104 — `point` — `const p3: Cad2dPoint = {`
+- L114 — `port` — `export function buildRegularPolygon(center: Cad2dPoint, radiusPoint: Cad2dPoint, sides: number = 6): Cad2dPoint[] {`
+- L114 — `point` — `export function buildRegularPolygon(center: Cad2dPoint, radiusPoint: Cad2dPoint, sides: number = 6): Cad2dPoint[] {`
+- L116 — `point` — `const radius = cadDist(center, radiusPoint);`
+- L119 — `point` — `const pts: Cad2dPoint[] = [];`
+- L130 — `point` — `const startAngle = Math.atan2(radiusPoint.y - center.y, radiusPoint.x - center.x);`
+- L131 — `point` — `const pts: Cad2dPoint[] = [];`
+- L145 — `point` — `* 1er point cliqué (P1)`
+- L146 — `point` — `* 2ème point ou direction souris pour Côté 1 (Longueur L)`
+- L147 — `point` — `* 3ème point ou direction souris pour Côté 2 (Largeur W)`
+- L149 — `port` — `export function buildAutocadRectangle(`
+- L150 — `point` — `p1: Cad2dPoint,`
+- L151 — `point` — `dirPoint1: Cad2dPoint,`
+- L153 — `point` — `dirPoint2?: Cad2dPoint,`
+- L155 — `point` — `): { points: Cad2dPoint[]; p1: Cad2dPoint; p2: Cad2dPoint; p3: Cad2dPoint; p4: Cad2dPoint; length: number; width: number } {`
+- L156 — `point` — `const rawDist1 = cadDist(p1, dirPoint1);`
+- L161 — `point` — `ux = (dirPoint1.x - p1.x) / rawDist1;`
+- L162 — `point` — `uy = (dirPoint1.y - p1.y) / rawDist1;`
+- L164 — `point` — `const p2: Cad2dPoint = {`
+- L172 — `point` — `if (dirPoint2) {`
+- L173 — `point` — `const dot = (dirPoint2.x - p1.x) * nx + (dirPoint2.y - p1.y) * ny;`
+- L183 — `point` — `} else if (dirPoint2) {`
+- L184 — `point` — `actualWidth = Math.max(0.1, Math.abs((dirPoint2.x - p1.x) * nx + (dirPoint2.y - p1.y) * ny));`
+- L189 — `point` — `const p3: Cad2dPoint = {`
+- L193 — `point` — `const p4: Cad2dPoint = {`
+- L199 — `point` — `points: [p1, p2, p3, p4, p1],`
+- L210 — `point` — `* Calcule le centre, le rayon et les angles de départ/fin d'un arc passant par 3 points (P1 -> P2 -> P3)`
+- L212 — `port` — `export function calculate3PointArc(`
+- L212 — `point` — `export function calculate3PointArc(`
+- L213 — `point` — `p1: Cad2dPoint,`
+- L214 — `point` — `p2: Cad2dPoint,`
+- L215 — `point` — `p3: Cad2dPoint`
+- L216 — `point` — `): { center: Cad2dPoint; radius: number; startAngle: number; endAngle: number } | null {`
+- L219 — `point` — `// Points colinéaires`
+- L228 — `point` — `const center: Cad2dPoint = { x: Number(cx.toFixed(3)), y: Number(cy.toFixed(3)) };`
+- L251 — `port` — `export interface CadCommandItem {`
+- L261 — `port` — `export const AUTOCAD_COMMANDS: CadCommandItem[] = [`
+- L267 — `sélection` — `description: "Copie les nœuds, tronçons ou objets 2D sélectionnés",`
+- L276 — `point` — `description: "Colle le presse-papiers avec choix du point par clic souris",`
+- L282 — `move` — `id: "move",`
+- L284 — `move` — `aliases: ["M", "MOVE", "DEPLACE", "TRANSLATION"],`
+- L285 — `sélection` — `description: "Déplace la sélection d'un point de base vers une cible au clic",`
+- L285 — `point` — `description: "Déplace la sélection d'un point de base vers une cible au clic",`
+- L288 — `move` — `icon: "Move",`
+- L294 — `sélection` — `description: "Supprime les éléments sélectionnés du plan",`
+- L303 — `sélection` — `description: "Duplique immédiatement la sélection avec un décalage",`
+- L310 — `rotation` — `name: "ROTATION",`
+- L312 — `sélection` — `description: "Fait pivoter les éléments sélectionnés (+15°, +45°, +90°)",`
+- L321 — `sélection` — `description: "Applique une symétrie miroir horizontale sur la sélection",`
+- L327 — `undo` — `id: "undo",`
+- L329 — `undo` — `aliases: ["U", "UNDO", "RETOUR"],`
+- L333 — `undo` — `icon: "Undo2",`
+- L336 — `redo` — `id: "redo",`
+- L338 — `redo` — `aliases: ["REDO", "RE", "AVANCER"],`
+- L342 — `redo` — `icon: "Redo2",`
+- L350 — `point` — `description: "Dessine un rectangle interactif (Point 1 -> Longueur -> Largeur)",`
+- L359 — `point` — `description: "Dessine un triangle (équilatéral, rectangle, isocèle, 3 points)",`
+- L377 — `point` — `description: "Dessine une ligne 2D entre deux points",`
+- L404 — `point` — `description: "Dessine un arc de cercle (par 3 points ou Centre-Rayon-Angle)",`
+- L422 — `point` — `description: "Place une cotation dimensionnelle entre 2 points/ancres",`
+- L441 — `point` — `aliases: ["N", "NODE", "NOEUD", "POINT"],`
+- L442 — `point` — `description: "Crée un nœud ou point de connexion",`
+- L545 — `selection` — `description: "Tague la selection : TAG [service] [spec], ex TAG HC CS300",`
+- L545 — `select` — `description: "Tague la selection : TAG [service] [spec], ex TAG HC CS300",`
+- L554 — `selection` — `description: "Affecte le service/fluide a la selection, ex SERVICE HC",`
+- L554 — `select` — `description: "Affecte le service/fluide a la selection, ex SERVICE HC",`
+- L563 — `selection` — `description: "Affecte la spec tuyauterie a la selection, ex SPEC CS300",`
+- L563 — `select` — `description: "Affecte la spec tuyauterie a la selection, ex SPEC CS300",`
+- L581 — `selection` — `description: "Ouvre l inspecteur de proprietes de l element selectionne",`
+- … 47 occurrences supplémentaires.
+### `src/pdi/isometric/engine/IsometrieModuleV48d.tsx`
+- L10 — `port` — `import React, { useEffect, useMemo, useRef, useState } from "react";`
+- L11 — `port` — `import { onAuthStateChanged } from "firebase/auth";`
+- L13 — `port` — `import { pdiCompanyName, pdiStandardsNote } from "../../branding/pdiBranding";`
+- L15 — `port` — `import {`
+- L16 — `snap` — `PDI_SNAP_TOL_PX,`
+- L18 — `snap` — `pdiSnapValue,`
+- L19 — `snap` — `pdiSnapDirectionIso,`
+- L23 — `port` — `import { pdiReorientPorts, pdiTolViewBox } from "./pdiPorts017P2";`
+- L24 — `port` — `import { pdiIsoAxisDirs017P3, pdiNodeRadius017P3, pdiNodeHasFaceOffset017P3, PDI_METRE_CONVENTION_017P3 } from "./pdiAxes017P3";`
+- L25 — `port` — `import { PDI_PATCH_VERSION } from "../../pdiVersion";`
+- L26 — `port` — `import { pdiGlyphScale017P5 } from "./pdiGlyphes017P5";`
+- L28 — `port` — `import { pdiUnifyAnomalies017P9, pdiAnomalieKind017P9, pdiAnomalieLibelle017P9 } from "./pdiAnomalies017P9";`
+- L30 — `port` — `import { pdiValiderLongueur017P10, pdiValiderDn017P10, pdiEcartAccrochage017P10 } from "./pdiSaisie017P10";`
+- L32 — `groupe` — `import { PDI_ONGLETS_RUBAN_017M, PDI_INVITE_COMMANDE_017M, pdiGroupesOnglet017M, pdiEntreesGroupe017M } from "./pdiRegistreCommandes.v1";`
+- L32 — `group` — `import { PDI_ONGLETS_RUBAN_017M, PDI_INVITE_COMMANDE_017M, pdiGroupesOnglet017M, pdiEntreesGroupe017M } from "./pdiRegistreCommandes.v1";`
+- L32 — `port` — `import { PDI_ONGLETS_RUBAN_017M, PDI_INVITE_COMMANDE_017M, pdiGroupesOnglet017M, pdiEntreesGroupe017M } from "./pdiRegistreCommandes.v1";`
+- L33 — `port` — `import { PDI_CLASSES_B165_017K3, PDI_DESIGNATIONS_PN_017K3, PDI_CLASSE_PAR_DEFAUT_017K3, pdiClasseDeSpec017K3, pdiMateriauDeSpec017K3, pdiClasseConforme017K3, pdiMessageDerogation017K3 } from "./pdiClassePression017K3";`
+- L34 — `port` — `import type { PdiEntreeRuban017M } from "./pdiRegistreCommandes.v1";`
+- L35 — `port` — `import { auth } from "../../../lib/firebase";`
+- L36 — `port` — `import {`
+- L42 — `port` — `import PdiBrandMark from "../../app/PdiBrandMark";`
+- L43 — `align` — `// V4.8d_DIMENSIONS_ALIGNMENT : logos PD & I réels haute définition.`
+- L45 — `port` — `import {`
+- L47 — `move` — `RefreshCw, Maximize2, ZoomIn, ZoomOut, Move, Pencil, Save,`
+- L48 — `undo` — `X, GitBranch, Settings2, CircleDot, Flame, Waypoints, Info, Hand, MousePointer2, Undo2, Redo2,`
+- L48 — `redo` — `X, GitBranch, Settings2, CircleDot, Flame, Waypoints, Info, Hand, MousePointer2, Undo2, Redo2,`
+- L48 — `point` — `X, GitBranch, Settings2, CircleDot, Flame, Waypoints, Info, Hand, MousePointer2, Undo2, Redo2,`
+- L55 — `port` — `import {`
+- L67 — `point` — `calculate3PointArc,`
+- L71 — `port` — `import { CadCommandLineBar } from "../components/CadCommandLineBar";`
+- L72 — `port` — `import { CadShapeToolbar } from "../components/CadShapeToolbar";`
+- L73 — `port` — `import {`
+- L82 — `port` — `import type { PdiProjectSetup } from "./pdiTagging";`
+- L84 — `port` — `import { pdiAlert } from "../../ui/PdiNotice";`
+- L86 — `IsoNode` — `export type IsoNodeType =`
+- L86 — `port` — `export type IsoNodeType =`
+- L90 — `IsoNode` — `export interface IsoNode {`
+- L90 — `port` — `export interface IsoNode {`
+- L97 — `IsoNode` — `type: IsoNodeType;`
+- L104 — `rotation` — `rotation?: number;`
+- L105 — `align` — `// V4.8d_DIMENSIONS_ALIGNMENT : orientation graphique persistante.`
+- L109 — `port` — `ports?: IsoPort[];`
+- L119 — `fitting` — `export type IsoFittingType =`
+- L119 — `port` — `export type IsoFittingType =`
+- L130 — `fitting` — `export interface IsoFitting {`
+- L130 — `port` — `export interface IsoFitting {`
+- L132 — `fitting` — `type: IsoFittingType;`
+- L143 — `IsoSegment` — `export interface IsoSegment {`
+- L143 — `port` — `export interface IsoSegment {`
+- L146 — `port` — `fromPortId?: string;`
+- L148 — `port` — `toPortId?: string;`
+- L154 — `fitting` — `fittings: IsoFitting[];`
+- L171 — `port` — `export interface PipingLine {`
+- L188 — `port` — `export type Cad2dEntityType = "line" | "polyline" | "circle" | "arc" | "triangle" | "polygon" | "rectangle" | "text";`
+- L189 — `port` — `export type Cad2dPoint = { x: number; y: number };`
+- L189 — `point` — `export type Cad2dPoint = { x: number; y: number };`
+- L190 — `port` — `export type Cad2dEntity = {`
+- L208 — `point` — `points?: Cad2dPoint[];`
+- L209 — `point` — `center?: Cad2dPoint;`
+- L217 — `align` — `textAlign?: "left" | "center" | "right";`
+- L218 — `rotation` — `rotation?: number;`
+- L234 — `port` — `export interface CadDraftSession {`
+- L235 — `move` — `tool: Cad2dEntityType | "paste_target" | "move_target";`
+- L244 — `point` — `points: Cad2dPoint[];`
+- L245 — `point` — `center?: Cad2dPoint;`
+- L250 — `point` — `mouseWorld: Cad2dPoint;`
+- L253 — `port` — `export type Cad2dLayer = {`
+- L262 — `port` — `export type JointConnectionType = "butt_weld"|"socket_weld"|"fillet_weld"|"flanged"|"threaded"|"mechanical"|"unknown";`
+- L263 — `port` — `export interface PipingJoint {`
+- L266 — `point` — `endpoint: "from"|"to";`
+- L268 — `port` — `portId: string;`
+- L275 — `port` — `export interface GraphIssue {`
+- L283 — `align` — `// V4.8d — cotations persistantes et outils d’alignement.`
+- L284 — `anchor` — `export type IsoDimensionAnchor = {`
+- L284 — `port` — `export type IsoDimensionAnchor = {`
+- L285 — `port` — `kind: "node" | "port";`
+- L287 — `port` — `portId?: string;`
+- L290 — `port` — `export interface IsoDimension {`
+- L293 — `anchor` — `a: IsoDimensionAnchor;`
+- L294 — `anchor` — `b: IsoDimensionAnchor;`
+- L301 — `port` — `export interface IsoProjectFileV474 {`
+- L303 — `port` — `exportedAt: string;`
+- L308 — `IsoNode` — `model: { lines: PipingLine[]; nodes: IsoNode[]; segments: IsoSegment[]; dimensions?: IsoDimension[]; cad2d?: { layers: Cad2dLayer[]; entities: Cad2dEntity[]; }; };`
+- L308 — `IsoSegment` — `model: { lines: PipingLine[]; nodes: IsoNode[]; segments: IsoSegment[]; dimensions?: IsoDimension[]; cad2d?: { layers: Cad2dLayer[]; entities: Cad2dEntity[]; }; };`
+- L311 — `snap` — `showLabels:boolean; showWelds:boolean; isoSnapStep:number;`
+- L312 — `port` — `viewport:{zoom:number;panX:number;panY:number};`
+- L334 — `fitting` — `const FITTING_LABELS: Record<IsoFittingType,string> = {`
+- L353 — `fitting` — `const FITTING_TYPES = Object.keys(FITTING_LABELS) as IsoFittingType[];`
+- L360 — `IsoNode` — `name:string, x:number, y:number, z:number, type:IsoNodeType="normal"`
+- L361 — `IsoNode` — `):IsoNode => ({id:uid("node"),name,x,y,z,type,ports:defaultFreeNodePorts()});`
+- L361 — `port` — `):IsoNode => ({id:uid("node"),name,x,y,z,type,ports:defaultFreeNodePorts()});`
+- L363 — `fitting` — `const makeFitting = (`
+- L364 — `fitting` — `type:IsoFittingType, localPosition:number, dn:number`
+- L365 — `fitting` — `):IsoFitting => ({`
+- L366 — `fitting` — `id:uid("fit"), type, label:FITTING_LABELS[type],`
+- L372 — `port` — `/* === ISO V4.5 : NOEUDS TECHNIQUES + PORTS === */`
+- L373 — `fitting` — `export type IsoEquipmentType = IsoFittingType;`
+- L373 — `port` — `export type IsoEquipmentType = IsoFittingType;`
+- L374 — `port` — `export type IsoPortRole = "inline-in" | "inline-out" | "branch" | "aux";`
+- L375 — `port` — `export interface IsoPort {`
+- … 2401 occurrences supplémentaires.
+### `src/pdi/isometric/engine/pdiAnomalies017P9.ts`
+- L13 — `point` — `// jeu (b), sans doublon. Resultat : 11 codes, une seule liste, quatre points`
+- L18 — `port` — `export type PdiSeverite017P9 = "error" | "warning";`
+- L20 — `port` — `export interface PdiAnomalie017P9 {`
+- L28 — `IsoNode` — `// Vues minimales des entites. On ne reimporte pas IsoNode / IsoSegment depuis`
+- L28 — `IsoSegment` — `// Vues minimales des entites. On ne reimporte pas IsoNode / IsoSegment depuis`
+- L28 — `port` — `// Vues minimales des entites. On ne reimporte pas IsoNode / IsoSegment depuis`
+- L30 — `port` — `export interface PdiNoeudVu017P9 {`
+- L37 — `port` — `export interface PdiTronconVu017P9 {`
+- L49 — `port` — `export const PDI_ANOMALIE_CODES_017P9 = [`
+- L51 — `port` — `"MISSING_PORT",`
+- L54 — `port` — `"PORT_CAPACITY",`
+- L64 — `port` — `export const PDI_ANOMALIE_LIBELLES_017P9: Record<string, string> = {`
+- L66 — `port` — `MISSING_PORT: "Port invalide",`
+- L69 — `port` — `PORT_CAPACITY: "Port surcharge",`
+- L78 — `port` — `export function pdiAnomalieLibelle017P9(issue: PdiAnomalie017P9): string {`
+- L82 — `selection` — `// Le volet Anomalies a besoin de savoir s il doit selectionner un noeud ou un`
+- L82 — `select` — `// Le volet Anomalies a besoin de savoir s il doit selectionner un noeud ou un`
+- L84 — `port` — `export function pdiAnomalieKind017P9(`
+- L101 — `port` — `export function pdiUnifyAnomalies017P9(`
+- L176 — `port` — `// le volet signalait tous les noeuds. On garde la portee large, sans`
+### `src/pdi/isometric/engine/pdiAxes017P3.ts`
+- L6 — `port` — `export type PdiAxisKey017P3 = "X" | "Y" | "Z";`
+- L8 — `port` — `export type PdiAxisDir017P3 = {`
+- L16 — `port` — `export const PDI_AXIS_COLORS_017P3: Record<PdiAxisKey017P3, string> = {`
+- L22 — `port` — `export const pdiIsoAxisDirs017P3 = (cos: number, sin: number): PdiAxisDir017P3[] => [`
+- L29 — `port` — `export const PDI_NODE_RADIUS_MIN_017P3 = 3;`
+- L30 — `port` — `export const PDI_NODE_RADIUS_MAX_017P3 = 10;`
+- L32 — `port` — `export const pdiNodeRadius017P3 = (zoom: number, isSel?: boolean, isHov?: boolean) => {`
+- L40 — `point` — `// Regle metier ISO : un changement de direction est un POINT, pas une piece.`
+- L42 — `port` — `export const pdiNodeHasFaceOffset017P3 = (`
+- L46 — `port` — `export const PDI_METRE_CONVENTION_017P3 =`
+### `src/pdi/isometric/engine/pdiClassePression017K3.ts`
+- L10 — `groupe` — `//     determine en entrant dans la table pression-temperature du groupe de`
+- L10 — `group` — `//     determine en entrant dans la table pression-temperature du groupe de`
+- L24 — `port` — `import { PDI_DEFAULT_SPECS, pdiFindSpec } from "./pdiTagging";`
+- L25 — `port` — `import type { PdiProjectSetup } from "./pdiTagging";`
+- L28 — `port` — `export const PDI_CLASSES_B165_017K3: string[] = [`
+- L42 — `port` — `export const PDI_DESIGNATIONS_PN_017K3: string[] = ["PN16", "PN40"];`
+- L45 — `port` — `export const PDI_CLASSE_PAR_DEFAUT_017K3: string =`
+- L49 — `port` — `export const PDI_MATERIAU_PAR_DEFAUT_017K3: string =`
+- L63 — `port` — `export function pdiClasseDeSpec017K3(`
+- L72 — `port` — `export function pdiMateriauDeSpec017K3(`
+- L81 — `port` — `export function pdiClasseConforme017K3(`
+- L90 — `port` — `* Message de derogation. On n interdit pas : un projet reel comporte des`
+- L93 — `port` — `export function pdiMessageDerogation017K3(`
+### `src/pdi/isometric/engine/pdiGlyphes017P5.ts`
+- L1 — `fitting` — `// Echelle des glyphes de fittings, derivee de la position reelle des ports.`
+- L1 — `port` — `// Echelle des glyphes de fittings, derivee de la position reelle des ports.`
+- L4 — `fitting` — `// Demi-taille nominale des glyphes de getFittingSvgGraphic, en unites SVG.`
+- L5 — `port` — `export const PDI_GLYPHE_DEMI_NOMINALE_017P5 = 7;`
+- L8 — `port` — `export const PDI_GLYPHE_SCALE_MIN_017P5 = 0.9;`
+- L9 — `port` — `export const PDI_GLYPHE_SCALE_MAX_017P5 = 40;`
+- L11 — `port` — `export type PdiGlyphPort017P5 = { sx: number; sy: number };`
+- L14 — `port` — `// nominale couvre la distance ecran moyenne centre -> ports.`
+- L15 — `port` — `export function pdiGlyphScale017P5(`
+- L16 — `port` — `ports: PdiGlyphPort017P5[] | null | undefined,`
+- L19 — `port` — `if (!ports || ports.length === 0) return defaut;`
+- L22 — `port` — `for (const port of ports) {`
+- L23 — `port` — `const d = Math.hypot(Number(port.sx) || 0, Number(port.sy) || 0);`
+### `src/pdi/isometric/engine/pdiPorts017P2.ts`
+- L1 — `port` — `// PATCH 017P2 - reorientation geometrique des ports et des coudes.`
+- L4 — `port` — `export type PdiPortLike = { id: string; index: number; role?: string; dx: number; dy: number; dz: number };`
+- L6 — `port` — `export type PdiNodeLike = {`
+- L11 — `rotation` — `rotation?: number;`
+- L14 — `port` — `ports?: PdiPortLike[];`
+- L17 — `port` — `export type PdiSegmentLike = {`
+- L21 — `port` — `fromPortId?: string;`
+- L22 — `port` — `toPortId?: string;`
+- L26 — `port` — `export const PDI_ELBOW_CATALOG: Array<{ type: string; angle: number }> = [`
+- L33 — `port` — `export const PDI_ELBOW_RESIDUAL_MAX_DEG = 5;`
+- L40 — `port` — `export const pdiTolViewBox = (tolPx: number, elementWidthPx: number, viewBoxWidth = 620) => {`
+- L45 — `port` — `export const pdiUnitDir = (`
+- L56 — `rotation` — `// Adapte un coude a la geometrie : on deduit rotation et sens de coude des`
+- L58 — `port` — `export const pdiFitElbow = (`
+- L74 — `rotation` — `rotation: r3(((rot % 360) + 360) % 360),`
+- L81 — `port` — `// Les ports de piquage (role branch) et les equipements non coudes sont`
+- L83 — `port` — `export const pdiReorientPorts = <N extends PdiNodeLike, S extends PdiSegmentLike>(`
+- L91 — `port` — `const links = new Map<string, Array<{ portId?: string; otherId: string }>>();`
+- L92 — `port` — `const push = (id: string, link: { portId?: string; otherId: string }) => {`
+- L99 — `port` — `push(s.fromNodeId, { portId: s.fromPortId, otherId: s.toNodeId });`
+- L100 — `port` — `push(s.toNodeId, { portId: s.toPortId, otherId: s.fromNodeId });`
+- L118 — `rotation` — `if (node.equipmentType === fit.equipmentType && r3(node.rotation || 0) === fit.rotation && sameBend) return node;`
+- L120 — `rotation` — `return { ...node, equipmentType: fit.equipmentType, rotation: fit.rotation, bendDirection: fit.bendDirection } as unknown as N;`
+- L123 — `port` — `if (!node.ports || !node.ports.length) return node;`
+- L124 — `rotation` — `const angle = ((node.rotation || 0) * Math.PI) / 180;`
+- L128 — `port` — `const ports = node.ports.map((port) => {`
+- L129 — `port` — `const link = ls.find((l) => l.portId === port.id);`
+- L130 — `port` — `if (!link || port.role === "branch") return port;`
+- L132 — `port` — `if (!other) return port;`
+- L137 — `port` — `if (dx === r3(port.dx) && dy === r3(port.dy) && dz === r3(port.dz)) return port;`
+- L139 — `port` — `return { ...port, dx, dy, dz };`
+- L143 — `port` — `return { ...node, ports } as unknown as N;`
+- L148 — `point` — `// Controle de coherence : une face qui ne pointe pas vers son voisin.`
+- L149 — `port` — `export const pdiAuditPorts = <N extends PdiNodeLike, S extends PdiSegmentLike>(`
+- L160 — `port` — `const port = (a.ports || []).find((p) => p.id === s.fromPortId);`
+- L161 — `port` — `if (!port || port.role === "branch") continue;`
+- L162 — `rotation` — `const angle = ((a.rotation || 0) * Math.PI) / 180;`
+- L165 — `port` — `const wx = port.dx * c - port.dy * sn;`
+- L166 — `port` — `const wy = port.dx * sn + port.dy * c;`
+- L167 — `port` — `const n1 = Math.hypot(wx, wy, port.dz) || 1;`
+- L169 — `port` — `const dot = (wx / n1) * d.x + (wy / n1) * d.y + (port.dz / n1) * d.z;`
+### `src/pdi/isometric/engine/pdiPrecision017P.ts`
+- L6 — `port` — `export type PdiVec3 = { x: number; y: number; z: number };`
+- L8 — `snap` — `export const PDI_SNAP_TOL_PX = {`
+- L8 — `port` — `export const PDI_SNAP_TOL_PX = {`
+- L9 — `port` — `PORT: 14,`
+- L10 — `point` — `ENDPOINT: 14,`
+- L11 — `point` — `MIDPOINT: 12,`
+- L16 — `snap` — `export const PDI_SNAP_PRIORITY = ["PORT", "ENDPOINT", "MIDPOINT", "AXIS", "GRID"];`
+- L16 — `port` — `export const PDI_SNAP_PRIORITY = ["PORT", "ENDPOINT", "MIDPOINT", "AXIS", "GRID"];`
+- L16 — `point` — `export const PDI_SNAP_PRIORITY = ["PORT", "ENDPOINT", "MIDPOINT", "AXIS", "GRID"];`
+- L19 — `port` — `export const pdiRound3 = (v: number) => Number((Number.isFinite(v) ? v : 0).toFixed(3));`
+- L21 — `snap` — `export const pdiSnapValue = (v: number, step: number) =>`
+- L21 — `port` — `export const pdiSnapValue = (v: number, step: number) =>`
+- L25 — `port` — `export const PDI_ISO_DIRECTIONS: Array<PdiVec3 & { label: string }> = [`
+- L35 — `snap` — `export const pdiSnapDirectionIso = (v: PdiVec3) => {`
+- L35 — `port` — `export const pdiSnapDirectionIso = (v: PdiVec3) => {`
+- L51 — `snap` — `export const pdiSnapAngleDeg = (angle: number, step = 15) => {`
+- L51 — `port` — `export const pdiSnapAngleDeg = (angle: number, step = 15) => {`
+- L61 — `port` — `export const pdiFindCoincidentNodes = (nodes: PdiQaNode[], eps = 0.001) => {`
+- L76 — `port` — `export const pdiAuditGraph = (nodes: PdiQaNode[], segments: PdiQaSegment[]) => {`
+### `src/pdi/isometric/engine/pdiRegistreCommandes.v1.ts`
+- L3 — `point` — `// Point de verite unique du ruban. Avant ce fichier, trois sources decrivaient`
+- L17 — `groupe` — `// source = { menu, index } : le titre du groupe de menu historique et le rang de`
+- L17 — `group` — `// source = { menu, index } : le titre du groupe de menu historique et le rang de`
+- L27 — `port` — `export type PdiOngletRuban017M =`
+- L38 — `port` — `export type PdiEtatCommande017M = "actif" | "grise";`
+- L40 — `port` — `export type PdiPorteeCommande017M =`
+- L42 — `selection` — `| "selection"`
+- L42 — `select` — `| "selection"`
+- L47 — `port` — `export interface PdiSourceAction017M {`
+- L48 — `groupe` — `/** Titre exact du groupe de menu historique dans le moteur. */`
+- L48 — `group` — `/** Titre exact du groupe de menu historique dans le moteur. */`
+- L50 — `groupe` — `/** Rang de l entree dans ce groupe, a partir de 0. */`
+- L50 — `group` — `/** Rang de l entree dans ce groupe, a partir de 0. */`
+- L54 — `port` — `export interface PdiEntreeRuban017M {`
+- L62 — `groupe` — `groupe: string;`
+- L62 — `group` — `groupe: string;`
+- L64 — `port` — `portee: PdiPorteeCommande017M;`
+- L80 — `port` — `export const PDI_ONGLETS_RUBAN_017M: Array<{`
+- L96 — `align` — `/** Invite de la ligne de commande, alignee sur le vocabulaire tuyauterie. */`
+- L97 — `port` — `export const PDI_INVITE_COMMANDE_017M =`
+- L98 — `align` — `"Tapez une commande (ex: TUBE, TE, COUDE, COTER, ALIGNER, BOM...)";`
+- L100 — `port` — `export const PDI_REGISTRE_RUBAN_017M: PdiEntreeRuban017M[] = [`
+- L102 — `groupe` — `{ id:"fichier.nouveau", nomFr:"Nouveau projet", nomEn:"New project", aliases:["NOUVEAU","NEW"], icone:"\u2726", onglet:"fichier", groupe:"Nouveau et ouverture", ordre:1, portee:"projet", etat:"actif", source:{menu:"Fichier",index:0} },`
+- L102 — `group` — `{ id:"fichier.nouveau", nomFr:"Nouveau projet", nomEn:"New project", aliases:["NOUVEAU","NEW"], icone:"\u2726", onglet:"fichier", groupe:"Nouveau et ouverture", ordre:1, portee:"projet", etat:"actif", source:{menu:"Fichier",index:0} },`
+- L102 — `port` — `{ id:"fichier.nouveau", nomFr:"Nouveau projet", nomEn:"New project", aliases:["NOUVEAU","NEW"], icone:"\u2726", onglet:"fichier", groupe:"Nouveau et ouverture", ordre:1, portee:"projet", etat:"actif", source:{menu:"Fichier",index:0} },`
+- L103 — `groupe` — `{ id:"fichier.accueil", nomFr:"Accueil", nomEn:"Home", aliases:["ACCUEIL","HOME"], icone:"\u2302", onglet:"fichier", groupe:"Nouveau et ouverture", ordre:2, portee:"session", etat:"actif", source:{menu:"Fichier",index:1} },`
+- L103 — `group` — `{ id:"fichier.accueil", nomFr:"Accueil", nomEn:"Home", aliases:["ACCUEIL","HOME"], icone:"\u2302", onglet:"fichier", groupe:"Nouveau et ouverture", ordre:2, portee:"session", etat:"actif", source:{menu:"Fichier",index:1} },`
+- L103 — `port` — `{ id:"fichier.accueil", nomFr:"Accueil", nomEn:"Home", aliases:["ACCUEIL","HOME"], icone:"\u2302", onglet:"fichier", groupe:"Nouveau et ouverture", ordre:2, portee:"session", etat:"actif", source:{menu:"Fichier",index:1} },`
+- L104 — `groupe` — `{ id:"fichier.landing", nomFr:"Presentation", nomEn:"Landing", aliases:["LANDING"], icone:"\u25c8", onglet:"fichier", groupe:"Nouveau et ouverture", ordre:3, portee:"session", etat:"actif", source:{menu:"Fichier",index:2} },`
+- L104 — `group` — `{ id:"fichier.landing", nomFr:"Presentation", nomEn:"Landing", aliases:["LANDING"], icone:"\u25c8", onglet:"fichier", groupe:"Nouveau et ouverture", ordre:3, portee:"session", etat:"actif", source:{menu:"Fichier",index:2} },`
+- L104 — `port` — `{ id:"fichier.landing", nomFr:"Presentation", nomEn:"Landing", aliases:["LANDING"], icone:"\u25c8", onglet:"fichier", groupe:"Nouveau et ouverture", ordre:3, portee:"session", etat:"actif", source:{menu:"Fichier",index:2} },`
+- L105 — `groupe` — `{ id:"fichier.ouvrir", nomFr:"Ouvrir JSON", nomEn:"Open JSON", aliases:["OUVRIR","OPEN","IMPORT"], icone:"\u{1F4C2}", onglet:"fichier", groupe:"Nouveau et ouverture", ordre:4, portee:"projet", etat:"actif", source:{menu:"Fichier",index:6} }`
+- L105 — `group` — `{ id:"fichier.ouvrir", nomFr:"Ouvrir JSON", nomEn:"Open JSON", aliases:["OUVRIR","OPEN","IMPORT"], icone:"\u{1F4C2}", onglet:"fichier", groupe:"Nouveau et ouverture", ordre:4, portee:"projet", etat:"actif", source:{menu:"Fichier",index:6} }`
+- L105 — `port` — `{ id:"fichier.ouvrir", nomFr:"Ouvrir JSON", nomEn:"Open JSON", aliases:["OUVRIR","OPEN","IMPORT"], icone:"\u{1F4C2}", onglet:"fichier", groupe:"Nouveau et ouverture", ordre:4, portee:"projet", etat:"actif", source:{menu:"Fichier",index:6} }`
+- L106 — `groupe` — `{ id:"fichier.exemple.poste", nomFr:"Exemple poste", nomEn:"Station sample", aliases:["EXEMPLEPOSTE"], icone:"\u25a6", onglet:"fichier", groupe:"Exemples", ordre:1, portee:"projet", etat:"actif", source:{menu:"Fichier",index:3} },`
+- L106 — `group` — `{ id:"fichier.exemple.poste", nomFr:"Exemple poste", nomEn:"Station sample", aliases:["EXEMPLEPOSTE"], icone:"\u25a6", onglet:"fichier", groupe:"Exemples", ordre:1, portee:"projet", etat:"actif", source:{menu:"Fichier",index:3} },`
+- L106 — `port` — `{ id:"fichier.exemple.poste", nomFr:"Exemple poste", nomEn:"Station sample", aliases:["EXEMPLEPOSTE"], icone:"\u25a6", onglet:"fichier", groupe:"Exemples", ordre:1, portee:"projet", etat:"actif", source:{menu:"Fichier",index:3} },`
+- L107 — `groupe` — `{ id:"fichier.exemple.gare", nomFr:"Exemple gare racleur", nomEn:"Pig trap sample", aliases:["EXEMPLEGARE"], icone:"\u25a7", onglet:"fichier", groupe:"Exemples", ordre:2, portee:"projet", etat:"actif", source:{menu:"Fichier",index:4} },`
+- L107 — `group` — `{ id:"fichier.exemple.gare", nomFr:"Exemple gare racleur", nomEn:"Pig trap sample", aliases:["EXEMPLEGARE"], icone:"\u25a7", onglet:"fichier", groupe:"Exemples", ordre:2, portee:"projet", etat:"actif", source:{menu:"Fichier",index:4} },`
+- L107 — `port` — `{ id:"fichier.exemple.gare", nomFr:"Exemple gare racleur", nomEn:"Pig trap sample", aliases:["EXEMPLEGARE"], icone:"\u25a7", onglet:"fichier", groupe:"Exemples", ordre:2, portee:"projet", etat:"actif", source:{menu:"Fichier",index:4} },`
+- L108 — `groupe` — `{ id:"fichier.sauver", nomFr:"Sauver JSON", nomEn:"Save JSON", aliases:["SAUVER","SAVE","EXPORT"], icone:"\u{1F4BE}", raccourci:"Ctrl+S", onglet:"fichier", groupe:"Enregistrement", ordre:1, portee:"projet", etat:"actif", source:{menu:"Fichi`
+- L108 — `group` — `{ id:"fichier.sauver", nomFr:"Sauver JSON", nomEn:"Save JSON", aliases:["SAUVER","SAVE","EXPORT"], icone:"\u{1F4BE}", raccourci:"Ctrl+S", onglet:"fichier", groupe:"Enregistrement", ordre:1, portee:"projet", etat:"actif", source:{menu:"Fichi`
+- L108 — `port` — `{ id:"fichier.sauver", nomFr:"Sauver JSON", nomEn:"Save JSON", aliases:["SAUVER","SAVE","EXPORT"], icone:"\u{1F4BE}", raccourci:"Ctrl+S", onglet:"fichier", groupe:"Enregistrement", ordre:1, portee:"projet", etat:"actif", source:{menu:"Fichi`
+- L109 — `groupe` — `{ id:"fichier.planche", nomFr:"Planche ISO A3", nomEn:"ISO sheet A3", aliases:["PLANCHE","A3","PLANTISOVIEW","PLANTISOQUICK","ISOVIEW"], icone:"\u25a4", raccourci:"A3", onglet:"fichier", groupe:"Impression et export", ordre:1, portee:"docum`
+- L109 — `group` — `{ id:"fichier.planche", nomFr:"Planche ISO A3", nomEn:"ISO sheet A3", aliases:["PLANCHE","A3","PLANTISOVIEW","PLANTISOQUICK","ISOVIEW"], icone:"\u25a4", raccourci:"A3", onglet:"fichier", groupe:"Impression et export", ordre:1, portee:"docum`
+- L109 — `port` — `{ id:"fichier.planche", nomFr:"Planche ISO A3", nomEn:"ISO sheet A3", aliases:["PLANCHE","A3","PLANTISOVIEW","PLANTISOQUICK","ISOVIEW"], icone:"\u25a4", raccourci:"A3", onglet:"fichier", groupe:"Impression et export", ordre:1, portee:"docum`
+- L110 — `groupe` — `{ id:"fichier.imprimer", nomFr:"Imprimer", nomEn:"Print", aliases:["IMPRIMER","PRINT","PLOT"], icone:"\u2399", raccourci:"P", onglet:"fichier", groupe:"Impression et export", ordre:2, portee:"document", etat:"actif", source:{menu:"Impressio`
+- L110 — `group` — `{ id:"fichier.imprimer", nomFr:"Imprimer", nomEn:"Print", aliases:["IMPRIMER","PRINT","PLOT"], icone:"\u2399", raccourci:"P", onglet:"fichier", groupe:"Impression et export", ordre:2, portee:"document", etat:"actif", source:{menu:"Impressio`
+- L110 — `port` — `{ id:"fichier.imprimer", nomFr:"Imprimer", nomEn:"Print", aliases:["IMPRIMER","PRINT","PLOT"], icone:"\u2399", raccourci:"P", onglet:"fichier", groupe:"Impression et export", ordre:2, portee:"document", etat:"actif", source:{menu:"Impressio`
+- L111 — `groupe` — `{ id:"fichier.export.pdf", nomFr:"Export PDF A5 a A0", nomEn:"Export PDF A5-A0", aliases:["PDF","EXPORTPDF"], icone:"\u{1F5CE}", onglet:"fichier", groupe:"Impression et export", ordre:3, portee:"document", etat:"grise", jalon:"020F - impres`
+- L111 — `group` — `{ id:"fichier.export.pdf", nomFr:"Export PDF A5 a A0", nomEn:"Export PDF A5-A0", aliases:["PDF","EXPORTPDF"], icone:"\u{1F5CE}", onglet:"fichier", groupe:"Impression et export", ordre:3, portee:"document", etat:"grise", jalon:"020F - impres`
+- L111 — `port` — `{ id:"fichier.export.pdf", nomFr:"Export PDF A5 a A0", nomEn:"Export PDF A5-A0", aliases:["PDF","EXPORTPDF"], icone:"\u{1F5CE}", onglet:"fichier", groupe:"Impression et export", ordre:3, portee:"document", etat:"grise", jalon:"020F - impres`
+- L112 — `groupe` — `{ id:"fichier.export.dxf", nomFr:"Export DXF", nomEn:"Export DXF", aliases:["DXF","EXPORTDXF"], icone:"\u25f1", onglet:"fichier", groupe:"Impression et export", ordre:4, portee:"document", etat:"grise", jalon:"020F - impression et export" }`
+- L112 — `group` — `{ id:"fichier.export.dxf", nomFr:"Export DXF", nomEn:"Export DXF", aliases:["DXF","EXPORTDXF"], icone:"\u25f1", onglet:"fichier", groupe:"Impression et export", ordre:4, portee:"document", etat:"grise", jalon:"020F - impression et export" }`
+- L112 — `port` — `{ id:"fichier.export.dxf", nomFr:"Export DXF", nomEn:"Export DXF", aliases:["DXF","EXPORTDXF"], icone:"\u25f1", onglet:"fichier", groupe:"Impression et export", ordre:4, portee:"document", etat:"grise", jalon:"020F - impression et export" }`
+- L113 — `groupe` — `{ id:"fichier.deconnexion", nomFr:"Deconnexion", nomEn:"Sign out", aliases:["DECONNEXION","LOGOUT"], icone:"\u238b", onglet:"fichier", groupe:"Session", ordre:1, portee:"session", etat:"actif", source:{menu:"Fichier",index:8} },`
+- L113 — `group` — `{ id:"fichier.deconnexion", nomFr:"Deconnexion", nomEn:"Sign out", aliases:["DECONNEXION","LOGOUT"], icone:"\u238b", onglet:"fichier", groupe:"Session", ordre:1, portee:"session", etat:"actif", source:{menu:"Fichier",index:8} },`
+- L113 — `port` — `{ id:"fichier.deconnexion", nomFr:"Deconnexion", nomEn:"Sign out", aliases:["DECONNEXION","LOGOUT"], icone:"\u238b", onglet:"fichier", groupe:"Session", ordre:1, portee:"session", etat:"actif", source:{menu:"Fichier",index:8} },`
+- L116 — `groupe` — `{ id:"edition.annuler", nomFr:"Annuler", nomEn:"Undo", aliases:["ANNULER","UNDO","U"], icone:"\u21b6", raccourci:"Ctrl+Z", onglet:"edition", groupe:"Annulation", ordre:1, portee:"projet", etat:"actif", source:{menu:"\u00c9dition",index:0} }`
+- L116 — `group` — `{ id:"edition.annuler", nomFr:"Annuler", nomEn:"Undo", aliases:["ANNULER","UNDO","U"], icone:"\u21b6", raccourci:"Ctrl+Z", onglet:"edition", groupe:"Annulation", ordre:1, portee:"projet", etat:"actif", source:{menu:"\u00c9dition",index:0} }`
+- L116 — `undo` — `{ id:"edition.annuler", nomFr:"Annuler", nomEn:"Undo", aliases:["ANNULER","UNDO","U"], icone:"\u21b6", raccourci:"Ctrl+Z", onglet:"edition", groupe:"Annulation", ordre:1, portee:"projet", etat:"actif", source:{menu:"\u00c9dition",index:0} }`
+- L116 — `port` — `{ id:"edition.annuler", nomFr:"Annuler", nomEn:"Undo", aliases:["ANNULER","UNDO","U"], icone:"\u21b6", raccourci:"Ctrl+Z", onglet:"edition", groupe:"Annulation", ordre:1, portee:"projet", etat:"actif", source:{menu:"\u00c9dition",index:0} }`
+- L117 — `groupe` — `{ id:"edition.retablir", nomFr:"Retablir", nomEn:"Redo", aliases:["RETABLIR","REDO"], icone:"\u21b7", raccourci:"Ctrl+Y", onglet:"edition", groupe:"Annulation", ordre:2, portee:"projet", etat:"actif", source:{menu:"\u00c9dition",index:1} },`
+- L117 — `group` — `{ id:"edition.retablir", nomFr:"Retablir", nomEn:"Redo", aliases:["RETABLIR","REDO"], icone:"\u21b7", raccourci:"Ctrl+Y", onglet:"edition", groupe:"Annulation", ordre:2, portee:"projet", etat:"actif", source:{menu:"\u00c9dition",index:1} },`
+- L117 — `redo` — `{ id:"edition.retablir", nomFr:"Retablir", nomEn:"Redo", aliases:["RETABLIR","REDO"], icone:"\u21b7", raccourci:"Ctrl+Y", onglet:"edition", groupe:"Annulation", ordre:2, portee:"projet", etat:"actif", source:{menu:"\u00c9dition",index:1} },`
+- L117 — `port` — `{ id:"edition.retablir", nomFr:"Retablir", nomEn:"Redo", aliases:["RETABLIR","REDO"], icone:"\u21b7", raccourci:"Ctrl+Y", onglet:"edition", groupe:"Annulation", ordre:2, portee:"projet", etat:"actif", source:{menu:"\u00c9dition",index:1} },`
+- L118 — `groupe` — `{ id:"edition.copier", nomFr:"Copier", nomEn:"Copy", aliases:["CO","CP","COPY","COPIER","COPYCLIP","COPYBASE"], icone:"\u29c9", raccourci:"Ctrl+C", onglet:"edition", groupe:"Presse-papiers", ordre:1, portee:"selection", etat:"actif", source`
+- L118 — `group` — `{ id:"edition.copier", nomFr:"Copier", nomEn:"Copy", aliases:["CO","CP","COPY","COPIER","COPYCLIP","COPYBASE"], icone:"\u29c9", raccourci:"Ctrl+C", onglet:"edition", groupe:"Presse-papiers", ordre:1, portee:"selection", etat:"actif", source`
+- L118 — `selection` — `{ id:"edition.copier", nomFr:"Copier", nomEn:"Copy", aliases:["CO","CP","COPY","COPIER","COPYCLIP","COPYBASE"], icone:"\u29c9", raccourci:"Ctrl+C", onglet:"edition", groupe:"Presse-papiers", ordre:1, portee:"selection", etat:"actif", source`
+- L118 — `select` — `{ id:"edition.copier", nomFr:"Copier", nomEn:"Copy", aliases:["CO","CP","COPY","COPIER","COPYCLIP","COPYBASE"], icone:"\u29c9", raccourci:"Ctrl+C", onglet:"edition", groupe:"Presse-papiers", ordre:1, portee:"selection", etat:"actif", source`
+- L118 — `port` — `{ id:"edition.copier", nomFr:"Copier", nomEn:"Copy", aliases:["CO","CP","COPY","COPIER","COPYCLIP","COPYBASE"], icone:"\u29c9", raccourci:"Ctrl+C", onglet:"edition", groupe:"Presse-papiers", ordre:1, portee:"selection", etat:"actif", source`
+- L119 — `groupe` — `{ id:"edition.couper", nomFr:"Couper", nomEn:"Cut", aliases:["COUPER","CUT","CUTCLIP"], icone:"\u2702", raccourci:"Ctrl+X", onglet:"edition", groupe:"Presse-papiers", ordre:2, portee:"selection", etat:"actif", source:{menu:"\u00c9dition",in`
+- L119 — `group` — `{ id:"edition.couper", nomFr:"Couper", nomEn:"Cut", aliases:["COUPER","CUT","CUTCLIP"], icone:"\u2702", raccourci:"Ctrl+X", onglet:"edition", groupe:"Presse-papiers", ordre:2, portee:"selection", etat:"actif", source:{menu:"\u00c9dition",in`
+- L119 — `selection` — `{ id:"edition.couper", nomFr:"Couper", nomEn:"Cut", aliases:["COUPER","CUT","CUTCLIP"], icone:"\u2702", raccourci:"Ctrl+X", onglet:"edition", groupe:"Presse-papiers", ordre:2, portee:"selection", etat:"actif", source:{menu:"\u00c9dition",in`
+- L119 — `select` — `{ id:"edition.couper", nomFr:"Couper", nomEn:"Cut", aliases:["COUPER","CUT","CUTCLIP"], icone:"\u2702", raccourci:"Ctrl+X", onglet:"edition", groupe:"Presse-papiers", ordre:2, portee:"selection", etat:"actif", source:{menu:"\u00c9dition",in`
+- L119 — `port` — `{ id:"edition.couper", nomFr:"Couper", nomEn:"Cut", aliases:["COUPER","CUT","CUTCLIP"], icone:"\u2702", raccourci:"Ctrl+X", onglet:"edition", groupe:"Presse-papiers", ordre:2, portee:"selection", etat:"actif", source:{menu:"\u00c9dition",in`
+- L120 — `groupe` — `{ id:"edition.coller", nomFr:"Coller", nomEn:"Paste", aliases:["PA","PASTE","COLLER","PASTECLIP","PASTEBLOCK","PASTEORIG"], icone:"\u{1F4CB}", raccourci:"Ctrl+V", onglet:"edition", groupe:"Presse-papiers", ordre:3, portee:"selection", etat:`
+- L120 — `group` — `{ id:"edition.coller", nomFr:"Coller", nomEn:"Paste", aliases:["PA","PASTE","COLLER","PASTECLIP","PASTEBLOCK","PASTEORIG"], icone:"\u{1F4CB}", raccourci:"Ctrl+V", onglet:"edition", groupe:"Presse-papiers", ordre:3, portee:"selection", etat:`
+- L120 — `selection` — `{ id:"edition.coller", nomFr:"Coller", nomEn:"Paste", aliases:["PA","PASTE","COLLER","PASTECLIP","PASTEBLOCK","PASTEORIG"], icone:"\u{1F4CB}", raccourci:"Ctrl+V", onglet:"edition", groupe:"Presse-papiers", ordre:3, portee:"selection", etat:`
+- L120 — `select` — `{ id:"edition.coller", nomFr:"Coller", nomEn:"Paste", aliases:["PA","PASTE","COLLER","PASTECLIP","PASTEBLOCK","PASTEORIG"], icone:"\u{1F4CB}", raccourci:"Ctrl+V", onglet:"edition", groupe:"Presse-papiers", ordre:3, portee:"selection", etat:`
+- L120 — `port` — `{ id:"edition.coller", nomFr:"Coller", nomEn:"Paste", aliases:["PA","PASTE","COLLER","PASTECLIP","PASTEBLOCK","PASTEORIG"], icone:"\u{1F4CB}", raccourci:"Ctrl+V", onglet:"edition", groupe:"Presse-papiers", ordre:3, portee:"selection", etat:`
+- L121 — `groupe` — `{ id:"edition.dupliquer", nomFr:"Dupliquer", nomEn:"Duplicate", aliases:["DUPLIQUER","DUP"], icone:"\u29c9", raccourci:"Ctrl+D", onglet:"edition", groupe:"Presse-papiers", ordre:4, portee:"selection", etat:"actif", source:{menu:"\u00c9ditio`
+- L121 — `group` — `{ id:"edition.dupliquer", nomFr:"Dupliquer", nomEn:"Duplicate", aliases:["DUPLIQUER","DUP"], icone:"\u29c9", raccourci:"Ctrl+D", onglet:"edition", groupe:"Presse-papiers", ordre:4, portee:"selection", etat:"actif", source:{menu:"\u00c9ditio`
+- L121 — `selection` — `{ id:"edition.dupliquer", nomFr:"Dupliquer", nomEn:"Duplicate", aliases:["DUPLIQUER","DUP"], icone:"\u29c9", raccourci:"Ctrl+D", onglet:"edition", groupe:"Presse-papiers", ordre:4, portee:"selection", etat:"actif", source:{menu:"\u00c9ditio`
+- L121 — `select` — `{ id:"edition.dupliquer", nomFr:"Dupliquer", nomEn:"Duplicate", aliases:["DUPLIQUER","DUP"], icone:"\u29c9", raccourci:"Ctrl+D", onglet:"edition", groupe:"Presse-papiers", ordre:4, portee:"selection", etat:"actif", source:{menu:"\u00c9ditio`
+- L121 — `port` — `{ id:"edition.dupliquer", nomFr:"Dupliquer", nomEn:"Duplicate", aliases:["DUPLIQUER","DUP"], icone:"\u29c9", raccourci:"Ctrl+D", onglet:"edition", groupe:"Presse-papiers", ordre:4, portee:"selection", etat:"actif", source:{menu:"\u00c9ditio`
+- L122 — `groupe` — `{ id:"edition.tout", nomFr:"Tout selectionner", nomEn:"Select all", aliases:["TOUT","SELECTALL"], icone:"\u2b1a", raccourci:"Ctrl+A", onglet:"edition", groupe:"Selection", ordre:1, portee:"selection", etat:"actif", source:{menu:"\u00c9ditio`
+- L122 — `group` — `{ id:"edition.tout", nomFr:"Tout selectionner", nomEn:"Select all", aliases:["TOUT","SELECTALL"], icone:"\u2b1a", raccourci:"Ctrl+A", onglet:"edition", groupe:"Selection", ordre:1, portee:"selection", etat:"actif", source:{menu:"\u00c9ditio`
+- L122 — `selection` — `{ id:"edition.tout", nomFr:"Tout selectionner", nomEn:"Select all", aliases:["TOUT","SELECTALL"], icone:"\u2b1a", raccourci:"Ctrl+A", onglet:"edition", groupe:"Selection", ordre:1, portee:"selection", etat:"actif", source:{menu:"\u00c9ditio`
+- L122 — `select` — `{ id:"edition.tout", nomFr:"Tout selectionner", nomEn:"Select all", aliases:["TOUT","SELECTALL"], icone:"\u2b1a", raccourci:"Ctrl+A", onglet:"edition", groupe:"Selection", ordre:1, portee:"selection", etat:"actif", source:{menu:"\u00c9ditio`
+- L122 — `port` — `{ id:"edition.tout", nomFr:"Tout selectionner", nomEn:"Select all", aliases:["TOUT","SELECTALL"], icone:"\u2b1a", raccourci:"Ctrl+A", onglet:"edition", groupe:"Selection", ordre:1, portee:"selection", etat:"actif", source:{menu:"\u00c9ditio`
+- L123 — `groupe` — `{ id:"edition.deselectionner", nomFr:"Deselectionner", nomEn:"Deselect", aliases:["DESELECT"], icone:"\u2b1c", raccourci:"Esc", onglet:"edition", groupe:"Selection", ordre:2, portee:"selection", etat:"actif", source:{menu:"\u00c9dition",ind`
+- L123 — `group` — `{ id:"edition.deselectionner", nomFr:"Deselectionner", nomEn:"Deselect", aliases:["DESELECT"], icone:"\u2b1c", raccourci:"Esc", onglet:"edition", groupe:"Selection", ordre:2, portee:"selection", etat:"actif", source:{menu:"\u00c9dition",ind`
+- L123 — `selection` — `{ id:"edition.deselectionner", nomFr:"Deselectionner", nomEn:"Deselect", aliases:["DESELECT"], icone:"\u2b1c", raccourci:"Esc", onglet:"edition", groupe:"Selection", ordre:2, portee:"selection", etat:"actif", source:{menu:"\u00c9dition",ind`
+- L123 — `select` — `{ id:"edition.deselectionner", nomFr:"Deselectionner", nomEn:"Deselect", aliases:["DESELECT"], icone:"\u2b1c", raccourci:"Esc", onglet:"edition", groupe:"Selection", ordre:2, portee:"selection", etat:"actif", source:{menu:"\u00c9dition",ind`
+- L123 — `port` — `{ id:"edition.deselectionner", nomFr:"Deselectionner", nomEn:"Deselect", aliases:["DESELECT"], icone:"\u2b1c", raccourci:"Esc", onglet:"edition", groupe:"Selection", ordre:2, portee:"selection", etat:"actif", source:{menu:"\u00c9dition",ind`
+- L124 — `groupe` — `{ id:"edition.supprimer", nomFr:"Supprimer", nomEn:"Delete", aliases:["SUPPR","DELETE","E"], icone:"\u{1F5D1}", raccourci:"Suppr", onglet:"edition", groupe:"Selection", ordre:3, portee:"selection", etat:"actif", source:{menu:"\u00c9dition",`
+- L124 — `group` — `{ id:"edition.supprimer", nomFr:"Supprimer", nomEn:"Delete", aliases:["SUPPR","DELETE","E"], icone:"\u{1F5D1}", raccourci:"Suppr", onglet:"edition", groupe:"Selection", ordre:3, portee:"selection", etat:"actif", source:{menu:"\u00c9dition",`
+- L124 — `selection` — `{ id:"edition.supprimer", nomFr:"Supprimer", nomEn:"Delete", aliases:["SUPPR","DELETE","E"], icone:"\u{1F5D1}", raccourci:"Suppr", onglet:"edition", groupe:"Selection", ordre:3, portee:"selection", etat:"actif", source:{menu:"\u00c9dition",`
+- L124 — `select` — `{ id:"edition.supprimer", nomFr:"Supprimer", nomEn:"Delete", aliases:["SUPPR","DELETE","E"], icone:"\u{1F5D1}", raccourci:"Suppr", onglet:"edition", groupe:"Selection", ordre:3, portee:"selection", etat:"actif", source:{menu:"\u00c9dition",`
+- … 433 occurrences supplémentaires.
+### `src/pdi/isometric/engine/pdiSaisie017P10.ts`
+- L4 — `point` — `// Restait un cinquieme point de verite que personne n avait vu : le validateur`
+- L8 — `port` — `// Ce module porte les regles de SAISIE. Elles sont distinctes des anomalies du`
+- L20 — `port` — `export const PDI_LONGUEUR_MIN_017P10 = 0.05;`
+- L22 — `port` — `export interface PdiControleSaisie017P10 {`
+- L38 — `port` — `export function pdiValiderLongueur017P10(valeur: unknown): PdiControleSaisie017P10 {`
+- L68 — `port` — `export function pdiValiderDn017P10(valeur: unknown): PdiControleSaisie017P10 {`
+- L84 — `port` — `export function pdiEcartAccrochage017P10(demandee: number, obtenue: number): string {`
+### `src/pdi/isometric/engine/pdiTagging.ts`
+- L4 — `port` — `export interface PdiTagPart {`
+- L10 — `port` — `export interface PdiTagFormat {`
+- L17 — `port` — `export interface PdiService {`
+- L23 — `port` — `export interface PdiSpec {`
+- L31 — `port` — `export interface PdiProjectSetup {`
+- L43 — `port` — `export const PDI_DEFAULT_SERVICES: PdiService[] = [`
+- L54 — `port` — `export const PDI_DEFAULT_SPECS: PdiSpec[] = [`
+- L64 — `port` — `export const PDI_TAG_FORMAT_STANDARD: PdiTagFormat = {`
+- L76 — `port` — `export const PDI_DEFAULT_PROJECT_SETUP: PdiProjectSetup = {`
+- L88 — `port` — `export interface PdiTagFields {`
+- L95 — `port` — `export function pdiBuildTag(fields: PdiTagFields, format: PdiTagFormat): string {`
+- L107 — `port` — `export function pdiParseTag(tag: string, format: PdiTagFormat): PdiTagFields {`
+- L121 — `port` — `export function pdiNextTagNumber(existing: string[], service: string, dn: number, format: PdiTagFormat): number {`
+- L132 — `port` — `export function pdiValidateTag(tag: string, allTags: string[], format: PdiTagFormat): { ok: boolean; reason?: string } {`
+- L143 — `port` — `export function pdiSpecAllowsDn(spec: PdiSpec | undefined, dn: number): boolean {`
+- L148 — `port` — `export function pdiFindSpec(setup: PdiProjectSetup, code: string): PdiSpec | undefined {`
+- L152 — `port` — `export function pdiFindService(setup: PdiProjectSetup, code: string): PdiService | undefined {`
+- L156 — `port` — `export function pdiActiveFormat(setup: PdiProjectSetup): PdiTagFormat {`
+### `src/pdi/isometric/isoProjection.ts`
+- L6 — `port` — `export interface WorldPoint3D {`
+- L6 — `point` — `export interface WorldPoint3D {`
+- L12 — `port` — `export interface ScreenPoint2D {`
+- L12 — `point` — `export interface ScreenPoint2D {`
+- L17 — `port` — `export interface IsoViewport {`
+- L30 — `port` — `export const ISO_COS30 = Math.cos(Math.PI / 6); // ~0.8660254`
+- L31 — `port` — `export const ISO_SIN30 = Math.sin(Math.PI / 6); // 0.5`
+- L32 — `port` — `export const ISO_SCALE = 70; // 70px per meter at zoom 1.0`
+- L34 — `port` — `export function isoProject(`
+- L41 — `point` — `): ScreenPoint2D {`
+- L50 — `port` — `export function isoUnproject(`
+- L57 — `point` — `): WorldPoint3D {`
+- L75 — `snap` — `export function snapToIsoAxis(`
+- L75 — `port` — `export function snapToIsoAxis(`
+- L76 — `point` — `start: WorldPoint3D,`
+- L77 — `point` — `current: WorldPoint3D`
+- L78 — `point` — `): WorldPoint3D {`
+### `src/pdi/landing/PdiLandingV4.tsx`
+- L11 — `port` — `import React, { useEffect, useMemo, useState } from "react";`
+- L12 — `port` — `import PdiBrandMark from "../app/PdiBrandMark";`
+- L15 — `port` — `export type PdiLandingV4Props = {`
+- L25 — `port` — `export type PdiOpeningScreen = "landing" | "home" | "loading" | "launcher";`
+- L39 — `point` — `const ENTRY_POINTS = [`
+- L40 — `align` — `{ id: "isometric", title: "Nouveau Plan", sub: "Dessin isométrique manuel", badge: "Recommandé", icon: "ISO", color: "#4db8d4", text: "Créer un projet vierge : nœuds, tubes, accessoires, cotations et alignements." },`
+- L43 — `port` — `{ id: "json", title: "Importer JSON", sub: "JSON PD&I existant", badge: "Reprise", icon: "{}", color: "#4caf7d", text: "Reprendre un modèle PD&I : graphe, soudures, cotes et métré restaurés à l’identique." },`
+- L44 — `port` — `{ id: "cad", title: "Importer CAD / PDF", sub: "Import de fond de plan", badge: "Import", icon: "PDF", color: "#4db8d4", text: "Charger un DXF/DWG/PDF comme support de tracé avec mapping des calques." },`
+- L46 — `port` — `{ id: "pdf", title: "Exports & BOM", sub: "PDF / DXF / nomenclature", badge: "Export", icon: "OUT", color: "#4caf7d", text: "Produire planches A4→A1, cartouche, nomenclature matériaux et métré." },`
+- L57 — `port` — `{ key: "iso", cls: "pdiL-band-iso", title: "Impression & export", tag: "A5 → A0 · PDF vectoriel", icon: "🖨", text: "Planches A5 à A0, cartouche ISO 7200, échelles 1:1 à 1:200, PDF vectoriel et DXF." },`
+- L60 — `port` — `{ key: "bom", cls: "pdiL-band-json", title: "Nomenclature & métré", tag: "BOM par tag", icon: "📋", text: "Boulonnerie ASME B16.5, joints B16.20, supports et consommables de soudure comptés automatiquement." },`
+- L64 — `point` — `{ n: "01", cls: "pdiL-step-1", title: "Capturer", text: "Photo, scan, PDF, plan 2D ou donnees CAO : toute source devient un point de depart." },`
+- L67 — `port` — `{ n: "04", cls: "pdiL-step-4", title: "Livrer", text: "ISO, cotations, DN, W00x, BOM, metre, QA engineering et export documentaire." },`
+- L71 — `undo` — `{ span: "pdiL-sp2", title: "Editeur isometrique professionnel", text: "Clic droit, proprietes reelles X / Y / Z, copier-coller a nouveaux IDs, undo par operation logique." },`
+- L72 — `ancrage` — `{ span: "", title: "Cotations", text: "Selection multiple, unites m / mm, ancrage sur noeud ou sur port." },`
+- L72 — `selection` — `{ span: "", title: "Cotations", text: "Selection multiple, unites m / mm, ancrage sur noeud ou sur port." },`
+- L72 — `select` — `{ span: "", title: "Cotations", text: "Selection multiple, unites m / mm, ancrage sur noeud ou sur port." },`
+- L72 — `port` — `{ span: "", title: "Cotations", text: "Selection multiple, unites m / mm, ancrage sur noeud ou sur port." },`
+- L73 — `rotation` — `{ span: "", title: "Soudures W00x", text: "Numerotation automatique et recalcul apres chaque modification." },`
+- L76 — `port` — `{ span: "", title: "QA engineering", text: "Controle du reseau, ports orphelins, incoherences DN signalees." },`
+- L77 — `rotation` — `{ span: "", title: "Trackpad & raccourcis", text: "Pan et pincement Mac, raccourcis Cmd et Ctrl, rotation R / Shift+R." },`
+- L78 — `port` — `{ span: "pdiL-sp3", title: "Impression & export", text: "Planches A5 a A0, cartouche ISO 7200, PDF vectoriel, DXF et dossier de fabrication." },`
+- L82 — `port` — `{ title: "Produit", links: ["Editeur isometrique", "Impression & export", "Sketch to ISO", "Import CAO"] },`
+- L88 — `port` — `export default function PdiLandingV4({ onEnter, initialScreen = "landing" }: PdiLandingV4Props) {`
+- L93 — `select` — `const [selectedEntry, setSelectedEntry] = useState<string | null>(PDI_DEFAULT_ENTRY);`
+- L118 — `move` — `return () => window.removeEventListener("scroll", onScroll);`
+- L128 — `point` — `const onPointerMove = (e: MouseEvent | TouchEvent) => {`
+- L128 — `move` — `const onPointerMove = (e: MouseEvent | TouchEvent) => {`
+- L156 — `point` — `window.addEventListener("mousemove", onPointerMove, { passive: true });`
+- L156 — `move` — `window.addEventListener("mousemove", onPointerMove, { passive: true });`
+- L157 — `point` — `window.addEventListener("touchmove", onPointerMove, { passive: true });`
+- L157 — `move` — `window.addEventListener("touchmove", onPointerMove, { passive: true });`
+- L161 — `point` — `window.removeEventListener("mousemove", onPointerMove);`
+- L161 — `move` — `window.removeEventListener("mousemove", onPointerMove);`
+- L162 — `point` — `window.removeEventListener("touchmove", onPointerMove);`
+- L162 — `move` — `window.removeEventListener("touchmove", onPointerMove);`
+- L235 — `select` — `setSelectedEntry(PDI_DEFAULT_ENTRY);`
+- L242 — `point` — `const known = target === "home" || ENTRY_POINTS.some((entry) => entry.id === target);`
+- L270 — `point` — `<PdiBrandMark variant="horizontal" size="sm" onClick={() => setScreen("home")} className="cursor-pointer" />`
+- L277 — `point` — `<p>Choisissez un point d’entrée. Toutes les voies aboutissent au même JSON PD&amp;I — la vérité technique du projet.</p>`
+- L279 — `select` — `{ENTRY_POINTS.map((entry) => <button key={`${entry.id}-${entry.title}`} className={selectedEntry === entry.id ? "pdiL-entry selected" : "pdiL-entry"} style={{ "--entry": entry.color } as React.CSSProperties} onClick={() => setSelectedEntry(`
+- L279 — `point` — `{ENTRY_POINTS.map((entry) => <button key={`${entry.id}-${entry.title}`} className={selectedEntry === entry.id ? "pdiL-entry selected" : "pdiL-entry"} style={{ "--entry": entry.color } as React.CSSProperties} onClick={() => setSelectedEntry(`
+- L281 — `select` — `<div className="pdiL-launch-actions"><button className="pdiL-btn pdiL-btn-primary pdiL-btn-lg" onClick={() => openEntry(selectedEntry)}>Préparer · {ENTRY_POINTS.find((x) => x.id === selectedEntry)?.title || "Accueil"}</button><span>Astuce :`
+- L281 — `point` — `<div className="pdiL-launch-actions"><button className="pdiL-btn pdiL-btn-primary pdiL-btn-lg" onClick={() => openEntry(selectedEntry)}>Préparer · {ENTRY_POINTS.find((x) => x.id === selectedEntry)?.title || "Accueil"}</button><span>Astuce :`
+- L293 — `point` — `<PdiBrandMark variant="horizontal" size="sm" onClick={() => setScreen("landing")} className="cursor-pointer" title="Retour à l'écran de présentation" />`
+- L300 — `port` — `<header className="pdiL-homehero"><div><span className="pdiL-kicker">Accueil PD&amp;I</span><h1>Construire vos plans isométriques depuis toutes vos sources.</h1><p>Le logiciel principal : dessin manuel, Vision PD&amp;I photo/croquis, import`
+- L350 — `select` — `<select value={authDraft.plan} onChange={(e) => setAuthDraft({ ...authDraft, plan: e.target.value })}>`
+- L355 — `select` — `</select>`
+### `src/pdi/landing/pdiLandingV4.css`
+- L34 — `align` — `display: flex; align-items: center; gap: 16px;`
+- L46 — `translate` — `transform: translateY(2px);`
+- L48 — `align` — `.pdiL-brand { display: flex; align-items: center; gap: 10px; font-weight: 800; letter-spacing: -.02em; }`
+- L56 — `align` — `.pdiL-navlinks { display: flex; align-items: center; gap: 4px; margin: 0 auto; }`
+- L58 — `point` — `border: 0; background: transparent; cursor: pointer;`
+- L64 — `align` — `.pdiL-navactions { display: flex; align-items: center; gap: 10px; }`
+- L66 — `point` — `cursor: pointer; border-radius: 999px; font-size: 14px; font-weight: 700;`
+- L70 — `translate` — `.pdiL-btn:active { transform: translateY(1px); }`
+- L89 — `translate` — `transform: translateY(-2px);`
+- L94 — `point` — `cursor: pointer; font-size: 18px; line-height: 1;`
+- L104 — `align` — `.pdiL-mobilemenu .pdiL-navlink { text-align: left; padding: 12px 14px; border-radius: 12px; }`
+- L105 — `align` — `.pdiL-mobilemenu .pdiL-btn { width: 100%; margin-top: 4px; padding: 12px; text-align: center; }`
+- L108 — `align` — `.pdiL-hero { padding: 72px 0 40px; text-align: center; }`
+- L110 — `align` — `display: inline-flex; align-items: center; gap: 6px; margin-bottom: 20px;`
+- L146 — `point` — `cursor: pointer;`
+- L156 — `translate` — `transform: translateY(-4px) scale(1.01);`
+- L161 — `align` — `align-items: center;`
+- L197 — `translate` — `transform: translateX(4px);`
+- L246 — `align` — `display: inline-flex; align-items: center; gap: 6px;`
+- L270 — `translate` — `.pdiL-step:hover { transform: translateY(-4px); border-color: rgba(56, 189, 248, 0.45); box-shadow: 0 22px 50px rgba(0,0,0,0.55); }`
+- L294 — `translate` — `.pdiL-cell:hover { transform: translateY(-4px); border-color: rgba(56, 189, 248, 0.45); box-shadow: 0 22px 50px rgba(0,0,0,0.55); }`
+- L311 — `point` — `text-decoration: none; cursor: pointer; transition: color .16s ease, transform .16s ease;`
+- L313 — `translate` — `.pdiL-footcol a:hover { color: var(--pdiL-cyan); transform: translateX(3px); }`
+- L344 — `align` — `.pdiL-hero-shell{position:relative;width:100vw;height:100vh;overflow:hidden;background:radial-gradient(120% 90% at 50% 42%,#15191c,#0b0c0d 58%,#070708);display:flex;align-items:center;justify-content:center;color:#f0f0f0;font-family:Inter,u`
+- L344 — `select` — `.pdiL-hero-shell{position:relative;width:100vw;height:100vh;overflow:hidden;background:radial-gradient(120% 90% at 50% 42%,#15191c,#0b0c0d 58%,#070708);display:flex;align-items:center;justify-content:center;color:#f0f0f0;font-family:Inter,u`
+- L344 — `point` — `.pdiL-hero-shell{position:relative;width:100vw;height:100vh;overflow:hidden;background:radial-gradient(120% 90% at 50% 42%,#15191c,#0b0c0d 58%,#070708);display:flex;align-items:center;justify-content:center;color:#f0f0f0;font-family:Inter,u`
+- L344 — `translate` — `.pdiL-hero-shell{position:relative;width:100vw;height:100vh;overflow:hidden;background:radial-gradient(120% 90% at 50% 42%,#15191c,#0b0c0d 58%,#070708);display:flex;align-items:center;justify-content:center;color:#f0f0f0;font-family:Inter,u`
+- L363 — `align` — `align-items: stretch;`
+- L372 — `port` — `.pdiL-entry{background:linear-gradient(180deg,#1B2430,#101722)!important;border-color:rgba(77,184,212,.36)!important;box-shadow:0 16px 38px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.04)!important}`
+- L373 — `select` — `.pdiL-entry:hover,.pdiL-entry.selected{transform:translateY(-3px) scale(1.01)!important;border-color:var(--entry,#67E8F9)!important;box-shadow:0 24px 55px rgba(77,184,212,.18)!important}`
+- L373 — `port` — `.pdiL-entry:hover,.pdiL-entry.selected{transform:translateY(-3px) scale(1.01)!important;border-color:var(--entry,#67E8F9)!important;box-shadow:0 24px 55px rgba(77,184,212,.18)!important}`
+- L373 — `translate` — `.pdiL-entry:hover,.pdiL-entry.selected{transform:translateY(-3px) scale(1.01)!important;border-color:var(--entry,#67E8F9)!important;box-shadow:0 24px 55px rgba(77,184,212,.18)!important}`
+- L376 — `translate` — `@keyframes pdiFadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}`
+- L378 — `move` — `/* PATCH 010 remove direct start and black buttons */`
+- L379 — `port` — `.pdiL-entry,.pdiL-launcher-head button,.pdiL-btn,.pdiL-hero-button{background:linear-gradient(180deg,#1B2A3A,#0F1A27)!important;color:#EAF6FF!important;border:1px solid rgba(77,184,212,.45)!important;box-shadow:0 18px 44px rgba(0,0,0,.32),i`
+- L380 — `port` — `.pdiL-btn-primary,.pdiL-hero-button{background:linear-gradient(135deg,#0284C7,#22D3EE)!important;color:white!important;border-color:#67E8F9!important}`
+- L381 — `select` — `.pdiL-entry strong,.pdiL-entry small,.pdiL-entry p{color:#E5F2FF!important}.pdiL-entry p{opacity:.78}.pdiL-entry-go{color:#67E8F9!important;font-weight:900}.pdiL-entry:hover,.pdiL-entry.selected{background:linear-gradient(180deg,#22384D,#10`
+- L381 — `port` — `.pdiL-entry strong,.pdiL-entry small,.pdiL-entry p{color:#E5F2FF!important}.pdiL-entry p{opacity:.78}.pdiL-entry-go{color:#67E8F9!important;font-weight:900}.pdiL-entry:hover,.pdiL-entry.selected{background:linear-gradient(180deg,#22384D,#10`
+- L381 — `translate` — `.pdiL-entry strong,.pdiL-entry small,.pdiL-entry p{color:#E5F2FF!important}.pdiL-entry p{opacity:.78}.pdiL-entry-go{color:#67E8F9!important;font-weight:900}.pdiL-entry:hover,.pdiL-entry.selected{background:linear-gradient(180deg,#22384D,#10`
+- L396 — `point` — `pointer-events: none;`
+- L410 — `point` — `pointer-events: none;`
+- L420 — `translate` — `transform: translate3d(calc(var(--px, 0) * 36px), calc(var(--py, 0) * 24px), 0) rotate(-5deg);`
+- L423 — `translate` — `transform: translate3d(calc(var(--px, 0) * -32px), calc(var(--py, 0) * 32px), 0) rotate(5deg);`
+- L426 — `translate` — `transform: translate3d(calc(var(--px, 0) * 26px), calc(var(--py, 0) * -26px), 0) rotate(4deg);`
+- L429 — `translate` — `transform: translate3d(calc(var(--px, 0) * -28px), calc(var(--py, 0) * -22px), 0) rotate(-4deg);`
+- L432 — `translate` — `transform: translate3d(calc(var(--px, 0) * 44px), calc(var(--py, 0) * -16px), 0) rotate(-9deg);`
+- L435 — `translate` — `transform: translate3d(calc(var(--px, 0) * -44px), calc(var(--py, 0) * 24px), 0) rotate(9deg);`
+- L442 — `translate` — `transform: translate3d(calc(var(--px, 0) * -16px), calc(var(--py, 0) * -16px), 0);`
+- L449 — `translate` — `transform: translate3d(calc(var(--px, 0) * 8px), calc(var(--py, 0) * 8px), 0);`
+- L464 — `translate` — `transform: perspective(1000px) rotateX(var(--tiltX, 0deg)) rotateY(var(--tiltY, 0deg)) translate3d(calc(var(--px, 0) * 12px), calc(var(--py, 0) * 12px), 15px);`
+- L475 — `point` — `pointer-events: none;`
+- L497 — `align` — `text-align: center;`
+- L539 — `translate` — `transform: translateY(-4px);`
+- L544 — `translate` — `transform: translateY(-2px) scale(1.02);`
+- L550 — `translate` — `transform: translateY(0) rotate(-3deg) scale(1);`
+- L554 — `translate` — `transform: translateY(-14px) rotate(2deg) scale(1.03);`
+- L558 — `translate` — `transform: translateY(10px) rotate(5deg) scale(1.02);`
+- L571 — `translate` — `transform: translateY(24px) scale(0.97);`
+- L575 — `translate` — `transform: translateY(0) scale(1);`
+- L581 — `translate` — `transform: translateY(0);`
+- L584 — `translate` — `transform: translateY(-9px);`
+- L600 — `translate` — `transform: translateY(14px);`
+- L604 — `translate` — `transform: translateY(0);`
+- L647 — `point` — `cursor: pointer;`
+- L676 — `point` — `cursor: pointer;`
+- L720 — `select` — `.pdiL-auth-form select {`
+- L723 — `port` — `background: #050B12 !important;`
+- L724 — `port` — `color: #F1F5F9 !important;`
+- L725 — `port` — `border: 1px solid rgba(148, 163, 184, 0.28) !important;`
+- L733 — `select` — `.pdiL-auth-form select:focus {`
+- L735 — `port` — `border-color: #38BDF8 !important;`
+- L778 — `translate` — `transform: scale(0.95) translateY(10px);`
+- L782 — `translate` — `transform: scale(1) translateY(0);`
+### `src/pdi/model/index.ts`
+- L9 — `IsoNode` — `export type IsoNodeId = string;`
+- L9 — `port` — `export type IsoNodeId = string;`
+- L10 — `IsoSegment` — `export type IsoSegmentId = string;`
+- L10 — `port` — `export type IsoSegmentId = string;`
+- L11 — `port` — `export type PipingLineId = string;`
+- L13 — `port` — `export interface IsoPoint3D {`
+- L13 — `point` — `export interface IsoPoint3D {`
+- L19 — `IsoNode` — `export interface IsoNode {`
+- L19 — `port` — `export interface IsoNode {`
+- L20 — `IsoNode` — `id: IsoNodeId;`
+- L21 — `point` — `position: IsoPoint3D;`
+- L23 — `port` — `kind?: 'point' | 'equipment-port' | 'branch' | 'weld' | 'component-port';`
+- L23 — `point` — `kind?: 'point' | 'equipment-port' | 'branch' | 'weld' | 'component-port';`
+- L26 — `IsoSegment` — `export interface IsoSegment {`
+- L26 — `port` — `export interface IsoSegment {`
+- L27 — `IsoSegment` — `id: IsoSegmentId;`
+- L29 — `IsoNode` — `from: IsoNodeId;`
+- L30 — `IsoNode` — `to: IsoNodeId;`
+- L46 — `port` — `export interface PipingLine {`
+- L52 — `IsoNode` — `nodes: IsoNode[];`
+- L53 — `IsoSegment` — `segments: IsoSegment[];`
+- L57 — `port` — `export interface PdiIsometricModel {`
+- L64 — `port` — `export function createEmptyPdiModel(projectId?: string): PdiIsometricModel {`
+### `src/pdi/model/serialization.ts`
+- L1 — `port` — `import type { PdiIsometricModel } from './index';`
+- L3 — `port` — `export const PDI_MODEL_SCHEMA_VERSION = '1.0' as const;`
+- L5 — `port` — `export function serializePdiModel(model: PdiIsometricModel): string {`
+- L9 — `port` — `export function parsePdiModel(input: string): PdiIsometricModel {`
+- L19 — `port` — ``Unsupported PD&I model schema: ${String(model.schemaVersion)}.`,`
+### `src/pdi/pdiVersion.ts`
+- L2 — `point` — `// Point de verite unique : chaque patch met a jour cette valeur,`
+- L5 — `port` — `export const PDI_PATCH_VERSION = "017L";`
+- L8 — `port` — `export const PDI_PATCH_DATE = "2026-08-28";`
+### `src/pdi/saas/README.md`
+- L17 — `port` — `- `admin/` — support and license administration`
+### `src/pdi/saas/entitlements.ts`
+- L1 — `port` — `import type { LicensePlan, PdiEntitlements } from './types';`
+- L3 — `port` — `export const DEFAULT_ENTITLEMENTS: Record<LicensePlan, PdiEntitlements> = {`
+- L6 — `port` — `dxfImport: true,`
+- L7 — `port` — `dxfExport: true,`
+- L14 — `port` — `dxfImport: true,`
+- L15 — `port` — `dxfExport: true,`
+- L22 — `port` — `dxfImport: true,`
+- L23 — `port` — `dxfExport: true,`
+- L30 — `port` — `dxfImport: true,`
+- L31 — `port` — `dxfExport: true,`
+- L42 — `port` — `export function getDefaultEntitlements(plan: LicensePlan): PdiEntitlements {`
+### `src/pdi/saas/types.ts`
+- L1 — `port` — `export type UserRole = 'owner' | 'admin' | 'engineer' | 'designer' | 'viewer';`
+- L3 — `port` — `export type LicensePlan = 'trial' | 'professional' | 'team' | 'enterprise';`
+- L5 — `port` — `export interface PdiUser {`
+- L13 — `port` — `export interface PdiOrganization {`
+- L20 — `port` — `export interface PdiLicense {`
+- L30 — `port` — `export interface PdiEntitlements {`
+- L32 — `port` — `dxfImport: boolean;`
+- L33 — `port` — `dxfExport: boolean;`
+- L39 — `port` — `export interface PdiProject {`
+### `src/pdi/ui/PdiCompanyPanel.tsx`
+- L3 — `port` — `import React, { useState } from "react";`
+- L4 — `port` — `import { pdiLoadBranding, pdiSaveBranding, PdiBranding } from "../branding/pdiBranding";`
+- L5 — `port` — `import { pdiAlert } from "./PdiNotice";`
+- L18 — `port` — `export function PdiCompanyPanel() {`
+- L48 — `align` — `<div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 16, flexWrap: "wrap" }}>`
+- L52 — `point` — `style={{ padding: "9px 16px", borderRadius: 10, border: "1px solid rgba(103,232,249,.5)", background: "#0E7490", color: "#FFFFFF", fontSize: 12, fontWeight: 900, cursor: "pointer" }}`
+- L59 — `point` — `style={{ padding: "9px 14px", borderRadius: 10, border: "1px solid rgba(148,163,184,.35)", background: "transparent", color: "#CBD5E1", fontSize: 12, fontWeight: 800, cursor: "pointer" }}`
+- L69 — `port` — `export default PdiCompanyPanel;`
+### `src/pdi/ui/PdiConfirm.tsx`
+- L4 — `port` — `import React, { useEffect, useState } from "react";`
+- L5 — `port` — `import { createRoot } from "react-dom/client";`
+- L7 — `port` — `export type PdiConfirmOptions = {`
+- L18 — `align` — `display: "flex", alignItems: "center", justifyContent: "center", padding: 16,`
+- L39 — `move` — `return () => window.removeEventListener("keydown", onKey);`
+- L53 — `point` — `style={{ padding: "9px 14px", borderRadius: 10, border: "1px solid rgba(148,163,184,.35)", background: "transparent", color: "#CBD5E1", fontSize: 12, fontWeight: 800, cursor: "pointer" }}`
+- L62 — `point` — `style={{ padding: "9px 16px", borderRadius: 10, border: danger ? "1px solid #7F1D1D" : "1px solid rgba(103,232,249,.5)", background: danger ? "#7F1D1D" : "#0E7490", color: "#FFFFFF", fontSize: 12, fontWeight: 900, cursor: "pointer" }}`
+- L73 — `port` — `export function pdiConfirm(options: PdiConfirmOptions): Promise<boolean> {`
+- L82 — `move` — `try { host.remove(); } catch (e) { void e; }`
+- L89 — `port` — `export default pdiConfirm;`
+### `src/pdi/ui/PdiNotice.tsx`
+- L3 — `port` — `import React, { useEffect } from "react";`
+- L4 — `port` — `import { createRoot } from "react-dom/client";`
+- L6 — `port` — `export type PdiNoticeTone = "info" | "success" | "warning" | "error";`
+- L30 — `move` — `return () => window.removeEventListener("keydown", onKey);`
+- L37 — `align` — `style={{ position: "fixed", inset: 0, zIndex: 100200, background: "rgba(2,6,15,.72)", backdropFilter: "blur(3px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}`
+- L52 — `point` — `style={{ padding: "9px 18px", borderRadius: 10, border: "1px solid rgba(103,232,249,.5)", background: "#0E7490", color: "#FFFFFF", fontSize: 12, fontWeight: 900, cursor: "pointer" }}`
+- L62 — `port` — `export function pdiAlert(message: unknown, title?: string, tone?: PdiNoticeTone): Promise<void> {`
+- L72 — `move` — `try { host.remove(); } catch (e) { void e; }`
+- L79 — `port` — `export default pdiAlert;`
+### `src/pdiInlineStyles.ts`
+- L9 — `port` — `// Solution : importer chaque CSS avec le suffixe Vite "?inline". Vite renvoie`
+- L13 — `port` — `// PATCH 017H2 : l ordre des imports ne pilote plus la cascade ; c est l ordre`
+- L15 — `port` — `import baseCss from "./index.css?inline";`
+- L16 — `port` — `import precisionCss from "./pdiIsoPrecisionUx.css?inline";`
+- L17 — `port` — `import landingCss from "./pdi/landing/pdiLandingV4.css?inline";`
+- L18 — `port` — `import leafletCss from "leaflet/dist/leaflet.css?inline";`
+- L34 — `port` — `export function pdiInjectInlineCss(id: string, css: string): boolean {`
+- L50 — `port` — `export function pdiInstallInlineStyles(): number {`
+- L61 — `move` — `document.documentElement.classList.remove("pdi-no-tailwind");`
+- L63 — `move` — `if (alertBar) alertBar.remove();`
+### `src/pdiIsoPrecisionUx.css`
+- L34 — `port` — `min-height: 92px !important;`
+- L35 — `port` — `height: auto !important;`
+- L36 — `port` — `position: relative !important;`
+- L37 — `port` — `z-index: 50 !important;`
+- L38 — `port` — `background: linear-gradient(180deg, rgba(3, 8, 18, 0.98), rgba(5, 12, 24, 0.98)) !important;`
+- L39 — `port` — `border-bottom: 1px solid var(--pdi-border) !important;`
+- L40 — `port` — `box-shadow: 0 10px 28px rgba(0, 0, 0, 0.32) !important;`
+- L41 — `port` — `overflow: visible !important;`
+- L60 — `port` — `min-height: 36px !important;`
+- L61 — `port` — `display: flex !important;`
+- L62 — `align` — `align-items: center !important;`
+- L62 — `port` — `align-items: center !important;`
+- L63 — `port` — `gap: 18px !important;`
+- L64 — `port` — `padding-top: 4px !important;`
+- L65 — `port` — `padding-bottom: 7px !important;`
+- L66 — `port` — `border-top: 1px solid rgba(0, 217, 255, 0.08) !important;`
+- L72 — `port` — `height: 34px !important;`
+- L73 — `port` — `min-width: 88px !important;`
+- L74 — `port` — `padding: 0 14px !important;`
+- L75 — `port` — `border-radius: 10px !important;`
+- L76 — `port` — `border: 1px solid rgba(0, 210, 255, 0.46) !important;`
+- L77 — `port` — `background: rgba(0, 180, 255, 0.10) !important;`
+- L78 — `port` — `color: #dffaff !important;`
+- L79 — `port` — `font-size: 12px !important;`
+- L80 — `port` — `font-weight: 800 !important;`
+- L81 — `port` — `letter-spacing: 0.02em !important;`
+- L82 — `port` — `cursor: pointer !important;`
+- L82 — `point` — `cursor: pointer !important;`
+- L83 — `port` — `white-space: nowrap !important;`
+- L84 — `port` — `transition: background 160ms ease, border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease !important;`
+- L89 — `port` — `background: rgba(0, 210, 255, 0.22) !important;`
+- L90 — `port` — `border-color: rgba(0, 230, 255, 0.82) !important;`
+- L91 — `port` — `box-shadow: 0 0 16px rgba(0, 210, 255, 0.26) !important;`
+- L92 — `port` — `transform: translateY(-1px) !important;`
+- L92 — `translate` — `transform: translateY(-1px) !important;`
+- L100 — `port` — `object-fit: contain !important;`
+- L107 — `port` — `touch-action: none !important;`
+- L108 — `select` — `user-select: none !important;`
+- L108 — `port` — `user-select: none !important;`
+- L119 — `port` — `overscroll-behavior: none !important;`
+- L125 — `port` — `cursor: crosshair !important;`
+- L131 — `port` — `cursor: grab !important;`
+- L137 — `port` — `cursor: grabbing !important;`
+- L143 — `port` — `transition: border-color 140ms ease, background 140ms ease, box-shadow 140ms ease, transform 140ms ease !important;`
+- L149 — `port` — `border-color: rgba(0, 217, 255, 0.65) !important;`
+- L150 — `port` — `box-shadow: 0 0 12px rgba(0, 217, 255, 0.18) !important;`
+- L158 — `port` — `min-height: 42px !important;`
+- L166 — `port` — `font-size: 14px !important;`
+- L167 — `port` — `line-height: 1.05 !important;`
+- L182 — `point` — `pointer-events: none;`
+- L184 — `translate` — `transform: translateY(6px);`
+- L190 — `translate` — `transform: translateY(0);`
+- L194 — `port` — `.pdi-bottom-meter,[class*="pdi-bottom-meter"],[data-pdi-studio] [class*="bottom-meter"]{display:none!important}`
+- L207 — `align` — `align-items: center;`
+- L224 — `point` — `cursor: pointer;`
+- L229 — `port` — `background: #0b0f14 !important;`
+- L230 — `port` — `color: #e6edf3 !important;`
+- L259 — `point` — `cursor: pointer;`
+- L263 — `select` — `html.pdi-no-tailwind select,`
+- L274 — `port` — `position: fixed !important;`
+- L280 — `align` — `align-items: center;`
+- L295 — `port` — `position: fixed !important;`
+### `src/pdiIsoUxRuntimePatch.js`
+- L20 — `select` — `return Array.from(document.querySelectorAll("button, a, [role='button']")).find((el) => /Accueil/i.test(textOf(el)));`
+- L34 — `select` — `return Array.from(document.querySelectorAll("header, nav, div")).find((el) => {`
+- L42 — `select` — `document.querySelectorAll(".pdi-runtime-back-home").forEach((el) => el.remove());`
+- L42 — `move` — `document.querySelectorAll(".pdi-runtime-back-home").forEach((el) => el.remove());`
+- L45 — `move` — `// In ISO mode, if the native topbar already has the Accueil button, remove runtime duplicates`
+- L46 — `select` — `const nativeAccueil = Array.from(document.querySelectorAll("button, a")).find((el) =>`
+- L50 — `select` — `document.querySelectorAll(".pdi-runtime-back-home").forEach((el) => el.remove());`
+- L50 — `move` — `document.querySelectorAll(".pdi-runtime-back-home").forEach((el) => el.remove());`
+- L53 — `select` — `if (document.querySelector(".pdi-runtime-back-home, .pdi-iso-back-btn")) return;`
+- L67 — `select` — `return document.querySelector("canvas") || Array.from(document.querySelectorAll("div, section, main")).find((el) => {`
+- L74 — `select` — `let b = document.querySelector(".pdi-runtime-zoom-badge");`
+- L88 — `move` — `STATE.timer = setTimeout(() => b.classList.remove("is-visible"), 650);`
+- L92 — `port` — `// Phase 3: The SVG viewBox / CTM and React viewport state are the sole authoritative coordinate system.`
+- L97 — `select` — `document.querySelectorAll("canvas").forEach((c) => {`
+- L99 — `select` — `c.style.userSelect = "none";`
+### `src/refactor_cad_script1.py`
+- L1 — `port` — `import re`
+- L6 — `port` — `# 1. Update Imports`
+- L8 — `port` — `'import { ParametricSlab, ParametricAbri, ParametricMassif, ParametricGate, ParametricExtension, SlabType } from "../types";',`
+- L9 — `port` — `'import { ParametricSlab, ParametricAbri, ParametricMassif, ParametricGate, OuvrageBlock, SlabType } from "../types";'`
+- L17 — `port` — `print("Imports & Modal Type updated")`
+### `src/refactor_cad_script2.py`
+- L68 — `move` — `const handleRemoveExtension = (id: string) => {`
+- L102 — `select` — `const [selectedOuvrageId, setSelectedOuvrageId] = useState<string | null>("ouvrage-1");`
+- L103 — `drag` — `const [draggingOuvrageId, setDraggingOuvrageId] = useState<string | null>(null);`
+- L148 — `select` — `setSelectedOuvrageId(newId);`
+- L165 — `select` — `setSelectedOuvrageId(newId);`
+- L168 — `move` — `const handleRemoveOuvrage = (id: string) => {`
+- L171 — `select` — `if (selectedOuvrageId === id) setSelectedOuvrageId(null);`
+### `src/refactor_cad_script3.py`
+- L81 — `point` — `className="px-3 py-1.5 bg-amber-700 hover:bg-amber-800 text-white rounded-lg text-xs font-black flex items-center gap-1 shadow-xs cursor-pointer"`
+- L109 — `move` — `onClick={() => handleRemoveExtension(ext.id)}`
+- L121 — `select` — `<select`
+- L131 — `select` — `</select>`
+- L204 — `point` — `className="px-3 py-1.5 bg-amber-700 hover:bg-amber-800 text-white rounded-lg text-xs font-black flex items-center gap-1 shadow-xs cursor-pointer"`
+- L230 — `select` — `<select`
+- L241 — `select` — `</select>`
+- L254 — `move` — `onClick={() => handleRemoveOuvrage(ov.id)}`
+- L320 — `point` — `<label className="flex items-center gap-1.5 font-bold text-slate-700 cursor-pointer">`
+- L329 — `point` — `<label className="flex items-center gap-1.5 font-bold text-slate-700 cursor-pointer">`
+- L338 — `point` — `<label className="flex items-center gap-1.5 font-bold text-slate-700 cursor-pointer">`
+### `src/refactor_cad_script4.py`
+- L1 — `port` — `import sys`
+- L10 — `anchor` — `print("ERROR: Anchors not found! pos1:", pos1, "pos2:", pos2)`
+- L77 — `select` — `className="relative w-full overflow-hidden bg-slate-950 rounded-b-xl border border-slate-800 shadow-2xl min-h-[580px] flex items-center justify-center p-2 select-none"`
+- L78 — `move` — `onMouseMove={(e) => {`
+- L79 — `drag` — `if (!draggingOuvrageId && !draggingSlabId && !draggingAbriId && !draggingMassifId) return;`
+- L87 — `drag` — `if (draggingOuvrageId) {`
+- L88 — `point` — `const deltaX = (mouseX - dragStartPos.pointerX) / scale;`
+- L88 — `drag` — `const deltaX = (mouseX - dragStartPos.pointerX) / scale;`
+- L89 — `point` — `const deltaY = (mouseY - dragStartPos.pointerY) / scale;`
+- L89 — `drag` — `const deltaY = (mouseY - dragStartPos.pointerY) / scale;`
+- L90 — `drag` — `setOuvrages(prev => prev.map(ov => ov.id === draggingOuvrageId ? {`
+- L95 — `point` — `setDragStartPos({ pointerX: mouseX, pointerY: mouseY, initX: 0, initY: 0 });`
+- L95 — `drag` — `setDragStartPos({ pointerX: mouseX, pointerY: mouseY, initX: 0, initY: 0 });`
+- L96 — `drag` — `} else if (draggingSlabId) {`
+- L97 — `point` — `const deltaX = (mouseX - dragStartPos.pointerX) / scale;`
+- L97 — `drag` — `const deltaX = (mouseX - dragStartPos.pointerX) / scale;`
+- L98 — `point` — `const deltaY = (mouseY - dragStartPos.pointerY) / scale;`
+- L98 — `drag` — `const deltaY = (mouseY - dragStartPos.pointerY) / scale;`
+- L99 — `drag` — `setSlabs(prev => prev.map(s => s.id === draggingSlabId ? {`
+- L104 — `point` — `setDragStartPos({ pointerX: mouseX, pointerY: mouseY, initX: 0, initY: 0 });`
+- L104 — `drag` — `setDragStartPos({ pointerX: mouseX, pointerY: mouseY, initX: 0, initY: 0 });`
+- L108 — `drag` — `setDraggingOuvrageId(null);`
+- L109 — `drag` — `setDraggingSlabId(null);`
+- L110 — `drag` — `setDraggingAbriId(null);`
+- L111 — `drag` — `setDraggingMassifId(null);`
+- L187 — `translate` — `<g transform={`translate(${svgW - 80}, 65)`}>`
+- L189 — `point` — `<polygon points="0,-18 5,0 0,-4 -5,0" fill="#f59e0b" />`
+- L190 — `point` — `<polygon points="0,18 5,0 0,4 -5,0" fill="#475569" />`
+- L191 — `anchor` — `<text x="0" y="-24" fill="#f59e0b" fontSize="11" fontWeight="bold" textAnchor="middle">N</text>`
+- L192 — `anchor` — `<text x="26" y="4" fill="#94a3b8" fontSize="9" textAnchor="start">E</text>`
+- L193 — `anchor` — `<text x="-26" y="4" fill="#94a3b8" fontSize="9" textAnchor="end">O</text>`
+- L194 — `anchor` — `<text x="0" y="32" fill="#64748b" fontSize="9" textAnchor="middle">S</text>`
+- L198 — `translate` — `<g transform="translate(35, 45)">`
+- L211 — `select` — `const isSelected = selectedOuvrageId === ov.id;`
+- L229 — `move` — `className="cursor-move transition-all"`
+- L232 — `select` — `setSelectedOuvrageId(ov.id);`
+- L236 — `select` — `setSelectedOuvrageId(ov.id);`
+- L237 — `drag` — `setDraggingOuvrageId(ov.id);`
+- L240 — `drag` — `setDragStartPos({`
+- L241 — `point` — `pointerX: e.clientX - rect.left,`
+- L242 — `point` — `pointerY: e.clientY - rect.top,`
+- L258 — `select` — `strokeWidth={isSelected ? 3 : 2}`
+- L263 — `select` — `{/* Selected highlight glow */}`
+- L264 — `select` — `{isSelected && (`
+- L309 — `anchor` — `textAnchor="middle"`
+- L348 — `translate` — `<g transform={`translate(${fX + 8}, ${fY + 16})`}>`
+- L365 — `translate` — `<g transform={`translate(${fX + fW - 110}, ${fY + 16})`}>`
+- L383 — `anchor` — `<text x={fX + fW / 2} y={fY - 6} fill="#f59e0b" fontSize="10" fontWeight="bold" textAnchor="middle">`
+- L386 — `anchor` — `<text x={fX - 8} y={fY + fH / 2} fill="#f59e0b" fontSize="10" fontWeight="bold" textAnchor="end" transform={`rotate(-90 ${fX - 8} ${fY + fH / 2})`}>`
+- L396 — `select` — `const isSelected = selectedSlabId === slab.id;`
+- L411 — `select` — `setSelectedSlabId(slab.id);`
+- L415 — `select` — `setSelectedSlabId(slab.id);`
+- L416 — `drag` — `setDraggingSlabId(slab.id);`
+- L419 — `drag` — `setDragStartPos({`
+- L420 — `point` — `pointerX: e.clientX - rect.left,`
+- L421 — `point` — `pointerY: e.clientY - rect.top,`
+- L436 — `select` — `stroke={isSelected ? "#38bdf8" : st.stroke}`
+- L437 — `select` — `strokeWidth={isSelected ? 2.5 : st.strokeWidth}`
+- L447 — `anchor` — `<text x={sX + sW / 2} y={sY + sH / 2 - 2} fill="#ffffff" fontSize="9" fontWeight="bold" textAnchor="middle">`
+- L450 — `anchor` — `<text x={sX + sW / 2} y={sY + sH / 2 + 10} fill="#cbd5e1" fontSize="8" textAnchor="middle">`
+- L463 — `anchor` — `<text x={sX + 21} y={sY + 10} fill="#ffffff" fontSize="7" fontWeight="bold" textAnchor="middle">`
+- L479 — `point` — `<g key={abri.id} className="cursor-pointer">`
+- L490 — `anchor` — `<text x={aX + aW / 2} y={aY + aH / 2 + 3} fill="#f8fafc" fontSize="8.5" fontWeight="bold" textAnchor="middle">`
+- L491 — `port` — `{abri.name} ({abri.type === "01_porte" ? "1P" : "2P"})`
+- L515 — `anchor` — `<text x={mX + mW / 2} y={mY + mH / 2 + 3} fill="#fef3c7" fontSize="8" fontWeight="bold" textAnchor="middle">`
+- L523 — `translate` — `<g transform={`translate(${svgW - 460}, ${svgH - 220})`}>`
+- L530 — `port` — `SONELGAZ • GAZ TRANSPORT & DISTRIBUTION`
+- L532 — `anchor` — `<text x="420" y="20" fill="#f59e0b" fontSize="10" fontWeight="bold" textAnchor="end">`
+- L549 — `groupe` — `GROUPE SONELGAZ / DZA`
+- L549 — `group` — `GROUPE SONELGAZ / DZA`
+- L559 — `translate` — `<g transform="translate(12, 94)">`
+- L580 — `translate` — `<g transform="translate(12, 144)">`
+- L595 — `anchor` — `<text x="217" y="185" fill="#38bdf8" fontSize="9.5" fontWeight="bold" textAnchor="middle">`
+### `src/search_svg.py`
+- L4 — `port` — `import re`
+### `src/types.ts`
+- L6 — `port` — `export interface FasciculeSection {`
+- L11 — `point` — `points?: string[];`
+- L23 — `port` — `export interface Fascicule {`
+- L39 — `port` — `export interface SparePartItem {`
+- L51 — `port` — `export interface BendingRecord {`
+- L57 — `port` — `export interface Message {`
+- L62 — `port` — `export interface PVState {`
+- L101 — `port` — `export interface OuvrageBlock {`
+- L134 — `port` — `export type SlabType =`
+- L143 — `port` — `export interface ParametricSlab {`
+- L157 — `port` — `export interface ParametricAbri {`
+- L163 — `port` — `type: "01_porte" | "02_portes";`
+- L171 — `port` — `export interface ParametricMassif {`
+- L184 — `port` — `export interface ParametricGate {`
+- L187 — `port` — `type: "portail_5m" | "portail_custom" | "portillon";`
+- L196 — `port` — `export interface ParametricExtension {`
+### `src/vite-env.d.ts`
+- L3 — `port` — `// PATCH 017H : CSS importes en chaine de caracteres (embarques dans le bundle).`
+- L6 — `port` — `export default css;`
+- L11 — `port` — `export default value;`
+- L16 — `port` — `export default value;`
+- L21 — `port` — `export default value;`
+- L26 — `port` — `export default value;`
+### `tmp/update_calculators.py`
+- L1 — `port` — `import sys`
+- L6 — `port` — `# 1. Update imports`
+- L8 — `port` — `'import { ParametricSlab, ParametricAbri, ParametricMassif, ParametricGate, SlabType } from "../types";',`
+- L9 — `port` — `'import { ParametricSlab, ParametricAbri, ParametricMassif, ParametricGate, ParametricExtension, SlabType } from "../types";'`
+- L38 — `port` — `Société algérienne de l'électricité et du gaz – Transport du Gaz`
+- L47 — `port` — `code = code.replace("export default function Calculators() {", header_code + "\nexport default function Calculators() {")`
+- L121 — `move` — `const handleRemoveExtension = (id: string) => {`
+- L133 — `port` — `approverName: "Directeur Transport Gaz",`
+### `tsconfig.json`
+- L23 — `port` — `"allowImportingTsExtensions": true,`
+### `update_fence_section_script.py`
+- L1 — `port` — `import re`
+### `vite.config.ts`
+- L1 — `port` — `import tailwindcss from '@tailwindcss/vite';`
+- L2 — `port` — `import react from '@vitejs/plugin-react';`
+- L3 — `port` — `import path from 'path';`
+- L4 — `port` — `import {defineConfig} from 'vite';`
+- L6 — `port` — `export default defineConfig(() => {`
+- L37 — `port` — `return 'vendor-export-tools';`
+
+## Plan 017Q1
+
+### 1. Sélection
+- Identifier la source de vérité existante.
+- Conserver sélection simple et multiple.
+- Ne pas créer un deuxième système de sélection.
+
+### 2. Points d'ancrage
+- Réutiliser ports, extrémités, centres, branches et sommets existants.
+- Ne pas créer une géométrie parallèle au moteur ISO.
+
+### 3. ALIGN
+Sélection → référence → point d'ancrage → axe/direction
+→ preview → validation → Undo.
+
+**Align doit fonctionner directement sur la sélection.**
+
+### 4. PARALLÈLE
+Sélection → référence → direction/axe ou second point
+→ preview → validation → Undo.
+
+**Parallèle doit fonctionner directement sur la sélection.**
+
+### 5. GROUPER
+Relation légère entre entités, sans duplication, compatible JSON et Undo/Redo.
+
+### 6. ASSOCIER
+Relation entre entités sans fusionner leurs identités, persistante dans JSON.
+
+### 7. Undo / Redo
+Une opération utilisateur doit former une transaction cohérente.
+
+### 8. JSON
+IDs stables, relations persistantes, import/export sans doublons.
+
+## Critères d'acceptation
+
+- [ ] Sélection simple
+- [ ] Sélection multiple
+- [ ] Align sur 2 éléments
+- [ ] Align sur 3 éléments ou plus
+- [ ] Align avec point d'ancrage
+- [ ] Parallèle sur 2 éléments
+- [ ] Parallèle avec référence
+- [ ] Grouper puis déplacement collectif
+- [ ] Associer
+- [ ] Undo
+- [ ] Redo
+- [ ] Export JSON
+- [ ] Import JSON
+- [ ] Aucun objet non sélectionné ne bouge
+- [ ] Renderer ISO affiche le résultat
+
+## Interdictions
+
+- Pas de deuxième renderer.
+- Pas de deuxième store de sélection.
+- Pas de transformation purement CSS/SVG.
+- Grouper/Associer ne sont pas des prérequis pour Align/Parallèle.
+- Pas de push GitHub automatique.
+
+## Suite
+
+AI Studio doit d'abord identifier les vrais fichiers, types, stores et
+handlers. Ensuite seulement il génère le patch moteur 017Q1.

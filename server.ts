@@ -1,6 +1,8 @@
 /**
- * @license
- * SPDX-License-Identifier: Apache-2.0
+ * ORTHOGONAL - ENG · PIPING DESIGN & ISOMETRICS (PD&I)
+ * COPYRIGHT (C) 2026 ORTHOGONAL - ENG. ALL RIGHTS RESERVED.
+ * SECURE ENTERPRISE CAD APPLICATION SERVER.
+ * UNAUTHORIZED DUPLICATION OR USAGE IS STRICTLY PROHIBITED.
  */
 
 import express from "express";
@@ -25,11 +27,28 @@ dotenv.config();
 const app = express();
 const PORT = 3000;
 
+// Hardening & Security Middleware ORTHOGONAL - ENG
+app.disable("x-powered-by");
+app.use((_req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "SAMEORIGIN");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader("X-Engine-Vendor", "ORTHOGONAL - ENG");
+  res.setHeader("X-Engine-Product", "Piping Design & Isometrics");
+  next();
+});
+
 app.use(express.json());
 
-// API health endpoint
+// API health endpoint with software signature
 app.get("/api/health", (_req, res) => {
-  res.json({ status: "ok", service: "pdi-industrial-cad" });
+  res.json({
+    status: "ok",
+    service: "pdi-industrial-cad",
+    vendor: "ORTHOGONAL - ENG",
+    engineVersion: "4.8d",
+    timestamp: new Date().toISOString(),
+  });
 });
 
 // Cloud SQL User Sync & Projects Endpoints

@@ -9372,27 +9372,875 @@ ${PDI_STYLE_IMPRESSION_017L}</style>
                         <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-200 text-[10px]">
                           <label className="flex items-center gap-1.5 font-bold text-slate-700 cursor-pointer">
                             <input
-                         xúÏ]Is„Hvæ˜Ø»¶’‘të¢÷¢©RõZZ*I#™ ”]QQÅIS Ä∆¢•4:˙PvÑÌàâËãÓÒ…≠	l«|i¯OÊ∏ÇﬂÀƒ$ê‹TíZàä	ÄâƒÀÔ-˘ﬁÀóÑ¿·û[ÙyEPı›±yV˘ÑÏ>⁄}~aû‘ä≥Eï^ñ¸∆4⁄≈Ë”ÁU∫@ûØ¯÷’ÈK´´∏tﬂ;±ï>≠B{Z˜!©çVZwªO›∫ˇ–Ö≤©∫‚8{ ﬁ«6=£Kªƒ•gnMSªˆ®—(~ª≈ı¬ÀœK1÷€˙ËOÆgSr0∫≤µ·Ë µµÔ<˙lë]-h‡Ÿ¢ÆSΩvG¸5z:=#öKáNM•ÜKm“W¨⁄RΩIz¶·÷éM›EGZ÷7Dıl«¥kñ©·˝ïíw“ÀsK»:B^ôö>sÑ∞FgâÕËj}sFaΩ#_4LÉ¥l¿»=:Ç#ÖémÂX3g÷¯õùΩy<Ä¯›#]ê"∂ÈR’ÖØ3¿»≥≈Æv"∫\pq!ó*Ç‰ûÜRg.AöuÚjgwì¥[‰≈˛FkóT-≈&&1≤HéuS%™v¨√∞˛b1›ã(sB€J˜ÖŸUtÚ¸˘sR9aºO< ’*√¬E¶ã*◊%|‡}têÁ¡Sùz∏Ωj‚OM@kï?à1ÆˇÉùÓ˘›Ô¬Ωnº˘•Ë9≠Kx@‚Å_‘YG˘5hË5¸>”ÄMAï§ö%2–8EÄÜJkÁµ’\éMﬂ}‹˜9æŸ VmÖ¯@ÆùÈ‰ÿ¥ª '¯ˇÆeê¡@xÑBV¸0æxΩ‘∞Œﬁ¯GW‘wqâ”Ññ=À¢∂™8îˆª ˙~8˙_‚Ë∑qÙ…Z!∏ü9T. ˚D—=)Ú√»Ÿ+√gdäC›V™°aœ
-êaNk=O◊3BxH``N ∞sáaà)ÎFŒ:Ø-Áõ_Ñ0*Vµj≤WÀ,§¨i°!ÔË9»d ⁄e@Nˆe˛Nóœ˘ç¢«Êãî|ËraÀ%IﬁIU∑ú“gH`_ïóAﬂø∞/¬{ëÚìSz°≤˚Ù”8À£8ì¬Ñ_ûL‹4π±Tn$¥UœY≥5#FÔ9≠≠í»®‹vöëiƒåT9s2≈Œ”fL§ÌŒ»6…¬≠±§µN®ë∞œD–(‰PVÂ\Kã°` ò¬ éH÷ì§_ïê„BÇ<+∞≤]»r€o=«’zÁµcÍûR†ﬁ∏∂Th=N¢.5c€Üô÷Ë
-Ã$œƒb%·?˜ÿsa\≠0ŒΩ¸∆bs¯P◊‘w¿ÜSqad
- æÆ0j°‚xÏu\¸cz¯·MâÖZH–P◊ƒX!cÎöAãﬁ¥ÿj=2=X…!´DÂcRh•r¬Nh¶f¡ÿ∑Aï„5’‘`&˘¡wQ-!2QnΩ-p5È,…¯¡≠=n)¢µ«∆≥Æ™Ó¡h"k ∆°≠óz{	¸‚¡vÈƒi¨„ë¬{1A¯°ıH5©ﬁ¸w-¶?8Q¿,	¨pÚE@€û¶ÉÏ©ûaWŒ»ß`ß√8≠ë◊ızùﬂÒê89fyˆòÑM±O%Cä«e˘DXæ¯:Œ¢æ`eåﬂmÖqØ™Xö´Ë⁄{J{ΩH˚@5¬ÕÜ£°9VS¿Œ¸kôa
-i[âl$¨Õ∏Q˜Ö ±+°ÕöÚ$dTO9©æ-£U±¬ LÒ]˛Ú/øgùZ˘¡Q.ï(ÔÀ…,3Û.–Ã‚nôâªïqW¨⁄Â4q SÑ¿`≥5_œ•x.ıl_Wár™∏‹}ƒ•ì·°s•@˘ì<∆±_Q≠?p…_êÂz≥3≥´cYa)∂C∑tSq”≥EúÉBØ‰ï∫?wLX¡C”0c%=ã…≥Hx<Œ#qf_–â«ïÑæû3˛F,Esúõ¡£hMÉ:¢∞Q_æNÜœ."tÏÓ±‡¢R5˜f4√ÂB5ﬂÈ˘®N:ª≠/;‰y—Ítv∂:1˜géè≥öÁ‰;≥º´C$≠ÁTÚ'ï”9Ÿ‹/=›KÃaÿ-œ∂Ùrˇ¢:±Ÿ⁄©≠XÖÊª¥7¿oYŒ∞VÃ^™å¨uù}wpπ@®K^pR¬5ü®—’)23Í‚YLŸ4@Œ¨OôÛ\™¥∫›–°Z 
-b‹êUä¿ÅyBÌµË‹ì§5„˝úAÑÆà3P∫Ê)ﬁúäT	˙Z ,tòµ&⁄
-º√ ˇØJ6™üs‘¯((ŒîóÛL·…Ü3ååG£∫Ó‘`r"Õ`4Ö∫§¿õ-tï≥⁄†ˆ∫Ÿ<º!8 =Ëu^s€$ñ-t±°ûÈl∂èvˆ˜B%ìU-≈O/ê=É’km)Â∑ã‚:…¯(ŒN’wË>’P¿Q4°a£Û”?¸{(û„≤ò,íé©¢@?8◊G2hÆÙ^+‰¡™0ÑílåÈ‹Ã6¢(VûŒJ¬ÿº^ç∏ÆŸXd˙s9‡ÆîÚ‰w9uÒhy™gﬁcrÃ…§öFOÎ{ˆË™N@f|Á—˜ƒ€πí‚É
-QµZ,G‡-ÀÑP”ŒË Ü^xFΩ¿≥ÑÅ òéã	Pñ9›Üâ÷=+	P˘ fÓÆ!ãO%‹)π÷Gq±«ÑG•®/<wx€˜=$·=m$«cÉ•\Æ9√¿AzÈ3NëÀo/K2∆7ø¯3é38Y|p:.qç≤g ‰uj	IXÓ€ÒÁFC-îÒ3ä:|Ö6‰sl0Ω*é¬FGú¶I[L^°˝(ò≈b≥6ÖA›Ÿ Õ Î¥∂º∏RFûí§ ƒd¯cIèÒ∏æ`Å≈±·Yp29L√ë¥B¿8(ú<.ÊG‰~j)ôWq5Wá≥ŒÉ<¥}AX˛”r˙√¥MÎ|Î$l@ ;…Óºﬁ¡>§C ˚|F⁄ôé3~Iå2ûhN2ƒ0Llm8Î!>≤g∞|É\‚nã›2ñbI˘ïõa¥†âw¯¯û
-]|Õ¿≈WYﬂ5ç~]⁄•Á?PNÖç„ﬁ„á„RÎy•Q_íπ9‘zæŸ)«f≤öè7*·’+s/ÛCê†4°Oµ·íÔ–¥a9… 5a9¯Øì@Â[éIò~Õí¨Õ{Dfoö?"1wÀ9`Ò≤Cr Ñª«§‡Æi0y`:‰77ìÖ—•‡1y∂ﬂÎ9t÷†Ù[-GÂ=&ÛÓöì_ﬂnLûœìÁ˜òú‰ñíDéPQBºxÍwÎo¥vw7'ÍÀÖˇ|:ªc$O‚ÙèG˛fÊıˇcØM8˝3¡€Èxvﬁzç\∏¶´Ë‘tZ6UÍÆπ•ù—nui·íˇ¸ﬂS≈¯Syí®åø:ÚV;)oı4ÀrBOvqŒı‘æ‰Ë…é‰L∞>œœ [|Ç»˚´ ˘ú,]ñØuõ '*Î$õ*76Âe!uGŒCˆ=°i?hŸ/$tÁtŒOiØÿıç)wzŒ~@gÎLª;g0í”˙8Â∆RV„é!ËrsfK≈óåΩ:ç%∫g•m–˘Ö‰úYÑ‰BfòM@.≥@rûvbŸíl	qﬁH9Ça≈’‡<ÂH3Ö´b£#¢gÜ@¿Ên$$†øñS¨bô0{€•.Kïu>:xíòßx°li¨∞yõ™•◊£û¥}8∫ÇS;7q≥}≈¶o¡◊°ë∑ämk'4Ï¸6\#á¸©∂‚Ëä.ÃÊY]
-K7ˇQ@,º8˘ì†m£´ÙÈ[ú”R«≥¬Ÿ9“ÚœM‹∫rlko]`ß†˜-8AéFW˙Ë
-,ZK75W·U&|Bõ}´Ç1nÉá¯új;¶a(∫Ê¿`»>°heu¸Æy+[ôıx◊ B«"é•re]>°¨ïçJK[…h‡“‰¯}7∑@'èú/†$√y“xíÂ›√)vœıÜJÊ'È∏á4†fÛ∏á‘\"ÛÖîtÿBR≥Y‹~Hï≠√,∫,ÆœSºúAÍt˛B∏«u≤›:⁄,Y˛ñ∑æ≠ƒv*mqõzÆ•>zv”∂±vÂñµmSáÕ0∞¬ÿÅiªä¶;‰i©ÍËG\¡»L√[ó∞m√ÀUaÜŒ^˚msXôh˝£vb1;s◊ñ≤˘Ë Õ!©æ]4’”©≥pìWµE„´È:40—:ÔŒì£ã'Ó‚‡2ë%ﬁç9¶€Æq[	◊∏5∆]„∆≈ãºˆÉÆQ»µ?ÉêkyÌ+VêC" +Á8·
-§§òVπ±9ç!ê3#Â‹ŒæUÿØõA!≈T9ÕÚ
-ç¡Qh.29—ÁÊb¯®ÒΩ“≥ÚI/èañYÎcñréYïtëÈ>O¬Yn€Œ·<¿ÚôoÕÁ2¡i$OZπâ ŒÑTBÉm]hïH:¿≥-sSa]§'n{∏Ó;û]R«≥%=ı∑Å=x•EÚ7∏6v.Ãq
--œå9∞±õ¬±Çm3Â¨ZPÎNZV¸p}˛ü∞¨í∏æÈ∏˛úóY√Ç 6qÿ‰¿‰k»	wKç·z£íæú€-2Ø§|nÚ&‘¨n≥w∑ç£ï
-]mr~4Òı“L4Ÿ¥ÇÏ≥pL
-	ùÃ;„sﬁi3œ`"\‘g˘¥≥¬!»K5„≈£ãÄï∏$Êº«AŒ=âsËˆ‰~Ã-”ƒ©c⁄·Y\©Uú∑MûKjt3ÛE,ã¡òÇ`X?p»V`›“%}.èX°zﬂÁ¬∫¸4õßöÚª‰%É>çÕ–}À∞õ.ﬂ¡}∆ké™∞`'M∫8|˙ÂsÜΩçï—s@…{GÓäﬁ≈ π(ıwc YÔiYA±≈#∫bêÂç|∑L>Æ3(LùH|ç|¬Áì1ƒb;Ku≤µπ7˙ª£√M≤ˇv:˚ù∂@·iÔÔmÌlø<lÒüÌº88‹Ït∫¸ì-Õ§GŒ¿<=∞a4wïs”s9´%¬ß5.¿¢6‘≠5bl6ü \ı]◊6≠⁄±éV}óº«5ç7N ˇ´ï
-8˚iæ∑q%¬˜r~lÏé≈U¨©œî'z—¯≠°m†uª‘‡]e>$’‘o€SÊmSmà}–‡.•À˛æ7Õ!¸EÆÈz6Ki™-5”ÀBƒoÉr Á˜PZ•V<ëq¢e≈óT¥!Øn˙óV âB2.7b±ï’‰6 Ø‰Øîy∆–˜'dƒ#êèÚEÇ@øà¸´Éïåizå´mÚó‡$ó‹ƒeÎX°.∑64«
-Ï€Óg;CÀ¶éÉ_êóÅŸ˝öRJÒ^Eœ+πÁÀ*d°P]Bﬂ]!CÕa;5XJü>$˙g¶≠¡À∞`ÈF∏£Gç—]];Zÿ·‹‚TπërFz¥ì#´™=EwÚ¶™I¯&Wü)çÈIËﬂÉBLuÇ|0Ì≤ÄEÈ~ìD;∆&Ú"ÖJ¨PºX¿AÈ»@@x√ºl®\ˆ˘‰siçÏ«0íç6èSO0SLÜáRÎ·BìbM˛à⁄‘¥A$?≈;⁄Û@±4jÁíS	/öÆîOT≤∏fòéıæZÀ¶∂òEEA∫d≈∂hìHÛa$9˘F:Á´Ä¥5ò⁄HXﬂJuúÁDù˜+ø¯≈'çÑVXmƒµ»JTnÿMñÅ{¬+±%t¢êSw	∑ÃØú/∂?≠-¡√jè#JoÂŸ6–"úbó⁄<—>ÚôT÷[+EïóSùa?‘iœg§%xÃÜ1Ë?n}›imoíjkÖ,í÷jYÃ37√/CnÇ$–‹Û⁄„fe˝ê™Êp∏]Ò≤àÄÑÌ÷áÂ)Í∂2¿<æ/Ã†«Q≈Ûÿ˘Û+z¥mEso#ªÜ}ø≥‹˙òu©17n]˝h‹∫xtÿ⁄9vùßv<€€äs©≠Xà'a¬ó%f@ŒòOãÏI±Å≤ºv4aË$¢7œ>YÆÛé¡øCjÄUÇôem”√%<Œ≠±MÖÒ=™fÒ âπï…≈\:?dÅvûã;˛æ¨;÷=öíuÏT(Îÿ∑ïhﬂûq$‹Dô_¿·~$:’å98É,dø"vﬂª—H`MÏL»Ó`ì∂SiÎäÌmª|Ì
-8 „”€åHËΩ«hZöâ⁄DÛœè	≈ø¸«?ì=SCWÏó`¡©‰à™£l∑ˆ24FΩ¬1$De˝(`u`õ√ÇgŒZÀ¨¨Ü9Ç≈PnûñY©ìoLÉ&úL∑Fπ`œ9c¬m‚„†Áúç±˜„ö–W≠¸˛ü»¶·–!Ó›ı„)S*˛ÊEúd˘É·åcq#Tähî≥=’òÚTÑª⁄¡/6lÓÍô¶√‡Á¢ü6;ºx˜Ië®Óüƒ|Tﬁ?V˛££˛˚ˇ˝øˇ˘G≤¯π;£+LíÇ£+
-S)œ5Å	
-ÁSe\‡£àb[Q¥ï.Ù„Wäg\£F[]#û–ïsˇå3ÜZ[IÜ˝%˜RŒFﬂb´ÆCÆ÷…ËÉ>∫8dÙ≤É; çq«}:râ8√5Iï)πÔ˙J2–/ëYèfbä}.ïx»3…ı◊∞=;ì;|#ﬂ∂…›M¬≠u3©TÅ‹M7Pùd√ı · ´Öö…m◊Tç∑Ÿz—˛y≈+‘B¡ÌÁq2µæ1⁄‡—ÍL·‚Iá[Ωû4d[P„‘cDCx*Û:dáä·Q¨8°üGº°˚=O–∂Çn6∏41O¸Lx‚ÔI¯∆—§ìt¿"—KBcrFÙ{t’◊)*EÂ°úPïúhé¬∏dÔœˇ9sH˝¢Tó7◊H∑nﬁƒ¥âöh©G3iùVßÃO≤∏x]YZk6p˙•µ•Üˇa9¯–‰ÿÉ⁄ï7~ΩQµ`≈Oq*/@™äòK&AU0fcá]+g‹ão˘“6ñÜâëJg˚[ùOf˘˚∂?˛éüÂ6ìñ:f3≈–íû¸
-∂˘ xºRˆˇJn¢ÜàÃ¢M—E‚A8™EÛœº‰WŸåôéd~X≠)»cï òß≥LÀ	•ÊfWÛs\;w	I2Õu5ìÊZîîc⁄®í≤s_°i‡ˇäÁ†•Ÿ`fâÆ[∏o4tE6õOGÅTZOÉßsÖ4¨◊ÎeI≠Û <	PúuïÁ“ã¯Ç∆T}?Ωm~ÁiN5ÁÓÁGN43˚∂“≈¿uÕ5k6ÈŸÊêá(0ÌN1	•‡G◊õQóôíX±§ÈX`57aW≤Oî0»Iπ	ëe@˙ÈáÔDø∆Æb®49À≈µ5öÜ:¯ñ•J/'S•€≠√£˝óÌØ6…—f˚´Ωù_ø‹$õ;G~%î‰1ßTÈ¨úõy≤ÙÚGOñé	Ãt∫Ù}∂ÙŸ“1:.g5òúæ w*Â+õõñ4çıDÅM∞Zi7¶ﬁ»fl≤“ú±	‹4IŒáLÎò‰L2]π mÊ–uàâÆ&˛¿<f˘÷ÜãÀG‡ÖpNb±9…ç…oŒ1§Ó3úŸπ12úWSŒ¬ "˘ê„ü [∆∫,c%√c¨6rp∏ˇ´Õ#≤Hvˆévé^Óé>êçó‰`øs¥Y∞¶UËa*.LÓØVU∏Ï=≥é9î{Ç“‰y•v¸◊’Üg¢¡á$hq-µ6ú\ÊŒV≥KTí;œe˜8)
-ÉrCÀY-Ëb.™§¿ƒÒ U◊Z30‰ñÈ`¸Ú\+G»ÖÚt2@ÌΩ|1˙p∏è∂œ¡nkØpatÅ£≤¨¬}>î@,Ó±u”˘s„	·∂*	®kÄT*´sbpÂ∫C«UºìeÙ¨‚››Õ‰ä¡ÎÑõÕ)¨¡ü3Hn∏h⁄Å m°∂◊:⁄|y»ÙﬁˆË√ﬁ~πNÏQ∞îL[§˜&`‘ÍÕA·≠P N£|•Ûu¬ÎqÃÿﬁœbq4;˚9XÇ%Úıt@öÄfkÓˇ˙ÂNß»ê/~4Î\∆8AIõjÖ≠ÛêIh<cı)˝"õ¢®'üå˜z)„uáw‘t∑˝5|ÿu"	Ò P‰®àc3„˛>¸y*1!•Â>`í¥ÊøEﬂÈ∂¬‹U´ô{Ç≠Ç]u9eêhLA~ÿuf¬Á†Œfõ7ﬂNÿÒæˇ|p˜ØˇÜ∏€∞MÕùyÓ_Œ©q"é¢ 9°wı:*ÁL·;´5π⁄å ì(—î¢¬∞¢∞zN
-ı¢ZÂ^3QµúÇ¿œ¶a”æÊ∏v∂@NHπ[˜YI∆}[Ìˆ˛À√6hˇˆnÎ’ŒÊ°_@ckg˚E+Eî9≈} à∂´zÆsWc>¬9zˇ>‚ì·ºÎ¨è”6á<È¶ázUkI’\+x¢1q¥e<µ^—5wtÂØ[ú&‘≥≠∞0†–V,≠ã≠ÚÃ<ÔÿQ,€ÏqKÕ†∫√ÒS˚…"Ÿ“˙CÂE}í‚Â>‚√œçÒYIßãe‚‰ÿøl#ì∏Ö¥ú¥ö«XÚêõèçÎ≥sb≈ Ce»í]qL8ûÚ £‚=ÿ≥%2√Q– X‰ìM#\Ç©„ﬁê–£M6 ‰s≤≠kéÉÂvÚ-_ÊçÄo@{ë÷	∆å	ˇb€⁄ËG˚&–ø¬d›O?|ˇ_0è∏s¥+¢FÀyíÀµ¶¨—:Ò∞Æ"æ}»X‡Œøeû≠∂±Iı•—5¶"x∏˛o2í∑][AÛÕù£Ù!¶´ÎZDÎCz3h˝5 ?~ﬁh=˜ÛªG˙∂iqCµmÍv¨%Gù©(î¥ùñˆmüˆÒ’ù£˚Ü∏)≈”ãpo˝ÖuÖo-—è∞ÆSå“Äimy∂•”©È‹∫stniC%®∞6˙U›∂5\U›∆h}«P¨ÈÑ;nπ61ŸèxÊˆù#{09bf‚Å=∫B7@uœÎˆÈî‰”ß ∏C∂¿ÑU,%µ ÙÈÛ≥•Ü åt«\¯∏7‚Ó˚‘‚π•gì˚ÔÀ}Ëí√â◊ßÛÙ®«Ná~˘…Â'ˇ  ˇˇ ïÑ¥5
+                              type="checkbox"
+                              checked={ov.hasFence}
+                              onChange={(e) => handleUpdateOuvrage(ov.id, "hasFence", e.target.checked)}
+                              className="rounded text-amber-600"
+                            />
+                            <span>Cl√¥ture P√©rim√©trique</span>
+                          </label>
+                          <label className="flex items-center gap-1.5 font-bold text-slate-700 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={ov.hasVoile}
+                              onChange={(e) => handleUpdateOuvrage(ov.id, "hasVoile", e.target.checked)}
+                              className="rounded text-indigo-600"
+                            />
+                            <span>Voile B√©ton Arm√©</span>
+                          </label>
+                          <label className="flex items-center gap-1.5 font-bold text-slate-700 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={ov.hasGabions}
+                              onChange={(e) => handleUpdateOuvrage(ov.id, "hasGabions", e.target.checked)}
+                              className="rounded text-amber-700"
+                            />
+                            <span>Gabions de Protection</span>
+                          </label>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 5. VOILE CAD MODAL (par ouvrage / bloc cible) */}
+              {activeCadModal === "voile" && (() => {
+                const targetOuvrage = ouvrages.find(o => o.id === activeVoileOuvrageId) || ouvrages[0];
+                const tSides = targetOuvrage?.voileSides || [];
+
+                return (
+                <div className="space-y-4">
+                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-500 uppercase block">Ouvrage / Bloc Cible :</label>
+                    <select
+                      value={targetOuvrage?.id || ""}
+                      onChange={(e) => setActiveVoileOuvrageId(e.target.value)}
+                      className="w-full font-bold text-sm bg-white border border-slate-300 rounded-xl px-3 py-2"
+                    >
+                      {ouvrages.map((o) => (
+                        <option key={o.id} value={o.id}>{o.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <label className="flex items-center gap-2 cursor-pointer bg-indigo-50 p-3 rounded-xl border border-indigo-200">
+                    <input
+                      type="checkbox"
+                      checked={!!targetOuvrage?.hasVoile}
+                      onChange={(e) => targetOuvrage && handleUpdateOuvrage(targetOuvrage.id, "hasVoile", e.target.checked)}
+                      className="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4"
+                    />
+                    <span className="text-xs font-black text-indigo-950 uppercase">
+                      Activer le Voile P√©rim√©trique en B√©ton Arm√©
+                    </span>
+                  </label>
+
+                  {targetOuvrage?.hasVoile && (
+                    <div className="space-y-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-[10px] font-black text-slate-600 uppercase">C√¥t√©s du Voile :</label>
+                          <button
+                            type="button"
+                            onClick={() => targetOuvrage && handleUpdateOuvrage(targetOuvrage.id, "voileSides", ["nord", "sud", "est", "ouest"])}
+                            className="text-[10px] font-bold text-indigo-600 underline"
+                          >
+                            Tous les 4 c√¥t√©s
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-4 gap-2">
+                          {(["nord", "sud", "est", "ouest"] as const).map((s) => {
+                            const active = tSides.includes(s);
+                            return (
+                              <button
+                                key={s}
+                                type="button"
+                                onClick={() => {
+                                  if (!targetOuvrage) return;
+                                  const next = active ? tSides.filter(x => x !== s) : [...tSides, s];
+                                  handleUpdateOuvrage(targetOuvrage.id, "voileSides", next);
+                                }}
+                                className={`py-2 text-center font-extrabold capitalize rounded-lg border text-xs transition-all ${
+                                  active ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-700 border-slate-200"
+                                }`}
+                              >
+                                {s} {active ? "‚úì" : ""}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-600 block mb-1">Hauteur Voile (m) :</label>
+                          <input
+                            type="number"
+                            value={targetOuvrage?.voileHeight ?? 2.5}
+                            onChange={(e) => targetOuvrage && handleUpdateOuvrage(targetOuvrage.id, "voileHeight", parseFloat(e.target.value) || 2.5)}
+                            className="w-full text-xs font-mono font-bold bg-white border border-slate-300 rounded-lg px-2.5 py-1.5"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-600 block mb-1">√âpaisseur Voile (m) :</label>
+                          <input
+                            type="number"
+                            value={targetOuvrage?.voileThickness ?? 0.2}
+                            onChange={(e) => targetOuvrage && handleUpdateOuvrage(targetOuvrage.id, "voileThickness", parseFloat(e.target.value) || 0.2)}
+                            className="w-full text-xs font-mono font-bold bg-white border border-slate-300 rounded-lg px-2.5 py-1.5"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                );
+              })()}
+
+              {/* 6. SLABS & MASSIFS CAD MODAL */}
+              {(activeCadModal === "slabs" || activeCadModal === "massifs") && (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center bg-purple-50 p-3 rounded-xl border border-purple-200 flex-wrap gap-2">
+                    <span className="text-xs font-black text-purple-950 uppercase">
+                      Dalles ({slabs.length}) et Massifs ({massifs.length}) B√©ton Arm√©
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleAddSlab()}
+                        className="px-3 py-1.5 bg-purple-700 hover:bg-purple-800 text-white rounded-lg text-xs font-black flex items-center gap-1 shadow-xs cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>+ Dalle B√©ton</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAddMassif()}
+                        className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-black flex items-center gap-1 shadow-xs cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>+ Massif B√©ton</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4 max-h-[55vh] overflow-y-auto pr-1">
+                    {/* SECTION MASSIFS */}
+                    <div className="space-y-2">
+                      <h4 className="text-[11px] font-black uppercase text-amber-700 tracking-wider flex items-center gap-1">
+                        <span>üüß Massifs B√©ton Arm√© / Socles Pyl√¥nes ({massifs.length}) :</span>
+                      </h4>
+                      {massifs.length === 0 ? (
+                        <p className="text-xs text-slate-500 italic bg-amber-50/50 p-2 rounded border border-amber-200">
+                          Aucun massif b√©ton configur√©. Cliquez sur "+ Massif B√©ton" ci-dessus pour en ins√©rer un.
+                        </p>
+                      ) : (
+                        massifs.map((m, idx) => (
+                          <div key={m.id} className={`p-3 rounded-xl border space-y-2 text-xs transition-all ${selectedMassifId === m.id ? "bg-amber-50/90 border-amber-400 shadow-sm" : "bg-slate-50 border-slate-200"}`}>
+                            <div className="flex justify-between items-center border-b border-amber-200/60 pb-2">
+                              <input
+                                type="text"
+                                value={m.name}
+                                onChange={(e) => handleUpdateMassif(m.id, "name", e.target.value)}
+                                className="font-extrabold text-amber-950 bg-white border border-amber-300 rounded px-2 py-0.5 text-xs w-2/3"
+                              />
+                              <div className="flex gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => handleDuplicateMassif(m.id)}
+                                  className="p-1 bg-white border border-slate-200 text-slate-600 hover:bg-slate-100 rounded"
+                                  title="Dupliquer Massif"
+                                >
+                                  <Copy className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveMassif(m.id)}
+                                  className="p-1 bg-white border border-red-200 text-red-600 hover:bg-red-50 rounded"
+                                  title="Supprimer Massif"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-5 gap-2">
+                              <div>
+                                <label className="text-[9px] font-bold text-slate-500 block">Long. (m) :</label>
+                                <input
+                                  type="number"
+                                  step="0.1"
+                                  value={m.length}
+                                  onChange={(e) => handleUpdateMassif(m.id, "length", parseFloat(e.target.value) || 0.5)}
+                                  className="w-full font-mono font-bold bg-white border border-slate-300 rounded px-1.5 py-1 text-xs"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[9px] font-bold text-slate-500 block">Larg. (m) :</label>
+                                <input
+                                  type="number"
+                                  step="0.1"
+                                  value={m.width}
+                                  onChange={(e) => handleUpdateMassif(m.id, "width", parseFloat(e.target.value) || 0.5)}
+                                  className="w-full font-mono font-bold bg-white border border-slate-300 rounded px-1.5 py-1 text-xs"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[9px] font-bold text-slate-500 block">Haut. (m) :</label>
+                                <input
+                                  type="number"
+                                  step="0.1"
+                                  value={m.height}
+                                  onChange={(e) => handleUpdateMassif(m.id, "height", parseFloat(e.target.value) || 0.5)}
+                                  className="w-full font-mono font-bold bg-white border border-slate-300 rounded px-1.5 py-1 text-xs"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[9px] font-bold text-slate-500 block">Pos X (m) :</label>
+                                <input
+                                  type="number"
+                                  step="0.5"
+                                  value={m.xOffset}
+                                  onChange={(e) => handleUpdateMassif(m.id, "xOffset", parseFloat(e.target.value) || 0)}
+                                  className="w-full font-mono font-bold bg-white border border-slate-300 rounded px-1.5 py-1 text-xs"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[9px] font-bold text-slate-500 block">Pos Y (m) :</label>
+                                <input
+                                  type="number"
+                                  step="0.5"
+                                  value={m.yOffset}
+                                  onChange={(e) => handleUpdateMassif(m.id, "yOffset", parseFloat(e.target.value) || 0)}
+                                  className="w-full font-mono font-bold bg-white border border-slate-300 rounded px-1.5 py-1 text-xs"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+
+                    {/* SECTION DALLES */}
+                    <div className="space-y-2 pt-2 border-t border-slate-200">
+                      <h4 className="text-[11px] font-black uppercase text-purple-800 tracking-wider flex items-center gap-1">
+                        <span>üü™ Dalles B√©ton Arm√© ({slabs.length}) - Surface: {totalSlabsArea.toFixed(1)} m¬≤ :</span>
+                      </h4>
+                      {slabs.map((s, idx) => (
+                        <div key={s.id} className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2 text-xs">
+                          <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+                            <span className="font-extrabold text-slate-800">#{idx + 1}</span>
+                            <div className="flex gap-1">
+                              <button
+                                type="button"
+                                onClick={() => handleDuplicateSlab(s.id)}
+                                className="p-1 bg-white border border-slate-200 text-slate-600 hover:bg-slate-100 rounded"
+                                title="Dupliquer"
+                              >
+                                <Copy className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveSlab(s.id)}
+                                className="p-1 bg-white border border-red-200 text-red-600 hover:bg-red-50 rounded"
+                                title="Supprimer"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="text-[9px] font-bold text-slate-500 block">Nom :</label>
+                              <input
+                                type="text"
+                                value={s.name}
+                                onChange={(e) => handleUpdateSlab(s.id, "name", e.target.value)}
+                                className="w-full font-bold bg-white border border-slate-300 rounded px-1.5 py-1 text-xs"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[9px] font-bold text-slate-500 block">Type de Dalle :</label>
+                              <select
+                                value={s.type}
+                                onChange={(e) => handleUpdateSlab(s.id, "type", e.target.value)}
+                                className="w-full font-bold bg-white border border-slate-300 rounded px-1.5 py-1 text-xs"
+                              >
+                                <option value="poste_detente">Dalle Poste de D√©tente</option>
+                                <option value="rechaffeur">Dalle R√©chauffeur</option>
+                                <option value="gare_racleur_arrivee">Dalle Gare Racleur (Arriv√©e)</option>
+                                <option value="gare_racleur_depart">Dalle Gare Racleur (D√©part)</option>
+                                <option value="epandage_assiette">√âpandage Assiette</option>
+                                <option value="abri_tele">Dalle Abri T√©l√©-exploitation</option>
+                                <option value="dalle_custom">Dalle B√©ton Personnalis√©e</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-4 gap-2">
+                            <div>
+                              <label className="text-[9px] font-bold text-slate-500 block">Long. (m) :</label>
+                              <input
+                                type="number"
+                                value={s.length}
+                                onChange={(e) => handleUpdateSlab(s.id, "length", parseFloat(e.target.value) || 1)}
+                                className="w-full font-mono font-bold bg-white border border-slate-300 rounded px-1.5 py-1 text-xs"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[9px] font-bold text-slate-500 block">Larg. (m) :</label>
+                              <input
+                                type="number"
+                                value={s.width}
+                                onChange={(e) => handleUpdateSlab(s.id, "width", parseFloat(e.target.value) || 1)}
+                                className="w-full font-mono font-bold bg-white border border-slate-300 rounded px-1.5 py-1 text-xs"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[9px] font-bold text-slate-500 block">Pos X (m) :</label>
+                              <input
+                                type="number"
+                                value={s.xOffset}
+                                onChange={(e) => handleUpdateSlab(s.id, "xOffset", parseFloat(e.target.value) || 0)}
+                                className="w-full font-mono font-bold bg-white border border-slate-300 rounded px-1.5 py-1 text-xs"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[9px] font-bold text-slate-500 block">Pos Y (m) :</label>
+                              <input
+                                type="number"
+                                value={s.yOffset}
+                                onChange={(e) => handleUpdateSlab(s.id, "yOffset", parseFloat(e.target.value) || 0)}
+                                className="w-full font-mono font-bold bg-white border border-slate-300 rounded px-1.5 py-1 text-xs"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 7. GATES CAD MODAL */}
+              {activeCadModal === "gates" && (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center bg-cyan-50 p-3 rounded-xl border border-cyan-200 flex-wrap gap-2">
+                    <span className="text-xs font-black text-cyan-950 uppercase">
+                      Gestion des Portails & Acc√®s ({gates.length})
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleAddGate("portail_5m")}
+                        className="px-3 py-1.5 bg-cyan-700 hover:bg-cyan-800 text-white rounded-lg text-xs font-black flex items-center gap-1 shadow-xs cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>+ Portail 5m (V√©hicules)</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAddGate("portillon")}
+                        className="px-3 py-1.5 bg-sky-700 hover:bg-sky-800 text-white rounded-lg text-xs font-black flex items-center gap-1 shadow-xs cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>+ Portillon 1m (Pi√©ton)</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-1">
+                    {gates.map((g) => (
+                      <div key={g.id} className="bg-slate-50 p-3 rounded-xl border border-slate-200 flex items-center justify-between gap-3 text-xs">
+                        <div className="grid grid-cols-4 gap-2 flex-1">
+                          <div>
+                            <label className="text-[9px] font-bold text-slate-500 block">Ouvrage :</label>
+                            <select
+                              value={g.ouvrageId || ouvrages[0]?.id || ""}
+                              onChange={(e) => handleUpdateGate(g.id, "ouvrageId", e.target.value)}
+                              className="w-full font-bold bg-white border border-slate-300 rounded px-2 py-1 text-xs"
+                            >
+                              {ouvrages.map((o) => (
+                                <option key={o.id} value={o.id}>{o.name}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="text-[9px] font-bold text-slate-500 block">Type d'Acc√®s :</label>
+                            <select
+                              value={g.type}
+                              onChange={(e) => handleUpdateGate(g.id, "type", e.target.value)}
+                              className="w-full font-bold bg-white border border-slate-300 rounded px-2 py-1 text-xs"
+                            >
+                              <option value="portail_5m">Portail 5m (V√©hicules)</option>
+                              <option value="portillon">Portillon 1m (Pi√©ton)</option>
+                              <option value="portail_custom">Sur-mesure</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="text-[9px] font-bold text-slate-500 block">C√¥t√© Wall :</label>
+                            <select
+                              value={g.wall}
+                              onChange={(e) => handleUpdateGate(g.id, "wall", e.target.value)}
+                              className="w-full font-bold bg-white border border-slate-300 rounded px-2 py-1 text-xs capitalize"
+                            >
+                              <option value="sud">Sud</option>
+                              <option value="nord">Nord</option>
+                              <option value="est">Est</option>
+                              <option value="ouest">Ouest</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="text-[9px] font-bold text-slate-500 block">Position Offset (m) :</label>
+                            <input
+                              type="number"
+                              value={g.offset}
+                              onChange={(e) => handleUpdateGate(g.id, "offset", parseFloat(e.target.value) || 0)}
+                              className="w-full font-mono font-bold bg-white border border-slate-300 rounded px-2 py-1 text-xs"
+                            />
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveGate(g.id)}
+                          className="p-1.5 bg-white border border-red-200 text-red-600 hover:bg-red-50 rounded-lg"
+                          title="Supprimer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bg-slate-50 p-4 border-t border-slate-200 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setActiveCadModal(null)}
+                className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs rounded-xl shadow-md transition-all active:scale-95 flex items-center gap-2 cursor-pointer"
+              >
+                <Check className="w-4 h-4 text-emerald-400" />
+                <span>Valider & Appliquer au Plan 2D</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* 1. FEN√äTRE DE DISPOSITION & CONFIGURATION D'IMPRESSION CAD */}
+      {/* ========================================================= */}
+      {showPrintLayoutModal && (
+        <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-[110] flex items-center justify-center p-4">
+          <div className="bg-slate-900 text-white rounded-3xl shadow-2xl border border-cyan-500/40 w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-150">
+            <div className="bg-slate-950 px-6 py-4 border-b border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-cyan-500/20 text-cyan-400 rounded-xl border border-cyan-500/30">
+                  <Printer className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black uppercase tracking-wider text-white flex items-center gap-2">
+                    <span>Disposition d'Impression CAD & Configuration</span>
+                  </h3>
+                  <p className="text-xs text-slate-400">Configurez la mise en page, l'orientation et la fen√™tre d'impression</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowPrintLayoutModal(false)}
+                className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto space-y-6 text-slate-200">
+              {/* Option 1: Orientation */}
+              <div className="space-y-2">
+                <label className="text-xs font-black uppercase text-cyan-400 tracking-wider block">1. Format & Orientation du Papier</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setPrintOrientation("landscape")}
+                    className={`p-4 rounded-2xl border-2 font-bold text-xs flex items-center gap-3 transition-all cursor-pointer ${
+                      printOrientation === "landscape" ? "bg-cyan-950/80 border-cyan-400 text-cyan-300 shadow-md" : "bg-slate-800/60 border-slate-700 text-slate-400 hover:border-slate-600"
+                    }`}
+                  >
+                    <div className="w-10 h-7 border-2 border-current rounded flex items-center justify-center font-mono text-[9px]">A3</div>
+                    <div className="text-left">
+                      <span className="block font-black text-sm">PAYSAGE (A3 / A4)</span>
+                      <span className="text-[10px] opacity-75">Recommand√© pour plans de masse et postes gaz</span>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPrintOrientation("portrait")}
+                    className={`p-4 rounded-2xl border-2 font-bold text-xs flex items-center gap-3 transition-all cursor-pointer ${
+                      printOrientation === "portrait" ? "bg-cyan-950/80 border-cyan-400 text-cyan-300 shadow-md" : "bg-slate-800/60 border-slate-700 text-slate-400 hover:border-slate-600"
+                    }`}
+                  >
+                    <div className="w-7 h-10 border-2 border-current rounded flex items-center justify-center font-mono text-[9px]">A4</div>
+                    <div className="text-left">
+                      <span className="block font-black text-sm">PORTRAIT (A4)</span>
+                      <span className="text-[10px] opacity-75">Surtout pour rapports d'impression d'1 page</span>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Option 2: Color Mode */}
+              <div className="space-y-2">
+                <label className="text-xs font-black uppercase text-cyan-400 tracking-wider block">2. Mode de Rendu des Couleurs</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setPrintColorMode("color")}
+                    className={`p-3 rounded-2xl border-2 font-bold text-xs flex items-center justify-between transition-all cursor-pointer ${
+                      printColorMode === "color" ? "bg-blue-950/80 border-blue-400 text-blue-300" : "bg-slate-800/60 border-slate-700 text-slate-400"
+                    }`}
+                  >
+                    <span>üé® Plein Couleurs CAD</span>
+                    <span className="text-[10px] bg-blue-900 px-2 py-0.5 rounded text-blue-200">Haute Clart√©</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPrintColorMode("bw")}
+                    className={`p-3 rounded-2xl border-2 font-bold text-xs flex items-center justify-between transition-all cursor-pointer ${
+                      printColorMode === "bw" ? "bg-slate-800 border-slate-300 text-white" : "bg-slate-800/60 border-slate-700 text-slate-400"
+                    }`}
+                  >
+                    <span>‚¨õ Noir & Blanc Technique</span>
+                    <span className="text-[10px] bg-slate-700 px-2 py-0.5 rounded text-slate-300">Monochrome</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Option 3: Print Area */}
+              <div className="space-y-2">
+                <label className="text-xs font-black uppercase text-cyan-400 tracking-wider block">3. Zone d'Impression</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setPrintZoneMode("all")}
+                    className={`p-3 rounded-2xl border-2 font-bold text-xs flex items-center justify-between transition-all cursor-pointer ${
+                      printZoneMode === "all" ? "bg-cyan-950/80 border-cyan-400 text-cyan-300" : "bg-slate-800/60 border-slate-700 text-slate-400"
+                    }`}
+                  >
+                    <span>üìê Ensemble du Plan CAD</span>
+                    <span className="text-[10px] bg-cyan-900 px-2 py-0.5 rounded text-cyan-200">Ajust√©</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPrintZoneMode("window");
+                      setDrawingTool("printZone");
+                    }}
+                    className={`p-3 rounded-2xl border-2 font-bold text-xs flex items-center justify-between transition-all cursor-pointer ${
+                      printZoneMode === "window" ? "bg-amber-950/80 border-amber-400 text-amber-300" : "bg-slate-800/60 border-slate-700 text-slate-400"
+                    }`}
+                  >
+                    <span>üñºÔ∏è Fen√™tre S√©lectionn√©e (AutoCAD)</span>
+                    <span className="text-[10px] bg-amber-900 px-2 py-0.5 rounded text-amber-200">Cadre Jaune</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Option 4: Display Options */}
+              <div className="space-y-3 bg-slate-950/60 p-4 rounded-2xl border border-slate-800">
+                <label className="text-xs font-black uppercase text-cyan-400 tracking-wider block">4. √âl√©ments √† Inclure sur l'Impression</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <label className="flex items-center gap-3 bg-slate-900 p-3 rounded-xl border border-slate-800 cursor-pointer hover:border-cyan-500/40 transition-all">
+                    <input
+                      type="checkbox"
+                      checked={printIncludeCotations}
+                      onChange={(e) => setPrintIncludeCotations(e.target.checked)}
+                      className="w-4 h-4 rounded text-cyan-500 focus:ring-cyan-400"
+                    />
+                    <div>
+                      <span className="text-xs font-bold text-white block">üìê Cotations & Dimensions</span>
+                      <span className="text-[10px] text-slate-400">Affiche les c√¥tes automatiques et manuelles</span>
+                    </div>
+                  </label>
+
+                  <label className="flex items-center gap-3 bg-slate-900 p-3 rounded-xl border border-slate-800 cursor-pointer hover:border-cyan-500/40 transition-all">
+                    <input
+                      type="checkbox"
+                      checked={printIncludeCartouche}
+                      onChange={(e) => setPrintIncludeCartouche(e.target.checked)}
+                      className="w-4 h-4 rounded text-cyan-500 focus:ring-cyan-400"
+                    />
+                    <div>
+                      <span className="text-xs font-bold text-white block">üìã Cartouche Technique Sonelgaz</span>
+                      <span className="text-[10px] text-slate-400">Cartouche r√©glementaire avec visas et plan N¬∞</span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {/* Option 5: Scale */}
+              <div className="space-y-2">
+                <label className="text-xs font-black uppercase text-cyan-400 tracking-wider block">5. √âchelle du Plan</label>
+                <div className="flex gap-2">
+                  {["1:50", "1:100", "1:200", "1:500", "Ajuster"].map((sc) => (
+                    <button
+                      key={sc}
+                      type="button"
+                      onClick={() => setPrintScale(sc)}
+                      className={`flex-1 py-2 rounded-xl text-xs font-mono font-bold border transition-all cursor-pointer ${
+                        printScale === sc ? "bg-cyan-500 text-slate-950 font-black border-cyan-400 shadow-sm" : "bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700"
+                      }`}
+                    >
+                      {sc}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-slate-950 p-5 border-t border-slate-800 flex items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={() => setShowCartoucheEditModal(true)}
+                className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-orange-400 font-bold text-xs rounded-xl border border-orange-500/30 transition-all flex items-center gap-2 cursor-pointer"
+              >
+                <FileText className="w-4 h-4" />
+                <span>Modifier le Cartouche...</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowPrintLayoutModal(false);
+                  handleDirectPrintCroquis();
+                }}
+                className="px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-black text-xs rounded-xl shadow-lg transition-all active:scale-95 flex items-center gap-2.5 cursor-pointer"
+              >
+                <Printer className="w-4 h-4" />
+                <span>üñ®Ô∏è Lancer l'Impression Offiielle</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* 2. FEN√äTRE DE CARTOUCHE TECHNIQUE EDIT MODAL               */}
+      {/* ========================================================= */}
+      {showCartoucheEditModal && (
+        <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-[120] flex items-center justify-center p-4">
+          <div className="bg-slate-900 text-white rounded-3xl shadow-2xl border border-orange-500/40 w-full max-w-xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-150">
+            <div className="bg-slate-950 px-6 py-4 border-b border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-orange-500/20 text-orange-400 rounded-xl border border-orange-500/30">
+                  <FileText className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black uppercase tracking-wider text-white">√âditeur de Cartouche Normalis√© Sonelgaz</h3>
+                  <p className="text-xs text-slate-400">Renseignez les m√©tadonn√©es officielles figurant au bas du plan</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCartoucheEditModal(false)}
+                className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto space-y-4 text-slate-200 text-xs">
+              <div>
+                <label className="font-bold text-slate-400 block mb-1">PROJET / INTITUL√â DU POSTE :</label>
+                <input
+                  type="text"
+                  value={cartoucheInfo.postName}
+                  onChange={(e) => setCartoucheInfo({ ...cartoucheInfo, postName: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold text-xs focus:border-orange-400 outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-400 block mb-1">NUM√âRO DE PLAN :</label>
+                  <input
+                    type="text"
+                    value={cartoucheInfo.planNumber}
+                    onChange={(e) => setCartoucheInfo({ ...cartoucheInfo, planNumber: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold font-mono text-xs focus:border-orange-400 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-400 block mb-1">√âCHELLE D'IMPRESSION :</label>
+                  <input
+                    type="text"
+                    value={cartoucheInfo.scale}
+                    onChange={(e) => setCartoucheInfo({ ...cartoucheInfo, scale: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold font-mono text-xs focus:border-orange-400 outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-400 block mb-1">NOM DU DESSINATEUR / ING√âNIEUR :</label>
+                  <input
+                    type="text"
+                    value={cartoucheInfo.editorName}
+                    onChange={(e) => setCartoucheInfo({ ...cartoucheInfo, editorName: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold text-xs focus:border-orange-400 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-400 block mb-1">DATE D'√âDITION :</label>
+                  <input
+                    type="text"
+                    value={cartoucheInfo.date}
+                    onChange={(e) => setCartoucheInfo({ ...cartoucheInfo, date: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold text-xs focus:border-orange-400 outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-400 block mb-1">POSITION DU CARTOUCHE SUR LE CROQUIS :</label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setCartouchePosition("left")}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                      cartouchePosition === "left" 
+                        ? "bg-orange-500 text-white shadow-sm" 
+                        : "bg-slate-900 text-slate-400 hover:text-white border border-slate-800"
+                    }`}
+                  >
+                    <span>‚¨ÖÔ∏è Gauche (Optimis√© pour √©dition & impression)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCartouchePosition("right")}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                      cartouchePosition === "right" 
+                        ? "bg-orange-500 text-white shadow-sm" 
+                        : "bg-slate-900 text-slate-400 hover:text-white border border-slate-800"
+                    }`}
+                  >
+                    <span>‚û°Ô∏è Droite</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-slate-950 p-4 border-t border-slate-800 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowCartoucheEditModal(false)}
+                className="px-5 py-2 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer flex items-center gap-2"
+              >
+                <Check className="w-4 h-4" />
+                <span>Enregistrer & Appliquer au Cartouche</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* 3. FEN√äTRE DE RACCOURCIS CLAVIER CAD & FIGMA               */}
+      {/* ========================================================= */}
+      {showShortcutsModal && (
+        <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-[120] flex items-center justify-center p-4">
+          <div className="bg-slate-900 text-white rounded-3xl shadow-2xl border border-cyan-500/40 w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-150">
+            <div className="bg-slate-950 px-6 py-4 border-b border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-cyan-500/20 text-cyan-400 rounded-xl border border-cyan-500/30">
+                  <Compass className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black uppercase tracking-wider text-white">Raccourcis Clavier & Fonctionnalit√©s CAD</h3>
+                  <p className="text-xs text-slate-400">Gagnez en rapidit√© avec les raccourcis professionnels type AutoCAD / Figma</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowShortcutsModal(false)}
+                className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto space-y-3 text-slate-300 text-xs font-mono">
+              <div className="flex justify-between items-center bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+                <span className="text-slate-400 font-sans">Panoramique / D√©placer Vue :</span>
+                <span className="bg-slate-800 text-cyan-300 px-2 py-1 rounded border border-slate-700 font-bold">Molette / Espace + Glisser</span>
+              </div>
+
+              <div className="flex justify-between items-center bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+                <span className="text-slate-400 font-sans">Zoom Avant / Zoom Arri√®re :</span>
+                <span className="bg-slate-800 text-cyan-300 px-2 py-1 rounded border border-slate-700 font-bold">Molette Souris üñ±Ô∏è</span>
+              </div>
+
+              <div className="flex justify-between items-center bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+                <span className="text-slate-400 font-sans">Supprimer √âl√©ment S√©lectionn√© :</span>
+                <span className="bg-slate-800 text-red-300 px-2 py-1 rounded border border-slate-700 font-bold">Suppr / Backspace</span>
+              </div>
+
+              <div className="flex justify-between items-center bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+                <span className="text-slate-400 font-sans">Annuler Action (Undo) :</span>
+                <span className="bg-slate-800 text-amber-300 px-2 py-1 rounded border border-slate-700 font-bold">Ctrl + Z</span>
+              </div>
+
+              <div className="flex justify-between items-center bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+                <span className="text-slate-400 font-sans">R√©tablir Action (Redo) :</span>
+                <span className="bg-slate-800 text-amber-300 px-2 py-1 rounded border border-slate-700 font-bold">Ctrl + Y / Ctrl+Shift+Z</span>
+              </div>
+
+              <div className="flex justify-between items-center bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+                <span className="text-slate-400 font-sans">Copier & Coller Formes :</span>
+                <span className="bg-slate-800 text-emerald-300 px-2 py-1 rounded border border-slate-700 font-bold">Ctrl + C / Ctrl + V</span>
+              </div>
+
+              <div className="flex justify-between items-center bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+                <span className="text-slate-400 font-sans">Dupliquer Forme S√©lectionn√©e :</span>
+                <span className="bg-slate-800 text-emerald-300 px-2 py-1 rounded border border-slate-700 font-bold">Ctrl + D</span>
+              </div>
+
+              <div className="flex justify-between items-center bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+                <span className="text-slate-400 font-sans">Tout S√©lectionner :</span>
+                <span className="bg-slate-800 text-purple-300 px-2 py-1 rounded border border-slate-700 font-bold">Ctrl + A</span>
+              </div>
+
+              <div className="flex justify-between items-center bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+                <span className="text-slate-400 font-sans">Aimantation √† la Grille (Grid Snap) :</span>
+                <span className="bg-slate-800 text-sky-300 px-2 py-1 rounded border border-slate-700 font-bold">Touche G</span>
+              </div>
+
+              <div className="flex justify-between items-center bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+                <span className="text-slate-400 font-sans">D√©placement Pr√©cis (Nudge) :</span>
+                <span className="bg-slate-800 text-slate-200 px-2 py-1 rounded border border-slate-700 font-bold">Touches Fl√©ch√©es (Shift=x10)</span>
+              </div>
+            </div>
+
+            <div className="bg-slate-950 p-4 border-t border-slate-800 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowShortcutsModal(false)}
+                className="px-5 py-2 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-black text-xs rounded-xl shadow-md transition-all cursor-pointer"
+              >
+                Compris !
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      </div>
+    </div>
+  );
+}

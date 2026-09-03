@@ -1,175 +1,149 @@
 {
   "entities": {
-    "plan": {
-      "title": "EngineeringPlan",
-      "description": "Un plan technique ou schéma officiel de la SONELGAZ, pouvant être modifié ou ajouté par l'administrateur.",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "title": { "type": "string" },
-        "fascicule": { "type": "string" },
-        "page": { "type": "integer" },
-        "category": { "type": "string" },
-        "src": { "type": "string" },
-        "caption": { "type": "string" },
-        "tags": {
-          "type": "array",
-          "items": { "type": "string" }
-        }
-      },
-      "required": ["title", "fascicule", "page", "category", "src"]
-    },
-    "profile": {
+    "userProfile": {
       "title": "UserProfile",
-      "description": "Profil de l'utilisateur contenant ses informations d'accès et son rôle dans l'entreprise.",
+      "description": "Profil utilisateur avec rôles, abonnements, localisation et état du compte.",
       "type": "object",
       "properties": {
         "uid": { "type": "string" },
-        "name": { "type": "string" },
         "email": { "type": "string" },
-        "role": { "type": "string" },
+        "name": { "type": "string" },
+        "company": { "type": "string" },
+        "country": { "type": "string" },
+        "countryCode": { "type": "string" },
+        "city": { "type": "string" },
+        "paymentGateway": { "type": "string" },
+        "currency": { "type": "string" },
+        "role": { "type": "string", "enum": ["super_admin", "admin", "client", "guest", "demo"] },
+        "accountType": { "type": "string", "enum": ["basic", "pro", "enterprise", "team"] },
+        "subscriptionPlan": { "type": "string", "enum": ["monthly", "yearly", "trial", "lifetime"] },
+        "status": { "type": "string", "enum": ["active", "suspended", "pending_activation"] },
         "createdAt": { "type": "string", "format": "date-time" },
-        "activeSessionId": { "type": "string" }
+        "lastLoginAt": { "type": "string", "format": "date-time" },
+        "loginCount": { "type": "number" },
+        "projectsCount": { "type": "number" },
+        "storageUsedKb": { "type": "number" }
       },
-      "required": ["uid", "name", "email", "role", "createdAt"]
+      "required": ["uid", "email", "role", "accountType", "subscriptionPlan", "status"]
     },
-    "project": {
-      "title": "Project",
-      "description": "Un projet de gazoduc de transport de la SONELGAZ avec ses phases d'étude, de travaux, d'autorisation et de planification.",
-      "type": "object",
-      "properties": {
-        "name": { "type": "string" },
-        "createdAt": { "type": "string" },
-        "updatedAt": { "type": "string" },
-        "planning": { "type": "object" },
-        "identity": { "type": "object" },
-        "etudeAutorisation": { "type": "object" },
-        "travauxPlanification": { "type": "object" },
-        "miseEnGazArchive": { "type": "object" }
-      },
-      "required": ["name", "createdAt", "updatedAt"]
-    },
-    "setting": {
-      "title": "AppSetting",
-      "description": "Paramètres de configuration globale de l'application (branding, images, logo, widgets de l'accueil).",
-      "type": "object",
-      "properties": {
-        "logo": { "type": "string" },
-        "welcome_bg": { "type": "string" },
-        "splash_bg": { "type": "string" },
-        "widget2Enabled": { "type": "boolean" },
-        "widget3Enabled": { "type": "boolean" },
-        "widget4Enabled": { "type": "boolean" }
-      }
-    },
-    "notification": {
-      "title": "ProjectNotification",
-      "description": "Notification de mise à jour ou modification sur un projet, visible par les contrôleurs et superviseurs concernés.",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "projectId": { "type": "string" },
-        "projectName": { "type": "string" },
-        "message": { "type": "string" },
-        "category": { "type": "string" },
-        "authorName": { "type": "string" },
-        "authorEmail": { "type": "string" },
-        "authorRole": { "type": "string" },
-        "timestamp": { "type": "string", "format": "date-time" },
-        "pole": { "type": "string" },
-        "region": { "type": "string" },
-        "readBy": {
-          "type": "array",
-          "items": { "type": "string" }
-        }
-      },
-      "required": ["projectId", "projectName", "message", "category", "authorName", "authorEmail", "timestamp"]
-    },
-    "passwordRequest": {
-      "title": "PasswordRecoveryRequest",
-      "description": "Demande de récupération de mot de passe soumise par un ingénieur, gérée par les administrateurs.",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "username": { "type": "string" },
-        "email": { "type": "string" },
-        "requestedAt": { "type": "string" },
-        "status": { "type": "string" },
-        "resolvedAt": { "type": "string" },
-        "resolvedBy": { "type": "string" }
-      },
-      "required": ["username", "requestedAt", "status"]
-    },
-    "connectionLog": {
-      "title": "ConnectionLog",
-      "description": "Historique de connexion des profils pour les statistiques de la plateforme.",
+    "paymentTransaction": {
+      "title": "PaymentTransaction",
+      "description": "Transactions de souscription SaaS, routées selon le pays (Slick-Pay BaridiMob pour Algérie, Paddle pour international).",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
         "userId": { "type": "string" },
-        "userName": { "type": "string" },
         "userEmail": { "type": "string" },
-        "userRole": { "type": "string" },
-        "userStructure": { "type": "string" },
-        "userPole": { "type": "string" },
-        "userDirection": { "type": "string" },
-        "timestamp": { "type": "string", "format": "date-time" },
-        "userAgent": { "type": "string" }
+        "userName": { "type": "string" },
+        "country": { "type": "string" },
+        "countryCode": { "type": "string" },
+        "city": { "type": "string" },
+        "plan": { "type": "string" },
+        "billingCycle": { "type": "string" },
+        "amount": { "type": "number" },
+        "currency": { "type": "string" },
+        "provider": { "type": "string", "enum": ["slickpay_baridimob", "paddle"] },
+        "status": { "type": "string", "enum": ["pending", "completed", "failed", "refunded"] },
+        "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["id", "userId", "userName", "userEmail", "userRole", "timestamp"]
+      "required": ["id", "userEmail", "plan", "amount", "currency", "provider", "status", "createdAt"]
     },
-    "slide": {
-      "title": "HomeSlide",
-      "description": "Un slide d'accueil avec image, titre, description, badge et ordre d'affichage, gérable par le Super Administrateur.",
+    "connectionLog": {
+      "title": "ConnectionLog",
+      "description": "Journal d'authentification et d'accès des abonnés.",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
-        "image": { "type": "string" },
-        "badge": { "type": "string" },
-        "title": { "type": "string" },
-        "desc": { "type": "string" },
-        "order": { "type": "integer" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "userId": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "userName": { "type": "string" },
+        "userRole": { "type": "string" },
+        "accountType": { "type": "string" },
+        "ip": { "type": "string" },
+        "userAgent": { "type": "string" },
+        "device": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["success", "failed"] }
       },
-      "required": ["id", "image", "title", "desc", "order"]
+      "required": ["id", "userId", "userEmail", "timestamp"]
+    },
+    "commercialVisit": {
+      "title": "CommercialVisit",
+      "description": "Suivi des visites du site vitrine commercial et intérêt des visiteurs.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "path": { "type": "string" },
+        "referrer": { "type": "string" },
+        "section": { "type": "string" },
+        "action": { "type": "string" },
+        "device": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "path", "timestamp"]
+    },
+    "userFeedback": {
+      "title": "UserFeedback",
+      "description": "Retours d'expérience utilisateurs, avis, notations et suggestions techniques.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "userName": { "type": "string" },
+        "category": { "type": "string", "enum": ["feature_request", "bug_report", "general_feedback", "satisfaction"] },
+        "rating": { "type": "number" },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "status": { "type": "string", "enum": ["new", "reviewed", "in_progress", "resolved"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "adminNotes": { "type": "string" }
+      },
+      "required": ["id", "userEmail", "category", "rating", "message", "createdAt"]
+    },
+    "subscriberUsage": {
+      "title": "SubscriberUsage",
+      "description": "Suivi de l'activité réelle et de l'usage fonctionnel par les abonnés.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "action": { "type": "string" },
+        "module": { "type": "string" },
+        "details": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "userEmail", "action", "module", "timestamp"]
     }
   },
   "firestore": {
-    "/password_requests/{requestId}": {
-      "schema": "passwordRequest",
-      "description": "Demandes de récupération de mot de passe."
+    "/profiles/{userId}": {
+      "schema": "userProfile",
+      "description": "Collection des profils utilisateurs et abonnements."
     },
     "/connection_logs/{logId}": {
       "schema": "connectionLog",
-      "description": "Collection de l'historique des connexions des utilisateurs."
+      "description": "Historique des connexions et tentatives d'accès."
     },
-    "/plans/{planId}": {
-      "schema": "plan",
-      "description": "Collection des plans et schémas d'ingénierie officiels et personnalisés."
+    "/commercial_visits/{visitId}": {
+      "schema": "commercialVisit",
+      "description": "Trafic et télémétrie du site commercial."
     },
-    "/profiles/{userId}": {
-      "schema": "profile",
-      "description": "Profils des utilisateurs enregistrés de l'application."
+    "/user_feedbacks/{feedbackId}": {
+      "schema": "userFeedback",
+      "description": "Retours d'expérience et avis clients."
     },
-    "/admins/{userId}": {
-      "schema": { "type": "object", "properties": { "uid": { "type": "string" } } },
-      "description": "Liste d'accès privilégiée des administrateurs du système."
+    "/subscriber_usage/{usageId}": {
+      "schema": "subscriberUsage",
+      "description": "Journal d'utilisation par les abonnés."
     },
-    "/projects/{projectId}": {
-      "schema": "project",
-      "description": "Collection de projets de transport de gaz de la SONELGAZ."
+    "/payment_transactions/{transactionId}": {
+      "schema": "paymentTransaction",
+      "description": "Transactions de paiements et souscriptions des abonnés."
     },
-    "/settings/{docId}": {
-      "schema": "setting",
-      "description": "Collection de documents de configuration de l'application."
-    },
-    "/notifications/{notificationId}": {
-      "schema": "notification",
-      "description": "Notifications relatives aux projets pour les superviseurs, les équipes d'études, travaux et contrôleurs."
-    },
-    "/slides/{slideId}": {
-      "schema": "slide",
-      "description": "Collection des diapositives personnalisées du diaporama d'accueil."
+    "/system_config/{configId}": {
+      "description": "Configuration globale du système (restrictions pays, clés passerelles de paiement)."
     }
   }
 }
