@@ -2,40 +2,71 @@
  * ORTHOGONAL - ENG · PIPING DESIGN & ISOMETRICS (PD&I)
  * COPYRIGHT (C) 2026 ORTHOGONAL - ENG. ALL RIGHTS RESERVED.
  * PROPRIETARY INDUSTRIAL PIPING CAD & ISOMETRIC ENGINE.
- * DIALOGUE MODAL D'IMPRESSION PROFESSIONNEL A5 - A0 (PATCH 020F).
+ * DIALOGUE D'IMPRESSION NORMALISÉ ISO 216 / ISO 7200 / ISO 5457 (PATCH 020F & EXPANSION PALIER 2C).
+ * INCLUT : TUYAUTERIE, SUPPORTAGE MÉCANIQUE MSS SP-58, GÉNIE CIVIL & MODES TOUT/SÉLECTION/FENÊTRE.
  */
 
 import React, { useState, useMemo } from "react";
+import {
+  Printer,
+  Download,
+  X,
+  Settings2,
+  FileText,
+  Layers,
+  Eye,
+  CheckSquare,
+  Crop,
+  Maximize2,
+  Table,
+  Box,
+  HardHat,
+} from "lucide-react";
+import {
+  IsoPaperFormat,
+  IsoPrintConfig,
+  DEFAULT_PRINT_CONFIG,
+  ISO_SCALES,
+  IsoPrintScope,
+} from "./isoSheetStandards";
+import { generateIsoDrawingSvg, BomRow } from "./isoSvgGenerator";
 import {
   IsoNode,
   IsoSegment,
   IsoDimension,
   PipingJoint,
+  DIAMETER_BY_DN,
 } from "../isometric/types/isoGraphTypes";
 import {
-  IsoPaperFormat,
-  IsoOrientation,
-  ISO_SCALES,
-  IsoPrintConfig,
-  DEFAULT_PRINT_CONFIG,
-} from "./isoSheetStandards";
-import { generateIsoDrawingSvg, BomRow } from "./isoSvgGenerator";
-import { Printer, Download, X, Layers, CheckSquare, Eye, FileText, Settings2 } from "lucide-react";
-import { pdiFeuilleImpression017L, PDI_STYLE_IMPRESSION_017L } from "./pdiImpression017L";
+  PDI_STYLE_IMPRESSION_017L,
+  pdiFeuilleImpression017L,
+} from "./pdiImpression017L";
+import {
+  IsoPipingSupport,
+  MSS_SUPPORT_CATALOG,
+  computeCivilMto,
+} from "../isometric/supports/pdiMssSupportEngine";
+import type { Cad2dEntity } from "../isometric/engine/IsometrieModuleV48d";
 
 export interface IsoPrintModalProps {
   isOpen: boolean;
   onClose: () => void;
   projectName: string;
-  wilaya: string;
-  pressDesign: number;
-  hydrotest: number;
+  wilaya?: string;
+  pressDesign?: number;
+  hydrotest?: number;
   nodes: IsoNode[];
   segments: IsoSegment[];
   dimensions: IsoDimension[];
   joints: PipingJoint[];
   bomRows: BomRow[];
   initialUnitSystem?: "metric" | "imperial";
+  supports?: IsoPipingSupport[];
+  cad2dEntities?: Cad2dEntity[];
+  selectedNodeIds?: string[];
+  selectedSegmentIds?: string[];
+  selectedSupportId?: string | null;
+  selectedCad2dIds?: string[];
 }
 
 export const IsoPrintModal: React.FC<IsoPrintModalProps> = ({
@@ -51,6 +82,12 @@ export const IsoPrintModal: React.FC<IsoPrintModalProps> = ({
   joints,
   bomRows,
   initialUnitSystem,
+  supports = [],
+  cad2dEntities = [],
+  selectedNodeIds = [],
+  selectedSegmentIds = [],
+  selectedSupportId = null,
+  selectedCad2dIds = [],
 }) => {
   const [config, setConfig] = useState<IsoPrintConfig>(() => ({
     ...DEFAULT_PRINT_CONFIG,
@@ -59,14 +96,193 @@ export const IsoPrintModal: React.FC<IsoPrintModalProps> = ({
     hydrotestPressure: hydrotest,
     wilayaOrSite: wilaya || "SITE INDUSTRIEL",
     unitSystem: initialUnitSystem || "metric",
+    printScope: "all",
+    showSupports: true,
+    showCivilEngineering: true,
+    showSupportTable: true,
+    windowZoomRatio: 1,
   }));
 
-  const [activeTab, setActiveTab] = useState<"layout" | "metadata" | "layers">("layout");
+  const [activeTab, setActiveTab] = useState<"layout" | "metadata" | "layers" | "tables">("layout");
 
-  // Rendu vectoriel SVG de la planche en temps réel
+  // FILTRAGE STRICT DES ÉLÉMENTS EFFECTIFS SELON LE MODE D'IMPRESSION CHOISI
+  const {
+    effectiveNodes,
+    effectiveSegments,
+    effectiveSupports,
+    effectiveCad2d,
+    effectiveJoints,
+    effectiveDimensions,
+    effectiveBomRows,
+    hasSelectionItems,
+  } = useMemo(() => {
+    if (config.printScope === "selection") {
+      const selSegSet = new Set(selectedSegmentIds);
+      const selNodeSet = new Set(selectedNodeIds);
+      const selCad2dSet = new Set(selectedCad2dIds);
+
+      // Si un segment est sélectionné, inclure obligatoirement ses nœuds d'extrémité
+      segments.forEach((seg) => {
+        if (selSegSet.has(seg.id)) {
+          selNodeSet.add(seg.fromNodeId);
+          selNodeSet.add(seg.toNodeId);
+        }
+      });
+
+      // Si deux nœuds sont sélectionnés, inclure les segments qui les lient
+      segments.forEach((seg) => {
+        if (selNodeSet.has(seg.fromNodeId) && selNodeSet.has(seg.toNodeId)) {
+          selSegSet.add(seg.id);
+        }
+      });
+
+      const hasItems = selSegSet.size > 0 || selNodeSet.size > 0 || selectedSupportId !== null || selCad2dSet.size > 0;
+
+      if (!hasItems) {
+        // Aucune sélection dans le modèle : fallback gracieux
+        return {
+          effectiveNodes: nodes,
+          effectiveSegments: segments,
+          effectiveSupports: supports,
+          effectiveCad2d: cad2dEntities,
+          effectiveJoints: joints,
+          effectiveDimensions: dimensions,
+          effectiveBomRows: bomRows,
+          hasSelectionItems: false,
+        };
+      }
+
+      const effSegs = segments.filter((s) => selSegSet.has(s.id));
+      const effNds = nodes.filter((n) => selNodeSet.has(n.id));
+      const effSups = supports.filter(
+        (sup) => sup.id === selectedSupportId || selSegSet.has(sup.segmentId)
+      );
+      const effGc = cad2dEntities.filter((c) => selCad2dSet.has(c.id));
+      const effJts = joints.filter((j) => selNodeSet.has(j.nodeId));
+      const effDims = dimensions.filter(
+        (d) => selNodeSet.has(d.a.nodeId) || selNodeSet.has(d.b.nodeId)
+      );
+
+      // Re-calcul dynamique de la BOM selon la sélection
+      const effBom: BomRow[] = [];
+      let rIdx = 1;
+
+      // Tuyauterie droite
+      const pipesByDn: Record<number, { length: number; count: number; pn: string; mat: string }> = {};
+      effSegs.forEach((seg) => {
+        if (!pipesByDn[seg.dn]) {
+          pipesByDn[seg.dn] = { length: 0, count: 0, pn: seg.pn || "PN100", mat: seg.material || "ASTM A106 Gr.B" };
+        }
+        pipesByDn[seg.dn].length += seg.length || 0;
+        pipesByDn[seg.dn].count += 1;
+      });
+
+      Object.entries(pipesByDn).forEach(([dnStr, data]) => {
+        const dn = Number(dnStr);
+        const inch = DIAMETER_BY_DN[dn]?.inch || `DN${dn}`;
+        effBom.push({
+          index: rIdx++,
+          designation: `Tube Acier Sans Soudure (${data.mat})`,
+          dn,
+          inch,
+          qty: data.count,
+          unit: "m",
+          length: Number(data.length.toFixed(2)),
+          reference: `TUBE-${inch}-${data.pn}`,
+        });
+      });
+
+      // Équipements sur nœuds sélectionnés
+      const equipCount: Record<string, { count: number; label: string; dn: number }> = {};
+      effNds.forEach((n) => {
+        if (n.equipmentType) {
+          const key = `${n.equipmentType}_${n.dn || 150}`;
+          if (!equipCount[key]) {
+            equipCount[key] = { count: 0, label: n.name || n.equipmentType, dn: n.dn || 150 };
+          }
+          equipCount[key].count += 1;
+        }
+      });
+
+      Object.values(equipCount).forEach((eq) => {
+        const inch = DIAMETER_BY_DN[eq.dn]?.inch || `DN${eq.dn}`;
+        effBom.push({
+          index: rIdx++,
+          designation: eq.label,
+          dn: eq.dn,
+          inch,
+          qty: eq.count,
+          unit: "U",
+          length: 0,
+          reference: `EQ-${inch}`,
+        });
+      });
+
+      return {
+        effectiveNodes: effNds,
+        effectiveSegments: effSegs,
+        effectiveSupports: effSups,
+        effectiveCad2d: effGc,
+        effectiveJoints: effJts,
+        effectiveDimensions: effDims,
+        effectiveBomRows: effBom.length > 0 ? effBom : bomRows,
+        hasSelectionItems: true,
+      };
+    }
+
+    // Mode "all" ou "window"
+    return {
+      effectiveNodes: nodes,
+      effectiveSegments: segments,
+      effectiveSupports: supports,
+      effectiveCad2d: cad2dEntities,
+      effectiveJoints: joints,
+      effectiveDimensions: dimensions,
+      effectiveBomRows: bomRows,
+      hasSelectionItems: true,
+    };
+  }, [
+    config.printScope,
+    nodes,
+    segments,
+    supports,
+    cad2dEntities,
+    joints,
+    dimensions,
+    bomRows,
+    selectedNodeIds,
+    selectedSegmentIds,
+    selectedSupportId,
+    selectedCad2dIds,
+  ]);
+
+  // Quantitatifs Génie Civil calculés
+  const civilMto = useMemo(() => {
+    return computeCivilMto(effectiveSupports);
+  }, [effectiveSupports]);
+
+  // Rendu vectoriel SVG de la planche en temps réel avec tous les composants
   const drawingResult = useMemo(() => {
-    return generateIsoDrawingSvg(nodes, segments, dimensions, joints, bomRows, config);
-  }, [nodes, segments, dimensions, joints, bomRows, config]);
+    return generateIsoDrawingSvg(
+      effectiveNodes,
+      effectiveSegments,
+      effectiveDimensions,
+      effectiveJoints,
+      effectiveBomRows,
+      config,
+      config.showSupports ? effectiveSupports : [],
+      config.showCivilEngineering ? effectiveCad2d : []
+    );
+  }, [
+    effectiveNodes,
+    effectiveSegments,
+    effectiveDimensions,
+    effectiveJoints,
+    effectiveBomRows,
+    config,
+    effectiveSupports,
+    effectiveCad2d,
+  ]);
 
   if (!isOpen) return null;
 
@@ -155,8 +371,8 @@ export const IsoPrintModal: React.FC<IsoPrintModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[10050] bg-black/80 backdrop-blur-md flex items-center justify-center p-3">
-      <div className="w-[96vw] max-w-[1440px] h-[92vh] bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden text-zinc-100">
+    <div className="fixed inset-0 z-[10050] bg-black/85 backdrop-blur-md flex items-center justify-center p-3">
+      <div className="w-[96vw] max-w-[1460px] h-[92vh] bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden text-zinc-100">
         {/* En-tête du dialogue */}
         <div className="px-5 py-3 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/70">
           <div className="flex items-center gap-3">
@@ -169,11 +385,11 @@ export const IsoPrintModal: React.FC<IsoPrintModalProps> = ({
                   Module d'Impression Normalisé ISO 216 / 7200 / 5457
                 </h2>
                 <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-cyan-900/60 border border-cyan-700/40 text-cyan-300">
-                  Palier 1 · Patch 020F
+                  Palier 2C · Tuyauterie + Mécanique + Génie Civil
                 </span>
               </div>
               <p className="text-[11px] text-zinc-400">
-                Génération vectorielle certifiée ORTHOGONAL - ENG pour formats A5 à A0
+                Génération vectorielle certifiée ORTHOGONAL - ENG avec calcul dynamique des métrés
               </p>
             </div>
           </div>
@@ -211,13 +427,13 @@ export const IsoPrintModal: React.FC<IsoPrintModalProps> = ({
         {/* Corps principal : Volet de configuration à gauche + Prévisualisation à droite */}
         <div className="flex-1 flex min-h-0">
           {/* Panneau de configuration latéral */}
-          <div className="w-[380px] border-r border-zinc-800 flex flex-col bg-zinc-900/30 overflow-y-auto">
+          <div className="w-[390px] border-r border-zinc-800 flex flex-col bg-zinc-900/30 overflow-y-auto">
             {/* Onglets de paramétrage */}
-            <div className="flex border-b border-zinc-800 px-3 pt-2 gap-1 bg-zinc-900/50">
+            <div className="flex border-b border-zinc-800 px-2 pt-2 gap-1 bg-zinc-900/50">
               <button
                 type="button"
                 onClick={() => setActiveTab("layout")}
-                className={`flex items-center gap-1.5 px-3 py-2 text-xs font-bold border-b-2 transition-colors ${
+                className={`flex items-center gap-1.5 px-2.5 py-2 text-xs font-bold border-b-2 transition-colors ${
                   activeTab === "layout"
                     ? "border-cyan-500 text-cyan-400"
                     : "border-transparent text-zinc-400 hover:text-zinc-200"
@@ -228,33 +444,124 @@ export const IsoPrintModal: React.FC<IsoPrintModalProps> = ({
               </button>
               <button
                 type="button"
-                onClick={() => setActiveTab("metadata")}
-                className={`flex items-center gap-1.5 px-3 py-2 text-xs font-bold border-b-2 transition-colors ${
-                  activeTab === "metadata"
-                    ? "border-cyan-500 text-cyan-400"
-                    : "border-transparent text-zinc-400 hover:text-zinc-200"
-                }`}
-              >
-                <FileText className="w-3.5 h-3.5" />
-                <span>Cartouche ISO</span>
-              </button>
-              <button
-                type="button"
                 onClick={() => setActiveTab("layers")}
-                className={`flex items-center gap-1.5 px-3 py-2 text-xs font-bold border-b-2 transition-colors ${
+                className={`flex items-center gap-1.5 px-2.5 py-2 text-xs font-bold border-b-2 transition-colors ${
                   activeTab === "layers"
                     ? "border-cyan-500 text-cyan-400"
                     : "border-transparent text-zinc-400 hover:text-zinc-200"
                 }`}
               >
                 <Layers className="w-3.5 h-3.5" />
-                <span>Calques & Éléments</span>
+                <span>Calques</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("tables")}
+                className={`flex items-center gap-1.5 px-2.5 py-2 text-xs font-bold border-b-2 transition-colors ${
+                  activeTab === "tables"
+                    ? "border-cyan-500 text-cyan-400"
+                    : "border-transparent text-zinc-400 hover:text-zinc-200"
+                }`}
+              >
+                <Table className="w-3.5 h-3.5" />
+                <span>Tableaux & MTO</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("metadata")}
+                className={`flex items-center gap-1.5 px-2.5 py-2 text-xs font-bold border-b-2 transition-colors ${
+                  activeTab === "metadata"
+                    ? "border-cyan-500 text-cyan-400"
+                    : "border-transparent text-zinc-400 hover:text-zinc-200"
+                }`}
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>Cartouche</span>
               </button>
             </div>
 
             {/* Contenu Onglet 1 : Mise en page */}
             {activeTab === "layout" && (
               <div className="p-4 space-y-4 text-xs">
+                {/* 1. NOUVEAU SÉLECTEUR DE MODE D'IMPRESSION (TOUT / SÉLECTION / FENÊTRE) */}
+                <div>
+                  <label className="block text-zinc-300 font-bold mb-1.5 flex items-center justify-between">
+                    <span>Mode de cadrage / Portée</span>
+                    <span className="text-[10px] text-cyan-400 font-mono">
+                      {effectiveSegments.length} tubes · {effectiveSupports.length} supp · {effectiveCad2d.length} GC
+                    </span>
+                  </label>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setConfig((prev) => ({ ...prev, printScope: "all" }))}
+                      className={`px-2 py-2 rounded-lg font-bold text-center border transition-all flex flex-col items-center gap-1 ${
+                        config.printScope === "all"
+                          ? "bg-cyan-950 border-cyan-500 text-cyan-300 shadow"
+                          : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700"
+                      }`}
+                    >
+                      <Maximize2 className="w-3.5 h-3.5" />
+                      <span className="text-[11px]">Tout le dessin</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfig((prev) => ({ ...prev, printScope: "selection" }))}
+                      className={`px-2 py-2 rounded-lg font-bold text-center border transition-all flex flex-col items-center gap-1 ${
+                        config.printScope === "selection"
+                          ? "bg-cyan-950 border-cyan-500 text-cyan-300 shadow"
+                          : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700"
+                      }`}
+                    >
+                      <CheckSquare className="w-3.5 h-3.5" />
+                      <span className="text-[11px]">Sélection</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfig((prev) => ({ ...prev, printScope: "window" }))}
+                      className={`px-2 py-2 rounded-lg font-bold text-center border transition-all flex flex-col items-center gap-1 ${
+                        config.printScope === "window"
+                          ? "bg-cyan-950 border-cyan-500 text-cyan-300 shadow"
+                          : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700"
+                      }`}
+                    >
+                      <Crop className="w-3.5 h-3.5" />
+                      <span className="text-[11px]">Fenêtre</span>
+                    </button>
+                  </div>
+
+                  {config.printScope === "selection" && !hasSelectionItems && (
+                    <div className="mt-1.5 p-2 rounded bg-amber-950/40 border border-amber-800/40 text-[11px] text-amber-300">
+                      ℹ Aucun élément sélectionné sur le canevas 3D. Le plan inclut l'ensemble du réseau.
+                    </div>
+                  )}
+
+                  {config.printScope === "window" && (
+                    <div className="mt-2 p-2.5 rounded-lg bg-zinc-900 border border-zinc-800 space-y-1.5">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-zinc-400 font-bold">Zoom de cadrage fenêtre</span>
+                        <span className="text-cyan-400 font-mono font-bold">
+                          {Math.round((config.windowZoomRatio || 1) * 100)}%
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0.5"
+                        max="2.5"
+                        step="0.1"
+                        value={config.windowZoomRatio || 1}
+                        onChange={(e) =>
+                          setConfig((prev) => ({
+                            ...prev,
+                            windowZoomRatio: Number(e.target.value),
+                          }))
+                        }
+                        className="w-full accent-cyan-500 cursor-pointer"
+                      />
+                    </div>
+                  )}
+                </div>
+
                 {/* Format de papier ISO 216 */}
                 <div>
                   <label className="block text-zinc-300 font-bold mb-1">
@@ -331,7 +638,7 @@ export const IsoPrintModal: React.FC<IsoPrintModalProps> = ({
                   </div>
                 </div>
 
-                {/* Système d'Unités Bi-Système (019U) */}
+                {/* Système d'Unités Bi-Système */}
                 <div>
                   <label className="block text-zinc-300 font-bold mb-1">
                     Système d'unités (ISO 80000 / IEEE SI 10)
@@ -363,90 +670,278 @@ export const IsoPrintModal: React.FC<IsoPrintModalProps> = ({
                     </button>
                   </div>
                 </div>
+              </div>
+            )}
 
-                {/* Les 4 cases à cocher obligatoires (020F2) */}
-                <div className="pt-2 border-t border-zinc-800 space-y-2.5">
-                  <div className="text-[11px] font-black uppercase text-zinc-400 tracking-wider">
-                    Options Réglementaires & Standards
+            {/* Contenu Onglet 2 : Calques & Éléments inclus */}
+            {activeTab === "layers" && (
+              <div className="p-4 space-y-3.5 text-xs">
+                <div className="text-[11px] font-black uppercase text-zinc-400 tracking-wider">
+                  Composants & Disciplines (Palier 2C)
+                </div>
+
+                {/* Calque Mécanique / Supports MSS SP-58 */}
+                <label className="flex items-start gap-2.5 p-2 rounded-lg bg-zinc-900/60 border border-zinc-800 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={config.showSupports}
+                    onChange={(e) =>
+                      setConfig((prev) => ({ ...prev, showSupports: e.target.checked }))
+                    }
+                    className="mt-0.5 rounded border-zinc-700 text-cyan-600 focus:ring-cyan-500"
+                  />
+                  <div>
+                    <div className="font-bold text-zinc-100 flex items-center gap-1.5">
+                      <Box className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>Supportage Mécanique (MSS SP-58)</span>
+                    </div>
+                    <div className="text-[11px] text-zinc-400">
+                      Patins (Type 35/39), pendards, boîtes à ressort et ancrages rigides ({supports.length} supports)
+                    </div>
                   </div>
+                </label>
 
-                  <label className="flex items-start gap-2.5 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={config.showCartoucheIso7200}
-                      onChange={(e) =>
-                        setConfig((prev) => ({ ...prev, showCartoucheIso7200: e.target.checked }))
-                      }
-                      className="mt-0.5 rounded border-zinc-700 text-cyan-600 focus:ring-cyan-500"
-                    />
-                    <div>
-                      <div className="font-bold text-zinc-200">Cartouche Normalisé ISO 7200</div>
-                      <div className="text-[11px] text-zinc-500">
-                        Bloc technique 180×55mm avec révisions, intervenants et données process
+                {/* Calque Génie Civil */}
+                <label className="flex items-start gap-2.5 p-2 rounded-lg bg-zinc-900/60 border border-zinc-800 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={config.showCivilEngineering}
+                    onChange={(e) =>
+                      setConfig((prev) => ({ ...prev, showCivilEngineering: e.target.checked }))
+                    }
+                    className="mt-0.5 rounded border-zinc-700 text-cyan-600 focus:ring-cyan-500"
+                  />
+                  <div>
+                    <div className="font-bold text-zinc-100 flex items-center gap-1.5">
+                      <HardHat className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Génie Civil & Fondations</span>
+                    </div>
+                    <div className="text-[11px] text-zinc-400">
+                      Massifs béton, semelles, dalles, profilés acier et axes de trame ({cad2dEntities.length} entités)
+                    </div>
+                  </div>
+                </label>
+
+                {/* Tableau Supports & Génie Civil */}
+                <label className="flex items-start gap-2.5 p-2 rounded-lg bg-zinc-900/60 border border-zinc-800 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={config.showSupportTable}
+                    onChange={(e) =>
+                      setConfig((prev) => ({ ...prev, showSupportTable: e.target.checked }))
+                    }
+                    className="mt-0.5 rounded border-zinc-700 text-cyan-600 focus:ring-cyan-500"
+                  />
+                  <div>
+                    <div className="font-bold text-zinc-100 flex items-center gap-1.5">
+                      <Table className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Tableau Supportage & MTO Génie Civil</span>
+                    </div>
+                    <div className="text-[11px] text-zinc-400">
+                      Tableau récapitulatif des tags de supports, platines acier et volumes de béton
+                    </div>
+                  </div>
+                </label>
+
+                {/* Nomenclature Matériel BOM */}
+                <label className="flex items-start gap-2.5 p-2 rounded-lg bg-zinc-900/60 border border-zinc-800 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={config.showBomTable}
+                    onChange={(e) =>
+                      setConfig((prev) => ({ ...prev, showBomTable: e.target.checked }))
+                    }
+                    className="mt-0.5 rounded border-zinc-700 text-cyan-600 focus:ring-cyan-500"
+                  />
+                  <div>
+                    <div className="font-bold text-zinc-100">Nomenclature Matériel Tuyauterie (BOM)</div>
+                    <div className="text-[11px] text-zinc-400">
+                      Tableau des tronçons, vannes, raccords avec DN, quantités et longueurs
+                    </div>
+                  </div>
+                </label>
+
+                {/* Cotations */}
+                <label className="flex items-center gap-2.5 cursor-pointer px-1">
+                  <input
+                    type="checkbox"
+                    checked={config.showDimensions}
+                    onChange={(e) =>
+                      setConfig((prev) => ({ ...prev, showDimensions: e.target.checked }))
+                    }
+                    className="rounded border-zinc-700 text-cyan-600 focus:ring-cyan-500"
+                  />
+                  <span className="font-bold text-zinc-200">Cotations dimensionnelles</span>
+                </label>
+
+                {/* Soudures */}
+                <label className="flex items-center gap-2.5 cursor-pointer px-1">
+                  <input
+                    type="checkbox"
+                    checked={config.showWelds}
+                    onChange={(e) =>
+                      setConfig((prev) => ({ ...prev, showWelds: e.target.checked }))
+                    }
+                    className="rounded border-zinc-700 text-cyan-600 focus:ring-cyan-500"
+                  />
+                  <span className="font-bold text-zinc-200">
+                    Numéros et symboles de soudure (Wxxx)
+                  </span>
+                </label>
+
+                {/* Étiquettes tuyaux */}
+                <label className="flex items-center gap-2.5 cursor-pointer px-1">
+                  <input
+                    type="checkbox"
+                    checked={config.showPipeLabels}
+                    onChange={(e) =>
+                      setConfig((prev) => ({ ...prev, showPipeLabels: e.target.checked }))
+                    }
+                    className="rounded border-zinc-700 text-cyan-600 focus:ring-cyan-500"
+                  />
+                  <span className="font-bold text-zinc-200">
+                    Étiquettes des tuyaux (Diamètre / Longueur)
+                  </span>
+                </label>
+
+                {/* Légende adaptative */}
+                <label className="flex items-center gap-2.5 cursor-pointer px-1">
+                  <input
+                    type="checkbox"
+                    checked={config.showAdaptiveLegend}
+                    onChange={(e) =>
+                      setConfig((prev) => ({ ...prev, showAdaptiveLegend: e.target.checked }))
+                    }
+                    className="rounded border-zinc-700 text-cyan-600 focus:ring-cyan-500"
+                  />
+                  <span className="font-bold text-zinc-200">Légende technique adaptative (ISO 7200)</span>
+                </label>
+
+                {/* Grille ISO 5457 */}
+                <label className="flex items-center gap-2.5 cursor-pointer px-1">
+                  <input
+                    type="checkbox"
+                    checked={config.showIso5457Grid}
+                    onChange={(e) =>
+                      setConfig((prev) => ({ ...prev, showIso5457Grid: e.target.checked }))
+                    }
+                    className="rounded border-zinc-700 text-cyan-600 focus:ring-cyan-500"
+                  />
+                  <span className="font-bold text-zinc-200">Cadre & Quadrillage ISO 5457</span>
+                </label>
+              </div>
+            )}
+
+            {/* Contenu Onglet 3 : Tableaux & Quantitatifs dynamiques */}
+            {activeTab === "tables" && (
+              <div className="p-4 space-y-4 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-black uppercase text-zinc-400 tracking-wider">
+                    Données générées pour l'impression
+                  </span>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-cyan-950 border border-cyan-800 text-cyan-300">
+                    Mode : {config.printScope.toUpperCase()}
+                  </span>
+                </div>
+
+                {/* Résumé Synthétique Génie Civil */}
+                <div className="p-3 rounded-xl bg-gradient-to-br from-zinc-900 to-zinc-900/50 border border-zinc-800 space-y-2">
+                  <div className="font-bold text-zinc-200 flex items-center gap-2">
+                    <HardHat className="w-4 h-4 text-amber-400" />
+                    <span>Métré Estimatif Génie Civil</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-center pt-1">
+                    <div className="p-1.5 rounded bg-zinc-950/60 border border-zinc-800">
+                      <div className="text-[10px] text-zinc-400">Béton coulé</div>
+                      <div className="text-xs font-mono font-black text-cyan-400">
+                        {civilMto.totalConcreteVolumeM3} m³
                       </div>
                     </div>
-                  </label>
-
-                  <label className="flex items-start gap-2.5 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={config.showAdaptiveLegend}
-                      onChange={(e) =>
-                        setConfig((prev) => ({ ...prev, showAdaptiveLegend: e.target.checked }))
-                      }
-                      className="mt-0.5 rounded border-zinc-700 text-cyan-600 focus:ring-cyan-500"
-                    />
-                    <div>
-                      <div className="font-bold text-zinc-200">Légende Technique Adaptative</div>
-                      <div className="text-[11px] text-zinc-500">
-                        Affiche uniquement les composants réels présents dans le réseau
+                    <div className="p-1.5 rounded bg-zinc-950/60 border border-zinc-800">
+                      <div className="text-[10px] text-zinc-400">Acier platines</div>
+                      <div className="text-xs font-mono font-black text-emerald-400">
+                        {civilMto.totalBasePlateWeightKg} kg
                       </div>
                     </div>
-                  </label>
-
-                  <label className="flex items-start gap-2.5 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={config.showIso5457Grid}
-                      onChange={(e) =>
-                        setConfig((prev) => ({ ...prev, showIso5457Grid: e.target.checked }))
-                      }
-                      className="mt-0.5 rounded border-zinc-700 text-cyan-600 focus:ring-cyan-500"
-                    />
-                    <div>
-                      <div className="font-bold text-zinc-200">Cadre & Quadrillage ISO 5457</div>
-                      <div className="text-[11px] text-zinc-500">
-                        Marge de reliure (20mm), repères de centrage et coordonnées (A-D, 1-6)
+                    <div className="p-1.5 rounded bg-zinc-950/60 border border-zinc-800">
+                      <div className="text-[10px] text-zinc-400">Ancrages</div>
+                      <div className="text-xs font-mono font-black text-amber-400">
+                        {civilMto.totalAnchorsCount} u
                       </div>
                     </div>
-                  </label>
+                  </div>
+                </div>
 
-                  <label className="flex items-start gap-2.5 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={config.showWatermarkFootprint}
-                      onChange={(e) =>
-                        setConfig((prev) => ({
-                          ...prev,
-                          showWatermarkFootprint: e.target.checked,
-                        }))
-                      }
-                      className="mt-0.5 rounded border-zinc-700 text-cyan-600 focus:ring-cyan-500"
-                    />
-                    <div>
-                      <div className="font-bold text-zinc-200">
-                        Pied de planche certifié ORTHOGONAL - ENG
-                      </div>
-                      <div className="text-[11px] text-zinc-500">
-                        Signature logicielle inviolable et mention de copyright contractuel
-                      </div>
-                    </div>
-                  </label>
+                {/* Tableau Supports MSS SP-58 */}
+                <div>
+                  <div className="font-bold text-zinc-300 mb-1.5 flex items-center justify-between">
+                    <span>Supports Mécaniques inclus ({effectiveSupports.length})</span>
+                  </div>
+                  <div className="max-h-40 overflow-y-auto border border-zinc-800 rounded-lg">
+                    <table className="w-full text-left text-[11px]">
+                      <thead className="bg-zinc-900 sticky top-0 text-zinc-400 border-b border-zinc-800">
+                        <tr>
+                          <th className="p-1.5">Tag</th>
+                          <th className="p-1.5">Type MSS</th>
+                          <th className="p-1.5">Platine</th>
+                          <th className="p-1.5 text-right">Massif</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-zinc-800/60 font-mono">
+                        {effectiveSupports.map((sup) => {
+                          const def = MSS_SUPPORT_CATALOG[sup.type] || MSS_SUPPORT_CATALOG.mss_type_35;
+                          return (
+                            <tr key={sup.id} className="hover:bg-zinc-900/50">
+                              <td className="p-1.5 font-bold text-cyan-400">{sup.tag}</td>
+                              <td className="p-1.5 text-zinc-300">MSS-{def.mssStandardNumber}</td>
+                              <td className="p-1.5 text-zinc-400">
+                                {sup.civilSpec.basePlateLengthMm}×{sup.civilSpec.basePlateWidthMm}
+                              </td>
+                              <td className="p-1.5 text-right text-emerald-400">
+                                {sup.civilSpec.calculatedConcreteVolumeM3}m³
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Tableau BOM Tuyauterie */}
+                <div>
+                  <div className="font-bold text-zinc-300 mb-1.5 flex items-center justify-between">
+                    <span>Nomenclature BOM ({effectiveBomRows.length} lignes)</span>
+                  </div>
+                  <div className="max-h-40 overflow-y-auto border border-zinc-800 rounded-lg">
+                    <table className="w-full text-left text-[11px]">
+                      <thead className="bg-zinc-900 sticky top-0 text-zinc-400 border-b border-zinc-800">
+                        <tr>
+                          <th className="p-1.5">RP</th>
+                          <th className="p-1.5">Désignation</th>
+                          <th className="p-1.5">DN</th>
+                          <th className="p-1.5 text-right">Qté/Long</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-zinc-800/60 font-mono">
+                        {effectiveBomRows.map((r) => (
+                          <tr key={r.index} className="hover:bg-zinc-900/50">
+                            <td className="p-1.5 font-bold text-cyan-400">{r.index}</td>
+                            <td className="p-1.5 text-zinc-300 font-sans">{r.designation}</td>
+                            <td className="p-1.5 text-zinc-400">DN{r.dn}</td>
+                            <td className="p-1.5 text-right font-bold text-zinc-200">
+                              {r.length > 0 ? `${r.length} m` : `${r.qty} u`}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* Contenu Onglet 2 : Métadonnées du Cartouche */}
+            {/* Contenu Onglet 4 : Métadonnées du Cartouche */}
             {activeTab === "metadata" && (
               <div className="p-4 space-y-3.5 text-xs">
                 <div>
@@ -567,80 +1062,19 @@ export const IsoPrintModal: React.FC<IsoPrintModalProps> = ({
                 </div>
               </div>
             )}
-
-            {/* Contenu Onglet 3 : Calques & Composants */}
-            {activeTab === "layers" && (
-              <div className="p-4 space-y-3 text-xs">
-                <div className="text-[11px] font-black uppercase text-zinc-400 tracking-wider">
-                  Visibilité des calques et annotations
-                </div>
-
-                <label className="flex items-center gap-2.5 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={config.showBomTable}
-                    onChange={(e) =>
-                      setConfig((prev) => ({ ...prev, showBomTable: e.target.checked }))
-                    }
-                    className="rounded border-zinc-700 text-cyan-600 focus:ring-cyan-500"
-                  />
-                  <span className="font-bold text-zinc-200">
-                    Tableau de nomenclature matériel (BOM)
-                  </span>
-                </label>
-
-                <label className="flex items-center gap-2.5 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={config.showDimensions}
-                    onChange={(e) =>
-                      setConfig((prev) => ({ ...prev, showDimensions: e.target.checked }))
-                    }
-                    className="rounded border-zinc-700 text-cyan-600 focus:ring-cyan-500"
-                  />
-                  <span className="font-bold text-zinc-200">Cotations dimensionnelles</span>
-                </label>
-
-                <label className="flex items-center gap-2.5 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={config.showWelds}
-                    onChange={(e) =>
-                      setConfig((prev) => ({ ...prev, showWelds: e.target.checked }))
-                    }
-                    className="rounded border-zinc-700 text-cyan-600 focus:ring-cyan-500"
-                  />
-                  <span className="font-bold text-zinc-200">
-                    Numéros et symboles de soudure (Wxxx)
-                  </span>
-                </label>
-
-                <label className="flex items-center gap-2.5 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={config.showPipeLabels}
-                    onChange={(e) =>
-                      setConfig((prev) => ({ ...prev, showPipeLabels: e.target.checked }))
-                    }
-                    className="rounded border-zinc-700 text-cyan-600 focus:ring-cyan-500"
-                  />
-                  <span className="font-bold text-zinc-200">
-                    Étiquettes des tuyaux (Diamètre / Longueur)
-                  </span>
-                </label>
-
-                <div className="pt-3 border-t border-zinc-800 text-[11px] text-zinc-500">
-                  Total : {nodes.length} nœuds, {segments.length} tronçons, {joints.length} soudures
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Zone de prévisualisation en direct (Aperçu SVG interactif) */}
           <div className="flex-1 bg-zinc-950 p-6 flex flex-col items-center justify-center overflow-auto relative">
-            <div className="absolute top-3 left-4 flex items-center gap-2 text-[11px] font-bold text-zinc-400 bg-zinc-900/80 border border-zinc-800 px-2.5 py-1 rounded-lg">
-              <Eye className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Aperçu WYSIWYG à l'échelle {drawingResult.scaleApplied}</span>
+            <div className="absolute top-3 left-4 flex items-center gap-3 text-[11px] font-bold text-zinc-400 bg-zinc-900/90 border border-zinc-800 px-3 py-1.5 rounded-lg shadow-lg">
+              <div className="flex items-center gap-1.5">
+                <Eye className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Aperçu WYSIWYG à l'échelle {drawingResult.scaleApplied}</span>
+              </div>
+              <span className="w-1 h-3 bg-zinc-700 rounded-full" />
+              <div className="text-zinc-300">
+                {effectiveSegments.length} tubes · {effectiveSupports.length} supports · {effectiveCad2d.length} GC
+              </div>
             </div>
 
             {/* Cadre de la feuille simulée */}

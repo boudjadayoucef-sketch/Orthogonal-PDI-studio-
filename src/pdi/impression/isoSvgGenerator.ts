@@ -3,6 +3,7 @@
  * COPYRIGHT (C) 2026 ORTHOGONAL - ENG. ALL RIGHTS RESERVED.
  * PROPRIETARY INDUSTRIAL PIPING CAD & ISOMETRIC ENGINE.
  * GÉNÉRATEUR VECTORIEL DE PLANCHES NORMALISÉES ISO (PATCH 020F).
+ * VERSION ÉTENDUE : TUYAUTERIE, MÉCANIQUE (MSS SP-58), GÉNIE CIVIL & TABLES DYNAMIQUES.
  */
 
 import {
@@ -26,6 +27,12 @@ import {
 import { pdiCompanyName, pdiStandardsNote } from "../branding/pdiBranding";
 import { PDI_ENGINE_IDENTITY, PDI_WATERMARK_SIGNATURE } from "../core/pdiWatermark";
 import { formatLength, formatPressure } from "../units/pdiUnitSystem";
+import {
+  IsoPipingSupport,
+  MSS_SUPPORT_CATALOG,
+  computeCivilMto,
+} from "../isometric/supports/pdiMssSupportEngine";
+import type { Cad2dEntity } from "../isometric/engine/IsometrieModuleV48d";
 
 const PDI_ISO_ANGLE = Math.PI / 6;
 const PDI_ISO_COS = Math.cos(PDI_ISO_ANGLE);
@@ -45,7 +52,7 @@ export interface BomRow {
 /**
  * Projette les coordonnées mondiales 3D vers le plan 2D isométrique centré
  */
-function isoProjectPrint(
+export function isoProjectPrint(
   x: number,
   y: number,
   z: number,
@@ -60,29 +67,70 @@ function isoProjectPrint(
 }
 
 /**
- * Calcule l'emprise englobante du modèle 3D projeté
+ * Calcule l'emprise englobante du modèle 3D projeté (tuyauterie + mécanique + génie civil)
  */
 function computeBoundingBox(
   nodes: IsoNode[],
-  segments: IsoSegment[]
+  segments: IsoSegment[],
+  supports: IsoPipingSupport[] = [],
+  cad2dEntities: Cad2dEntity[] = [],
+  includeSupports: boolean = true,
+  includeCivil: boolean = true
 ): { minX: number; maxX: number; minY: number; maxY: number; centerX: number; centerY: number } {
-  if (nodes.length === 0) {
-    return { minX: 0, maxX: 10, minY: 0, maxY: 10, centerX: 5, centerY: 5 };
-  }
-
   let minX = Infinity;
   let maxX = -Infinity;
   let minY = Infinity;
   let maxY = -Infinity;
 
-  nodes.forEach((n) => {
-    const rawX = (n.x - n.y) * PDI_ISO_COS;
-    const rawY = (n.x + n.y) * PDI_ISO_SIN - (n.z || 0);
+  const pushPoint = (rawX: number, rawY: number) => {
     if (rawX < minX) minX = rawX;
     if (rawX > maxX) maxX = rawX;
     if (rawY < minY) minY = rawY;
     if (rawY > maxY) maxY = rawY;
+  };
+
+  // 1. Nœuds de tuyauterie
+  nodes.forEach((n) => {
+    const rawX = (n.x - n.y) * PDI_ISO_COS;
+    const rawY = (n.x + n.y) * PDI_ISO_SIN - (n.z || 0);
+    pushPoint(rawX, rawY);
   });
+
+  // 2. Supports tuyauterie
+  if (includeSupports && supports.length > 0) {
+    supports.forEach((sup) => {
+      const wp = sup.worldPos;
+      const rawX = (wp.x - wp.y) * PDI_ISO_COS;
+      const rawY = (wp.x + wp.y) * PDI_ISO_SIN - (wp.z || 0);
+      pushPoint(rawX, rawY);
+      // Tenir compte de la retombée du massif sous le support
+      pushPoint(rawX, rawY + 12);
+    });
+  }
+
+  // 3. Éléments de Génie Civil CAD 2D
+  if (includeCivil && cad2dEntities.length > 0) {
+    cad2dEntities.forEach((ent) => {
+      const z = ent.metadata?.elevationZ || 0;
+      if (ent.points && ent.points.length > 0) {
+        ent.points.forEach((pt) => {
+          const rawX = (pt.x - pt.y) * PDI_ISO_COS;
+          const rawY = (pt.x + pt.y) * PDI_ISO_SIN - z;
+          pushPoint(rawX, rawY);
+        });
+      } else if (ent.center) {
+        const r = ent.radius || 10;
+        const rawX = (ent.center.x - ent.center.y) * PDI_ISO_COS;
+        const rawY = (ent.center.x + ent.center.y) * PDI_ISO_SIN - z;
+        pushPoint(rawX - r, rawY - r);
+        pushPoint(rawX + r, rawY + r);
+      }
+    });
+  }
+
+  if (minX === Infinity) {
+    return { minX: 0, maxX: 10, minY: 0, maxY: 10, centerX: 5, centerY: 5 };
+  }
 
   return {
     minX,
@@ -103,7 +151,9 @@ export function generateIsoDrawingSvg(
   dimensions: IsoDimension[],
   joints: PipingJoint[],
   bomRows: BomRow[],
-  config: IsoPrintConfig
+  config: IsoPrintConfig,
+  supports: IsoPipingSupport[] = [],
+  cad2dEntities: Cad2dEntity[] = []
 ): {
   svgMarkup: string;
   widthMm: number;
@@ -123,30 +173,42 @@ export function generateIsoDrawingSvg(
   const innerW = W - leftM - rightM;
   const innerH = H - topM - bottomM;
 
-  // Cartouche ISO 7200 dimensions (largeur max 180mm standard, hauteur 55mm)
-  const cartoucheW = Math.min(180, innerW * 0.45);
-  const cartoucheH = Math.min(55, innerH * 0.3);
+  // Cartouche ISO 7200 dimensions (standard normalisé)
+  const cartoucheW = Math.min(185, innerW * 0.46);
+  const cartoucheH = Math.min(56, innerH * 0.32);
   const cartoucheX = leftM + innerW - cartoucheW;
   const cartoucheY = topM + innerH - cartoucheH;
 
-  // Légende dynamique dimensions
-  const legendW = Math.min(130, innerW * 0.35);
-  const legendX = leftM + 4;
+  // Colonne latérale pour légendes & tableaux
+  const sideColW = Math.min(135, innerW * 0.34);
+  const sideColX = leftM + 4;
+
+  const legendW = sideColW;
+  const legendX = sideColX;
   const legendY = topM + 4;
 
   // Nomenclature BOM dimensions
-  const bomW = Math.min(130, innerW * 0.35);
-  const bomX = leftM + 4;
-  const bomY = legendY + (config.showAdaptiveLegend ? 65 : 0);
+  const bomW = sideColW;
+  const bomX = sideColX;
+  const legendHeightCalc = config.showAdaptiveLegend ? 48 : 0;
+  const bomY = legendY + legendHeightCalc;
 
-  // Zone graphique utile
-  const drawAreaX = config.showAdaptiveLegend || config.showBomTable ? leftM + bomW + 8 : leftM + 8;
-  const drawAreaW = innerW - (config.showAdaptiveLegend || config.showBomTable ? bomW + 16 : 16);
+  // Zone graphique utile pour le tracé isométrique
+  const hasSideContent = config.showAdaptiveLegend || config.showBomTable || (config.showSupportTable && supports.length > 0);
+  const drawAreaX = hasSideContent ? leftM + sideColW + 10 : leftM + 8;
+  const drawAreaW = innerW - (hasSideContent ? sideColW + 18 : 16);
   const drawAreaY = topM + 12;
-  const drawAreaH = innerH - (config.showCartoucheIso7200 ? cartoucheH + 16 : 24);
+  const drawAreaH = innerH - (config.showCartoucheIso7200 ? cartoucheH + 14 : 20);
 
   // Calcul d'échelle isométrique
-  const bbox = computeBoundingBox(nodes, segments);
+  const bbox = computeBoundingBox(
+    nodes,
+    segments,
+    supports,
+    cad2dEntities,
+    config.showSupports,
+    config.showCivilEngineering
+  );
   const rawModelW = Math.max(1, bbox.maxX - bbox.minX);
   const rawModelH = Math.max(1, bbox.maxY - bbox.minY);
 
@@ -154,16 +216,19 @@ export function generateIsoDrawingSvg(
   let scaleAppliedLabel = config.scale;
 
   if (config.scale === "fit") {
-    const scaleX = (drawAreaW * 0.75) / rawModelW;
-    const scaleY = (drawAreaH * 0.75) / rawModelH;
-    scaleMm = Math.max(0.2, Math.min(scaleX, scaleY));
-    scaleAppliedLabel = "Ajustée (NTS)";
+    const scaleX = (drawAreaW * 0.74) / rawModelW;
+    const scaleY = (drawAreaH * 0.74) / rawModelH;
+    let baseScale = Math.max(0.15, Math.min(scaleX, scaleY));
+    if (config.printScope === "window" && config.windowZoomRatio) {
+      baseScale *= config.windowZoomRatio;
+    }
+    scaleMm = baseScale;
+    scaleAppliedLabel = config.printScope === "window" ? `Zoom ${(config.windowZoomRatio || 1) * 100}%` : "Ajustée (NTS)";
   } else {
-    // Calcul de l'échelle numérique 1:50 => 1 mètre réel = 20 mm
     const parts = config.scale.split(":");
     if (parts.length === 2 && Number(parts[1]) > 0) {
       const ratio = Number(parts[0]) / Number(parts[1]);
-      scaleMm = 1000 * ratio; // 1m = 1000mm * ratio
+      scaleMm = 1000 * ratio;
     } else {
       scaleMm = 10;
     }
@@ -179,13 +244,9 @@ export function generateIsoDrawingSvg(
 
   // 2. CADRE NORMALISÉ ISO 5457 (DOUBLE CADRE + GRILLE ALPHANUMÉRIQUE)
   if (config.showIso5457Grid) {
-    // Cadre extérieur de découpe
     svgContent += `<rect x="1" y="1" width="${W - 2}" height="${H - 2}" fill="none" stroke="#64748b" stroke-width="0.35" stroke-dasharray="2,2"/>`;
-
-    // Cadre de dessin intérieur officiel
     svgContent += `<rect x="${leftM}" y="${topM}" width="${innerW}" height="${innerH}" fill="none" stroke="#0f172a" stroke-width="0.7"/>`;
 
-    // Repères de centrage (4 triangles au centre des côtés)
     const midX = W / 2;
     const midY = H / 2;
     svgContent += `<polygon points="${midX - 2.5},${topM - 5} ${midX + 2.5},${topM - 5} ${midX},${topM}" fill="#0f172a"/>`;
@@ -193,7 +254,6 @@ export function generateIsoDrawingSvg(
     svgContent += `<polygon points="${leftM - 5},${midY - 2.5} ${leftM - 5},${midY + 2.5} ${leftM},${midY}" fill="#0f172a"/>`;
     svgContent += `<polygon points="${leftM + innerW + 5},${midY - 2.5} ${leftM + innerW + 5},${midY + 2.5} ${leftM + innerW},${midY}" fill="#0f172a"/>`;
 
-    // Quadrillage de repérage (Lettres et Chiffres)
     const colStep = innerW / paper.columnsCount;
     for (let c = 0; c < paper.columnsCount; c++) {
       const x = leftM + c * colStep;
@@ -216,8 +276,8 @@ export function generateIsoDrawingSvg(
   }
 
   // 3. ROSE DES VENTS ISOMÉTRIQUE
-  const compassX = leftM + innerW - 25;
-  const compassY = topM + 25;
+  const compassX = leftM + innerW - 24;
+  const compassY = topM + 24;
   svgContent += `<g transform="translate(${compassX}, ${compassY})">
     <circle r="9" fill="#f8fafc" stroke="#0f172a" stroke-width="0.5"/>
     <line x1="0" y1="0" x2="6.5" y2="-3.75" stroke="#dc2626" stroke-width="1" stroke-linecap="round"/>
@@ -232,13 +292,70 @@ export function generateIsoDrawingSvg(
     <text x="0" y="12" font-size="1.8" text-anchor="middle" font-weight="bold" fill="#475569">AXE ISO 30°</text>
   </g>`;
 
-  // 4. TITRE DU PLAN EN HAUT DE PAGE
+  // 4. TITRE DU PLAN EN HAUT DE PAGE (AVEC INDICATION DU MODE D'IMPRESSION)
+  const modeLabel = config.printScope === "selection"
+    ? " · MODE SÉLECTION RESTREINTE"
+    : config.printScope === "window"
+    ? " · MODE CADRAGE FENÊTRE"
+    : " · VUE GLOBALE ÉTENDUE";
+
   svgContent += `<g transform="translate(${drawAreaX + drawAreaW / 2}, ${topM + 7})">
     <text text-anchor="middle" font-size="3.8" font-family="sans-serif" font-weight="bold" fill="#0f172a">${config.documentTitle}</text>
-    <text text-anchor="middle" y="3.2" font-size="2" font-family="sans-serif" fill="#64748b">${config.wilayaOrSite || "INSTALLATION INDUSTRIELLE"} · SERVICE : ${config.serviceFluid || "PROCESS"} · FEUILLE ${config.pageNumber}/${config.totalPages}</text>
+    <text text-anchor="middle" y="3.2" font-size="2" font-family="sans-serif" fill="#64748b">${config.wilayaOrSite || "INSTALLATION INDUSTRIELLE"} · SERVICE : ${config.serviceFluid || "PROCESS"}${modeLabel}</text>
   </g>`;
 
-  // 5. TRACÉ ISOMÉTRIQUE TUYAUTERIE
+  // 5. RENDU DU GÉNIE CIVIL (SOUS-COUCHE INFÉRIEURE : MASSIFS, SEMELLES, PROFILÉS ET AXES)
+  if (config.showCivilEngineering && cad2dEntities.length > 0) {
+    svgContent += `<g id="pdi-civil-engineering-layer">`;
+    cad2dEntities.forEach((ent) => {
+      const z = ent.metadata?.elevationZ || 0;
+      const isMassif = ent.type === "rectangle" || ent.type === "polygon" || ent.metadata?.intent === "equipment";
+      const isAxis = ent.lineType === "center" || ent.metadata?.intent === "pipe_axis";
+
+      if ((ent.type === "rectangle" || ent.type === "polygon") && ent.points && ent.points.length >= 3) {
+        // Projection des sommets en isométrie
+        const ptsIso = ent.points.map((pt) =>
+          isoProjectPrint(pt.x, pt.y, z, modelCenterIsoX, modelCenterIsoY, scaleMm)
+        );
+        const polyPointsStr = ptsIso.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(" ");
+
+        // Face supérieure du massif béton
+        svgContent += `<polygon points="${polyPointsStr}" fill="#e2e8f0" stroke="#64748b" stroke-width="0.6"/>`;
+
+        // Donnons du relief 3D aux massifs béton en dessinant les faces descendantes vers le radier
+        const heightDrop = Math.max(3, (ent.height || ent.metadata?.height || 0.4) * scaleMm * 0.8);
+        if (ptsIso.length >= 4) {
+          // Face avant-gauche
+          svgContent += `<polygon points="${ptsIso[1].x.toFixed(2)},${ptsIso[1].y.toFixed(2)} ${ptsIso[2].x.toFixed(2)},${ptsIso[2].y.toFixed(2)} ${ptsIso[2].x.toFixed(2)},${(ptsIso[2].y + heightDrop).toFixed(2)} ${ptsIso[1].x.toFixed(2)},${(ptsIso[1].y + heightDrop).toFixed(2)}" fill="#cbd5e1" stroke="#64748b" stroke-width="0.5"/>`;
+          // Face avant-droite
+          svgContent += `<polygon points="${ptsIso[2].x.toFixed(2)},${ptsIso[2].y.toFixed(2)} ${ptsIso[3].x.toFixed(2)},${ptsIso[3].y.toFixed(2)} ${ptsIso[3].x.toFixed(2)},${(ptsIso[3].y + heightDrop).toFixed(2)} ${ptsIso[2].x.toFixed(2)},${(ptsIso[2].y + heightDrop).toFixed(2)}" fill="#94a3b8" stroke="#64748b" stroke-width="0.5"/>`;
+        }
+
+        // Hachures symboliques béton
+        if (ptsIso[0]) {
+          svgContent += `<text x="${ptsIso[0].x.toFixed(2)}" y="${(ptsIso[0].y - 1.5).toFixed(2)}" font-size="1.6" font-family="monospace" font-weight="bold" fill="#475569">${ent.text || "MASSIF BÉTON"}</text>`;
+        }
+      } else if (ent.type === "line" && ent.points && ent.points.length >= 2) {
+        const p1 = isoProjectPrint(ent.points[0].x, ent.points[0].y, z, modelCenterIsoX, modelCenterIsoY, scaleMm);
+        const p2 = isoProjectPrint(ent.points[1].x, ent.points[1].y, z, modelCenterIsoX, modelCenterIsoY, scaleMm);
+        const strokeDash = isAxis ? ' stroke-dasharray="3,1,1,1"' : "";
+        const strokeColor = isAxis ? "#94a3b8" : "#475569";
+        const strokeW = isAxis ? "0.35" : "0.7";
+        svgContent += `<line x1="${p1.x.toFixed(2)}" y1="${p1.y.toFixed(2)}" x2="${p2.x.toFixed(2)}" y2="${p2.y.toFixed(2)}" stroke="${strokeColor}" stroke-width="${strokeW}"${strokeDash}/>`;
+      } else if (ent.type === "circle" && ent.center) {
+        const p = isoProjectPrint(ent.center.x, ent.center.y, z, modelCenterIsoX, modelCenterIsoY, scaleMm);
+        const rx = (ent.radius || 5) * scaleMm * PDI_ISO_COS;
+        const ry = (ent.radius || 5) * scaleMm * PDI_ISO_SIN;
+        svgContent += `<ellipse cx="${p.x.toFixed(2)}" cy="${p.y.toFixed(2)}" rx="${rx.toFixed(2)}" ry="${ry.toFixed(2)}" fill="#e2e8f0" stroke="#64748b" stroke-width="0.6"/>`;
+      } else if (ent.type === "text" && ent.points && ent.points.length > 0) {
+        const p = isoProjectPrint(ent.points[0].x, ent.points[0].y, z, modelCenterIsoX, modelCenterIsoY, scaleMm);
+        svgContent += `<text x="${p.x.toFixed(2)}" y="${p.y.toFixed(2)}" font-size="1.8" font-family="sans-serif" font-weight="bold" fill="#475569">${ent.text || ""}</text>`;
+      }
+    });
+    svgContent += `</g>`;
+  }
+
+  // 6. TRACÉ ISOMÉTRIQUE TUYAUTERIE & ROBINETTERIE
   svgContent += `<g id="pdi-piping-iso-model">`;
 
   // Tronçons de tuyauterie
@@ -259,7 +376,38 @@ export function generateIsoDrawingSvg(
     const stroke = isHp ? "#d97706" : "#0284c7";
     const strokeWidth = Math.max(0.8, Math.min(2.5, seg.dn / 150));
 
+    // Ligne principale du tube
     svgContent += `<line x1="${p1.x.toFixed(2)}" y1="${p1.y.toFixed(2)}" x2="${p2.x.toFixed(2)}" y2="${p2.y.toFixed(2)}" stroke="${stroke}" stroke-width="${strokeWidth.toFixed(2)}" stroke-linecap="round"/>`;
+
+    // Éléments & Raccords intermédiaires placés sur le tronçon (seg.fittings)
+    if (seg.fittings && seg.fittings.length > 0) {
+      seg.fittings.forEach((fit) => {
+        const t = Math.max(0.08, Math.min(0.92, fit.localPosition || 0.5));
+        const fx = p1.x + (p2.x - p1.x) * t;
+        const fy = p1.y + (p2.y - p1.y) * t;
+
+        if (fit.type.includes("vanne")) {
+          svgContent += `<g transform="translate(${fx.toFixed(2)}, ${fy.toFixed(2)}) scale(0.65)">
+            <path d="M -5 -3 L 0 0 L -5 3 Z" fill="${stroke}" stroke="${stroke}" stroke-width="0.6"/>
+            <path d="M 5 -3 L 0 0 L 5 3 Z" fill="${stroke}" stroke="${stroke}" stroke-width="0.6"/>
+            <line x1="0" y1="0" x2="0" y2="-4" stroke="${stroke}" stroke-width="0.8"/>
+            <line x1="-2" y1="-4" x2="2" y2="-4" stroke="${stroke}" stroke-width="0.8"/>
+          </g>`;
+        } else if (fit.type === "clapet") {
+          svgContent += `<g transform="translate(${fx.toFixed(2)}, ${fy.toFixed(2)}) scale(0.65)">
+            <path d="M -4 -3 L 3 0 L -4 3 Z" fill="${stroke}" stroke="${stroke}"/>
+            <line x1="4" y1="-3.5" x2="4" y2="3.5" stroke="${stroke}" stroke-width="0.8"/>
+          </g>`;
+        } else if (fit.type.startsWith("bride") || fit.type === "jmi") {
+          svgContent += `<g transform="translate(${fx.toFixed(2)}, ${fy.toFixed(2)})">
+            <line x1="-1.2" y1="-3" x2="-1.2" y2="3" stroke="#b45309" stroke-width="0.8"/>
+            <line x1="1.2" y1="-3" x2="1.2" y2="3" stroke="#b45309" stroke-width="0.8"/>
+          </g>`;
+        } else {
+          svgContent += `<circle cx="${fx.toFixed(2)}" cy="${fy.toFixed(2)}" r="1.4" fill="${stroke}"/>`;
+        }
+      });
+    }
 
     // Étiquette du tronçon
     if (config.showPipeLabels) {
@@ -275,28 +423,38 @@ export function generateIsoDrawingSvg(
     }
   });
 
-  // Nœuds et Équipements
+  // Nœuds et Équipements de tuyauterie
   nodes.forEach((n) => {
     const p = isoProjectPrint(n.x, n.y, n.z, modelCenterIsoX, modelCenterIsoY, scaleMm);
 
     if (n.equipmentType) {
       const eq = n.equipmentType;
       if (eq.includes("vanne")) {
-        svgContent += `<g transform="translate(${p.x.toFixed(2)}, ${p.y.toFixed(2)}) scale(0.65)">
+        svgContent += `<g transform="translate(${p.x.toFixed(2)}, ${p.y.toFixed(2)}) scale(0.68)">
           <path d="M -5 -3 L 0 0 L -5 3 Z" fill="#0284c7" stroke="#0284c7" stroke-width="0.6"/>
           <path d="M 5 -3 L 0 0 L 5 3 Z" fill="#0284c7" stroke="#0284c7" stroke-width="0.6"/>
           <line x1="0" y1="0" x2="0" y2="-4" stroke="#0284c7" stroke-width="0.8"/>
-          <line x1="-2" y1="-4" x2="2" y2="-4" stroke="#0284c7" stroke-width="0.8"/>
+          <line x1="-2.5" y1="-4" x2="2.5" y2="-4" stroke="#0284c7" stroke-width="0.8"/>
         </g>`;
       } else if (eq.startsWith("coude")) {
-        svgContent += `<circle cx="${p.x.toFixed(2)}" cy="${p.y.toFixed(2)}" r="1.5" fill="#ffffff" stroke="#d97706" stroke-width="0.8"/>`;
+        // Tracé d'un coude avec arc géométrique
+        svgContent += `<g transform="translate(${p.x.toFixed(2)}, ${p.y.toFixed(2)})">
+          <circle r="2" fill="#ffffff" stroke="#d97706" stroke-width="0.9"/>
+          <path d="M -1.4 1.4 Q 0 0 1.4 -1.4" stroke="#d97706" stroke-width="0.8" fill="none"/>
+        </g>`;
       } else if (eq.startsWith("bride") || eq === "joint" || eq === "jmi") {
         svgContent += `<g transform="translate(${p.x.toFixed(2)}, ${p.y.toFixed(2)})">
           <line x1="-1.2" y1="-3" x2="-1.2" y2="3" stroke="#b45309" stroke-width="0.8"/>
           <line x1="1.2" y1="-3" x2="1.2" y2="3" stroke="#b45309" stroke-width="0.8"/>
         </g>`;
+      } else if (eq === "te_egal" || eq === "te_reduit" || eq === "piquage") {
+        svgContent += `<g transform="translate(${p.x.toFixed(2)}, ${p.y.toFixed(2)})">
+          <circle r="2.2" fill="#16a34a" fill-opacity="0.2" stroke="#16a34a" stroke-width="0.8"/>
+          <line x1="-2.5" y1="0" x2="2.5" y2="0" stroke="#16a34a" stroke-width="1"/>
+          <line x1="0" y1="0" x2="0" y2="-2.5" stroke="#16a34a" stroke-width="1"/>
+        </g>`;
       } else {
-        svgContent += `<circle cx="${p.x.toFixed(2)}" cy="${p.y.toFixed(2)}" r="1.4" fill="#0284c7"/>`;
+        svgContent += `<circle cx="${p.x.toFixed(2)}" cy="${p.y.toFixed(2)}" r="1.5" fill="#0284c7"/>`;
       }
 
       // Libellé de l'équipement
@@ -314,7 +472,79 @@ export function generateIsoDrawingSvg(
     }
   });
 
-  // Soudures et Repères
+  // 7. RENDU MÉCANIQUE : SUPPORTS TUYAUTERIE MSS SP-58
+  if (config.showSupports && supports.length > 0) {
+    svgContent += `<g id="pdi-mss-supports-layer">`;
+    supports.forEach((sup, sIdx) => {
+      const wp = sup.worldPos;
+      const pt = isoProjectPrint(wp.x, wp.y, wp.z, modelCenterIsoX, modelCenterIsoY, scaleMm);
+      const def = MSS_SUPPORT_CATALOG[sup.type] || MSS_SUPPORT_CATALOG.mss_type_35;
+
+      // Dessin du symbole mécanique selon le type MSS SP-58
+      if (sup.type === "mss_type_57") {
+        // Point fixe rigide / Ancrage intégral (Croix + Ancrage au sol)
+        svgContent += `<g transform="translate(${pt.x.toFixed(2)}, ${pt.y.toFixed(2)})">
+          <rect x="-3" y="-3" width="6" height="6" fill="#0f172a" stroke="#dc2626" stroke-width="0.6" rx="0.5"/>
+          <line x1="-2.2" y1="-2.2" x2="2.2" y2="2.2" stroke="#dc2626" stroke-width="0.5"/>
+          <line x1="-2.2" y1="2.2" x2="2.2" y2="-2.2" stroke="#dc2626" stroke-width="0.5"/>
+          <line x1="-4" y1="3.5" x2="4" y2="3.5" stroke="#64748b" stroke-width="0.6"/>
+          <line x1="-3" y1="3.5" x2="-4" y2="5" stroke="#64748b" stroke-width="0.4"/>
+          <line x1="0" y1="3.5" x2="-1" y2="5" stroke="#64748b" stroke-width="0.4"/>
+          <line x1="3" y1="3.5" x2="2" y2="5" stroke="#64748b" stroke-width="0.4"/>
+        </g>`;
+      } else if (sup.type === "mss_type_35") {
+        // Guide coulissant transversal & axial (Boîtier glissière + patte vers massif)
+        svgContent += `<g transform="translate(${pt.x.toFixed(2)}, ${pt.y.toFixed(2)})">
+          <rect x="-3.5" y="-1.5" width="7" height="3" fill="#ffffff" stroke="#0891b2" stroke-width="0.6" rx="0.5"/>
+          <line x1="-3.5" y1="0" x2="3.5" y2="0" stroke="#0891b2" stroke-width="0.5"/>
+          <line x1="0" y1="1.5" x2="0" y2="4.5" stroke="#0891b2" stroke-width="0.6"/>
+          <line x1="-2.5" y1="4.5" x2="2.5" y2="4.5" stroke="#64748b" stroke-width="0.7"/>
+        </g>`;
+      } else if (sup.type === "mss_type_1") {
+        // Pendard réglable à tige
+        svgContent += `<g transform="translate(${pt.x.toFixed(2)}, ${pt.y.toFixed(2)})">
+          <circle cx="0" cy="0" r="1.2" fill="#ffffff" stroke="#16a34a" stroke-width="0.6"/>
+          <line x1="0" y1="0" x2="0" y2="-6" stroke="#16a34a" stroke-width="0.6"/>
+          <polygon points="-2,-6 2,-6 0,-8" fill="#16a34a"/>
+          <line x1="-3.5" y1="-8" x2="3.5" y2="-8" stroke="#64748b" stroke-width="0.6"/>
+        </g>`;
+      } else if (sup.type === "mss_type_39") {
+        // Patin soudé (Shoe)
+        svgContent += `<g transform="translate(${pt.x.toFixed(2)}, ${pt.y.toFixed(2)})">
+          <circle cx="0" cy="0" r="1.1" fill="#9333ea"/>
+          <line x1="0" y1="1" x2="0" y2="4" stroke="#9333ea" stroke-width="0.7"/>
+          <line x1="-3" y1="4" x2="3" y2="4" stroke="#9333ea" stroke-width="0.8"/>
+          <line x1="-4" y1="5" x2="4" y2="5" stroke="#64748b" stroke-width="0.5" stroke-dasharray="1,1"/>
+        </g>`;
+      } else if (sup.type === "mss_type_51") {
+        // Boîte à ressort
+        svgContent += `<g transform="translate(${pt.x.toFixed(2)}, ${pt.y.toFixed(2)})">
+          <rect x="-2.5" y="-7" width="5" height="5" fill="#ffffff" stroke="#f97316" stroke-width="0.6" rx="0.5"/>
+          <path d="M -1.5 -6 L 1.5 -5 L -1.5 -4 L 1.5 -3 L 0 -2" fill="none" stroke="#f97316" stroke-width="0.5"/>
+          <line x1="0" y1="-2" x2="0" y2="0" stroke="#f97316" stroke-width="0.6"/>
+        </g>`;
+      } else {
+        // Collier standard
+        svgContent += `<g transform="translate(${pt.x.toFixed(2)}, ${pt.y.toFixed(2)})">
+          <circle cx="0" cy="0" r="2.2" fill="none" stroke="#db2777" stroke-width="0.6"/>
+          <line x1="-3.5" y1="0" x2="3.5" y2="0" stroke="#db2777" stroke-width="0.6"/>
+        </g>`;
+      }
+
+      // Étiquette cartouche du support avec repère officiel MSS
+      const offY = sIdx % 2 === 0 ? -6.5 : 7.5;
+      const chipW = sup.tag.length * 1.8 + 14;
+      svgContent += `<g transform="translate(${(pt.x + 4).toFixed(2)}, ${(pt.y + offY).toFixed(2)})">
+        <line x1="-3" y1="${(-offY * 0.7).toFixed(2)}" x2="0" y2="0" stroke="#64748b" stroke-width="0.3" stroke-dasharray="1,1"/>
+        <rect x="0" y="-2" width="${chipW}" height="4" rx="0.8" fill="#ffffff" stroke="#0891b2" stroke-width="0.4"/>
+        <text x="1.5" y="0.8" font-size="1.8" font-family="monospace" font-weight="bold" fill="#0891b2">${sup.tag}</text>
+        <text x="${chipW - 1.5}" y="0.8" text-anchor="end" font-size="1.5" font-family="sans-serif" fill="#64748b">MSS-${def.mssStandardNumber}</text>
+      </g>`;
+    });
+    svgContent += `</g>`;
+  }
+
+  // 8. SOUDURES ET REPÈRES
   if (config.showWelds) {
     joints
       .filter((j) => j.weldNumber)
@@ -334,7 +564,7 @@ export function generateIsoDrawingSvg(
       });
   }
 
-  // Cotations Normalisées
+  // 9. COTATIONS NORMALISÉES
   if (config.showDimensions) {
     dimensions.forEach((dim) => {
       const aNode = nodes.find((n) => n.id === dim.a.nodeId);
@@ -359,69 +589,127 @@ export function generateIsoDrawingSvg(
     });
   }
 
-  svgContent += `</g>`;
+  svgContent += `</g>`; // Fin de pdi-piping-iso-model
 
-  // 6. LÉGENDE ADAPTATIVE (SEULEMENT COMPOSANTS RÉELS)
+  // 10. LÉGENDE ADAPTATIVE (SEULEMENT COMPOSANTS RÉELS + MÉCANIQUE + GC)
   if (config.showAdaptiveLegend) {
-    const legendItems = buildAdaptiveLegend(nodes, segments, joints);
-    const lHeight = Math.min(60, 8 + legendItems.length * 5.2);
+    const legendItems = buildAdaptiveLegend(
+      nodes,
+      segments,
+      joints,
+      config.showSupports ? supports : [],
+      config.showCivilEngineering ? cad2dEntities : []
+    );
+    const lHeight = Math.min(48, 7 + legendItems.length * 4.8);
 
     svgContent += `<g transform="translate(${legendX}, ${legendY})">
       <rect x="0" y="0" width="${legendW}" height="${lHeight}" rx="1.5" fill="#f8fafc" stroke="#cbd5e1" stroke-width="0.5"/>
-      <rect x="0" y="0" width="${legendW}" height="5" rx="1.5" fill="#e2e8f0"/>
-      <text x="4" y="3.5" font-size="2.2" font-family="sans-serif" font-weight="bold" fill="#0f172a">LÉGENDE TECHNIQUE ADAPTATIVE (ISO 7200)</text>`;
+      <rect x="0" y="0" width="${legendW}" height="4.5" rx="1.5" fill="#e2e8f0"/>
+      <text x="4" y="3.2" font-size="2.1" font-family="sans-serif" font-weight="bold" fill="#0f172a">LÉGENDE TECHNIQUE ADAPTATIVE (ISO 7200)</text>`;
 
-    legendItems.slice(0, 10).forEach((item, idx) => {
-      const iy = 8 + idx * 5.2;
+    legendItems.slice(0, 8).forEach((item, idx) => {
+      const iy = 7.5 + idx * 4.8;
       svgContent += `<g transform="translate(4, ${iy})">
         <g transform="scale(0.35)">${item.svgIconMarkup}</g>
-        <text x="12" y="3" font-size="1.9" font-family="sans-serif" fill="#334155">${item.label}</text>
+        <text x="12" y="2.8" font-size="1.8" font-family="sans-serif" fill="#334155">${item.label.slice(0, 32)}</text>
       </g>`;
     });
 
     svgContent += `</g>`;
   }
 
-  // 7. NOMENCLATURE DU MATÉRIEL (BOM)
+  // 11. NOMENCLATURE DU MATÉRIEL (BOM TUYAUTERIE)
+  let nextTableY = bomY;
   if (config.showBomTable && bomRows.length > 0) {
-    const tableRows = bomRows.slice(0, 12);
-    const bomHeight = Math.min(innerH - bomY - 5, 8 + tableRows.length * 4.2);
+    const tableRows = bomRows.slice(0, 9);
+    const bomHeight = Math.min(65, 8 + tableRows.length * 3.8);
+    nextTableY = bomY + bomHeight + 4;
 
     svgContent += `<g transform="translate(${bomX}, ${bomY})">
       <rect x="0" y="0" width="${bomW}" height="${bomHeight}" rx="1.5" fill="#ffffff" stroke="#cbd5e1" stroke-width="0.5"/>
-      <rect x="0" y="0" width="${bomW}" height="4.5" rx="1.5" fill="#0284c7"/>
-      <text x="4" y="3.2" font-size="2.2" font-family="sans-serif" font-weight="bold" fill="#ffffff">NOMENCLATURE DU MATÉRIEL (BOM)</text>
-      <text x="${bomW - 4}" y="3.2" text-anchor="end" font-size="1.8" font-family="sans-serif" fill="#e0f2fe">${bomRows.length} repères</text>`;
+      <rect x="0" y="0" width="${bomW}" height="4.2" rx="1.5" fill="#0284c7"/>
+      <text x="4" y="3" font-size="2" font-family="sans-serif" font-weight="bold" fill="#ffffff">NOMENCLATURE DU MATÉRIEL (BOM TUYAUTERIE)</text>
+      <text x="${bomW - 4}" y="3" text-anchor="end" font-size="1.7" font-family="sans-serif" fill="#e0f2fe">${bomRows.length} repères</text>`;
 
-    // En-tête de colonnes
-    svgContent += `<g transform="translate(0, 4.5)" font-size="1.8" font-family="sans-serif" font-weight="bold" fill="#475569">
-      <rect x="0" y="0" width="${bomW}" height="3.5" fill="#f1f5f9"/>
-      <text x="3" y="2.5">RP</text>
-      <text x="12" y="2.5">DÉSIGNATION</text>
-      <text x="${bomW - 32}" y="2.5">DN</text>
-      <text x="${bomW - 18}" y="2.5">QTÉ</text>
-      <text x="${bomW - 4}" y="2.5" text-anchor="end">LONG.</text>
+    // En-tête
+    svgContent += `<g transform="translate(0, 4.2)" font-size="1.6" font-family="sans-serif" font-weight="bold" fill="#475569">
+      <rect x="0" y="0" width="${bomW}" height="3.2" fill="#f1f5f9"/>
+      <text x="3" y="2.2">RP</text>
+      <text x="12" y="2.2">DÉSIGNATION</text>
+      <text x="${bomW - 32}" y="2.2">DN</text>
+      <text x="${bomW - 18}" y="2.2">QTÉ</text>
+      <text x="${bomW - 4}" y="2.2" text-anchor="end">LONG.</text>
     </g>`;
 
-    // Lignes de tableau
+    // Lignes
     tableRows.forEach((r, idx) => {
-      const ry = 8 + idx * 4.2;
+      const ry = 7.4 + idx * 3.8;
       const bg = idx % 2 === 1 ? ' fill="#f8fafc"' : "";
       svgContent += `<g transform="translate(0, ${ry})">
-        <rect x="0" y="0" width="${bomW}" height="4.2"${bg}/>
-        <line x1="0" y1="4.2" x2="${bomW}" y2="4.2" stroke="#f1f5f9" stroke-width="0.3"/>
-        <text x="3" y="3" font-size="1.7" font-weight="bold" fill="#0284c7">${r.index}</text>
-        <text x="12" y="3" font-size="1.7" fill="#1e293b">${r.designation.slice(0, 26)}</text>
-        <text x="${bomW - 32}" y="3" font-size="1.7" fill="#475569">DN${r.dn}</text>
-        <text x="${bomW - 18}" y="3" font-size="1.7" font-weight="bold" fill="#0f172a">${r.qty}</text>
-        <text x="${bomW - 4}" y="3" text-anchor="end" font-size="1.7" fill="#475569">${r.length > 0 ? formatLength(r.length, config.unitSystem || "metric") : "-"}</text>
+        <rect x="0" y="0" width="${bomW}" height="3.8"${bg}/>
+        <line x1="0" y1="3.8" x2="${bomW}" y2="3.8" stroke="#f1f5f9" stroke-width="0.25"/>
+        <text x="3" y="2.7" font-size="1.6" font-weight="bold" fill="#0284c7">${r.index}</text>
+        <text x="12" y="2.7" font-size="1.6" fill="#1e293b">${r.designation.slice(0, 24)}</text>
+        <text x="${bomW - 32}" y="2.7" font-size="1.6" fill="#475569">DN${r.dn}</text>
+        <text x="${bomW - 18}" y="2.7" font-size="1.6" font-weight="bold" fill="#0f172a">${r.qty}</text>
+        <text x="${bomW - 4}" y="2.7" text-anchor="end" font-size="1.6" fill="#475569">${r.length > 0 ? formatLength(r.length, config.unitSystem || "metric") : "-"}</text>
       </g>`;
     });
 
     svgContent += `</g>`;
   }
 
-  // 8. CARTOUCHE TECHNIQUE CONFORME ISO 7200
+  // 12. NOUVEAU TABLEAU MÉCANIQUE : SUPPORTS MSS SP-58 & GÉNIE CIVIL
+  if (config.showSupportTable && supports.length > 0) {
+    const civilMto = computeCivilMto(supports);
+    const supRows = supports.slice(0, 7);
+    const tableH = Math.min(innerH - nextTableY - 4, 8 + supRows.length * 3.8 + 6);
+
+    if (tableH > 16) {
+      svgContent += `<g transform="translate(${sideColX}, ${nextTableY})">
+        <rect x="0" y="0" width="${sideColW}" height="${tableH}" rx="1.5" fill="#ffffff" stroke="#0891b2" stroke-width="0.5"/>
+        <rect x="0" y="0" width="${sideColW}" height="4.2" rx="1.5" fill="#0e7490"/>
+        <text x="4" y="3" font-size="2" font-family="sans-serif" font-weight="bold" fill="#ffffff">SUPPORTS MSS SP-58 & GÉNIE CIVIL</text>
+        <text x="${sideColW - 4}" y="3" text-anchor="end" font-size="1.6" font-family="sans-serif" fill="#cffafe">${supports.length} supp.</text>`;
+
+      // En-tête colonnes supports
+      svgContent += `<g transform="translate(0, 4.2)" font-size="1.6" font-family="sans-serif" font-weight="bold" fill="#475569">
+        <rect x="0" y="0" width="${sideColW}" height="3.2" fill="#ecfeff"/>
+        <text x="3" y="2.2">TAG</text>
+        <text x="18" y="2.2">TYPE MSS</text>
+        <text x="${sideColW - 45}" y="2.2">PLATINE</text>
+        <text x="${sideColW - 4}" y="2.2" text-anchor="end">MASSIF</text>
+      </g>`;
+
+      supRows.forEach((s, idx) => {
+        const ry = 7.4 + idx * 3.8;
+        const bg = idx % 2 === 1 ? ' fill="#f0fdfa"' : "";
+        const def = MSS_SUPPORT_CATALOG[s.type] || MSS_SUPPORT_CATALOG.mss_type_35;
+        const plateStr = `${s.civilSpec.basePlateLengthMm}x${s.civilSpec.basePlateWidthMm}`;
+        const concStr = `${s.civilSpec.calculatedConcreteVolumeM3}m³`;
+
+        svgContent += `<g transform="translate(0, ${ry})">
+          <rect x="0" y="0" width="${sideColW}" height="3.8"${bg}/>
+          <line x1="0" y1="3.8" x2="${sideColW}" y2="3.8" stroke="#e0f2fe" stroke-width="0.25"/>
+          <text x="3" y="2.7" font-size="1.5" font-weight="bold" fill="#0891b2">${s.tag}</text>
+          <text x="18" y="2.7" font-size="1.5" fill="#1e293b">MSS-${def.mssStandardNumber} (${def.labelFr.slice(0, 10)})</text>
+          <text x="${sideColW - 45}" y="2.7" font-size="1.5" fill="#475569">${plateStr}</text>
+          <text x="${sideColW - 4}" y="2.7" text-anchor="end" font-size="1.5" font-weight="bold" fill="#0e7490">${concStr}</text>
+        </g>`;
+      });
+
+      // Synthèse métré GC en pied de tableau
+      const footerY = tableH - 4.5;
+      svgContent += `<rect x="0" y="${footerY}" width="${sideColW}" height="4.5" fill="#f8fafc" stroke-top="#cbd5e1"/>
+        <text x="4" y="${footerY + 3}" font-size="1.6" font-family="sans-serif" font-weight="bold" fill="#334155">
+          MTO GC : Béton ${civilMto.totalConcreteVolumeM3} m³ · Acier ${civilMto.totalBasePlateWeightKg} kg · ${civilMto.totalAnchorsCount} ancrages
+        </text>`;
+
+      svgContent += `</g>`;
+    }
+  }
+
+  // 13. CARTOUCHE TECHNIQUE CONFORME ISO 7200
   if (config.showCartoucheIso7200) {
     const compName = pdiCompanyName();
     const stdNote = pdiStandardsNote();
@@ -492,7 +780,7 @@ export function generateIsoDrawingSvg(
     </g>`;
   }
 
-  // 9. WATERMARK EN PIED DE PLANCHE
+  // 14. WATERMARK EN PIED DE PLANCHE
   if (config.showWatermarkFootprint) {
     const wmX = leftM + 5;
     const wmY = topM + innerH - 2.5;

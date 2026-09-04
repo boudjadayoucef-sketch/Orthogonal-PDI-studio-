@@ -6663,19 +6663,23 @@ function IsometrieModule(props: { projectId?: string }) {
         [data-pdi-studio] .pdi-rail-button{width:38px;height:38px;border:1px solid rgba(255,255,255,0.08);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#A1A1AA;background:#0E0E12;font-weight:700;font-size:13px;cursor:pointer}
         [data-pdi-studio] .pdi-rail-button:hover{border-color:rgba(255,255,255,.3);color:#FFFFFF;background:#18181B}
         [data-pdi-studio] .pdi-rail-button.active{color:white;background:#27272A;border-color:#71717A;box-shadow:0 0 12px rgba(0,0,0,0.6)}
-        [data-pdi-studio] .pdi-cad-ribbon{background:#09090B;border-bottom:1px solid #27272A;box-shadow:0 8px 20px rgba(0,0,0,.45)}
-        [data-pdi-studio] .pdi-ribbon-group{height:40px;display:flex;align-items:center;gap:4px;border-right:1px solid #27272A;padding-right:10px;flex-shrink:0}
-        [data-pdi-studio] .pdi-ribbon-group span{font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:#71717A;font-weight:900;margin-right:3px}
-        [data-pdi-studio] .pdi-ribbon-group button{height:30px;padding:0 9px;border-radius:6px;border:1px solid #27272A;background:#141418;color:#E4E4E7;font-size:10px;font-weight:900;white-space:nowrap}
-        [data-pdi-studio] .pdi-ribbon-group button:hover{background:#27272A;color:white;border-color:rgba(255,255,255,.3)}
+        /* RUBAN CAD INDUSTRIEL & LISTES VERTICALES ERGONOMIQUES */
+        [data-pdi-studio] .pdi-cad-ribbon{display:flex;align-items:stretch;gap:8px;padding:4px 10px;min-height:92px;background:#09090B;border-bottom:1px solid #27272A;box-shadow:0 8px 20px rgba(0,0,0,.45);overflow-x:auto}
+        [data-pdi-studio] .pdi-ribbon-group{display:flex;flex-direction:column;justify-content:space-between;align-items:stretch;border-right:1px solid #27272A;padding-right:8px;margin-right:2px;flex-shrink:0}
+        [data-pdi-studio] .pdi-ribbon-group-title{font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:#71717A;font-weight:900;text-align:center;padding-top:2px;border-top:1px solid rgba(255,255,255,.06);margin-top:2px}
+        [data-pdi-studio] .pdi-ruban-boutons{display:flex;flex-direction:column;gap:3px}
+        [data-pdi-studio] .pdi-ruban-boutons.multi-col{display:grid;grid-template-rows:repeat(3,24px);grid-auto-flow:column;gap:3px 6px}
+        [data-pdi-studio] .pdi-ruban-boutons.single-col{display:flex;flex-direction:column;gap:3px}
+        [data-pdi-studio] .pdi-ribbon-btn{height:24px;padding:0 8px;border-radius:5px;border:1px solid #27272A;background:#141418;color:#E4E4E7;font-size:10.5px;font-weight:700;display:flex;align-items:center;gap:6px;white-space:nowrap;transition:all .15s ease}
+        [data-pdi-studio] .pdi-ribbon-btn:hover:not(:disabled){background:#27272A;color:#FFFFFF;border-color:rgba(255,255,255,.28);transform:translateX(1px)}
+        [data-pdi-studio] .pdi-ribbon-btn:active:not(:disabled){background:#3F3F46}
+        [data-pdi-studio] .pdi-ribbon-btn:disabled{opacity:.4;cursor:not-allowed;background:#0E0E12;color:#71717A;border-color:#18181B}
+        [data-pdi-studio] .pdi-ribbon-icon{font-size:12px;display:inline-flex;align-items:center;justify-content:center;color:#38BDF8}
+        [data-pdi-studio] .pdi-ribbon-label{flex:1;text-align:left}
         /* PATCH 017M : ruban a 9 onglets. */
         [data-pdi-studio] .pdi-ruban-onglet{height:26px;padding:0 11px;border-radius:6px 6px 0 0;color:#71717A;background:transparent;font-size:11px;font-weight:900;white-space:nowrap;border:1px solid transparent;border-bottom:0}
         [data-pdi-studio] .pdi-ruban-onglet:hover{background:#141418;color:#FFFFFF}
         [data-pdi-studio] .pdi-ruban-onglet.actif{background:#09090B;color:#FFFFFF;border-color:#27272A}
-        [data-pdi-studio] .pdi-cad-ribbon{display:flex;align-items:stretch;gap:10px;padding:5px 10px;min-height:64px;overflow-x:auto}
-        [data-pdi-studio] .pdi-ribbon-group{height:auto;flex-direction:column;align-items:flex-start;justify-content:space-between;gap:3px}
-        [data-pdi-studio] .pdi-ruban-boutons{display:flex;align-items:center;gap:4px}
-        [data-pdi-studio] .pdi-ribbon-group button:disabled{opacity:.42;cursor:not-allowed;background:#0E0E12;color:#71717A;border-color:#18181B}
         @media(max-width:900px){[data-pdi-studio] .pdi-cad-ribbon{display:none!important}}
 
         [data-pdi-studio] ::-webkit-scrollbar{width:8px;height:8px}[data-pdi-studio] ::-webkit-scrollbar-track{background:#000000}[data-pdi-studio] ::-webkit-scrollbar-thumb{background:#27272A;border:2px solid #000000;border-radius:8px}
@@ -6716,11 +6720,11 @@ function IsometrieModule(props: { projectId?: string }) {
             <button
               type="button"
               onClick={() => window.dispatchEvent(new CustomEvent("pdi:navigate", { detail: "home" }))}
-              className="shrink-0 rounded-lg border border-white/15 bg-zinc-900 px-3 py-1.5 text-xs font-black text-white hover:border-white/30 hover:bg-zinc-800 flex items-center gap-1.5 shadow-sm transition-all"
+              className="shrink-0 rounded-lg border border-white/15 bg-zinc-900 px-2.5 py-1.5 text-xs font-black text-white hover:border-white/30 hover:bg-zinc-800 flex items-center justify-center shadow-sm transition-all"
               title="Retour à l'accueil PD&I"
+              aria-label="Accueil"
             >
               <span className="text-base leading-none">⌂</span>
-              <span className="font-bold">Accueil</span>
             </button>
             <div className="h-6 w-px bg-zinc-800"/>
             <button
@@ -6776,16 +6780,6 @@ function IsometrieModule(props: { projectId?: string }) {
                 <span>{graphErrorCount ? `${graphErrorCount} err` : graphWarningCount ? `${graphWarningCount} alerte(s)` : "OK"}</span>
               </button>
             </div>
-            {/* Bouton DÉMO INDUSTRIELLE 3D (Réseau 3D & Supports MSS SP-58 / GC) */}
-            <button
-              type="button"
-              onClick={loadPresetDemoComplexe}
-              className="h-8 px-2.5 rounded-md bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white text-xs font-black shadow-md flex items-center gap-1.5 transition-all border border-purple-400/40 active:scale-95 shrink-0"
-              title="Charger la Démo Industrielle Complète (Réseau 3D, By-Pass, 26 Raccords, 10 Supports MSS SP-58, GC, Cotations)"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-yellow-300 animate-pulse" />
-              <span className="font-bold tracking-tight">Démo 3D</span>
-            </button>
             {/* Commutateur Universel d'Unités Bi-Système (019U) */}
             <button
               type="button"
@@ -7385,6 +7379,12 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
       joints={projectJoints}
       bomRows={printBomRows}
       initialUnitSystem={unitSystem}
+      supports={supports}
+      cad2dEntities={cad2dEntities}
+      selectedNodeIds={selectedNodeIds}
+      selectedSegmentIds={selectedSegmentIds}
+      selectedSupportId={selectedSupportId}
+      selectedCad2dIds={selectedCad2dIds}
     />
 
     <div className={`${workspaceFullscreen?"hidden":""} bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3 text-white shadow-lg`}>

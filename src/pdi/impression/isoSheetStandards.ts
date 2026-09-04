@@ -101,21 +101,33 @@ export interface IsoPrintConfig {
   hydrotestPressure?: number;
   wilayaOrSite?: string;
   unitSystem?: "metric" | "imperial";
+  printScope: "all" | "selection" | "window";
+  showSupports: boolean;
+  showCivilEngineering: boolean;
+  showSupportTable: boolean;
+  windowZoomRatio?: number;
 }
+
+export type IsoPrintScope = "all" | "selection" | "window";
 
 export const DEFAULT_PRINT_CONFIG: IsoPrintConfig = {
   format: "A3",
   orientation: "landscape",
   scale: "fit",
   unitSystem: "metric",
+  printScope: "all",
   showCartoucheIso7200: true,
   showAdaptiveLegend: true,
   showIso5457Grid: true,
   showWatermarkFootprint: true,
   showBomTable: true,
+  showSupports: true,
+  showCivilEngineering: true,
+  showSupportTable: true,
   showDimensions: true,
   showWelds: true,
   showPipeLabels: true,
+  windowZoomRatio: 1,
   documentTitle: "PLAN ISOMÉTRIQUE TUYAUTERIE INDUSTRIELLE",
   documentNumber: "PDI-ISO-001",
   revision: "0",
@@ -144,7 +156,9 @@ export interface AdaptiveLegendItem {
 export function buildAdaptiveLegend(
   nodes: IsoNode[],
   segments: IsoSegment[],
-  joints: PipingJoint[]
+  joints: PipingJoint[],
+  supports?: any[],
+  cad2dEntities?: any[]
 ): AdaptiveLegendItem[] {
   const items: AdaptiveLegendItem[] = [];
   const addedKeys = new Set<string>();
@@ -265,6 +279,28 @@ export function buildAdaptiveLegend(
       color: "#dc2626",
       type: "node",
       svgIconMarkup: `<circle cx="10" cy="7" r="4.5" fill="#dc2626"/>`,
+    });
+  }
+
+  // 5. Supportage Industriel MSS SP-58 (Mécanique)
+  if (supports && supports.length > 0) {
+    items.push({
+      key: "meca_support",
+      label: "Supportage Mécanique MSS SP-58 (Patin / Pendard / Guide / Ancrage)",
+      color: "#0891b2",
+      type: "symbol",
+      svgIconMarkup: `<rect x="5" y="4" width="10" height="4" fill="#0891b2" rx="1"/><line x1="10" y1="8" x2="10" y2="13" stroke="#0891b2" stroke-width="1.8"/><line x1="6" y1="13" x2="14" y2="13" stroke="#64748b" stroke-width="1.5"/>`,
+    });
+  }
+
+  // 6. Génie Civil & Structures Béton / Acier
+  if (cad2dEntities && cad2dEntities.length > 0) {
+    items.push({
+      key: "gc_structure",
+      label: "Génie Civil (Massifs béton, Semelles & Profilés acier)",
+      color: "#64748b",
+      type: "symbol",
+      svgIconMarkup: `<rect x="4" y="3" width="12" height="8" fill="#e2e8f0" stroke="#64748b" stroke-width="1.2" rx="1"/><line x1="4" y1="7" x2="16" y2="7" stroke="#94a3b8" stroke-width="0.8" stroke-dasharray="2,1"/>`,
     });
   }
 

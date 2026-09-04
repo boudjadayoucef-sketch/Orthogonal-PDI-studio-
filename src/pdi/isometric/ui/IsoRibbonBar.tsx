@@ -2,7 +2,7 @@
  * ORTHOGONAL - ENG · PIPING DESIGN & ISOMETRICS (PD&I)
  * COPYRIGHT (C) 2026 ORTHOGONAL - ENG. ALL RIGHTS RESERVED.
  * PROPRIETARY INDUSTRIAL PIPING CAD & ISOMETRIC ENGINE.
- * RIBBON BAR UI COMPONENT.
+ * RIBBON BAR UI COMPONENT (LISTES VERTICALES ERGONOMIQUES).
  */
 
 import React from "react";
@@ -36,36 +36,42 @@ export const IsoRibbonBar: React.FC<IsoRibbonBarProps> = ({
 
   return (
     <div className="pdi-cad-ribbon" data-pdi-ruban="017m">
-      {pdiGroupesOnglet017M(activeTab).map((groupe) => (
-        <div key={groupe} className="pdi-ribbon-group">
-          <div className="pdi-ruban-boutons">
-            {pdiEntreesGroupe017M(activeTab, groupe).map((entree) => {
-              const cible = resolveTarget(entree);
-              const inactif = entree.etat === "grise" || !cible || !!cible.disabled;
-              const libelle = entree.suivreLibelle && cible ? cible.label : entree.nomFr;
+      {pdiGroupesOnglet017M(activeTab).map((groupe) => {
+        const entrees = pdiEntreesGroupe017M(activeTab, groupe);
+        const useMultiCol = entrees.length > 3;
 
-              return (
-                <button
-                  key={entree.id}
-                  type="button"
-                  disabled={inactif}
-                  title={resolveTooltip(entree, cible ? cible.hint : undefined)}
-                  onClick={() => {
-                    if (cible) {
-                      cible.run();
-                      onExecute(entree.nomFr);
-                    }
-                  }}
-                >
-                  {entree.icone ? entree.icone + " " : ""}
-                  {libelle}
-                </button>
-              );
-            })}
+        return (
+          <div key={groupe} className="pdi-ribbon-group">
+            <div className={`pdi-ruban-boutons ${useMultiCol ? "multi-col" : "single-col"}`}>
+              {entrees.map((entree) => {
+                const cible = resolveTarget(entree);
+                const inactif = entree.etat === "grise" || !cible || !!cible.disabled;
+                const libelle = entree.suivreLibelle && cible ? cible.label : entree.nomFr;
+
+                return (
+                  <button
+                    key={entree.id}
+                    type="button"
+                    disabled={inactif}
+                    title={resolveTooltip(entree, cible ? cible.hint : undefined)}
+                    onClick={() => {
+                      if (cible) {
+                        cible.run();
+                        onExecute(entree.nomFr);
+                      }
+                    }}
+                    className="pdi-ribbon-btn"
+                  >
+                    {entree.icone ? <span className="pdi-ribbon-icon">{entree.icone}</span> : null}
+                    <span className="pdi-ribbon-label">{libelle}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <span className="pdi-ribbon-group-title">{groupe}</span>
           </div>
-          <span>{groupe}</span>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 };
