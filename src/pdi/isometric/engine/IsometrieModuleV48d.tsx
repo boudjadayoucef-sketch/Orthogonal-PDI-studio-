@@ -6545,17 +6545,27 @@ function IsometrieModule(props: { projectId?: string }) {
     },
   ];
 
-  // PATCH 017M : etat du ruban. Le registre decrit QUOI afficher, ces
-  // quelques lignes decrivent OU on en est dans la navigation.
+  // PATCH 017M : etat du ruban (Mega-Menu style GitHub). Replié par défaut pour maximiser l'espace de dessin.
   const [rubanOnglet017M, setRubanOnglet017M] = useState<string>("dessin");
   const [rubanReplie017M, setRubanReplie017M] = useState<boolean>(() => {
-    try { return localStorage.getItem("pdi.ribbon.collapsed.v1") === "1"; }
+    try {
+      const saved = localStorage.getItem("pdi.ribbon.collapsed.v1");
+      return saved !== null ? saved === "1" : true;
+    }
+    catch { return true; }
+  });
+  const [railCollapsed, setRailCollapsed] = useState<boolean>(() => {
+    try { return localStorage.getItem("pdi.rail.collapsed.v1") === "1"; }
     catch { return false; }
   });
   useEffect(() => {
     try { localStorage.setItem("pdi.ribbon.collapsed.v1", rubanReplie017M ? "1" : "0"); }
     catch { /* stockage indisponible : le ruban reste utilisable */ }
   }, [rubanReplie017M]);
+  useEffect(() => {
+    try { localStorage.setItem("pdi.rail.collapsed.v1", railCollapsed ? "1" : "0"); }
+    catch { /* ignore */ }
+  }, [railCollapsed]);
   useEffect(() => {
     const surTouche = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "F1") {
@@ -6606,11 +6616,11 @@ function IsometrieModule(props: { projectId?: string }) {
 
   return <div
       data-pdi-studio="v4.8d1"
-      className={`${workspaceFullscreen ? "fixed inset-0 z-[9999] overflow-hidden bg-[#000000] px-2 pb-2 pt-[56px] pl-[166px]" : "w-full"} pdi-studio-root ${workspaceFullscreen ? "h-screen" : "space-y-3"} animate-fade-in`} style={{ "--pdi-command-reserved-bottom": (!propertiesModalOpen && !commandPromptHidden) ? "44px" : "0px" } as React.CSSProperties} /* PATCH 017D */
+      className={`${workspaceFullscreen ? `fixed inset-0 z-[9999] overflow-hidden bg-[#000000] px-2 pb-2 pt-[56px] ${railCollapsed ? "pl-[56px]" : "pl-[166px]"}` : "w-full"} pdi-studio-root ${workspaceFullscreen ? "h-screen" : "space-y-3"} animate-fade-in`} style={{ "--pdi-command-reserved-bottom": (!propertiesModalOpen && !commandPromptHidden) ? "44px" : "0px" } as React.CSSProperties} /* PATCH 017D */
     >
       <style>{`
         [data-pdi-studio]{--pdi-bg:#000000;--pdi-panel:#0E0E12;--pdi-panel2:#18181B;--pdi-line:#27272A;--pdi-text:#FFFFFF;--pdi-muted:#A1A1AA;--pdi-blue:#3F3F46;--pdi-cyan:#FFFFFF;--pdi-select:#F59E0B;background:var(--pdi-bg)!important;color:var(--pdi-text);font-family:Inter,ui-sans-serif,system-ui,sans-serif}
-        [data-pdi-studio].pdi-studio-root{padding-left:166px!important;padding-top:56px!important}
+        [data-pdi-studio].pdi-studio-root{padding-left:${railCollapsed ? "56px" : "166px"}!important;padding-top:56px!important}
         @media(max-width:900px){[data-pdi-studio].pdi-studio-root{padding-left:8px!important}}
         [data-pdi-studio] .bg-white,[data-pdi-studio] .bg-slate-50,[data-pdi-studio] .bg-slate-100{background-color:var(--pdi-panel)!important;color:var(--pdi-text)!important}
         [data-pdi-studio] .border-slate-200,[data-pdi-studio] .border-slate-300{border-color:var(--pdi-line)!important}
@@ -6743,27 +6753,38 @@ function IsometrieModule(props: { projectId?: string }) {
               <PdiBrandMark variant="horizontal" size="sm" maxHeight={36} />
             </button>
           </div>
-            {/* PATCH 017M : bande d onglets aeree et auto-adaptee */}
-            <nav className="pdi-cad-menubar hidden md:flex flex-1 justify-center items-center min-w-0 max-w-xl mx-auto px-1 overflow-x-auto no-scrollbar gap-1" aria-label="Onglets du ruban PD & I">
-              {PDI_ONGLETS_RUBAN_017M.map((onglet) => (
-                <button
-                  key={onglet.id}
-                  type="button"
-                  onClick={() => { setRubanOnglet017M(onglet.id); setRubanReplie017M(false); }}
-                  className={"pdi-ruban-onglet" + (rubanOnglet017M === onglet.id && !rubanReplie017M ? " actif" : "")}
-                  title={onglet.nomFr + " / " + onglet.nomEn}
-                >
-                  {onglet.nomFr}
-                </button>
-              ))}
-              <button
-                type="button"
-                onClick={() => setRubanReplie017M((v) => !v)}
-                className="pdi-ruban-onglet px-1.5"
-                title="Replier ou deplier le ruban (Ctrl+F1)"
-              >
-                {rubanReplie017M ? "\u25be" : "\u25b4"}
-              </button>
+            {/* PATCH 017M : bande d onglets aeree avec chevrons GitHub style Mega-Menu */}
+            <nav className="pdi-cad-menubar hidden md:flex flex-1 justify-center items-center min-w-0 max-w-2xl mx-auto px-1 overflow-x-auto no-scrollbar gap-1" aria-label="Onglets du ruban PD & I">
+              {PDI_ONGLETS_RUBAN_017M.map((onglet) => {
+                const isOpen = rubanOnglet017M === onglet.id && !rubanReplie017M;
+                return (
+                  <button
+                    key={onglet.id}
+                    type="button"
+                    onClick={() => {
+                      if (isOpen) {
+                        setRubanReplie017M(true);
+                      } else {
+                        setRubanOnglet017M(onglet.id);
+                        setRubanReplie017M(false);
+                      }
+                    }}
+                    className={`h-7 px-2.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 shrink-0 ${
+                      isOpen
+                        ? "bg-[#161B22] text-white border border-[#30363D] shadow-sm shadow-black"
+                        : "text-zinc-400 hover:text-white hover:bg-zinc-800/60 border border-transparent"
+                    }`}
+                    title={`${onglet.nomFr} / ${onglet.nomEn} (Cliquer pour ouvrir le menu)`}
+                  >
+                    <span>{onglet.nomFr}</span>
+                    <ChevronDown
+                      className={`w-3 h-3 transition-transform duration-200 ${
+                        isOpen ? "rotate-180 text-cyan-400" : "text-zinc-500"
+                      }`}
+                    />
+                  </button>
+                );
+              })}
             </nav>
           <div className="flex items-center gap-2 shrink-0">
             <div className="hidden xl:flex items-center gap-2 bg-zinc-900/90 border border-zinc-800/90 rounded-md px-2.5 py-1 text-[10px] font-mono shrink-0 shadow-inner">
@@ -6893,134 +6914,203 @@ function IsometrieModule(props: { projectId?: string }) {
             </div>
           </div>
         </header>
-        {/* PATCH 017M : rangee de groupes du ruban, lue depuis
-            pdiRegistreCommandes.v1. Une commande grisee est visible mais non
-            cliquable : son infobulle annonce le jalon qui l activera. */}
+        {/* Méga-Menu GitHub flottant sous la barre de navigation */}
         <IsoRibbonBar
           collapsed={rubanReplie017M}
           activeTab={rubanOnglet017M}
           resolveTarget={pdiCibleRuban017M}
           resolveTooltip={pdiInfobulleRuban017M}
-          onExecute={(name) => setStatusMessage(name)}
+          onExecute={(name) => setStatusMessage(`Outil activé : ${name}`)}
+          onClose={() => setRubanReplie017M(true)}
+          onSelectTab={(tabId) => {
+            setRubanOnglet017M(tabId);
+            setRubanReplie017M(false);
+          }}
+          onOpenPalette={() => setCommandPaletteOpen(true)}
+          onOpenShortcuts={() => setShortcutsOpen(true)}
+          quickActions={[
+            {
+              id: "demo",
+              title: "Démo Industrielle Complète",
+              subtitle: "Charger réseau 3D complet avec vannes, bypass et GC",
+              badge: "✨ DÉMO",
+              icon: <Sparkles className="w-4 h-4 text-yellow-300" />,
+              onClick: loadPresetDemoComplexe,
+            },
+            {
+              id: "biblio",
+              title: "Bibliothèque de tuyauterie",
+              subtitle: "Ouvrir le catalogue vannes, brides et accessoires",
+              icon: <Layers className="w-4 h-4 text-amber-400" />,
+              onClick: () => setLeftPanelOpen(true),
+            },
+            {
+              id: "bom",
+              title: "Nomenclature & Spécification (BOM)",
+              subtitle: "Consulter la liste du matériel et caractéristiques tuyauterie",
+              icon: <FileText className="w-4 h-4 text-emerald-400" />,
+              onClick: () => { setRightPanelOpen(true); setRightPanelTab("properties"); },
+            },
+            {
+              id: "planche",
+              title: "Mode Planche / Cartouche ISO",
+              subtitle: "Bascule vers la vue planche d'impression normalisée",
+              icon: <Maximize2 className="w-4 h-4 text-blue-400" />,
+              onClick: () => setIsoMode(v => v === "editor" ? "planche" : "editor"),
+            },
+            {
+              id: "print",
+              title: "Imprimer Isométrie (PDF)",
+              subtitle: "Générer le tracé vectoriel au format d'impression (P)",
+              icon: <Printer className="w-4 h-4 text-cyan-400" />,
+              onClick: printPlanSheet,
+            },
+            {
+              id: "fit",
+              title: "Recentrer et cadrer la vue",
+              subtitle: "Ajuster le zoom et centrer tout le réseau (Touche 0)",
+              icon: <RotateCw className="w-4 h-4 text-purple-400" />,
+              onClick: resetView,
+            },
+          ]}
         />
-        <aside className="pdi-studio-rail fixed bottom-0 left-0 top-[54px] z-[10005] w-[158px] py-2 px-1.5 flex flex-col items-center gap-1 overflow-y-auto no-scrollbar">
+        <aside className={`pdi-studio-rail fixed bottom-0 left-0 top-[54px] z-[10005] ${railCollapsed ? "w-[50px] px-1" : "w-[158px] px-1.5"} py-2 flex flex-col items-center gap-1 overflow-y-auto no-scrollbar transition-all duration-200 border-r border-zinc-800/80 bg-[#09090B]`}>
+          {/* Bouton de repli du rail pour maximiser l'espace de dessin */}
+          <button
+            type="button"
+            onClick={() => setRailCollapsed(v => !v)}
+            className="w-full py-1 rounded bg-zinc-900/90 hover:bg-zinc-800 text-zinc-400 hover:text-white text-[10px] font-bold flex items-center justify-center gap-1 border border-zinc-800 shrink-0 mb-0.5 transition-all"
+            title={railCollapsed ? "Déplier la barre d'outils" : "Replier pour maximiser l'espace de dessin"}
+          >
+            {railCollapsed ? <ChevronRight className="w-3.5 h-3.5 text-cyan-400" /> : <ChevronLeft className="w-3.5 h-3.5 text-zinc-400" />}
+            {!railCollapsed && <span className="text-[9px]">Plein écran</span>}
+          </button>
+
           {/* Bouton DÉMO RAPIDE en tête de rail */}
           <button
             type="button"
             title="✨ Charger la Démo Industrielle Complète (Réseau 3D, By-Pass, MSS SP-58, GC)"
             onClick={loadPresetDemoComplexe}
-            className="w-full py-1.5 px-2 rounded-lg bg-gradient-to-r from-purple-700 via-indigo-700 to-pink-700 hover:from-purple-600 hover:to-pink-600 text-white flex items-center justify-center gap-1.5 shadow-md border border-purple-400/50 text-[10px] font-black transition-all active:scale-95 shrink-0 mb-0.5"
+            className={`w-full py-1.5 ${railCollapsed ? "px-1" : "px-2"} rounded-lg bg-gradient-to-r from-purple-700 via-indigo-700 to-pink-700 hover:from-purple-600 hover:to-pink-600 text-white flex items-center justify-center gap-1.5 shadow-md border border-purple-400/50 text-[10px] font-black transition-all active:scale-95 shrink-0 mb-0.5`}
           >
-            <Sparkles className="w-3.5 h-3.5 text-yellow-300 animate-pulse" />
-            <span>DÉMO 3D</span>
+            <Sparkles className="w-3.5 h-3.5 text-yellow-300 animate-pulse shrink-0" />
+            {!railCollapsed && <span>DÉMO 3D</span>}
           </button>
 
           {/* GROUPE 1 : OUTILS DE POINTAGE */}
-          <div className="pdi-rail-group-title">Outils de pointage</div>
-          <div className="w-full grid grid-cols-2 gap-1">
+          {!railCollapsed ? (
+            <div className="pdi-rail-group-title">Outils de pointage</div>
+          ) : (
+            <div className="w-full h-px bg-zinc-800 my-0.5" />
+          )}
+          <div className={`w-full grid ${railCollapsed ? "grid-cols-1" : "grid-cols-2"} gap-1`}>
             <button
               type="button"
               title="Sélection éléments (V)"
               onClick={() => { setInteractionMode("select"); setIsoDrawMode("select"); setCad2dDraftTool(null); }}
-              className={`pdi-rail-tool-btn ${interactionMode === "select" && isoDrawMode === "select" && !cad2dDraftTool ? "active" : ""}`}
+              className={`pdi-rail-tool-btn ${railCollapsed ? "justify-center p-1" : ""} ${interactionMode === "select" && isoDrawMode === "select" && !cad2dDraftTool ? "active" : ""}`}
             >
               <MousePointer2 className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-              <span className="truncate">Sélect.</span>
+              {!railCollapsed && <span className="truncate">Sélect.</span>}
             </button>
             <button
               type="button"
               title="Main / Pan vue canevas (H / Espace)"
               onClick={() => setInteractionMode("main")}
-              className={`pdi-rail-tool-btn ${interactionMode === "main" ? "active" : ""}`}
+              className={`pdi-rail-tool-btn ${railCollapsed ? "justify-center p-1" : ""} ${interactionMode === "main" ? "active" : ""}`}
             >
               <Hand className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-              <span className="truncate">Main</span>
+              {!railCollapsed && <span className="truncate">Main</span>}
             </button>
             <button
               type="button"
               title="Copier sélection (Ctrl+D)"
               onClick={() => selectedCad2dIds.length ? duplicateSelectedCad2d() : duplicateSelection()}
-              className="pdi-rail-tool-btn"
+              className={`pdi-rail-tool-btn ${railCollapsed ? "justify-center p-1" : ""}`}
             >
               <Copy className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-              <span className="truncate">Copie</span>
+              {!railCollapsed && <span className="truncate">Copie</span>}
             </button>
             <button
               type="button"
               title="Échelle / Homothétie (Scale)"
               onClick={() => { if (selectedCad2dIds.length) scaleSelectedCad2d(1.1); else startCad2dScaleCommand(); }}
-              className="pdi-rail-tool-btn"
+              className={`pdi-rail-tool-btn ${railCollapsed ? "justify-center p-1" : ""}`}
             >
               <Maximize2 className="w-3.5 h-3.5 text-purple-400 shrink-0" />
-              <span className="truncate">Scale</span>
+              {!railCollapsed && <span className="truncate">Scale</span>}
             </button>
             <button
               type="button"
               title="Déplacer éléments (Move)"
               onClick={() => startCadDraft("move_target")}
-              className="pdi-rail-tool-btn"
+              className={`pdi-rail-tool-btn ${railCollapsed ? "justify-center p-1" : ""}`}
             >
               <Move className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-              <span className="truncate">Dépl.</span>
+              {!railCollapsed && <span className="truncate">Dépl.</span>}
             </button>
             <button
               type="button"
               title="Pivoter 15° (R / Maj+R)"
               onClick={() => { if (selectedCad2dIds.length) rotateSelectedCad2d(15); else rotateSelectedEquipment(15); }}
-              className="pdi-rail-tool-btn"
+              className={`pdi-rail-tool-btn ${railCollapsed ? "justify-center p-1" : ""}`}
             >
               <RotateCw className="w-3.5 h-3.5 text-sky-400 shrink-0" />
-              <span className="truncate">Rot. 15°</span>
+              {!railCollapsed && <span className="truncate">Rot. 15°</span>}
             </button>
             <button
               type="button"
               title="Supprimer la sélection (Suppr / Backspace)"
               onClick={() => selectedCad2dIds.length ? deleteSelectedCad2d() : deleteSelection()}
-              className="pdi-rail-tool-btn danger col-span-2 text-red-400 justify-center"
+              className={`pdi-rail-tool-btn danger ${railCollapsed ? "col-span-1 justify-center p-1" : "col-span-2 justify-center"} text-red-400`}
             >
               <Trash2 className="w-3.5 h-3.5 shrink-0" />
-              <span>Supprimer</span>
+              {!railCollapsed && <span>Supprimer</span>}
             </button>
           </div>
 
           {/* GROUPE 2 : ÉLÉMENTS TUYAUTERIE */}
-          <div className="pdi-rail-group-title">Élément tuyauterie</div>
-          <div className="w-full grid grid-cols-2 gap-1">
+          {!railCollapsed ? (
+            <div className="pdi-rail-group-title">Élément tuyauterie</div>
+          ) : (
+            <div className="w-full h-px bg-zinc-800 my-0.5" />
+          )}
+          <div className={`w-full grid ${railCollapsed ? "grid-cols-1" : "grid-cols-2"} gap-1`}>
             <button
               type="button"
               title="Créer un Nœud (N)"
               onClick={() => { setInteractionMode("select"); setIsoDrawMode("node"); setCad2dDraftTool(null); }}
-              className={`pdi-rail-tool-btn ${isoDrawMode === "node" ? "active" : ""}`}
+              className={`pdi-rail-tool-btn ${railCollapsed ? "justify-center p-1" : ""} ${isoDrawMode === "node" ? "active" : ""}`}
             >
               <CircleDot className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-              <span className="truncate">Nœud</span>
+              {!railCollapsed && <span className="truncate">Nœud</span>}
             </button>
             <button
               type="button"
               title="Créer un Tube (T)"
               onClick={() => { setInteractionMode("select"); setIsoDrawMode("segment"); setCad2dDraftTool(null); }}
-              className={`pdi-rail-tool-btn ${isoDrawMode === "segment" ? "active" : ""}`}
+              className={`pdi-rail-tool-btn ${railCollapsed ? "justify-center p-1" : ""} ${isoDrawMode === "segment" ? "active" : ""}`}
             >
               <Spline className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-              <span className="truncate">Tube</span>
+              {!railCollapsed && <span className="truncate">Tube</span>}
             </button>
             <button
               type="button"
               title="Insérer Coude (C)"
               onClick={() => { setInteractionMode("select"); setIsoDrawMode("coude"); setCad2dDraftTool(null); }}
-              className={`pdi-rail-tool-btn ${isoDrawMode === "coude" ? "active" : ""}`}
+              className={`pdi-rail-tool-btn ${railCollapsed ? "justify-center p-1" : ""} ${isoDrawMode === "coude" ? "active" : ""}`}
             >
               <CornerDownRight className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-              <span className="truncate">Coude</span>
+              {!railCollapsed && <span className="truncate">Coude</span>}
             </button>
             <button
               type="button"
               title="Insérer Dérivation Té (E)"
               onClick={() => { setInteractionMode("select"); setIsoDrawMode("te"); setCad2dDraftTool(null); }}
-              className={`pdi-rail-tool-btn ${isoDrawMode === "te" ? "active" : ""}`}
+              className={`pdi-rail-tool-btn ${railCollapsed ? "justify-center p-1" : ""} ${isoDrawMode === "te" ? "active" : ""}`}
             >
               <GitFork className="w-3.5 h-3.5 text-violet-400 shrink-0" />
-              <span className="truncate">Té</span>
+              {!railCollapsed && <span className="truncate">Té</span>}
             </button>
             <button
               type="button"
@@ -7037,10 +7127,10 @@ function IsometrieModule(props: { projectId?: string }) {
                   setStatusMessage("Mode placement de support désactivé");
                 }
               }}
-              className={`pdi-rail-tool-btn ${rightPanelTab === "supports" || activeSupportTypeToPlace ? "active" : ""}`}
+              className={`pdi-rail-tool-btn ${railCollapsed ? "justify-center p-1" : ""} ${rightPanelTab === "supports" || activeSupportTypeToPlace ? "active" : ""}`}
             >
               <Anchor className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-              <span className="truncate">Support</span>
+              {!railCollapsed && <span className="truncate">Support</span>}
             </button>
             <button
               type="button"
@@ -7053,182 +7143,190 @@ function IsometrieModule(props: { projectId?: string }) {
                 setRightPanelOpen(true);
                 setRightPanelTab("dimensions");
               }}
-              className={`pdi-rail-tool-btn ${isoDrawMode === "dimension" ? "active" : ""}`}
+              className={`pdi-rail-tool-btn ${railCollapsed ? "justify-center p-1" : ""} ${isoDrawMode === "dimension" ? "active" : ""}`}
             >
               <Ruler className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-              <span className="truncate">Cotes</span>
+              {!railCollapsed && <span className="truncate">Cotes</span>}
             </button>
           </div>
 
           {/* GROUPE 3 : DESSIN 2D (CAO) */}
-          <div className="pdi-rail-group-title">Dessin 2D (CAO)</div>
-          <div className="w-full grid grid-cols-2 gap-1">
+          {!railCollapsed ? (
+            <div className="pdi-rail-group-title">Dessin 2D (CAO)</div>
+          ) : (
+            <div className="w-full h-px bg-zinc-800 my-0.5" />
+          )}
+          <div className={`w-full grid ${railCollapsed ? "grid-cols-1" : "grid-cols-2"} gap-1`}>
             <button
               type="button"
               title="Ligne 2D (CAD)"
               onClick={() => { setRailFlyout(null); startCadDraft("line"); }}
-              className={`pdi-rail-tool-btn ${cadDraftSession?.tool === "line" ? "active" : ""}`}
+              className={`pdi-rail-tool-btn ${railCollapsed ? "justify-center p-1" : ""} ${cadDraftSession?.tool === "line" ? "active" : ""}`}
             >
               <Slash className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-              <span className="truncate">Ligne</span>
+              {!railCollapsed && <span className="truncate">Ligne</span>}
             </button>
             <button
               type="button"
               title="Polyligne 2D (CAD)"
               onClick={() => { setRailFlyout(null); startCadDraft("polyline"); }}
-              className={`pdi-rail-tool-btn ${cadDraftSession?.tool === "polyline" ? "active" : ""}`}
+              className={`pdi-rail-tool-btn ${railCollapsed ? "justify-center p-1" : ""} ${cadDraftSession?.tool === "polyline" ? "active" : ""}`}
             >
               <Spline className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-              <span className="truncate">Poly.</span>
+              {!railCollapsed && <span className="truncate">Poly.</span>}
             </button>
             <button
               type="button"
               title="Rectangle (2 clics diagonale)"
               onClick={() => { setRailFlyout(null); startCadDraft("rectangle"); }}
-              className={`pdi-rail-tool-btn ${cadDraftSession?.tool === "rectangle" ? "active" : ""}`}
+              className={`pdi-rail-tool-btn ${railCollapsed ? "justify-center p-1" : ""} ${cadDraftSession?.tool === "rectangle" ? "active" : ""}`}
             >
               <Square className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-              <span className="truncate">Rect.</span>
+              {!railCollapsed && <span className="truncate">Rect.</span>}
             </button>
             <button
               type="button"
               title="Triangle CAD (Équilatéral, Rectangle, Isocèle)"
               onClick={() => setRailFlyout(v => v === "triangle" ? null : "triangle")}
-              className={`pdi-rail-tool-btn ${railFlyout === "triangle" || cadDraftSession?.tool === "triangle" ? "active" : ""}`}
+              className={`pdi-rail-tool-btn ${railCollapsed ? "justify-center p-1" : ""} ${railFlyout === "triangle" || cadDraftSession?.tool === "triangle" ? "active" : ""}`}
             >
               <Triangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-              <span className="truncate">Triang. ▾</span>
+              {!railCollapsed && <span className="truncate">Triang. ▾</span>}
             </button>
             <button
               type="button"
               title="Polygone Régulier (3 à 12+ côtés)"
               onClick={() => setRailFlyout(v => v === "polygon" ? null : "polygon")}
-              className={`pdi-rail-tool-btn ${railFlyout === "polygon" || cadDraftSession?.tool === "polygon" ? "active" : ""}`}
+              className={`pdi-rail-tool-btn ${railCollapsed ? "justify-center p-1" : ""} ${railFlyout === "polygon" || cadDraftSession?.tool === "polygon" ? "active" : ""}`}
             >
               <Hexagon className="w-3.5 h-3.5 text-cyan-300 shrink-0" />
-              <span className="truncate">Polyg. ▾</span>
+              {!railCollapsed && <span className="truncate">Polyg. ▾</span>}
             </button>
             <button
               type="button"
               title="Cercle 2D (Centre + Rayon)"
               onClick={() => { setRailFlyout(null); startCadDraft("circle"); }}
-              className={`pdi-rail-tool-btn ${cadDraftSession?.tool === "circle" ? "active" : ""}`}
+              className={`pdi-rail-tool-btn ${railCollapsed ? "justify-center p-1" : ""} ${cadDraftSession?.tool === "circle" ? "active" : ""}`}
             >
               <Circle className="w-3.5 h-3.5 text-sky-400 shrink-0" />
-              <span className="truncate">Cercle</span>
+              {!railCollapsed && <span className="truncate">Cercle</span>}
             </button>
             <button
               type="button"
               title="Arc 2D (3 Points ou Centre-Angle)"
               onClick={() => setRailFlyout(v => v === "arc" ? null : "arc")}
-              className={`pdi-rail-tool-btn ${railFlyout === "arc" || cadDraftSession?.tool === "arc" ? "active" : ""}`}
+              className={`pdi-rail-tool-btn ${railCollapsed ? "justify-center p-1" : ""} ${railFlyout === "arc" || cadDraftSession?.tool === "arc" ? "active" : ""}`}
             >
               <Disc3 className="w-3.5 h-3.5 text-sky-300 shrink-0" />
-              <span className="truncate">Arc ▾</span>
+              {!railCollapsed && <span className="truncate">Arc ▾</span>}
             </button>
             <button
               type="button"
               title="Texte & Annotation 2D"
               onClick={() => { setRailFlyout(null); startCadDraft("text"); }}
-              className={`pdi-rail-tool-btn ${cadDraftSession?.tool === "text" ? "active" : ""}`}
+              className={`pdi-rail-tool-btn ${railCollapsed ? "justify-center p-1" : ""} ${cadDraftSession?.tool === "text" ? "active" : ""}`}
             >
               <Type className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-              <span className="truncate">Texte</span>
+              {!railCollapsed && <span className="truncate">Texte</span>}
             </button>
             <button
               type="button"
               title="Hachure CAD (Hatch)"
               onClick={() => applyHatchToSelection()}
-              className="pdi-rail-tool-btn col-span-2 justify-center"
+              className={`pdi-rail-tool-btn ${railCollapsed ? "col-span-1 justify-center p-1" : "col-span-2 justify-center"}`}
             >
               <LayoutGrid className="w-3.5 h-3.5 text-pink-400 shrink-0" />
-              <span>Hachure</span>
+              {!railCollapsed && <span>Hachure</span>}
             </button>
           </div>
 
           {/* GROUPE 4 : SYSTÈME & PROJET */}
-          <div className="pdi-rail-group-title">Système & Projet</div>
-          <div className="w-full grid grid-cols-2 gap-1">
+          {!railCollapsed ? (
+            <div className="pdi-rail-group-title">Système & Projet</div>
+          ) : (
+            <div className="w-full h-px bg-zinc-800 my-0.5" />
+          )}
+          <div className={`w-full grid ${railCollapsed ? "grid-cols-1" : "grid-cols-2"} gap-1`}>
             <button
               type="button"
               title="Annuler (Ctrl+Z)"
               onClick={undoGraph}
-              className="pdi-rail-tool-btn"
+              className={`pdi-rail-tool-btn ${railCollapsed ? "justify-center p-1" : ""}`}
             >
               <Undo2 className="w-3.5 h-3.5 text-red-400 shrink-0" />
-              <span className="truncate">Annul.</span>
+              {!railCollapsed && <span className="truncate">Annul.</span>}
             </button>
             <button
               type="button"
               title="Rétablir (Ctrl+Y)"
               onClick={redoGraph}
-              className="pdi-rail-tool-btn"
+              className={`pdi-rail-tool-btn ${railCollapsed ? "justify-center p-1" : ""}`}
             >
               <Redo2 className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-              <span className="truncate">Rétab.</span>
+              {!railCollapsed && <span className="truncate">Rétab.</span>}
             </button>
             <button
               type="button"
               title="Bibliothèque composants"
               onClick={() => setLeftPanelOpen(v => !v)}
-              className={`pdi-rail-tool-btn ${leftPanelOpen ? "active" : ""}`}
+              className={`pdi-rail-tool-btn ${railCollapsed ? "justify-center p-1" : ""} ${leftPanelOpen ? "active" : ""}`}
             >
               <Layers className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-              <span className="truncate">Biblio</span>
+              {!railCollapsed && <span className="truncate">Biblio</span>}
             </button>
             <button
               type="button"
               title="Propriétés & BOM (F2)"
               onClick={() => { setRightPanelOpen(true); setRightPanelTab("properties"); }}
-              className={`pdi-rail-tool-btn ${rightPanelOpen && rightPanelTab === "properties" ? "active" : ""}`}
+              className={`pdi-rail-tool-btn ${railCollapsed ? "justify-center p-1" : ""} ${rightPanelOpen && rightPanelTab === "properties" ? "active" : ""}`}
             >
               <SlidersHorizontal className="w-3.5 h-3.5 text-teal-400 shrink-0" />
-              <span className="truncate">Propri.</span>
+              {!railCollapsed && <span className="truncate">Propri.</span>}
             </button>
             <button
               type="button"
               title="Mode Planche ISO"
               onClick={() => setIsoMode(v => v === "editor" ? "planche" : "editor")}
-              className={`pdi-rail-tool-btn ${isoMode === "planche" ? "active" : ""}`}
+              className={`pdi-rail-tool-btn ${railCollapsed ? "justify-center p-1" : ""} ${isoMode === "planche" ? "active" : ""}`}
             >
               <Maximize2 className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-              <span className="truncate">Planche</span>
+              {!railCollapsed && <span className="truncate">Planche</span>}
             </button>
             <button
               type="button"
               title="Imprimer Isométrie (P)"
               onClick={printPlanSheet}
-              className="pdi-rail-tool-btn"
+              className={`pdi-rail-tool-btn ${railCollapsed ? "justify-center p-1" : ""}`}
             >
               <Printer className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-              <span className="truncate">Impr.</span>
+              {!railCollapsed && <span className="truncate">Impr.</span>}
             </button>
             <button
               type="button"
               title="Recentrer et ajuster la vue (Touche 0 / Fit)"
               onClick={resetView}
-              className="pdi-rail-tool-btn"
+              className={`pdi-rail-tool-btn ${railCollapsed ? "justify-center p-1" : ""}`}
             >
               <RefreshCw className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-              <span className="truncate">Ajuster</span>
+              {!railCollapsed && <span className="truncate">Ajuster</span>}
             </button>
             <button
               type="button"
               title="Sauvegarder JSON (Ctrl+S)"
               onClick={exportProjectJson}
-              className="pdi-rail-tool-btn"
+              className={`pdi-rail-tool-btn ${railCollapsed ? "justify-center p-1" : ""}`}
             >
               <Download className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-              <span className="truncate">Sauver</span>
+              {!railCollapsed && <span className="truncate">Sauver</span>}
             </button>
             <button
               type="button"
               title="Ouvrir fichier JSON"
               onClick={() => importProjectRef.current?.click()}
-              className="pdi-rail-tool-btn col-span-2 justify-center text-blue-300"
+              className={`pdi-rail-tool-btn ${railCollapsed ? "col-span-1 justify-center p-1" : "col-span-2 justify-center"} text-blue-300`}
             >
               <FolderOpen className="w-3.5 h-3.5 shrink-0" />
-              <span>Ouvrir JSON</span>
+              {!railCollapsed && <span>Ouvrir JSON</span>}
             </button>
           </div>
 
@@ -7237,17 +7335,17 @@ function IsometrieModule(props: { projectId?: string }) {
             type="button"
             title="Aide & Raccourcis (?)"
             onClick={() => setShortcutsOpen(true)}
-            className="pdi-rail-tool-btn w-full justify-center mt-1 text-zinc-400 hover:text-white"
+            className={`pdi-rail-tool-btn w-full justify-center mt-1 text-zinc-400 hover:text-white ${railCollapsed ? "p-1" : ""}`}
           >
             <Info className="w-3.5 h-3.5 shrink-0" />
-            <span>Raccourcis (?)</span>
+            {!railCollapsed && <span>Raccourcis (?)</span>}
           </button>
         </aside>
 
         {/* Flyout extension line/bar from the column */}
         {railFlyout && (
           <div
-            className="fixed left-[164px] top-[160px] z-[10015] bg-[#0E131B] border border-cyan-500/50 rounded-2xl shadow-2xl p-3 text-white w-72 animate-in fade-in slide-in-from-left-2 duration-150"
+            className={`fixed ${railCollapsed ? "left-[54px]" : "left-[164px]"} top-[160px] z-[10015] bg-[#0E131B] border border-cyan-500/50 rounded-2xl shadow-2xl p-3 text-white w-72 animate-in fade-in slide-in-from-left-2 duration-150`}
             onMouseDown={(e) => e.stopPropagation()}
           >
             {railFlyout === "polygon" && (
