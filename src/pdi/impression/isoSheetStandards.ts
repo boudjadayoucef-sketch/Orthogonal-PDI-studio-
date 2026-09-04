@@ -106,6 +106,8 @@ export interface IsoPrintConfig {
   showCivilEngineering: boolean;
   showSupportTable: boolean;
   windowZoomRatio?: number;
+  offsetX?: number; // Décalage manuel horizontal en mm (défaut: 0)
+  offsetY?: number; // Décalage manuel vertical en mm (défaut: 0)
 }
 
 export type IsoPrintScope = "all" | "selection" | "window";
@@ -116,6 +118,8 @@ export const DEFAULT_PRINT_CONFIG: IsoPrintConfig = {
   scale: "fit",
   unitSystem: "metric",
   printScope: "all",
+  offsetX: 0,
+  offsetY: 0,
   showCartoucheIso7200: true,
   showAdaptiveLegend: true,
   showIso5457Grid: true,

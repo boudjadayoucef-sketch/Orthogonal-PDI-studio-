@@ -83,6 +83,7 @@ function computeBoundingBox(
   let maxY = -Infinity;
 
   const pushPoint = (rawX: number, rawY: number) => {
+    if (!Number.isFinite(rawX) || !Number.isFinite(rawY)) return;
     if (rawX < minX) minX = rawX;
     if (rawX > maxX) maxX = rawX;
     if (rawY < minY) minY = rawY;
@@ -96,6 +97,18 @@ function computeBoundingBox(
     pushPoint(rawX, rawY);
   });
 
+  // 1b. Segments de tuyauterie (extrémités réelles après découpe des raccords)
+  segments.forEach((seg) => {
+    const fromNode = nodes.find((n) => n.id === seg.fromNodeId);
+    const toNode = nodes.find((n) => n.id === seg.toNodeId);
+    if (!fromNode || !toNode) return;
+    const endpoints = segmentEndpoints(seg, nodes);
+    const p1 = endpoints ? endpoints.from : fromNode;
+    const p2 = endpoints ? endpoints.to : toNode;
+    pushPoint((p1.x - p1.y) * PDI_ISO_COS, (p1.x + p1.y) * PDI_ISO_SIN - (p1.z || 0));
+    pushPoint((p2.x - p2.y) * PDI_ISO_COS, (p2.x + p2.y) * PDI_ISO_SIN - (p2.z || 0));
+  });
+
   // 2. Supports tuyauterie
   if (includeSupports && supports.length > 0) {
     supports.forEach((sup) => {
@@ -103,8 +116,8 @@ function computeBoundingBox(
       const rawX = (wp.x - wp.y) * PDI_ISO_COS;
       const rawY = (wp.x + wp.y) * PDI_ISO_SIN - (wp.z || 0);
       pushPoint(rawX, rawY);
-      // Tenir compte de la retombée du massif sous le support
-      pushPoint(rawX, rawY + 12);
+      // Retombée réaliste du sabot/massif sous le support en mètres (0.25 m)
+      pushPoint(rawX, rawY + 0.25);
     });
   }
 
@@ -119,7 +132,7 @@ function computeBoundingBox(
           pushPoint(rawX, rawY);
         });
       } else if (ent.center) {
-        const r = ent.radius || 10;
+        const r = ent.radius || 0.5;
         const rawX = (ent.center.x - ent.center.y) * PDI_ISO_COS;
         const rawY = (ent.center.x + ent.center.y) * PDI_ISO_SIN - z;
         pushPoint(rawX - r, rawY - r);
@@ -193,12 +206,17 @@ export function generateIsoDrawingSvg(
   const legendHeightCalc = config.showAdaptiveLegend ? 48 : 0;
   const bomY = legendY + legendHeightCalc;
 
-  // Zone graphique utile pour le tracé isométrique
+  // Zone graphique utile pour le tracé isométrique (centrage parfait et dégagement des en-têtes et cartouches)
   const hasSideContent = config.showAdaptiveLegend || config.showBomTable || (config.showSupportTable && supports.length > 0);
-  const drawAreaX = hasSideContent ? leftM + sideColW + 10 : leftM + 8;
-  const drawAreaW = innerW - (hasSideContent ? sideColW + 18 : 16);
-  const drawAreaY = topM + 12;
-  const drawAreaH = innerH - (config.showCartoucheIso7200 ? cartoucheH + 14 : 20);
+  const drawAreaLeft = hasSideContent ? leftM + sideColW + 10 : leftM + 10;
+  const drawAreaRight = leftM + innerW - 10;
+  const drawAreaTop = topM + 18; // Dégagement propre sous le titre du plan
+  const drawAreaBottom = config.showCartoucheIso7200 ? (cartoucheY - 6) : (topM + innerH - 10);
+
+  const drawAreaX = drawAreaLeft;
+  const drawAreaY = drawAreaTop;
+  const drawAreaW = Math.max(50, drawAreaRight - drawAreaLeft);
+  const drawAreaH = Math.max(40, drawAreaBottom - drawAreaTop);
 
   // Calcul d'échelle isométrique
   const bbox = computeBoundingBox(
@@ -209,16 +227,16 @@ export function generateIsoDrawingSvg(
     config.showSupports,
     config.showCivilEngineering
   );
-  const rawModelW = Math.max(1, bbox.maxX - bbox.minX);
-  const rawModelH = Math.max(1, bbox.maxY - bbox.minY);
+  const rawModelW = Math.max(0.5, bbox.maxX - bbox.minX);
+  const rawModelH = Math.max(0.5, bbox.maxY - bbox.minY);
 
   let scaleMm = 1;
   let scaleAppliedLabel = config.scale;
 
   if (config.scale === "fit") {
-    const scaleX = (drawAreaW * 0.74) / rawModelW;
-    const scaleY = (drawAreaH * 0.74) / rawModelH;
-    let baseScale = Math.max(0.15, Math.min(scaleX, scaleY));
+    const scaleX = (drawAreaW * 0.85) / rawModelW;
+    const scaleY = (drawAreaH * 0.85) / rawModelH;
+    let baseScale = Math.max(0.05, Math.min(scaleX, scaleY));
     if (config.printScope === "window" && config.windowZoomRatio) {
       baseScale *= config.windowZoomRatio;
     }
@@ -232,10 +250,19 @@ export function generateIsoDrawingSvg(
     } else {
       scaleMm = 10;
     }
+    if (config.printScope === "window" && config.windowZoomRatio) {
+      scaleMm *= config.windowZoomRatio;
+    }
   }
 
-  const modelCenterIsoX = drawAreaX + drawAreaW / 2 - bbox.centerX * scaleMm;
-  const modelCenterIsoY = drawAreaY + drawAreaH / 2 - bbox.centerY * scaleMm;
+  // Centrage absolu du modèle dans la zone graphique disponible + décalage manuel d'ajustement si nécessaire
+  const zoneCenterX = drawAreaX + drawAreaW / 2;
+  const zoneCenterY = drawAreaY + drawAreaH / 2;
+  const manualOffsetX = config.offsetX || 0;
+  const manualOffsetY = config.offsetY || 0;
+
+  const modelCenterIsoX = zoneCenterX - bbox.centerX * scaleMm + manualOffsetX;
+  const modelCenterIsoY = zoneCenterY - bbox.centerY * scaleMm + manualOffsetY;
 
   let svgContent = "";
 

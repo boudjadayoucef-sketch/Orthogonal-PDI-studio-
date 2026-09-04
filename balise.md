@@ -1,4 +1,4 @@
-# BALISE TECHNIQUE & WORKFLOW PD&I — V2.5 (03 SEPTEMBRE 2026)
+# BALISE TECHNIQUE & WORKFLOW PD&I — V2.6 (04 SEPTEMBRE 2026)
 *Document de référence unique de gouvernance, d'architecture et de feuille de route industrielle.*  
 *Éditeur : **ORTHOGONAL - ENG** · Direction Technique : **Youcef Seif Eddine Boudjada***
 
@@ -24,13 +24,16 @@
   - Découplage de la topologie pure (`IsoTopologyGraph.ts` sans JSX ni dépendance DOM).
   - Sécurisation des en-têtes HTTP de distribution (`server.ts` : CSP, `X-Content-Type-Options: nosniff`, masquage `x-powered-by`, signature `X-Engine-Vendor: ORTHOGONAL-ENG`).
   - Système d'historique robuste (Undo/Redo) avec sérialisation déterministe.
-- **Palier 1 — Module d'Impression & Exportation Industrielle (020F)** :
+- **Palier 1 — Module d'Impression & Exportation Industrielle (020F & Patch Centrage 04/09)** :
   - Prise en charge intégrale des formats normalisés **ISO 216** du **A5 au A0** (Portrait / Paysage).
   - Échelles normalisées (1:1, 1:20, 1:50, 1:100, NTS / Ajusté).
   - Cartouche technique normalisé **ISO 7200** (180 × 55 mm) paramétrable avec révision, fluide, pressions, signature d'entreprise.
   - Cadre, repères de centrage et marges de reliure normalisés **ISO 5457**.
   - Légende adaptative filtrée (uniquement les composants et diamètres effectivement présents).
   - Moteur d'exportation vectorielle directe **SVG** et flux d'impression vectoriel navigateur `@page`.
+  - **Centrage dynamique & Bounding Box rigoureuse (04/09/2026)** : Élimination du faux offset de 12 m sur les massifs de supports, calcul du barycentre exact avec prise en compte des découpes de raccords (`segmentEndpoints`) et centrage symétrique strict dans la zone utile de la feuille (dégagement sous titre et au-dessus du cartouche).
+  - **Calage manuel d'ajustement fin** : Contrôle X/Y au millimètre (±5 mm) avec réinitialisation instantanée au centrage automatique.
+  - **Ergonomie spatiale du canvas** : Panneau rail latéral rétractable pour maximiser l'espace de modélisation 3D.
 - **Palier 2A — Moteur d'Unités Bi-Système Universel (019U)** :
   - Implémentation conforme aux normes métrologiques **ISO 80000-1 / ISO 80000-3**, **NIST SP 811** et **IEEE/ASTM SI 10**.
   - Bascule instantanée sans altération du modèle physique (stockage interne invariant en unités SI de référence).
@@ -148,9 +151,9 @@
 | Palier / Phase | Intitulé | Statut | Date de Validation |
 | :--- | :--- | :--- | :--- |
 | **Palier 0** | Socle, Watermark `ORTHOGONAL - ENG`, Sécurité server.ts | `[VALIDÉ]` | 02/09/2026 |
-| **Palier 1** | Module d'Impression Industrielle ISO 216 (A5-A0) & ISO 7200 | `[VALIDÉ]` | 02/09/2026 |
+| **Palier 1** | Module d'Impression Industrielle ISO 216 (A5-A0) & ISO 7200 + Centrage | `[VALIDÉ]` | 04/09/2026 |
 | **Palier 2A** | Moteur Bi-Système Métrique (SI) ↔ Impérial (US Cust) NIST | `[VALIDÉ]` | 02/09/2026 |
 | **Palier 2B** | Outils 2D Transactionnels (TRIM, EXTEND, OFFSET, FILLET, SCALE, HATCH) | `[VALIDÉ]` | 03/09/2026 |
 | **Palier 2C** | Supports Normalisés MSS SP-58 & Quantitatifs Génie Civil | `[VALIDÉ]` | 03/09/2026 |
-| **Palier 3** | Atelier Croquis vers ISO V1 (Ingestion, vectorisation, tolérances) | `[EN ATTENTE]` | *Prochaine étape* |
+| **Palier 3** | Atelier Croquis vers ISO V1 (Ingestion, vectorisation, tolérances) | `[PROCHAINE ÉTAPE ACTIVE]` | *Prêt au lancement* |
 | **Palier 4** | Packaging Desktop Tauri v2 & Système de Licences Ed25519 | `[PROGRAMMÉ]` | *Étape finale* |

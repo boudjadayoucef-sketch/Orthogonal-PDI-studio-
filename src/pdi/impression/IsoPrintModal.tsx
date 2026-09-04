@@ -21,6 +21,8 @@ import {
   Table,
   Box,
   HardHat,
+  Crosshair,
+  RotateCcw,
 } from "lucide-react";
 import {
   IsoPaperFormat,
@@ -635,6 +637,97 @@ export const IsoPrintModal: React.FC<IsoPrintModalProps> = ({
                   </select>
                   <div className="mt-1 text-[11px] text-zinc-500">
                     Échelle effective appliquée : {drawingResult.scaleApplied}
+                  </div>
+                </div>
+
+                {/* Centrage & Calage fin dans la zone graphique */}
+                <div className="p-2.5 rounded-lg bg-zinc-900 border border-zinc-800 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 text-zinc-300 font-bold text-xs">
+                      <Crosshair className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>Centrage dans la zone utile</span>
+                    </div>
+                    {((config.offsetX || 0) !== 0 || (config.offsetY || 0) !== 0) ? (
+                      <button
+                        type="button"
+                        onClick={() => setConfig((prev) => ({ ...prev, offsetX: 0, offsetY: 0 }))}
+                        className="text-[10px] text-cyan-400 hover:text-cyan-300 flex items-center gap-1 font-mono"
+                        title="Rétablir le centrage automatique mathématique"
+                      >
+                        <RotateCcw className="w-2.5 h-2.5" />
+                        <span>Réinitialiser</span>
+                      </button>
+                    ) : (
+                      <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
+                        Auto-centré
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-[10px] text-zinc-400">
+                    Le tracé est automatiquement calculé et centré dans l'espace utile de la planche (dégagé du cartouche et des tableaux).
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <div className="flex items-center justify-between text-[10px] text-zinc-400 mb-0.5">
+                        <span>Axe X (horizontal)</span>
+                        <span className="font-mono text-zinc-300">{config.offsetX || 0} mm</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setConfig((prev) => ({ ...prev, offsetX: (prev.offsetX || 0) - 5 }))}
+                          className="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded text-[11px] font-mono"
+                          title="Décaler de 5 mm vers la gauche"
+                        >
+                          -5
+                        </button>
+                        <input
+                          type="number"
+                          value={config.offsetX || 0}
+                          onChange={(e) => setConfig((prev) => ({ ...prev, offsetX: Number(e.target.value) || 0 }))}
+                          className="w-full text-center bg-zinc-950 border border-zinc-700 rounded py-0.5 text-xs font-mono text-zinc-200"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setConfig((prev) => ({ ...prev, offsetX: (prev.offsetX || 0) + 5 }))}
+                          className="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded text-[11px] font-mono"
+                          title="Décaler de 5 mm vers la droite"
+                        >
+                          +5
+                        </button>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between text-[10px] text-zinc-400 mb-0.5">
+                        <span>Axe Y (vertical)</span>
+                        <span className="font-mono text-zinc-300">{config.offsetY || 0} mm</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setConfig((prev) => ({ ...prev, offsetY: (prev.offsetY || 0) - 5 }))}
+                          className="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded text-[11px] font-mono"
+                          title="Décaler de 5 mm vers le haut"
+                        >
+                          -5
+                        </button>
+                        <input
+                          type="number"
+                          value={config.offsetY || 0}
+                          onChange={(e) => setConfig((prev) => ({ ...prev, offsetY: Number(e.target.value) || 0 }))}
+                          className="w-full text-center bg-zinc-950 border border-zinc-700 rounded py-0.5 text-xs font-mono text-zinc-200"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setConfig((prev) => ({ ...prev, offsetY: (prev.offsetY || 0) + 5 }))}
+                          className="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded text-[11px] font-mono"
+                          title="Décaler de 5 mm vers le bas"
+                        >
+                          +5
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
