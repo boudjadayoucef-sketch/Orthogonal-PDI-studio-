@@ -647,7 +647,7 @@ export function generateComplexIndustrialIsoDemo(): ComplexIsoDemoData {
     },
   ];
 
-  // 5. Cotations Isométriques Réelles
+  // 5. Cotations Isométriques Réelles (Espacement aéré évitant tout encombrement du dessin)
   const dimensions: IsoDimension[] = [
     {
       id: "demo_dim01",
@@ -655,7 +655,7 @@ export function generateComplexIndustrialIsoDemo(): ComplexIsoDemoData {
       a: { kind: "node", nodeId: n01.id },
       b: { kind: "node", nodeId: n02.id },
       label: "2 800 mm",
-      offset: { x: 0, y: -26 },
+      offset: { x: 0, y: -44 },
       unit: "mm",
     },
     {
@@ -664,7 +664,7 @@ export function generateComplexIndustrialIsoDemo(): ComplexIsoDemoData {
       a: { kind: "node", nodeId: n02.id },
       b: { kind: "node", nodeId: n03.id },
       label: "3 200 mm",
-      offset: { x: 0, y: -26 },
+      offset: { x: 0, y: -44 },
       unit: "mm",
     },
     {
@@ -673,7 +673,7 @@ export function generateComplexIndustrialIsoDemo(): ComplexIsoDemoData {
       a: { kind: "node", nodeId: n03.id },
       b: { kind: "node", nodeId: n04.id },
       label: "ΔZ = 2 800 mm",
-      offset: { x: -36, y: 0 },
+      offset: { x: -48, y: 0 },
       unit: "mm",
     },
     {
@@ -682,7 +682,7 @@ export function generateComplexIndustrialIsoDemo(): ComplexIsoDemoData {
       a: { kind: "node", nodeId: n04.id },
       b: { kind: "node", nodeId: n05.id },
       label: "3 500 mm",
-      offset: { x: 0, y: -24 },
+      offset: { x: 0, y: -42 },
       unit: "mm",
     },
     {
@@ -691,7 +691,7 @@ export function generateComplexIndustrialIsoDemo(): ComplexIsoDemoData {
       a: { kind: "node", nodeId: n05.id },
       b: { kind: "node", nodeId: n06.id },
       label: "3 800 mm",
-      offset: { x: 0, y: -26 },
+      offset: { x: 0, y: -44 },
       unit: "mm",
     },
     {
@@ -700,7 +700,7 @@ export function generateComplexIndustrialIsoDemo(): ComplexIsoDemoData {
       a: { kind: "node", nodeId: n06.id },
       b: { kind: "node", nodeId: n07.id },
       label: "3 200 mm",
-      offset: { x: 0, y: -26 },
+      offset: { x: 0, y: -44 },
       unit: "mm",
     },
     {
@@ -709,7 +709,7 @@ export function generateComplexIndustrialIsoDemo(): ComplexIsoDemoData {
       a: { kind: "node", nodeId: n07.id },
       b: { kind: "node", nodeId: n08.id },
       label: "Δ45° = 3 110 mm",
-      offset: { x: 20, y: -24 },
+      offset: { x: 26, y: -42 },
       unit: "mm",
     },
     {
@@ -718,7 +718,7 @@ export function generateComplexIndustrialIsoDemo(): ComplexIsoDemoData {
       a: { kind: "node", nodeId: n09.id },
       b: { kind: "node", nodeId: n10.id },
       label: "ΔZ = 2 300 mm",
-      offset: { x: 34, y: 0 },
+      offset: { x: 46, y: 0 },
       unit: "mm",
     },
     {
@@ -727,7 +727,7 @@ export function generateComplexIndustrialIsoDemo(): ComplexIsoDemoData {
       a: { kind: "node", nodeId: n10.id },
       b: { kind: "node", nodeId: n11.id },
       label: "4 000 mm",
-      offset: { x: 0, y: -26 },
+      offset: { x: 0, y: -44 },
       unit: "mm",
     },
     {
@@ -736,7 +736,7 @@ export function generateComplexIndustrialIsoDemo(): ComplexIsoDemoData {
       a: { kind: "node", nodeId: n12.id },
       b: { kind: "node", nodeId: n13.id },
       label: "7 000 mm (By-Pass)",
-      offset: { x: 0, y: -28 },
+      offset: { x: 0, y: -46 },
       unit: "mm",
     },
   ];

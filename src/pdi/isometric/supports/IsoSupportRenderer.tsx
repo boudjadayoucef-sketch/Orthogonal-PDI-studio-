@@ -25,17 +25,26 @@ export const IsoSupportRenderer: React.FC<IsoSupportRendererProps> = ({
 }) => {
   return (
     <g id="iso-mss-supports-layer" className="iso-supports-group">
-      {supports.map((sup) => {
+      {supports.map((sup, idx) => {
         const pt = projectFn(sup.worldPos.x, sup.worldPos.y, sup.worldPos.z);
         const isSelected = selectedSupportId === sup.id;
         const def = MSS_SUPPORT_CATALOG[sup.type] || MSS_SUPPORT_CATALOG.mss_type_35;
         const scale = Math.max(0.8, Math.min(1.4, zoom));
 
-        // Rendu spécifique selon la géométrie du symbole MSS
+        // Rendu spécifique selon la géométrie du symbole MSS - Aéré à distance du dessin
+        const isHigh = sup.type === "mss_type_1" || sup.type === "mss_type_51";
+        const isLow = sup.type === "mss_type_39" || sup.type === "mss_type_57";
+        const offsetX = 30;
+        const offsetY = isHigh ? -34 : isLow ? 30 : (idx % 2 === 0 ? -30 : 30);
+        const chipWidth = sup.tag.length * 5.6 + 34;
+
         return (
           <g
             key={sup.id}
             id={`support-${sup.id}`}
+            data-iso-object="true"
+            data-iso-support="true"
+            data-support-id={sup.id}
             transform={`translate(${pt.x}, ${pt.y}) scale(${scale})`}
             className="cursor-pointer group"
             onClick={(e) => {
@@ -133,24 +142,25 @@ export const IsoSupportRenderer: React.FC<IsoSupportRendererProps> = ({
               </g>
             )}
 
-            {/* ÉTIQUETTE DU SUPPORT (TAG ET TYPE MSS) */}
-            <g transform="translate(14, -12)" pointerEvents="none">
+            {/* ÉTIQUETTE DU SUPPORT (TAG ET TYPE MSS) - Puce compacte et aérée */}
+            <g transform={`translate(${offsetX}, ${offsetY})`} pointerEvents="none">
+              <line x1={-offsetX * 0.7} y1={-offsetY * 0.7} x2="0" y2="0" stroke="#475569" strokeWidth="0.8" strokeDasharray="2 2" />
               <rect
                 x="0"
-                y="-11"
-                width={sup.tag.length * 6.5 + 46}
-                height="14"
-                rx="3"
+                y="-9"
+                width={chipWidth}
+                height="12"
+                rx="2.5"
                 fill="#020617"
-                fillOpacity="0.88"
+                fillOpacity="0.94"
                 stroke={isSelected ? "#f59e0b" : "#334155"}
-                strokeWidth="1"
+                strokeWidth="0.9"
               />
               <text
-                x="4"
+                x="3.5"
                 y="0"
                 fill={isSelected ? "#fde68a" : "#e2e8f0"}
-                fontSize="8.5"
+                fontSize="7.5"
                 fontWeight="bold"
                 fontFamily="monospace"
               >

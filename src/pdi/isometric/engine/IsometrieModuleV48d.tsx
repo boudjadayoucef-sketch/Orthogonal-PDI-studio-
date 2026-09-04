@@ -544,10 +544,38 @@ function segmentEndpoints(segment: IsoSegment, nodes: IsoNode[]) {
   const fromNode=nodes.find(n=>n.id===segment.fromNodeId);
   const toNode=nodes.find(n=>n.id===segment.toNodeId);
   if(!fromNode||!toNode) return null;
+
+  const dx = toNode.x - fromNode.x;
+  const dy = toNode.y - fromNode.y;
+  const dz = toNode.z - fromNode.z;
+  const len = Math.hypot(dx, dy, dz) || 1;
+  const dir = { x: dx / len, y: dy / len, z: dz / len };
+
+  let fromPos = { x: fromNode.x, y: fromNode.y, z: fromNode.z };
+  if (pdiNodeHasFaceOffset017P3(fromNode)) {
+    const halfFrom = Math.min(Math.max(0.08, (fromNode.length || 0.4) / 2), len * 0.35);
+    fromPos = {
+      x: fromNode.x + dir.x * halfFrom,
+      y: fromNode.y + dir.y * halfFrom,
+      z: fromNode.z + dir.z * halfFrom,
+    };
+  }
+
+  let toPos = { x: toNode.x, y: toNode.y, z: toNode.z };
+  if (pdiNodeHasFaceOffset017P3(toNode)) {
+    const halfTo = Math.min(Math.max(0.08, (toNode.length || 0.4) / 2), len * 0.35);
+    toPos = {
+      x: toNode.x - dir.x * halfTo,
+      y: toNode.y - dir.y * halfTo,
+      z: toNode.z - dir.z * halfTo,
+    };
+  }
+
   return {
-    fromNode,toNode,
-    from:portWorldPosition(fromNode,segment.fromPortId),
-    to:portWorldPosition(toNode,segment.toPortId)
+    fromNode,
+    toNode,
+    from: fromPos,
+    to: toPos,
   };
 }
 
@@ -770,6 +798,10 @@ function getFittingSvgGraphic(type: IsoFittingType, isPrint: boolean = false) {
     const stroke = isPrint ? "#0284c7" : "#38bdf8";
     return `<path d="M -6 -5 L 2 0 L -6 5 Z" fill="${stroke}" stroke="${stroke}" stroke-width="1"/>` +
       `<line x1="3" y1="-6" x2="3" y2="6" stroke="${stroke}" stroke-width="2"/>`;
+  }
+  if (type.startsWith("reduction")) {
+    const stroke = isPrint ? "#64748b" : "#94a3b8";
+    return `<path d="M -6 -6 L 6 -3 L 6 3 L -6 6 Z" fill="${isPrint ? "#cbd5e1" : "#1e293b"}" stroke="${stroke}" stroke-width="1.5"/>`;
   }
   if (type === "soupape") {
     const stroke = isPrint ? "#dc2626" : "#ef4444";
@@ -4252,7 +4284,7 @@ function IsometrieModule(props: { projectId?: string }) {
     commitGraph(nextNodes,nextSegments017P10);
   };
 
-  const beginNodeDrag=(e:React.PointerEvent<SVGSVGElement>,id:string,additive:boolean)=>{
+  const beginNodeDrag=(e:React.PointerEvent<any>,id:string,additive:boolean)=>{
     const ids=additive
       ? (selectedNodeIds.includes(id)?selectedNodeIds:[...selectedNodeIds,id])
       : (selectedNodeIds.includes(id)?selectedNodeIds:[id]);
@@ -6702,8 +6734,8 @@ function IsometrieModule(props: { projectId?: string }) {
             <div className="hidden lg:block h-7 w-px bg-zinc-800"/>
             <div className="hidden lg:block min-w-0"><div className="text-[9px] uppercase text-zinc-500 font-bold">Projet actif</div><div className="max-w-[220px] truncate text-xs font-bold text-white">{projectName}</div></div>
           </div>
-            {/* PATCH 017M : bande d onglets. */}
-            <nav className="pdi-cad-menubar hidden md:flex" aria-label="Onglets du ruban PD & I">
+            {/* PATCH 017M : bande d onglets aeree et auto-adaptee */}
+            <nav className="pdi-cad-menubar hidden md:flex flex-1 justify-center items-center min-w-0 max-w-xl mx-auto px-1 overflow-x-auto no-scrollbar gap-1" aria-label="Onglets du ruban PD & I">
               {PDI_ONGLETS_RUBAN_017M.map((onglet) => (
                 <button
                   key={onglet.id}
@@ -6718,14 +6750,32 @@ function IsometrieModule(props: { projectId?: string }) {
               <button
                 type="button"
                 onClick={() => setRubanReplie017M((v) => !v)}
-                className="pdi-ruban-onglet"
+                className="pdi-ruban-onglet px-1.5"
                 title="Replier ou deplier le ruban (Ctrl+F1)"
               >
                 {rubanReplie017M ? "\u25be" : "\u25b4"}
               </button>
             </nav>
           <div className="flex items-center gap-2 shrink-0">
-            <div className="hidden xl:flex items-center gap-3 text-[10px] text-zinc-400 font-medium"><span>{nodes.length} nœuds</span><span>{segments.length} tronçons</span><button type="button" title={graphIssues.length?graphIssues.slice(0,8).map(issue=>(issue.severity==="error"?"ERREUR : ":"ALERTE : ")+issue.message).join("\n"):"Aucune anomalie de reseau detectee."} onClick={()=>{setStudioLayout("control");setLeftPanelOpen(true);setStatusMessage(graphErrorCount?`CONTROLE RESEAU : ${graphErrorCount} erreur(s) - ${graphIssues.filter(issue=>issue.severity==="error").slice(0,3).map(issue=>issue.message).join(" ; ")}`:graphWarningCount?`CONTROLE RESEAU : ${graphWarningCount} alerte(s) - ${graphIssues.slice(0,3).map(issue=>issue.message).join(" ; ")}`:"CONTROLE RESEAU : graphe valide, aucune anomalie.");}} className={graphErrorCount?"text-red-400 underline decoration-dotted cursor-pointer":graphWarningCount?"text-amber-300 underline decoration-dotted cursor-pointer":"text-zinc-300 cursor-pointer"}>{graphErrorCount?`${graphErrorCount} erreur(s)`:graphWarningCount?`${graphWarningCount} alerte(s)`:"Graphe valide"}</button></div>
+            <div className="hidden xl:flex items-center gap-2 bg-zinc-900/90 border border-zinc-800/90 rounded-md px-2.5 py-1 text-[10px] font-mono shrink-0 shadow-inner">
+              <span className="text-zinc-300 font-bold">{nodes.length} <span className="text-zinc-500 font-sans hidden 2xl:inline">nœuds</span><span className="text-zinc-500 2xl:hidden">N</span></span>
+              <span className="text-zinc-600">•</span>
+              <span className="text-zinc-300 font-bold">{segments.length} <span className="text-zinc-500 font-sans hidden 2xl:inline">tronçons</span><span className="text-zinc-500 2xl:hidden">T</span></span>
+              <span className="text-zinc-600">•</span>
+              <button
+                type="button"
+                title={graphIssues.length ? graphIssues.slice(0, 8).map(issue => (issue.severity === "error" ? "ERREUR : " : "ALERTE : ") + issue.message).join("\n") : "Aucune anomalie de reseau detectee."}
+                onClick={() => {
+                  setStudioLayout("control");
+                  setLeftPanelOpen(true);
+                  setStatusMessage(graphErrorCount ? `CONTROLE RESEAU : ${graphErrorCount} erreur(s) - ${graphIssues.filter(issue=>issue.severity==="error").slice(0,3).map(issue=>issue.message).join(" ; ")}` : graphWarningCount ? `CONTROLE RESEAU : ${graphWarningCount} alerte(s) - ${graphIssues.slice(0,3).map(issue=>issue.message).join(" ; ")}` : "CONTROLE RESEAU : graphe valide, aucune anomalie.");
+                }}
+                className={graphErrorCount ? "text-red-400 font-bold underline decoration-dotted cursor-pointer flex items-center gap-1" : graphWarningCount ? "text-amber-300 font-bold underline decoration-dotted cursor-pointer flex items-center gap-1" : "text-emerald-400 font-bold cursor-pointer flex items-center gap-1"}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${graphErrorCount ? "bg-red-500 animate-ping" : graphWarningCount ? "bg-amber-400" : "bg-emerald-400"}`} />
+                <span>{graphErrorCount ? `${graphErrorCount} err` : graphWarningCount ? `${graphWarningCount} alerte(s)` : "OK"}</span>
+              </button>
+            </div>
             {/* Bouton DÉMO INDUSTRIELLE 3D (Réseau 3D & Supports MSS SP-58 / GC) */}
             <button
               type="button"
@@ -7993,13 +8043,15 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                     onPointerEnter={()=>setHoveredEntity({ type: "segment", id: s.id })}
                     onPointerLeave={()=>setHoveredEntity(null)}>
                     {(() => { const pts=isoPolylineV4(s,a,b,viewport.zoom,viewport.panX,viewport.panY); const path=isoPathV4(pts); return <>
+                      {/* Zone de clic élargie invisible pour sélection sans faille */}
+                      <path d={path} stroke="transparent" strokeWidth={Math.max(width + 16, 20)} strokeLinecap="round" fill="none" className="cursor-pointer" />
                       {sel&&<path d={path} stroke="#38bdf8" strokeWidth={width+5} strokeOpacity=".16" strokeLinecap="round" strokeLinejoin="round" fill="none"/>}
                       {hoveredEntity?.type==="segment"&&hoveredEntity.id===s.id&&!sel&&<path d={path} stroke="#67e8f9" strokeWidth={width+3} strokeOpacity=".12" strokeLinecap="round" strokeLinejoin="round" fill="none"/>}
                       <path d={path} stroke={segmentStrokeColor(s)} strokeWidth={width} strokeLinecap="round" strokeLinejoin="round" fill="none"/>
                     </>; })()}
-                    {/* PATCH 017C : tag industriel affiche sur le plan */}
+                    {/* PATCH 017C : tag industriel affiche sur le plan aéré a distance du tube */}
                     {tagDisplay && s.tag && viewport.zoom > 0.35 && (
-                      <text x={mx} y={my - (width / 2) - 5} fill="#fcd34d" fontSize="9" fontWeight="bold"
+                      <text x={mx} y={my - (width / 2) - 12} fill="#fcd34d" fontSize="9" fontWeight="bold"
                         textAnchor="middle" paintOrder="stroke" stroke="#0f172a" strokeWidth="3" pointerEvents="none">
                         {s.tag}
                       </text>
@@ -8029,13 +8081,67 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                   const fill = n.type==="entree_poste"?"#22c55e":n.type==="sortie_poste"?"#ef4444":isTee?"#8b5cf6":"#0284c7";
                   const nativePorts=(n.ports||[]).map(port=>{const w=portWorldPosition(n,port.id),sp=isoProjectV4(w.x,w.y,w.z,viewport.zoom,viewport.panX,viewport.panY);return {...port,sx:sp.x-p.x,sy:sp.y-p.y};});
                   const p0=nativePorts.find(port=>port.index===0),p1=nativePorts.find(port=>port.index===1);
-                  const angle=p0&&p1?Math.atan2(p1.sy-p0.sy,p1.sx-p0.sx)*180/Math.PI:(n.rotation||0);
-                  const isBend=!!n.equipmentType&&elbowAngle(n.equipmentType)>0;
+
+                  // Calcul topologique rigoureux de l'alignement axial et de l'orientation des coudes
+                  const connSegs = segments.filter(s => s.fromNodeId === n.id || s.toNodeId === n.id);
+                  let pAdjA: { x: number; y: number } | null = null;
+                  let pAdjB: { x: number; y: number } | null = null;
+                  if (connSegs.length >= 1) {
+                    const otherId0 = connSegs[0].fromNodeId === n.id ? connSegs[0].toNodeId : connSegs[0].fromNodeId;
+                    const other0 = nodes.find(item => item.id === otherId0);
+                    if (other0) pAdjA = iso(other0);
+                  }
+                  if (connSegs.length >= 2) {
+                    const otherId1 = connSegs[1].fromNodeId === n.id ? connSegs[1].toNodeId : connSegs[1].fromNodeId;
+                    const other1 = nodes.find(item => item.id === otherId1);
+                    if (other1) pAdjB = iso(other1);
+                  }
+
+                  const isBend = !!n.equipmentType && elbowAngle(n.equipmentType) > 0;
+                  let elbowPathD = "";
+                  if (isBend && pAdjA && pAdjB) {
+                    const dxA = pAdjA.x - p.x, dyA = pAdjA.y - p.y;
+                    const lenA = Math.hypot(dxA, dyA) || 1;
+                    const dxB = pAdjB.x - p.x, dyB = pAdjB.y - p.y;
+                    const lenB = Math.hypot(dxB, dyB) || 1;
+                    const rElbow = Math.min(14, Math.min(lenA, lenB) * 0.35);
+                    const pArcA = { x: (dxA / lenA) * rElbow, y: (dyA / lenA) * rElbow };
+                    const pArcB = { x: (dxB / lenB) * rElbow, y: (dyB / lenB) * rElbow };
+                    elbowPathD = `M ${pArcA.x.toFixed(2)} ${pArcA.y.toFixed(2)} Q 0 0 ${pArcB.x.toFixed(2)} ${pArcB.y.toFixed(2)}`;
+                  }
+
+                  let equipAngle = n.rotation || 0;
+                  if (pAdjA && pAdjB) {
+                    const sIn = connSegs.find(s => s.toNodeId === n.id);
+                    const sOut = connSegs.find(s => s.fromNodeId === n.id);
+                    if (sIn && sOut) {
+                      const nIn = nodes.find(item => item.id === sIn.fromNodeId);
+                      const nOut = nodes.find(item => item.id === sOut.toNodeId);
+                      if (nIn && nOut) {
+                        const ptIn = iso(nIn), ptOut = iso(nOut);
+                        equipAngle = Math.atan2(ptOut.y - ptIn.y, ptOut.x - ptIn.x) * 180 / Math.PI;
+                      } else {
+                        equipAngle = Math.atan2(pAdjB.y - pAdjA.y, pAdjB.x - pAdjA.x) * 180 / Math.PI;
+                      }
+                    } else {
+                      equipAngle = Math.atan2(pAdjB.y - pAdjA.y, pAdjB.x - pAdjA.x) * 180 / Math.PI;
+                    }
+                  } else if (pAdjA) {
+                    const s0 = connSegs[0];
+                    if (s0.toNodeId === n.id) {
+                      equipAngle = Math.atan2(p.y - pAdjA.y, p.x - pAdjA.x) * 180 / Math.PI;
+                    } else {
+                      equipAngle = Math.atan2(pAdjA.y - p.y, pAdjA.x - p.x) * 180 / Math.PI;
+                    }
+                  }
+
+                  const angle = isBend ? 0 : equipAngle;
                   const kGlyph=pdiGlyphScale017P5(nativePorts);
                   const branchPort=nativePorts.find(port=>port.role==="branch");
                   const nodeAnnotation=editorAnnotationMap.get(`node:${n.id}`);
                   return <g key={n.id} data-iso-object="true" data-iso-node="true" data-node-id={n.id} transform={`translate(${p.x} ${p.y})`}
                     onClick={e=>{e.stopPropagation()}}
+                    onPointerDown={e=>{e.stopPropagation();beginNodeDrag(e,n.id,e.ctrlKey||e.metaKey||e.shiftKey)}}
                     onPointerEnter={()=>setHoveredEntity({ type: "node", id: n.id })}
                     onPointerLeave={()=>setHoveredEntity(null)}
                     onContextMenu={(e)=>{
@@ -8044,18 +8150,32 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                       toggleNodeSelection(n.id, false);
                       setContextMenu({ x: e.clientX, y: e.clientY, type: "node", id: n.id });
                     }}>
+                    {/* Zone de clic invisible pour sélection instantanée */}
+                    <circle r={Math.max(16 * kGlyph, 16)} fill="transparent" className="cursor-pointer" />
                     {isEquip ? (
                       <g>
                         {isSel&&<rect x={-11.5*kGlyph} y={-11.5*kGlyph} width={23*kGlyph} height={23*kGlyph} rx="5" fill="none" stroke="#facc15" strokeWidth="1.5" strokeDasharray="4 2"/>}
                         {isHov&&!isSel&&<rect x={-10.8*kGlyph} y={-10.8*kGlyph} width={21.6*kGlyph} height={21.6*kGlyph} rx="4" fill="none" stroke="#67e8f9" strokeWidth="1" strokeDasharray="2 2"/>}
-                        {isBend&&p0&&p1?<path d={`M ${p0.sx} ${p0.sy} Q 0 0 ${p1.sx} ${p1.sy}`} stroke="#f59e0b" strokeWidth="4" fill="none" strokeLinecap="round"/>:branchPort?<g data-pdi-te="017p8"><circle r={pdiNodeRadius017P3(viewport.zoom,isSel,isHov)+2} fill="#052e16" stroke={isSel?"#facc15":"#22c55e"} strokeWidth={2}/>{nativePorts.map(port=>(<line key={`teq-branche-${port.id}`} x1="0" y1="0" x2={port.sx} y2={port.sy} stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round"/>))}</g>:<g>{nativePorts.map(port=>(<line key={`patte-${port.id}`} x1="0" y1="0" x2={port.sx} y2={port.sy} stroke="#64748b" strokeWidth="1.6" strokeLinecap="round"/>))}<g transform={`rotate(${angle}) scale(${kGlyph} ${n.mirrored?-kGlyph:kGlyph})`} dangerouslySetInnerHTML={{__html:getFittingSvgGraphic(n.equipmentType!,false)}}/></g>}
+                        {isBend ? (
+                          <path d={elbowPathD || (p0 && p1 ? `M ${p0.sx} ${p0.sy} Q 0 0 ${p1.sx} ${p1.sy}` : "M -6 6 Q -6 -6 6 -6")} stroke="#f59e0b" strokeWidth={Math.max(3.2, ((n.dn || 100) / 25) * pipeStrokeScale)} fill="none" strokeLinecap="round" />
+                        ) : branchPort ? (
+                          <g data-pdi-te="017p8">
+                            <circle r={pdiNodeRadius017P3(viewport.zoom,isSel,isHov)+2} fill="#052e16" stroke={isSel?"#facc15":"#22c55e"} strokeWidth={2}/>
+                            {nativePorts.map(port=>(<line key={`teq-branche-${port.id}`} x1="0" y1="0" x2={port.sx} y2={port.sy} stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round"/>))}
+                          </g>
+                        ) : (
+                          <g>
+                            {nativePorts.map(port=>(<line key={`patte-${port.id}`} x1="0" y1="0" x2={port.sx} y2={port.sy} stroke="#64748b" strokeWidth="1.6" strokeLinecap="round"/>))}
+                            <g transform={`rotate(${angle}) scale(${kGlyph} ${n.mirrored?-kGlyph:kGlyph})`} dangerouslySetInnerHTML={{__html:getFittingSvgGraphic(n.equipmentType!,false)}}/>
+                          </g>
+                        )}
                         {nativePorts.map(port=>{
                           const joint=projectJoints.find(item=>item.nodeId===n.id&&item.portId===port.id);
                           const connected=!!joint;
                           const weldAnnotation=joint?editorAnnotationMap.get(`weld:${joint.id}`):undefined;
                           if (connected) {
                             if(!joint?.weldNumber||!showWelds)return null;
-                            const wx=(weldAnnotation?.x??p.x+port.sx+5)-p.x, wy=(weldAnnotation?.y??p.y+port.sy-5)-p.y;
+                            const wx=(weldAnnotation?.x??p.x+port.sx+8)-p.x, wy=(weldAnnotation?.y??p.y+port.sy-9)-p.y;
                             return <g key={port.id} pointerEvents="none">
                               {weldAnnotation && <line x1={port.sx} y1={port.sy} x2={wx} y2={wy} stroke="#fbbf24" strokeWidth=".7" strokeDasharray="2 2"/>}
                               <circle cx={port.sx} cy={port.sy} r="3.4" fill="#0f172a" stroke="#fbbf24" strokeWidth="1.4"/>
