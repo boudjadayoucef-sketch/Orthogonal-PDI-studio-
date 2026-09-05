@@ -13,6 +13,7 @@
     "@google/genai": "^2.4.0",
     "@tailwindcss/vite": "^4.1.14",
     "@types/pg": "^8.23.1",
+    "@types/three": "^0.185.4",
     "@vitejs/plugin-react": "^5.0.4",
     "dotenv": "^17.2.3",
     "drizzle-kit": "^0.31.10",
@@ -29,6 +30,7 @@
     "pg": "^8.23.0",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
+    "three": "^0.185.1",
     "vite": "^6.2.3"
   },
   "devDependencies": {

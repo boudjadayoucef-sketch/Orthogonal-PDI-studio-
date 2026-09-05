@@ -32,7 +32,12 @@ import {
   MSS_SUPPORT_CATALOG,
   computeCivilMto,
 } from "../isometric/supports/pdiMssSupportEngine";
+import {
+  getComponentVignetteSvg,
+  getMssSupportVignetteSvg,
+} from "../catalog/trouvayCauvinCatalog";
 import type { Cad2dEntity } from "../isometric/engine/IsometrieModuleV48d";
+import { WeldSpoolResult, getWeldMarkerSvg } from "../welding/isoWeldSpoolEngine";
 
 const PDI_ISO_ANGLE = Math.PI / 6;
 const PDI_ISO_COS = Math.cos(PDI_ISO_ANGLE);
@@ -47,6 +52,7 @@ export interface BomRow {
   unit: string;
   length: number;
   reference: string;
+  fittingType?: string;
 }
 
 /**
@@ -72,6 +78,7 @@ export function isoProjectPrint(
 function computeBoundingBox(
   nodes: IsoNode[],
   segments: IsoSegment[],
+  dimensions: IsoDimension[] = [],
   supports: IsoPipingSupport[] = [],
   cad2dEntities: Cad2dEntity[] = [],
   includeSupports: boolean = true,
@@ -90,11 +97,21 @@ function computeBoundingBox(
     if (rawY > maxY) maxY = rawY;
   };
 
-  // 1. Nœuds de tuyauterie
+  // 1. Nœuds de tuyauterie et équipements
   nodes.forEach((n) => {
     const rawX = (n.x - n.y) * PDI_ISO_COS;
     const rawY = (n.x + n.y) * PDI_ISO_SIN - (n.z || 0);
     pushPoint(rawX, rawY);
+
+    // Si l'équipement a une dimension physique propre (ex. sas racleur, échangeur, ballon)
+    if (n.length && n.length > 0) {
+      const half = n.length / 2;
+      const angleRad = ((n.rotation || 0) * Math.PI) / 180;
+      const dx = Math.cos(angleRad) * half;
+      const dy = Math.sin(angleRad) * half;
+      pushPoint((n.x + dx - (n.y + dy)) * PDI_ISO_COS, (n.x + dx + (n.y + dy)) * PDI_ISO_SIN - (n.z || 0));
+      pushPoint((n.x - dx - (n.y - dy)) * PDI_ISO_COS, (n.x - dx + (n.y - dy)) * PDI_ISO_SIN - (n.z || 0));
+    }
   });
 
   // 1b. Segments de tuyauterie (extrémités réelles après découpe des raccords)
@@ -109,6 +126,17 @@ function computeBoundingBox(
     pushPoint((p2.x - p2.y) * PDI_ISO_COS, (p2.x + p2.y) * PDI_ISO_SIN - (p2.z || 0));
   });
 
+  // 1c. Cotes & Dimensions
+  if (dimensions && dimensions.length > 0) {
+    dimensions.forEach((dim) => {
+      const a = nodes.find((n) => n.id === dim.a.nodeId);
+      const b = nodes.find((n) => n.id === dim.b.nodeId);
+      if (!a || !b) return;
+      pushPoint((a.x - a.y) * PDI_ISO_COS, (a.x + a.y) * PDI_ISO_SIN - (a.z || 0));
+      pushPoint((b.x - b.y) * PDI_ISO_COS, (b.x + b.y) * PDI_ISO_SIN - (b.z || 0));
+    });
+  }
+
   // 2. Supports tuyauterie
   if (includeSupports && supports.length > 0) {
     supports.forEach((sup) => {
@@ -121,9 +149,10 @@ function computeBoundingBox(
     });
   }
 
-  // 3. Éléments de Génie Civil CAD 2D
+  // 3. Éléments de Génie Civil CAD 2D visibles
   if (includeCivil && cad2dEntities.length > 0) {
     cad2dEntities.forEach((ent) => {
+      if (ent.visible === false) return;
       const z = ent.metadata?.elevationZ || 0;
       if (ent.points && ent.points.length > 0) {
         ent.points.forEach((pt) => {
@@ -166,7 +195,8 @@ export function generateIsoDrawingSvg(
   bomRows: BomRow[],
   config: IsoPrintConfig,
   supports: IsoPipingSupport[] = [],
-  cad2dEntities: Cad2dEntity[] = []
+  cad2dEntities: Cad2dEntity[] = [],
+  weldSpoolData?: WeldSpoolResult
 ): {
   svgMarkup: string;
   widthMm: number;
@@ -192,8 +222,16 @@ export function generateIsoDrawingSvg(
   const cartoucheX = leftM + innerW - cartoucheW;
   const cartoucheY = topM + innerH - cartoucheH;
 
-  // Colonne latérale pour légendes & tableaux
-  const sideColW = Math.min(135, innerW * 0.34);
+  // Détection réelle et stricte des tableaux latéraux actifs
+  const actualHasLegend = Boolean(config.showAdaptiveLegend);
+  const actualHasBom = Boolean(config.showBomTable && bomRows.length > 0);
+  const actualHasSupports = Boolean(config.showSupportTable && supports.length > 0);
+  const actualHasWeldTable = Boolean(config.showWeldTable && weldSpoolData && weldSpoolData.welds.length > 0);
+  const actualHasSpoolTable = Boolean(config.showSpoolTable && weldSpoolData && weldSpoolData.spools.length > 0);
+  const hasSideContent = actualHasLegend || actualHasBom || actualHasSupports || actualHasWeldTable || actualHasSpoolTable;
+
+  // Colonne latérale pour légendes & tableaux (largeur adaptative)
+  const sideColW = hasSideContent ? Math.min(130, Math.max(80, innerW * 0.30)) : 0;
   const sideColX = leftM + 4;
 
   const legendW = sideColW;
@@ -203,40 +241,41 @@ export function generateIsoDrawingSvg(
   // Nomenclature BOM dimensions
   const bomW = sideColW;
   const bomX = sideColX;
-  const legendHeightCalc = config.showAdaptiveLegend ? 48 : 0;
+  const legendHeightCalc = actualHasLegend ? 48 : 0;
   const bomY = legendY + legendHeightCalc;
 
   // Zone graphique utile pour le tracé isométrique (centrage parfait et dégagement des en-têtes et cartouches)
-  const hasSideContent = config.showAdaptiveLegend || config.showBomTable || (config.showSupportTable && supports.length > 0);
-  const drawAreaLeft = hasSideContent ? leftM + sideColW + 10 : leftM + 10;
-  const drawAreaRight = leftM + innerW - 10;
+  const drawAreaLeft = hasSideContent ? leftM + sideColW + 10 : leftM + 12;
+  const compassClearance = 36;
+  const drawAreaRight = leftM + innerW - (config.showIso5457Grid ? compassClearance : 14);
   const drawAreaTop = topM + 18; // Dégagement propre sous le titre du plan
   const drawAreaBottom = config.showCartoucheIso7200 ? (cartoucheY - 6) : (topM + innerH - 10);
 
   const drawAreaX = drawAreaLeft;
   const drawAreaY = drawAreaTop;
-  const drawAreaW = Math.max(50, drawAreaRight - drawAreaLeft);
+  const drawAreaW = Math.max(40, drawAreaRight - drawAreaLeft);
   const drawAreaH = Math.max(40, drawAreaBottom - drawAreaTop);
 
-  // Calcul d'échelle isométrique
+  // Calcul d'échelle isométrique sur l'espace utile garanti
   const bbox = computeBoundingBox(
     nodes,
     segments,
+    dimensions,
     supports,
     cad2dEntities,
     config.showSupports,
     config.showCivilEngineering
   );
-  const rawModelW = Math.max(0.5, bbox.maxX - bbox.minX);
-  const rawModelH = Math.max(0.5, bbox.maxY - bbox.minY);
+  const rawModelW = Math.max(0.2, bbox.maxX - bbox.minX);
+  const rawModelH = Math.max(0.2, bbox.maxY - bbox.minY);
 
   let scaleMm = 1;
   let scaleAppliedLabel = config.scale;
 
   if (config.scale === "fit") {
-    const scaleX = (drawAreaW * 0.85) / rawModelW;
-    const scaleY = (drawAreaH * 0.85) / rawModelH;
-    let baseScale = Math.max(0.05, Math.min(scaleX, scaleY));
+    const scaleX = (drawAreaW * 0.82) / rawModelW;
+    const scaleY = (drawAreaH * 0.82) / rawModelH;
+    let baseScale = Math.max(0.01, Math.min(scaleX, scaleY));
     if (config.printScope === "window" && config.windowZoomRatio) {
       baseScale *= config.windowZoomRatio;
     }
@@ -399,12 +438,23 @@ export function generateIsoDrawingSvg(
       ? isoProjectPrint(endpoints.to.x, endpoints.to.y, endpoints.to.z, modelCenterIsoX, modelCenterIsoY, scaleMm)
       : isoProjectPrint(toNode.x, toNode.y, toNode.z, modelCenterIsoX, modelCenterIsoY, scaleMm);
 
+    const spool = weldSpoolData?.spools.find((sp) => sp.segmentIds.includes(seg.id));
     const isHp = seg.pressureClass?.includes("600") || seg.pn?.includes("600");
-    const stroke = isHp ? "#d97706" : "#0284c7";
+    const stroke = config.showSpoolColors && spool ? spool.color : isHp ? "#d97706" : "#0284c7";
     const strokeWidth = Math.max(0.8, Math.min(2.5, seg.dn / 150));
 
     // Ligne principale du tube
     svgContent += `<line x1="${p1.x.toFixed(2)}" y1="${p1.y.toFixed(2)}" x2="${p2.x.toFixed(2)}" y2="${p2.y.toFixed(2)}" stroke="${stroke}" stroke-width="${strokeWidth.toFixed(2)}" stroke-linecap="round"/>`;
+
+    // Pastille / Tag de Spool centré sur le tronçon si le mode Spool est actif
+    if (config.showSpoolColors && spool) {
+      const mx = (p1.x + p2.x) / 2;
+      const my = (p1.y + p2.y) / 2;
+      svgContent += `<g transform="translate(${mx.toFixed(2)}, ${(my - 2.8).toFixed(2)})">
+        <rect x="-6" y="-1.8" width="12" height="3.6" rx="0.8" fill="#ffffff" stroke="${spool.color}" stroke-width="0.35"/>
+        <text x="0" y="0.7" text-anchor="middle" font-size="1.6" font-family="monospace" font-weight="bold" fill="${spool.color}">${spool.id}</text>
+      </g>`;
+    }
 
     // Éléments & Raccords intermédiaires placés sur le tronçon (seg.fittings)
     if (seg.fittings && seg.fittings.length > 0) {
@@ -571,24 +621,43 @@ export function generateIsoDrawingSvg(
     svgContent += `</g>`;
   }
 
-  // 8. SOUDURES ET REPÈRES
+  // 8. SOUDURES ET REPÈRES (PLAN DE SOUDAGE / WELD MAP)
   if (config.showWelds) {
-    joints
-      .filter((j) => j.weldNumber)
-      .forEach((joint) => {
-        const node = nodes.find((n) => n.id === joint.nodeId);
-        if (!node) return;
-        const wPos = portWorldPosition(node, joint.portId);
-        const pt = isoProjectPrint(wPos.x, wPos.y, wPos.z, modelCenterIsoX, modelCenterIsoY, scaleMm);
-        const isField = joint.location === "field";
-        const color = isField ? "#dc2626" : "#b45309";
+    if (weldSpoolData && weldSpoolData.welds.length > 0) {
+      weldSpoolData.welds.forEach((weld) => {
+        const pt = isoProjectPrint(weld.worldPos.x, weld.worldPos.y, weld.worldPos.z, modelCenterIsoX, modelCenterIsoY, scaleMm);
+        const markerSvg = getWeldMarkerSvg(weld, 3.2);
+        const isField = weld.location === "field";
+        const isGolden = weld.location === "golden";
+        const color = isField ? "#dc2626" : isGolden ? "#d97706" : "#0284c7";
+        const locBadge = isField ? "W-F" : isGolden ? "OR" : "W-S";
 
         svgContent += `<g transform="translate(${pt.x.toFixed(2)}, ${pt.y.toFixed(2)})">
-          <circle r="1.6" fill="#ffffff" stroke="${color}" stroke-width="0.5"/>
-          <line x1="0" y1="-1.6" x2="2.5" y2="-4" stroke="${color}" stroke-width="0.3"/>
-          <text x="3" y="-3.5" font-size="1.8" font-family="monospace" font-weight="bold" fill="${color}">${joint.weldNumber}</text>
+          ${markerSvg}
+          <line x1="0" y1="-2" x2="3" y2="-5" stroke="${color}" stroke-width="0.3"/>
+          <rect x="3" y="-7.2" width="13" height="4.2" rx="0.8" fill="#ffffff" stroke="${color}" stroke-width="0.35"/>
+          <text x="4" y="-4.2" font-size="2" font-family="monospace" font-weight="bold" fill="${color}">${weld.weldNumber}</text>
+          <text x="15" y="-4.2" text-anchor="end" font-size="1.4" font-family="sans-serif" font-weight="bold" fill="#64748b">${locBadge}</text>
         </g>`;
       });
+    } else {
+      joints
+        .filter((j) => j.weldNumber)
+        .forEach((joint) => {
+          const node = nodes.find((n) => n.id === joint.nodeId);
+          if (!node) return;
+          const wPos = portWorldPosition(node, joint.portId);
+          const pt = isoProjectPrint(wPos.x, wPos.y, wPos.z, modelCenterIsoX, modelCenterIsoY, scaleMm);
+          const isField = joint.location === "field";
+          const color = isField ? "#dc2626" : "#0284c7";
+
+          svgContent += `<g transform="translate(${pt.x.toFixed(2)}, ${pt.y.toFixed(2)})">
+            <circle r="1.6" fill="#ffffff" stroke="${color}" stroke-width="0.5"/>
+            <line x1="0" y1="-1.6" x2="2.5" y2="-4" stroke="${color}" stroke-width="0.3"/>
+            <text x="3" y="-3.5" font-size="1.8" font-family="monospace" font-weight="bold" fill="${color}">${joint.weldNumber}</text>
+          </g>`;
+        });
+    }
   }
 
   // 9. COTATIONS NORMALISÉES
@@ -661,8 +730,9 @@ export function generateIsoDrawingSvg(
     // En-tête
     svgContent += `<g transform="translate(0, 4.2)" font-size="1.6" font-family="sans-serif" font-weight="bold" fill="#475569">
       <rect x="0" y="0" width="${bomW}" height="3.2" fill="#f1f5f9"/>
-      <text x="3" y="2.2">RP</text>
-      <text x="12" y="2.2">DÉSIGNATION</text>
+      <text x="2.5" y="2.2">RP</text>
+      <text x="8" y="2.2">SYM</text>
+      <text x="18" y="2.2">DÉSIGNATION</text>
       <text x="${bomW - 32}" y="2.2">DN</text>
       <text x="${bomW - 18}" y="2.2">QTÉ</text>
       <text x="${bomW - 4}" y="2.2" text-anchor="end">LONG.</text>
@@ -672,11 +742,13 @@ export function generateIsoDrawingSvg(
     tableRows.forEach((r, idx) => {
       const ry = 7.4 + idx * 3.8;
       const bg = idx % 2 === 1 ? ' fill="#f8fafc"' : "";
+      const symbolSvg = getComponentVignetteSvg(r.fittingType || r.designation, { isPrint: true });
       svgContent += `<g transform="translate(0, ${ry})">
         <rect x="0" y="0" width="${bomW}" height="3.8"${bg}/>
         <line x1="0" y1="3.8" x2="${bomW}" y2="3.8" stroke="#f1f5f9" stroke-width="0.25"/>
-        <text x="3" y="2.7" font-size="1.6" font-weight="bold" fill="#0284c7">${r.index}</text>
-        <text x="12" y="2.7" font-size="1.6" fill="#1e293b">${r.designation.slice(0, 24)}</text>
+        <text x="2.5" y="2.7" font-size="1.6" font-weight="bold" fill="#0284c7">${r.index}</text>
+        <g transform="translate(11, 1.9) scale(0.22)">${symbolSvg}</g>
+        <text x="18" y="2.7" font-size="1.5" fill="#1e293b">${r.designation.slice(0, 22)}</text>
         <text x="${bomW - 32}" y="2.7" font-size="1.6" fill="#475569">DN${r.dn}</text>
         <text x="${bomW - 18}" y="2.7" font-size="1.6" font-weight="bold" fill="#0f172a">${r.qty}</text>
         <text x="${bomW - 4}" y="2.7" text-anchor="end" font-size="1.6" fill="#475569">${r.length > 0 ? formatLength(r.length, config.unitSystem || "metric") : "-"}</text>
@@ -702,8 +774,9 @@ export function generateIsoDrawingSvg(
       // En-tête colonnes supports
       svgContent += `<g transform="translate(0, 4.2)" font-size="1.6" font-family="sans-serif" font-weight="bold" fill="#475569">
         <rect x="0" y="0" width="${sideColW}" height="3.2" fill="#ecfeff"/>
-        <text x="3" y="2.2">TAG</text>
-        <text x="18" y="2.2">TYPE MSS</text>
+        <text x="2.5" y="2.2">TAG</text>
+        <text x="12" y="2.2">SYM</text>
+        <text x="22" y="2.2">TYPE MSS</text>
         <text x="${sideColW - 45}" y="2.2">PLATINE</text>
         <text x="${sideColW - 4}" y="2.2" text-anchor="end">MASSIF</text>
       </g>`;
@@ -714,12 +787,14 @@ export function generateIsoDrawingSvg(
         const def = MSS_SUPPORT_CATALOG[s.type] || MSS_SUPPORT_CATALOG.mss_type_35;
         const plateStr = `${s.civilSpec.basePlateLengthMm}x${s.civilSpec.basePlateWidthMm}`;
         const concStr = `${s.civilSpec.calculatedConcreteVolumeM3}m³`;
+        const supportSvg = getMssSupportVignetteSvg(s.type, true);
 
         svgContent += `<g transform="translate(0, ${ry})">
           <rect x="0" y="0" width="${sideColW}" height="3.8"${bg}/>
           <line x1="0" y1="3.8" x2="${sideColW}" y2="3.8" stroke="#e0f2fe" stroke-width="0.25"/>
-          <text x="3" y="2.7" font-size="1.5" font-weight="bold" fill="#0891b2">${s.tag}</text>
-          <text x="18" y="2.7" font-size="1.5" fill="#1e293b">MSS-${def.mssStandardNumber} (${def.labelFr.slice(0, 10)})</text>
+          <text x="2.5" y="2.7" font-size="1.5" font-weight="bold" fill="#0891b2">${s.tag}</text>
+          <g transform="translate(15, 1.9) scale(0.22)">${supportSvg}</g>
+          <text x="22" y="2.7" font-size="1.4" fill="#1e293b">MSS-${def.mssStandardNumber} (${def.labelFr.slice(0, 10)})</text>
           <text x="${sideColW - 45}" y="2.7" font-size="1.5" fill="#475569">${plateStr}</text>
           <text x="${sideColW - 4}" y="2.7" text-anchor="end" font-size="1.5" font-weight="bold" fill="#0e7490">${concStr}</text>
         </g>`;
@@ -733,6 +808,114 @@ export function generateIsoDrawingSvg(
         </text>`;
 
       svgContent += `</g>`;
+      nextTableY += tableH + 4;
+    }
+  }
+
+  // 12b. TABLEAU DES SOUDURES / WELD LOG (ASME B31.3)
+  if (config.showWeldTable && weldSpoolData && weldSpoolData.welds.length > 0) {
+    const weldRows = weldSpoolData.welds.slice(0, 8);
+    const weldTableH = Math.min(innerH - nextTableY - 4, 8 + weldRows.length * 3.8 + 5);
+
+    if (weldTableH > 16) {
+      svgContent += `<g transform="translate(${sideColX}, ${nextTableY})">
+        <rect x="0" y="0" width="${sideColW}" height="${weldTableH}" rx="1.5" fill="#ffffff" stroke="#b45309" stroke-width="0.5"/>
+        <rect x="0" y="0" width="${sideColW}" height="4.2" rx="1.5" fill="#b45309"/>
+        <text x="4" y="3" font-size="2" font-family="sans-serif" font-weight="bold" fill="#ffffff">PLAN DE SOUDAGE / WELD MAP (ASME B31.3)</text>
+        <text x="${sideColW - 4}" y="3" text-anchor="end" font-size="1.6" font-family="sans-serif" fill="#fef3c7">${weldSpoolData.welds.length} soudures</text>`;
+
+      // En-tête
+      svgContent += `<g transform="translate(0, 4.2)" font-size="1.5" font-family="sans-serif" font-weight="bold" fill="#475569">
+        <rect x="0" y="0" width="${sideColW}" height="3.2" fill="#fffbeb"/>
+        <text x="2.5" y="2.2">REP.</text>
+        <text x="13" y="2.2">SPOOL</text>
+        <text x="28" y="2.2">LOC.</text>
+        <text x="42" y="2.2">DN</text>
+        <text x="${sideColW - 32}" y="2.2">WPS</text>
+        <text x="${sideColW - 4}" y="2.2" text-anchor="end">CND VT/RT</text>
+      </g>`;
+
+      weldRows.forEach((w, idx) => {
+        const ry = 7.4 + idx * 3.8;
+        const bg = idx % 2 === 1 ? ' fill="#fefce8"' : "";
+        const isField = w.location === "field";
+        const isGolden = w.location === "golden";
+        const locColor = isField ? "#dc2626" : isGolden ? "#d97706" : "#0284c7";
+        const locTxt = isField ? "Chantier" : isGolden ? "Golden" : "Atelier";
+
+        svgContent += `<g transform="translate(0, ${ry})">
+          <rect x="0" y="0" width="${sideColW}" height="3.8"${bg}/>
+          <line x1="0" y1="3.8" x2="${sideColW}" y2="3.8" stroke="#fef08a" stroke-width="0.25"/>
+          <text x="2.5" y="2.7" font-size="1.5" font-weight="bold" fill="${locColor}">${w.weldNumber}</text>
+          <text x="13" y="2.7" font-size="1.4" font-family="monospace" fill="#334155">${w.spoolId || "-"}</text>
+          <text x="28" y="2.7" font-size="1.4" font-weight="bold" fill="${locColor}">${locTxt}</text>
+          <text x="42" y="2.7" font-size="1.4" fill="#475569">DN${w.dn}</text>
+          <text x="${sideColW - 32}" y="2.7" font-size="1.3" font-family="monospace" fill="#64748b">${w.wpsRef}</text>
+          <text x="${sideColW - 4}" y="2.7" text-anchor="end" font-size="1.4" font-weight="bold" fill="#0f766e">${w.ndtRequired.slice(0, 10)}</text>
+        </g>`;
+      });
+
+      const wFooterY = weldTableH - 4;
+      svgContent += `<rect x="0" y="${wFooterY}" width="${sideColW}" height="4" fill="#fffbeb" stroke-top="#fde68a"/>
+        <text x="4" y="${wFooterY + 2.7}" font-size="1.5" font-family="sans-serif" font-weight="bold" fill="#78350f">
+          Atelier : ${weldSpoolData.summary.shopWelds} · Chantier : ${weldSpoolData.summary.fieldWelds} · NDT RT : ${weldSpoolData.summary.rtWelds}
+        </text>`;
+
+      svgContent += `</g>`;
+      nextTableY += weldTableH + 4;
+    }
+  }
+
+  // 12c. CARNET DE SPOOLS / SPOOL SCHEDULE
+  if (config.showSpoolTable && weldSpoolData && weldSpoolData.spools.length > 0) {
+    const spoolRows = weldSpoolData.spools.slice(0, 6);
+    const spoolTableH = Math.min(innerH - nextTableY - 4, 8 + spoolRows.length * 3.8 + 5);
+
+    if (spoolTableH > 16) {
+      svgContent += `<g transform="translate(${sideColX}, ${nextTableY})">
+        <rect x="0" y="0" width="${sideColW}" height="${spoolTableH}" rx="1.5" fill="#ffffff" stroke="#7c3aed" stroke-width="0.5"/>
+        <rect x="0" y="0" width="${sideColW}" height="4.2" rx="1.5" fill="#7c3aed"/>
+        <text x="4" y="3" font-size="2" font-family="sans-serif" font-weight="bold" fill="#ffffff">CARNET DE SPOOLS / SPOOL SCHEDULE</text>
+        <text x="${sideColW - 4}" y="3" text-anchor="end" font-size="1.6" font-family="sans-serif" fill="#ede9fe">${weldSpoolData.spools.length} spools</text>`;
+
+      // En-tête
+      svgContent += `<g transform="translate(0, 4.2)" font-size="1.5" font-family="sans-serif" font-weight="bold" fill="#475569">
+        <rect x="0" y="0" width="${sideColW}" height="3.2" fill="#faf5ff"/>
+        <text x="2.5" y="2.2">SPOOL</text>
+        <text x="18" y="2.2">LONG. (m)</text>
+        <text x="36" y="2.2">POIDS</text>
+        <text x="${sideColW - 32}" y="2.2">ENCOMBR.</text>
+        <text x="${sideColW - 4}" y="2.2" text-anchor="end">GABARIT</text>
+      </g>`;
+
+      spoolRows.forEach((sp, idx) => {
+        const ry = 7.4 + idx * 3.8;
+        const bg = idx % 2 === 1 ? ' fill="#f5f3ff"' : "";
+        const lgStr = `${sp.totalLengthM.toFixed(2)} m`;
+        const weightStr = `${Math.round(sp.estimatedWeightKg)} kg`;
+        const encStr = `${sp.boundingSize.dx.toFixed(1)}x${sp.boundingSize.dy.toFixed(1)}`;
+        const gabaritColor = sp.isTransportable ? "#16a34a" : "#dc2626";
+        const gabaritTxt = sp.isTransportable ? "≤12m OK" : ">12m CONVOI";
+
+        svgContent += `<g transform="translate(0, ${ry})">
+          <rect x="0" y="0" width="${sideColW}" height="3.8"${bg}/>
+          <line x1="0" y1="3.8" x2="${sideColW}" y2="3.8" stroke="#e9d5ff" stroke-width="0.25"/>
+          <text x="2.5" y="2.7" font-size="1.5" font-weight="bold" fill="${sp.color}">${sp.id}</text>
+          <text x="18" y="2.7" font-size="1.4" fill="#334155">${lgStr}</text>
+          <text x="36" y="2.7" font-size="1.4" fill="#475569">${weightStr}</text>
+          <text x="${sideColW - 32}" y="2.7" font-size="1.3" font-family="monospace" fill="#64748b">${encStr}</text>
+          <text x="${sideColW - 4}" y="2.7" text-anchor="end" font-size="1.4" font-weight="bold" fill="${gabaritColor}">${gabaritTxt}</text>
+        </g>`;
+      });
+
+      const spFooterY = spoolTableH - 4;
+      svgContent += `<rect x="0" y="${spFooterY}" width="${sideColW}" height="4" fill="#faf5ff" stroke-top="#ddd6fe"/>
+        <text x="4" y="${spFooterY + 2.7}" font-size="1.5" font-family="sans-serif" font-weight="bold" fill="#5b21b6">
+          Linéaire total : ${weldSpoolData.summary.totalCutLengthM.toFixed(1)} m · Poids : ${Math.round(weldSpoolData.summary.totalPipingWeightKg)} kg
+        </text>`;
+
+      svgContent += `</g>`;
+      nextTableY += spoolTableH + 4;
     }
   }
 
@@ -816,7 +999,7 @@ export function generateIsoDrawingSvg(
     </text>`;
   }
 
-  const svgMarkup = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}mm" height="${H}mm" style="background:#ffffff;">
+  const svgMarkup = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="100%" height="100%" style="display:block; width:100%; height:100%; background:#ffffff;">
     ${svgContent}
   </svg>`;
 

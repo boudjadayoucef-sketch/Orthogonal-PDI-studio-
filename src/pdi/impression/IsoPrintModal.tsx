@@ -23,6 +23,7 @@ import {
   HardHat,
   Crosshair,
   RotateCcw,
+  Flame,
 } from "lucide-react";
 import {
   IsoPaperFormat,
@@ -48,7 +49,12 @@ import {
   MSS_SUPPORT_CATALOG,
   computeCivilMto,
 } from "../isometric/supports/pdiMssSupportEngine";
+import {
+  getComponentVignetteSvg,
+  getMssSupportVignetteSvg,
+} from "../catalog/trouvayCauvinCatalog";
 import type { Cad2dEntity } from "../isometric/engine/IsometrieModuleV48d";
+import { deriveSpoolsAndWelds, WeldSpoolResult } from "../welding/isoWeldSpoolEngine";
 
 export interface IsoPrintModalProps {
   isOpen: boolean;
@@ -69,6 +75,8 @@ export interface IsoPrintModalProps {
   selectedSegmentIds?: string[];
   selectedSupportId?: string | null;
   selectedCad2dIds?: string[];
+  weldSpoolData?: WeldSpoolResult;
+  initialWeldMapMode?: boolean;
 }
 
 export const IsoPrintModal: React.FC<IsoPrintModalProps> = ({
@@ -90,10 +98,14 @@ export const IsoPrintModal: React.FC<IsoPrintModalProps> = ({
   selectedSegmentIds = [],
   selectedSupportId = null,
   selectedCad2dIds = [],
+  weldSpoolData,
+  initialWeldMapMode = false,
 }) => {
   const [config, setConfig] = useState<IsoPrintConfig>(() => ({
     ...DEFAULT_PRINT_CONFIG,
-    documentTitle: projectName || "PLAN ISOMÉTRIQUE TUYAUTERIE INDUSTRIELLE",
+    documentTitle: initialWeldMapMode
+      ? "PLAN DE SOUDAGE & CARNET DE SPOOLS (WELD MAP)"
+      : projectName || "PLAN ISOMÉTRIQUE TUYAUTERIE INDUSTRIELLE",
     pressureDesign: pressDesign,
     hydrotestPressure: hydrotest,
     wilayaOrSite: wilaya || "SITE INDUSTRIEL",
@@ -102,6 +114,10 @@ export const IsoPrintModal: React.FC<IsoPrintModalProps> = ({
     showSupports: true,
     showCivilEngineering: true,
     showSupportTable: true,
+    weldMapMode: initialWeldMapMode,
+    showSpoolColors: initialWeldMapMode,
+    showWeldTable: initialWeldMapMode,
+    showSpoolTable: initialWeldMapMode,
     windowZoomRatio: 1,
   }));
 
@@ -263,6 +279,12 @@ export const IsoPrintModal: React.FC<IsoPrintModalProps> = ({
     return computeCivilMto(effectiveSupports);
   }, [effectiveSupports]);
 
+  // Données Spools & Soudures effectives (calcul automatique ou injecté)
+  const effectiveWeldSpoolData = useMemo(() => {
+    if (weldSpoolData) return weldSpoolData;
+    return deriveSpoolsAndWelds(effectiveNodes, effectiveSegments);
+  }, [weldSpoolData, effectiveNodes, effectiveSegments]);
+
   // Rendu vectoriel SVG de la planche en temps réel avec tous les composants
   const drawingResult = useMemo(() => {
     return generateIsoDrawingSvg(
@@ -273,7 +295,8 @@ export const IsoPrintModal: React.FC<IsoPrintModalProps> = ({
       effectiveBomRows,
       config,
       config.showSupports ? effectiveSupports : [],
-      config.showCivilEngineering ? effectiveCad2d : []
+      config.showCivilEngineering ? effectiveCad2d : [],
+      effectiveWeldSpoolData
     );
   }, [
     effectiveNodes,
@@ -284,6 +307,7 @@ export const IsoPrintModal: React.FC<IsoPrintModalProps> = ({
     config,
     effectiveSupports,
     effectiveCad2d,
+    effectiveWeldSpoolData,
   ]);
 
   if (!isOpen) return null;
@@ -867,6 +891,72 @@ export const IsoPrintModal: React.FC<IsoPrintModalProps> = ({
                   <span className="font-bold text-zinc-200">Cotations dimensionnelles</span>
                 </label>
 
+                {/* Mode Plan de Soudage & Carnet de Spools */}
+                <div className="p-3 rounded-lg bg-amber-950/30 border border-amber-800/60 space-y-2">
+                  <label className="flex items-start gap-2.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(config.weldMapMode)}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setConfig((prev) => ({
+                          ...prev,
+                          weldMapMode: checked,
+                          showWelds: true,
+                          showSpoolColors: checked ? true : prev.showSpoolColors,
+                          showWeldTable: checked ? true : prev.showWeldTable,
+                          showSpoolTable: checked ? true : prev.showSpoolTable,
+                          documentTitle: checked
+                            ? "PLAN DE SOUDAGE & CARNET DE SPOOLS (WELD MAP)"
+                            : (projectName || "PLAN ISOMÉTRIQUE TUYAUTERIE INDUSTRIELLE"),
+                        }));
+                      }}
+                      className="mt-0.5 rounded border-amber-700 text-amber-600 focus:ring-amber-500"
+                    />
+                    <div>
+                      <div className="font-bold text-amber-300 flex items-center gap-1.5">
+                        <Flame className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Mode Plan de Soudage & Carnet de Spools</span>
+                      </div>
+                      <div className="text-[11px] text-zinc-400">
+                        Active la symbologie atelier/chantier/golden, les repères Wxxx, et les tableaux de fabrication ASME B31.3
+                      </div>
+                    </div>
+                  </label>
+
+                  {config.weldMapMode && (
+                    <div className="pl-6 space-y-1.5 pt-1 border-t border-amber-900/40 text-xs">
+                      <label className="flex items-center gap-2 cursor-pointer text-zinc-300">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(config.showSpoolColors)}
+                          onChange={(e) => setConfig((prev) => ({ ...prev, showSpoolColors: e.target.checked }))}
+                          className="rounded border-zinc-700 text-amber-600 focus:ring-amber-500"
+                        />
+                        <span>Coloration différenciée par Spool (SP-01, SP-02...)</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer text-zinc-300">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(config.showWeldTable)}
+                          onChange={(e) => setConfig((prev) => ({ ...prev, showWeldTable: e.target.checked }))}
+                          className="rounded border-zinc-700 text-amber-600 focus:ring-amber-500"
+                        />
+                        <span>Tableau des soudures & CND (Weld Log ASME B31.3)</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer text-zinc-300">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(config.showSpoolTable)}
+                          onChange={(e) => setConfig((prev) => ({ ...prev, showSpoolTable: e.target.checked }))}
+                          className="rounded border-zinc-700 text-amber-600 focus:ring-amber-500"
+                        />
+                        <span>Carnet de spools (Spool Schedule & Gabarit 12m)</span>
+                      </label>
+                    </div>
+                  )}
+                </div>
+
                 {/* Soudures */}
                 <label className="flex items-center gap-2.5 cursor-pointer px-1">
                   <input
@@ -975,6 +1065,7 @@ export const IsoPrintModal: React.FC<IsoPrintModalProps> = ({
                       <thead className="bg-zinc-900 sticky top-0 text-zinc-400 border-b border-zinc-800">
                         <tr>
                           <th className="p-1.5">Tag</th>
+                          <th className="p-1.5 w-8 text-center">Sym</th>
                           <th className="p-1.5">Type MSS</th>
                           <th className="p-1.5">Platine</th>
                           <th className="p-1.5 text-right">Massif</th>
@@ -986,6 +1077,11 @@ export const IsoPrintModal: React.FC<IsoPrintModalProps> = ({
                           return (
                             <tr key={sup.id} className="hover:bg-zinc-900/50">
                               <td className="p-1.5 font-bold text-cyan-400">{sup.tag}</td>
+                              <td className="p-1.5 text-center">
+                                <svg viewBox="-10 -10 20 20" className="w-5 h-5 inline-block overflow-visible">
+                                  <g dangerouslySetInnerHTML={{ __html: getMssSupportVignetteSvg(sup.type, false) }} />
+                                </svg>
+                              </td>
                               <td className="p-1.5 text-zinc-300">MSS-{def.mssStandardNumber}</td>
                               <td className="p-1.5 text-zinc-400">
                                 {sup.civilSpec.basePlateLengthMm}×{sup.civilSpec.basePlateWidthMm}
@@ -1011,6 +1107,7 @@ export const IsoPrintModal: React.FC<IsoPrintModalProps> = ({
                       <thead className="bg-zinc-900 sticky top-0 text-zinc-400 border-b border-zinc-800">
                         <tr>
                           <th className="p-1.5">RP</th>
+                          <th className="p-1.5 w-8 text-center">Sym</th>
                           <th className="p-1.5">Désignation</th>
                           <th className="p-1.5">DN</th>
                           <th className="p-1.5 text-right">Qté/Long</th>
@@ -1020,6 +1117,11 @@ export const IsoPrintModal: React.FC<IsoPrintModalProps> = ({
                         {effectiveBomRows.map((r) => (
                           <tr key={r.index} className="hover:bg-zinc-900/50">
                             <td className="p-1.5 font-bold text-cyan-400">{r.index}</td>
+                            <td className="p-1.5 text-center">
+                              <svg viewBox="-10 -10 20 20" className="w-5 h-5 inline-block overflow-visible">
+                                <g dangerouslySetInnerHTML={{ __html: getComponentVignetteSvg(r.fittingType || r.designation, { isPrint: false }) }} />
+                              </svg>
+                            </td>
                             <td className="p-1.5 text-zinc-300 font-sans">{r.designation}</td>
                             <td className="p-1.5 text-zinc-400">DN{r.dn}</td>
                             <td className="p-1.5 text-right font-bold text-zinc-200">
@@ -1031,6 +1133,69 @@ export const IsoPrintModal: React.FC<IsoPrintModalProps> = ({
                     </table>
                   </div>
                 </div>
+
+                {/* Synthèse et Tableau Spools & Soudures */}
+                {effectiveWeldSpoolData && (
+                  <div className="p-3 rounded-xl bg-amber-950/20 border border-amber-900/50 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="font-bold text-amber-300 flex items-center gap-2">
+                        <Flame className="w-4 h-4 text-amber-400" />
+                        <span>Plan de Soudage & Spools ({effectiveWeldSpoolData.spools.length} spools, {effectiveWeldSpoolData.welds.length} soudures)</span>
+                      </div>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-900/40 text-amber-300 border border-amber-800/50">
+                        ASME B31.3
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-4 gap-1.5 text-center text-[10px]">
+                      <div className="p-1.5 rounded bg-zinc-950/60 border border-zinc-800">
+                        <div className="text-zinc-500">Atelier</div>
+                        <div className="font-mono font-bold text-cyan-400">{effectiveWeldSpoolData.summary.shopWelds}</div>
+                      </div>
+                      <div className="p-1.5 rounded bg-zinc-950/60 border border-zinc-800">
+                        <div className="text-zinc-500">Chantier</div>
+                        <div className="font-mono font-bold text-red-400">{effectiveWeldSpoolData.summary.fieldWelds}</div>
+                      </div>
+                      <div className="p-1.5 rounded bg-zinc-950/60 border border-zinc-800">
+                        <div className="text-zinc-500">CND RT</div>
+                        <div className="font-mono font-bold text-amber-400">{effectiveWeldSpoolData.summary.rtWelds}</div>
+                      </div>
+                      <div className="p-1.5 rounded bg-zinc-950/60 border border-zinc-800">
+                        <div className="text-zinc-500">Linéaire</div>
+                        <div className="font-mono font-bold text-purple-400">{effectiveWeldSpoolData.summary.totalCutLengthM.toFixed(1)}m</div>
+                      </div>
+                    </div>
+
+                    {/* Tableau récapitulatif Spools */}
+                    <div>
+                      <div className="text-[11px] font-bold text-zinc-300 mb-1">Carnet des Spools</div>
+                      <div className="max-h-32 overflow-y-auto border border-zinc-800 rounded bg-zinc-950/40">
+                        <table className="w-full text-left text-[11px] font-mono">
+                          <thead className="bg-zinc-900 text-zinc-400">
+                            <tr>
+                              <th className="p-1">Spool</th>
+                              <th className="p-1">Long.</th>
+                              <th className="p-1">Poids</th>
+                              <th className="p-1 text-right">Gabarit</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-zinc-800/60">
+                            {effectiveWeldSpoolData.spools.map((sp) => (
+                              <tr key={sp.id}>
+                                <td className="p-1 font-bold" style={{ color: sp.color }}>{sp.id}</td>
+                                <td className="p-1 text-zinc-300">{sp.totalLengthM.toFixed(2)}m</td>
+                                <td className="p-1 text-zinc-400">{Math.round(sp.estimatedWeightKg)}kg</td>
+                                <td className={`p-1 text-right font-bold ${sp.isTransportable ? "text-emerald-400" : "text-red-400"}`}>
+                                  {sp.isTransportable ? "≤12m" : ">12m"}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -1172,7 +1337,7 @@ export const IsoPrintModal: React.FC<IsoPrintModalProps> = ({
 
             {/* Cadre de la feuille simulée */}
             <div
-              className="bg-white rounded shadow-2xl p-0.5 border border-zinc-400 max-w-full max-h-[78vh] flex items-center justify-center overflow-hidden"
+              className="bg-white rounded shadow-2xl p-0.5 border border-zinc-400 max-w-full max-h-[78vh] flex items-center justify-center overflow-hidden [&>svg]:w-full [&>svg]:h-full [&>svg]:max-w-full [&>svg]:max-h-full [&>svg]:block"
               style={{
                 aspectRatio: `${drawingResult.widthMm} / ${drawingResult.heightMm}`,
               }}

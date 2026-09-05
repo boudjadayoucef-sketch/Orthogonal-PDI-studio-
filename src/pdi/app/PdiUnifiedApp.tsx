@@ -882,7 +882,21 @@ export default function PdiUnifiedApp() {
         {activeModule === "profile" && <ComingSoonPanel title="Profil utilisateur">
           <div className="pdi-profile-grid">
             <section className="pdi-profile-card"><h3>Identité</h3><p><b>Nom</b><span>{pdiUserProfile.name}</span></p><p><b>Email</b><span>{pdiUserProfile.email}</span></p><p><b>Entreprise</b><span>{pdiUserProfile.company}</span></p><p><b>Pays</b><span>{pdiUserProfile.country}</span></p></section>
-            <section className="pdi-profile-card"><h3>Compte</h3><p><b>Rôle</b><span>{String(pdiUserProfile.role).toUpperCase()}</span></p><p><b>Version Patch</b><span style={{ fontFamily: 'monospace', color: '#FFFFFF', fontWeight: 900 }}>{PDI_PATCH_VERSION}</span></p><p><b>Plan</b><span>{pdiUserProfile.plan}</span></p><p><b>Email</b><span>{pdiUserProfile.emailStatus}</span></p><p><b>Créé le</b><span>{pdiUserProfile.createdAt}</span></p></section>
+            <section className="pdi-profile-card">
+              <h3>Compte &amp; Version</h3>
+              <p><b>Rôle</b><span>{String(pdiUserProfile.role).toUpperCase()}</span></p>
+              <p>
+                <b>Version Patch</b>
+                <span className="inline-flex items-center gap-1.5 font-mono text-cyan-300 font-black">
+                  <span className="px-1.5 py-0.5 rounded bg-cyan-950 border border-cyan-700 text-xs">{PDI_PATCH_VERSION}</span>
+                  <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">Étape A Active</span>
+                </span>
+              </p>
+              <p><b>Palier Industriel</b><span className="text-zinc-300 text-xs">Trouvay &amp; Cauvin / Symbologie ISO</span></p>
+              <p><b>Plan</b><span>{pdiUserProfile.plan}</span></p>
+              <p><b>Email</b><span>{pdiUserProfile.emailStatus}</span></p>
+              <p><b>Créé le</b><span>{pdiUserProfile.createdAt}</span></p>
+            </section>
             <section className="pdi-profile-card wide"><h3>Actions</h3><div className="pdi-profile-actions"><button onClick={()=>setActiveModule("projects")}>Mes projets</button><button onClick={()=>setActiveModule("subscription")}>Mon abonnement</button><button onClick={handleLogoutToHome} style={{ color: "#f87171", borderColor: "rgba(248,113,113,0.4)" }}>⎋ Déconnexion</button></div></section>
           </div>
           {/* PATCH 017K2 : identite societe editable, remplace toute marque codee en dur. */}

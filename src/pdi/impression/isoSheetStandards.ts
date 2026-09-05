@@ -105,6 +105,10 @@ export interface IsoPrintConfig {
   showSupports: boolean;
   showCivilEngineering: boolean;
   showSupportTable: boolean;
+  weldMapMode?: boolean;
+  showSpoolColors?: boolean;
+  showWeldTable?: boolean;
+  showSpoolTable?: boolean;
   windowZoomRatio?: number;
   offsetX?: number; // Décalage manuel horizontal en mm (défaut: 0)
   offsetY?: number; // Décalage manuel vertical en mm (défaut: 0)
@@ -131,6 +135,10 @@ export const DEFAULT_PRINT_CONFIG: IsoPrintConfig = {
   showDimensions: true,
   showWelds: true,
   showPipeLabels: true,
+  weldMapMode: false,
+  showSpoolColors: false,
+  showWeldTable: false,
+  showSpoolTable: false,
   windowZoomRatio: 1,
   documentTitle: "PLAN ISOMÉTRIQUE TUYAUTERIE INDUSTRIELLE",
   documentNumber: "PDI-ISO-001",

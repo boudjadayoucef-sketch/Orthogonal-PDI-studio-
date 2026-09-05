@@ -13,13 +13,13 @@ export type IsoNodeType =
   | "piquage" | "gare_depart" | "gare_arrivee" | "tee";
 
 export type IsoFittingType =
-  | "te_egal" | "te_reduit"
-  | "reduction_concentrique" | "reduction_excentrique"
-  | "coude_90" | "coude_45" | "coude_30" | "coude_22_5"
-  | "bride_wn" | "bride_so" | "joint" | "jmi"
-  | "vanne_boisseau" | "vanne_papillon" | "vanne_passage_total"
-  | "clapet" | "soupape" | "purge" | "event"
-  | "manometre" | "prise_pression" | "piquage"
+  | "te_egal" | "te_reduit" | "te_barre" | "croix" | "weldolet" | "threadolet" | "sockolet"
+  | "reduction_concentrique" | "reduction_excentrique" | "fond_bombe"
+  | "coude_90" | "coude_90_sr" | "coude_45" | "coude_30" | "coude_22_5" | "coude_3d" | "coude_5d" | "coude_180"
+  | "bride_wn" | "bride_so" | "bride_pleine" | "bride_sw" | "bride_lap_joint" | "joint" | "jmi" | "diaphragme"
+  | "vanne_passage_total" | "vanne_opercule" | "vanne_soupape" | "vanne_boisseau" | "vanne_papillon"
+  | "clapet" | "clapet_bille" | "soupape" | "robinet_pointeau"
+  | "purge" | "event" | "manometre" | "prise_pression" | "piquage"
   | "poste_sectionnement" | "poste_coupure" | "poste_detente"
   | "gare_racleur_depart" | "gare_racleur_arrivee";
 
@@ -286,22 +286,58 @@ export const DIAMETER_BY_DN: Record<number, DiameterSpec> =
   ));
 
 export const FITTING_LABELS: Record<IsoFittingType, string> = {
-  te_egal: "Té égal", te_reduit: "Té réduit",
-  reduction_concentrique: "Réduction concentrique",
-  reduction_excentrique: "Réduction excentrique",
-  coude_90: "Coude 90°", coude_45: "Coude 45°",
-  coude_30: "Coude 30°", coude_22_5: "Coude 22,5°",
-  bride_wn: "Bride WN", bride_so: "Bride SO", joint: "Joint", jmi: "Joint monobloc isolant JMI",
-  vanne_boisseau: "Vanne à boisseau sphérique",
-  vanne_papillon: "Vanne papillon",
-  vanne_passage_total: "Vanne à passage total",
-  clapet: "Clapet anti-retour", soupape: "Soupape de sécurité",
-  purge: "Purge", event: "Évent", manometre: "Manomètre",
-  prise_pression: "Prise de pression", piquage: "Piquage",
-  poste_sectionnement: "Poste de sectionnement",
-  poste_coupure: "Poste de coupure", poste_detente: "Poste de détente",
-  gare_racleur_depart: "Gare racleur départ",
-  gare_racleur_arrivee: "Gare racleur arrivée"
+  // Tés et piquages
+  te_egal: "Té égal ASME B16.9",
+  te_reduit: "Té réduit ASME B16.9",
+  te_barre: "Té barré raclable",
+  croix: "Croix 4 voies ASME B16.9",
+  weldolet: "Piquage soudé Weldolet MSS SP-97",
+  threadolet: "Piquage taraudé Threadolet MSS SP-97",
+  sockolet: "Piquage emboîté Sockolet MSS SP-97",
+  piquage: "Piquage direct tube/tube",
+  // Réductions et fonds
+  reduction_concentrique: "Réduction concentrique ASME B16.9",
+  reduction_excentrique: "Réduction excentrique ASME B16.9",
+  fond_bombe: "Fond bombé / Cap elliptique ASME B16.9",
+  // Coudes et cintres
+  coude_90: "Coude 90° Grand Rayon LR (1.5D)",
+  coude_90_sr: "Coude 90° Court Rayon SR (1.0D)",
+  coude_45: "Coude 45° Grand Rayon",
+  coude_30: "Coude 30° usiné",
+  coude_22_5: "Coude 22,5° usiné",
+  coude_3d: "Coude cintré 3D (R=3D)",
+  coude_5d: "Coude cintré 5D raclable (R=5D)",
+  coude_180: "Retour 180° Long Radius",
+  // Brides et raccordements
+  bride_wn: "Bride à collerette WN ASME B16.5",
+  bride_so: "Bride plate à emmancher SO",
+  bride_pleine: "Bride pleine Blind ASME B16.5",
+  bride_sw: "Bride à emboîtement SW",
+  bride_lap_joint: "Bride tournante Lap Joint",
+  joint: "Joint spiralé RF ASME B16.20",
+  jmi: "Joint monobloc isolant JMI",
+  diaphragme: "Diaphragme de mesure ASME MFC-3M",
+  // Robinetterie industrielle
+  vanne_passage_total: "Vanne passage intégral API 6D",
+  vanne_opercule: "Vanne à opercule (Gate) API 600",
+  vanne_soupape: "Vanne à soupape de réglage (Globe)",
+  vanne_boisseau: "Vanne à boisseau sphérique API 6D",
+  vanne_papillon: "Vanne papillon type Lug API 609",
+  clapet: "Clapet anti-retour battant ASME B16.34",
+  clapet_bille: "Clapet anti-retour à bille API 6D",
+  soupape: "Soupape de sécurité PSV API 526",
+  robinet_pointeau: "Robinet pointeau forgé 6000#",
+  // Instrumentation et ligne
+  purge: "Purge manuelle basse avec vanne",
+  event: "Évent d'aération haut avec vanne",
+  manometre: "Manomètre de pression PI",
+  prise_pression: "Prise de pression instrumentation",
+  // Postes et gares de raclage
+  poste_sectionnement: "Poste de sectionnement de ligne",
+  poste_coupure: "Poste de coupure d'urgence ESD",
+  poste_detente: "Poste de détente et régulation",
+  gare_racleur_depart: "Gare de racleur départ (Launcher)",
+  gare_racleur_arrivee: "Gare de racleur arrivée (Receiver)"
 };
 
 export const FITTING_TYPES = Object.keys(FITTING_LABELS) as IsoFittingType[];

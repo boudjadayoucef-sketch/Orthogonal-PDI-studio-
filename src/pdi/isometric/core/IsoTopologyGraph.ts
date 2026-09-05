@@ -28,10 +28,11 @@ export const pdiClamp = (v: number, min: number, max: number): number =>
   Math.min(max, Math.max(min, v));
 
 export function elbowAngle(type: IsoFittingType): number {
-  if (type === "coude_90") return 90;
+  if (type === "coude_90" || type === "coude_90_sr" || type === "coude_3d" || type === "coude_5d") return 90;
   if (type === "coude_45") return 45;
   if (type === "coude_30") return 30;
   if (type === "coude_22_5") return 22.5;
+  if (type === "coude_180") return 180;
   return 0;
 }
 
@@ -59,14 +60,35 @@ export function defaultEquipmentPorts(type: IsoFittingType): IsoPort[] {
       { id: pdiUid("port"), index: 1, role: "inline-out", dx: Math.cos(a), dy: Math.sin(a), dz: 0 },
     ];
   }
-  if (type === "te_egal" || type === "te_reduit" || type === "piquage") {
+  if (type === "croix") {
+    return [
+      { id: pdiUid("port"), index: 0, role: "inline-in", dx: -1, dy: 0, dz: 0 },
+      { id: pdiUid("port"), index: 1, role: "inline-out", dx: 1, dy: 0, dz: 0 },
+      { id: pdiUid("port"), index: 2, role: "branch", dx: 0, dy: -1, dz: 0 },
+      { id: pdiUid("port"), index: 3, role: "branch", dx: 0, dy: 1, dz: 0 },
+    ];
+  }
+  if (
+    type === "te_egal" ||
+    type === "te_reduit" ||
+    type === "te_barre" ||
+    type === "piquage" ||
+    type === "weldolet" ||
+    type === "threadolet" ||
+    type === "sockolet"
+  ) {
     return [
       { id: pdiUid("port"), index: 0, role: "inline-in", dx: -1, dy: 0, dz: 0 },
       { id: pdiUid("port"), index: 1, role: "inline-out", dx: 1, dy: 0, dz: 0 },
       { id: pdiUid("port"), index: 2, role: "branch", dx: 0, dy: -1, dz: 0 },
     ];
   }
-  if (type === "jmi" || type.startsWith("bride") || type === "joint") {
+  if (type === "bride_pleine" || type === "fond_bombe") {
+    return [
+      { id: pdiUid("port"), index: 0, role: "inline-in", dx: -1, dy: 0, dz: 0 },
+    ];
+  }
+  if (type === "jmi" || type.startsWith("bride") || type === "joint" || type === "diaphragme") {
     return [
       { id: pdiUid("port"), index: 0, role: "inline-in", dx: -1, dy: 0, dz: 0 },
       { id: pdiUid("port"), index: 1, role: "inline-out", dx: 1, dy: 0, dz: 0 },
@@ -77,7 +99,8 @@ export function defaultEquipmentPorts(type: IsoFittingType): IsoPort[] {
     type === "prise_pression" ||
     type === "purge" ||
     type === "event" ||
-    type === "soupape"
+    type === "soupape" ||
+    type === "robinet_pointeau"
   ) {
     return [
       { id: pdiUid("port"), index: 0, role: "inline-in", dx: -1, dy: 0, dz: 0 },
@@ -94,7 +117,12 @@ export function defaultEquipmentPorts(type: IsoFittingType): IsoPort[] {
 export function equipmentPortConnectionType(type: IsoFittingType, index: number): JointConnectionType {
   if (type === "bride_wn") return index === 0 ? "butt_weld" : "flanged";
   if (type === "bride_so") return index === 0 ? "fillet_weld" : "flanged";
+  if (type === "bride_sw") return index === 0 ? "socket_weld" : "flanged";
+  if (type === "bride_lap_joint") return index === 0 ? "butt_weld" : "flanged";
+  if (type === "bride_pleine") return "flanged";
   if (type === "joint" || type === "jmi") return "mechanical";
+  if (type === "threadolet" || type === "robinet_pointeau") return index === 0 ? "butt_weld" : "threaded";
+  if (type === "sockolet") return index === 0 ? "butt_weld" : "socket_weld";
   if (
     (type === "manometre" || type === "prise_pression" || type === "purge" || type === "event") &&
     index === 2

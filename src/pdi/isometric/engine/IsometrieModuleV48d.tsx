@@ -13,7 +13,7 @@
 // PD&I PATCH 007b — ISO embedded by default, public logo handled by SaaS shell
 // PD&I PATCH 007a — shell SaaS branding/fullscreen wording reviewed
 // PD&I PATCH 003 — V4.8d restored
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 // PATCH 017J : identite de cartouche parametrable (R15).
 import { pdiCompanyName, pdiStandardsNote } from "../../branding/pdiBranding";
@@ -41,6 +41,16 @@ import type { PdiEntreeRuban017M } from "./pdiRegistreCommandes.v1";
 import { pdiSignExportData } from "../../core/pdiWatermark";
 import { IsoPrintModal } from "../../impression/IsoPrintModal";
 import type { BomRow } from "../../impression/isoSvgGenerator";
+import { IsoWeldSpoolModal } from "../../welding/IsoWeldSpoolModal";
+import {
+  deriveSpoolsAndWelds,
+  WeldSpoolResult,
+  PdiWeldEntry,
+} from "../../welding/isoWeldSpoolEngine";
+import {
+  TROUVAY_CAUVIN_CATALOG,
+  getComponentVignetteSvg,
+} from "../../catalog/trouvayCauvinCatalog";
 import {
   UnitSystem,
   formatLength,
@@ -160,13 +170,24 @@ export interface IsoNode {
 }
 
 export type IsoFittingType =
-  | "te_egal" | "te_reduit"
-  | "reduction_concentrique" | "reduction_excentrique"
-  | "coude_90" | "coude_45" | "coude_30" | "coude_22_5"
-  | "bride_wn" | "bride_so" | "joint" | "jmi"
-  | "vanne_boisseau" | "vanne_papillon" | "vanne_passage_total"
-  | "clapet" | "soupape" | "purge" | "event"
-  | "manometre" | "prise_pression" | "piquage"
+  // Tés et piquages
+  | "te_egal" | "te_reduit" | "te_barre" | "croix"
+  | "weldolet" | "threadolet" | "sockolet" | "piquage"
+  // Réductions et fonds
+  | "reduction_concentrique" | "reduction_excentrique" | "fond_bombe"
+  // Coudes et cintres
+  | "coude_90" | "coude_90_sr" | "coude_45" | "coude_30" | "coude_22_5"
+  | "coude_3d" | "coude_5d" | "coude_180"
+  // Brides et raccordements
+  | "bride_wn" | "bride_so" | "bride_pleine" | "bride_sw" | "bride_lap_joint"
+  | "joint" | "jmi" | "diaphragme"
+  // Robinetterie industrielle
+  | "vanne_passage_total" | "vanne_opercule" | "vanne_soupape"
+  | "vanne_boisseau" | "vanne_papillon"
+  | "clapet" | "clapet_bille" | "soupape" | "robinet_pointeau"
+  // Instrumentation et ligne
+  | "purge" | "event" | "manometre" | "prise_pression"
+  // Postes et gares de raclage
   | "poste_sectionnement" | "poste_coupure" | "poste_detente"
   | "gare_racleur_depart" | "gare_racleur_arrivee";
 
@@ -377,22 +398,58 @@ const DIAMETER_BY_DN: Record<number, DiameterSpec> =
   ));
 
 const FITTING_LABELS: Record<IsoFittingType,string> = {
-  te_egal:"Té égal", te_reduit:"Té réduit",
-  reduction_concentrique:"Réduction concentrique",
-  reduction_excentrique:"Réduction excentrique",
-  coude_90:"Coude 90°", coude_45:"Coude 45°",
-  coude_30:"Coude 30°", coude_22_5:"Coude 22,5°",
-  bride_wn:"Bride WN", bride_so:"Bride SO", joint:"Joint", jmi:"Joint monobloc isolant JMI",
-  vanne_boisseau:"Vanne à boisseau sphérique",
-  vanne_papillon:"Vanne papillon",
-  vanne_passage_total:"Vanne à passage total",
-  clapet:"Clapet anti-retour", soupape:"Soupape de sécurité",
-  purge:"Purge", event:"Évent", manometre:"Manomètre",
-  prise_pression:"Prise de pression", piquage:"Piquage",
-  poste_sectionnement:"Poste de sectionnement",
-  poste_coupure:"Poste de coupure", poste_detente:"Poste de détente",
-  gare_racleur_depart:"Gare racleur départ",
-  gare_racleur_arrivee:"Gare racleur arrivée"
+  // Tés et piquages
+  te_egal: "Té égal ASME B16.9",
+  te_reduit: "Té réduit ASME B16.9",
+  te_barre: "Té barré raclable",
+  croix: "Croix 4 voies ASME B16.9",
+  weldolet: "Piquage soudé Weldolet MSS SP-97",
+  threadolet: "Piquage taraudé Threadolet MSS SP-97",
+  sockolet: "Piquage emboîté Sockolet MSS SP-97",
+  piquage: "Piquage direct tube/tube",
+  // Réductions et fonds
+  reduction_concentrique: "Réduction concentrique ASME B16.9",
+  reduction_excentrique: "Réduction excentrique ASME B16.9",
+  fond_bombe: "Fond bombé / Cap elliptique ASME B16.9",
+  // Coudes et cintres
+  coude_90: "Coude 90° Grand Rayon LR (1.5D)",
+  coude_90_sr: "Coude 90° Court Rayon SR (1.0D)",
+  coude_45: "Coude 45° Grand Rayon",
+  coude_30: "Coude 30° usiné",
+  coude_22_5: "Coude 22,5° usiné",
+  coude_3d: "Coude cintré 3D (R=3D)",
+  coude_5d: "Coude cintré 5D raclable (R=5D)",
+  coude_180: "Retour 180° Long Radius",
+  // Brides et raccordements
+  bride_wn: "Bride à collerette WN ASME B16.5",
+  bride_so: "Bride plate à emmancher SO",
+  bride_pleine: "Bride pleine Blind ASME B16.5",
+  bride_sw: "Bride à emboîtement SW",
+  bride_lap_joint: "Bride tournante Lap Joint",
+  joint: "Joint spiralé RF ASME B16.20",
+  jmi: "Joint monobloc isolant JMI",
+  diaphragme: "Diaphragme de mesure ASME MFC-3M",
+  // Robinetterie industrielle
+  vanne_passage_total: "Vanne passage intégral API 6D",
+  vanne_opercule: "Vanne à opercule (Gate) API 600",
+  vanne_soupape: "Vanne à soupape de réglage (Globe)",
+  vanne_boisseau: "Vanne à boisseau sphérique API 6D",
+  vanne_papillon: "Vanne papillon type Lug API 609",
+  clapet: "Clapet anti-retour battant ASME B16.34",
+  clapet_bille: "Clapet anti-retour à bille API 6D",
+  soupape: "Soupape de sécurité PSV API 526",
+  robinet_pointeau: "Robinet pointeau forgé 6000#",
+  // Instrumentation et ligne
+  purge: "Purge manuelle basse avec vanne",
+  event: "Évent d'aération haut avec vanne",
+  manometre: "Manomètre de pression PI",
+  prise_pression: "Prise de pression instrumentation",
+  // Postes et gares de raclage
+  poste_sectionnement: "Poste de sectionnement de ligne",
+  poste_coupure: "Poste de coupure d'urgence ESD",
+  poste_detente: "Poste de détente et régulation",
+  gare_racleur_depart: "Gare de racleur départ (Launcher)",
+  gare_racleur_arrivee: "Gare de racleur arrivée (Receiver)"
 };
 
 const FITTING_TYPES = Object.keys(FITTING_LABELS) as IsoFittingType[];
@@ -435,10 +492,11 @@ const isEquipmentNode = (n: IsoNode) => !!n.equipmentType;
 const equipmentLabel = (n: IsoNode) => n.equipmentLabel || (n.equipmentType ? FITTING_LABELS[n.equipmentType] : n.name);
 
 function elbowAngle(type: IsoFittingType): number {
-  if(type==="coude_90")return 90;
-  if(type==="coude_45")return 45;
-  if(type==="coude_30")return 30;
-  if(type==="coude_22_5")return 22.5;
+  if (type === "coude_90" || type === "coude_90_sr" || type === "coude_3d" || type === "coude_5d") return 90;
+  if (type === "coude_45") return 45;
+  if (type === "coude_30") return 30;
+  if (type === "coude_22_5") return 22.5;
+  if (type === "coude_180") return 180;
   return 0;
 }
 
@@ -454,28 +512,56 @@ function defaultFreeNodePorts(): IsoPort[] {
 }
 
 function defaultEquipmentPorts(type: IsoFittingType): IsoPort[] {
-  const bend=elbowAngle(type);
-  if(bend){
-    const a=bend*Math.PI/180;
+  const bend = elbowAngle(type);
+  if (bend) {
+    const a = (bend * Math.PI) / 180;
     return [
       {id:uid("port"),index:0,role:"inline-in",dx:-1,dy:0,dz:0},
       {id:uid("port"),index:1,role:"inline-out",dx:Math.cos(a),dy:Math.sin(a),dz:0}
     ];
   }
-  if (type === "te_egal" || type === "te_reduit" || type === "piquage") {
+  if (type === "croix") {
+    return [
+      {id:uid("port"),index:0,role:"inline-in",dx:-1,dy:0,dz:0},
+      {id:uid("port"),index:1,role:"inline-out",dx:1,dy:0,dz:0},
+      {id:uid("port"),index:2,role:"branch",dx:0,dy:-1,dz:0},
+      {id:uid("port"),index:3,role:"branch",dx:0,dy:1,dz:0}
+    ];
+  }
+  if (
+    type === "te_egal" ||
+    type === "te_reduit" ||
+    type === "te_barre" ||
+    type === "piquage" ||
+    type === "weldolet" ||
+    type === "threadolet" ||
+    type === "sockolet"
+  ) {
     return [
       {id:uid("port"),index:0,role:"inline-in",dx:-1,dy:0,dz:0},
       {id:uid("port"),index:1,role:"inline-out",dx:1,dy:0,dz:0},
       {id:uid("port"),index:2,role:"branch",dx:0,dy:-1,dz:0}
     ];
   }
-  if (type === "jmi" || type.startsWith("bride") || type === "joint") {
+  if (type === "bride_pleine" || type === "fond_bombe") {
+    return [
+      {id:uid("port"),index:0,role:"inline-in",dx:-1,dy:0,dz:0}
+    ];
+  }
+  if (type === "jmi" || type.startsWith("bride") || type === "joint" || type === "diaphragme") {
     return [
       {id:uid("port"),index:0,role:"inline-in",dx:-1,dy:0,dz:0},
       {id:uid("port"),index:1,role:"inline-out",dx:1,dy:0,dz:0}
     ];
   }
-  if (type === "manometre" || type === "prise_pression" || type === "purge" || type === "event" || type === "soupape") {
+  if (
+    type === "manometre" ||
+    type === "prise_pression" ||
+    type === "purge" ||
+    type === "event" ||
+    type === "soupape" ||
+    type === "robinet_pointeau"
+  ) {
     return [
       {id:uid("port"),index:0,role:"inline-in",dx:-1,dy:0,dz:0},
       {id:uid("port"),index:1,role:"inline-out",dx:1,dy:0,dz:0},
@@ -489,10 +575,20 @@ function defaultEquipmentPorts(type: IsoFittingType): IsoPort[] {
 }
 
 function equipmentPortConnectionType(type:IsoFittingType,index:number):JointConnectionType {
-  if(type==="bride_wn")return index===0?"butt_weld":"flanged";
-  if(type==="bride_so")return index===0?"fillet_weld":"flanged";
-  if(type==="joint"||type==="jmi")return "mechanical";
-  if((type==="manometre"||type==="prise_pression"||type==="purge"||type==="event")&&index===2)return "threaded";
+  if (type === "bride_wn") return index === 0 ? "butt_weld" : "flanged";
+  if (type === "bride_so") return index === 0 ? "fillet_weld" : "flanged";
+  if (type === "bride_sw") return index === 0 ? "socket_weld" : "flanged";
+  if (type === "bride_lap_joint") return index === 0 ? "butt_weld" : "flanged";
+  if (type === "bride_pleine") return "flanged";
+  if (type === "joint" || type === "jmi") return "mechanical";
+  if (type === "threadolet" || type === "robinet_pointeau") return index === 0 ? "butt_weld" : "threaded";
+  if (type === "sockolet") return index === 0 ? "butt_weld" : "socket_weld";
+  if (
+    (type === "manometre" || type === "prise_pression" || type === "purge" || type === "event") &&
+    index === 2
+  ) {
+    return "threaded";
+  }
   return "butt_weld";
 }
 
@@ -751,79 +847,59 @@ function reorderFittings(list: IsoFitting[], fromIndex: number, toIndex: number)
 }
 
 function materialRows(nodes: IsoNode[], segments: IsoSegment[]) {
-  const rows: Array<{designation:string;dn:number;inch:string;qty:number;unit:string;length:number;source:string}> = [];
-  for (const n of nodes.filter(x=>x.equipmentType)) {
-    rows.push({designation:equipmentLabel(n),dn:n.dn||150,inch:dia(n.dn||150).inch,qty:1,unit:"u",length:n.length||0,source:n.reference||n.manufacturer||"À renseigner"});
+  const rows: Array<{
+    designation: string;
+    dn: number;
+    inch: string;
+    qty: number;
+    unit: string;
+    length: number;
+    source: string;
+    fittingType?: string;
+  }> = [];
+  for (const n of nodes.filter(x => x.equipmentType)) {
+    const catalogItem = TROUVAY_CAUVIN_CATALOG[n.equipmentType!];
+    rows.push({
+      designation: equipmentLabel(n),
+      dn: n.dn || 150,
+      inch: dia(n.dn || 150).inch,
+      qty: 1,
+      unit: "u",
+      length: n.length || 0,
+      source: n.reference || (catalogItem ? `${catalogItem.standard} - ${catalogItem.brand}` : "Trouvay & Cauvin"),
+      fittingType: n.equipmentType,
+    });
   }
   for (const s of segments) {
-    rows.push({designation:`Tube ${s.material}`,dn:s.dn,inch:dia(s.dn).inch,qty:1,unit:"tronçon",length:s.length,source:"À renseigner"});
-    for (const f of s.fittings) rows.push({
-      designation:f.label,dn:f.dn||s.dn,inch:dia(f.dn||s.dn).inch,qty:1,unit:"u",length:0,source:f.reference||"À renseigner"
+    rows.push({
+      designation: `Tube ${s.material}`,
+      dn: s.dn,
+      inch: dia(s.dn).inch,
+      qty: 1,
+      unit: "tronçon",
+      length: s.length,
+      source: "Trouvay & Cauvin ASTM A106 Gr.B",
+      fittingType: "pipe",
     });
+    for (const f of s.fittings) {
+      const catalogItem = TROUVAY_CAUVIN_CATALOG[f.type];
+      rows.push({
+        designation: f.label,
+        dn: f.dn || s.dn,
+        inch: dia(f.dn || s.dn).inch,
+        qty: 1,
+        unit: "u",
+        length: 0,
+        source: f.reference || (catalogItem ? `${catalogItem.standard} - ${catalogItem.brand}` : "Trouvay & Cauvin"),
+        fittingType: f.type,
+      });
+    }
   }
   return rows;
 }
 
-
-
 function getFittingSvgGraphic(type: IsoFittingType, isPrint: boolean = false) {
-  if (type.includes("vanne") || type.includes("poste_")) {
-    const stroke = isPrint ? "#0284c7" : "#38bdf8";
-    const fill = isPrint ? "#0284c7" : "#0284c7";
-    return `<path d="M -8 -5 L 0 0 L -8 5 Z" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>` +
-      `<path d="M 8 -5 L 0 0 L 8 5 Z" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>` +
-      `<path d="M 0 0 V -8 M -4 -8 H 4" stroke="${stroke}" stroke-width="1.5"/>`;
-  }
-  if (type.startsWith("coude")) {
-    const stroke = isPrint ? "#d97706" : "#f59e0b";
-    return `<path d="M -6 6 Q -6 -6 6 -6" stroke="${stroke}" stroke-width="3" fill="none" stroke-linecap="round"/>`;
-  }
-  if (type === "te_egal" || type === "te_reduit" || type === "piquage") {
-    const stroke = isPrint ? "#16a34a" : "#22c55e";
-    return `<path d="M -7 0 H 7 M 0 0 V -7" stroke="${stroke}" stroke-width="2.5" stroke-linecap="round"/>` +
-      `<circle cx="0" cy="-7" r="2" fill="${stroke}"/>`;
-  }
-  if (type === "jmi") {
-    const stroke = isPrint ? "#b45309" : "#f59e0b";
-    return `<line x1="-3" y1="-7" x2="-3" y2="7" stroke="${stroke}" stroke-width="2.5"/>` +
-      `<line x1="3" y1="-7" x2="3" y2="7" stroke="${stroke}" stroke-width="2.5"/>` +
-      `<line x1="-3" y1="0" x2="3" y2="0" stroke="${stroke}" stroke-width="1"/>`;
-  }
-  if (type.startsWith("bride") || type === "joint") {
-    const stroke = isPrint ? "#b45309" : "#f59e0b";
-    return `<line x1="-2" y1="-6" x2="-2" y2="6" stroke="${stroke}" stroke-width="2"/>` +
-      `<line x1="2" y1="-6" x2="2" y2="6" stroke="${stroke}" stroke-width="2"/>`;
-  }
-  if (type === "clapet") {
-    const stroke = isPrint ? "#0284c7" : "#38bdf8";
-    return `<path d="M -6 -5 L 2 0 L -6 5 Z" fill="${stroke}" stroke="${stroke}" stroke-width="1"/>` +
-      `<line x1="3" y1="-6" x2="3" y2="6" stroke="${stroke}" stroke-width="2"/>`;
-  }
-  if (type.startsWith("reduction")) {
-    const stroke = isPrint ? "#64748b" : "#94a3b8";
-    return `<path d="M -6 -6 L 6 -3 L 6 3 L -6 6 Z" fill="${isPrint ? "#cbd5e1" : "#1e293b"}" stroke="${stroke}" stroke-width="1.5"/>`;
-  }
-  if (type === "soupape") {
-    const stroke = isPrint ? "#dc2626" : "#ef4444";
-    return `<path d="M -6 0 H 6 M 0 0 V -7 M -4 -7 H 4 M 0 -7 V -10" stroke="${stroke}" stroke-width="2"/>`;
-  }
-  if (type === "purge" || type === "event" || type === "prise_pression") {
-    const stroke = isPrint ? "#0284c7" : "#38bdf8";
-    return `<path d="M 0 0 V -7 M -3 -7 H 3 M 0 -7 V -10" stroke="${stroke}" stroke-width="2"/>`;
-  }
-  if (type === "manometre") {
-    const stroke = isPrint ? "#0284c7" : "#38bdf8";
-    return `<line x1="0" y1="0" x2="0" y2="-6" stroke="${stroke}" stroke-width="1.5"/>` +
-      `<circle cx="0" cy="-11" r="5" fill="${isPrint ? "#ffffff" : "#0f172a"}" stroke="${stroke}" stroke-width="1.5"/>` +
-      `<line x1="0" y1="-11" x2="2" y2="-14" stroke="${stroke}" stroke-width="1.5"/>`;
-  }
-  if (type.startsWith("gare_racleur")) {
-    const stroke = isPrint ? "#7c3aed" : "#a78bfa";
-    return `<rect x="-8" y="-5" width="16" height="10" rx="2" fill="${isPrint ? "#f3e8ff" : "#1e1b4b"}" stroke="${stroke}" stroke-width="1.5"/>` +
-      `<line x1="5" y1="-5" x2="5" y2="5" stroke="${stroke}" stroke-width="1.5"/>`;
-  }
-  const stroke = isPrint ? "#0284c7" : "#38bdf8";
-  return `<rect x="-5" y="-5" width="10" height="10" fill="${stroke}" rx="1"/>`;
+  return getComponentVignetteSvg(type, { isPrint });
 }
 
 
@@ -1909,6 +1985,11 @@ function IsometrieModule(props: { projectId?: string }) {
   const [commandPaletteOpen,setCommandPaletteOpen]=useState(false);
   const [aboutOpen,setAboutOpen]=useState(false);
   const [printModalOpen,setPrintModalOpen]=useState(false);
+  const [weldSpoolModalOpen, setWeldSpoolModalOpen] = useState(false);
+  const [colorBySpool, setColorBySpool] = useState(false);
+  const [activeSpoolFilter, setActiveSpoolFilter] = useState<string | null>(null);
+  const [weldOverrides, setWeldOverrides] = useState<Record<string, Partial<PdiWeldEntry>>>({});
+  const [printWeldMapMode, setPrintWeldMapMode] = useState(false);
   const [libraryQuery,setLibraryQuery]=useState("");
   const [draggedEquipmentType,setDraggedEquipmentType]=useState<IsoFittingType|null>(null);
   const [statusMessage,setStatusMessage]=useState("Prêt");
@@ -3043,7 +3124,59 @@ function IsometrieModule(props: { projectId?: string }) {
     setStatusMessage("Renumerotation des tags effectuee");
   };
 
+  // =========================================================================
+  // ÉTAPE B : PLAN DE SOUDAGE & CARNET DE SPOOLS (ASME B31.3 / ISO 14692)
+  // =========================================================================
+  const rawWeldSpoolData = useMemo(() => {
+    return deriveSpoolsAndWelds(nodes, segments);
+  }, [nodes, segments]);
+
+  const weldSpoolData: WeldSpoolResult = useMemo(() => {
+    if (Object.keys(weldOverrides).length === 0) return rawWeldSpoolData;
+    const updatedWelds = rawWeldSpoolData.welds.map((w) => {
+      const ov = weldOverrides[w.id];
+      return ov ? { ...w, ...ov } : w;
+    });
+    const shopWelds = updatedWelds.filter((w) => w.location === "shop").length;
+    const fieldWelds = updatedWelds.filter((w) => w.location === "field").length;
+    const goldenWelds = updatedWelds.filter((w) => w.location === "golden").length;
+    const rtWelds = updatedWelds.filter((w) => w.cndRequired?.rt || (w.ndtRequired && w.ndtRequired.includes("RT"))).length;
+    return {
+      ...rawWeldSpoolData,
+      welds: updatedWelds,
+      summary: {
+        ...rawWeldSpoolData.summary,
+        totalWelds: updatedWelds.length,
+        shopWelds,
+        fieldWelds,
+        goldenWelds,
+        rtWelds,
+      },
+    };
+  }, [rawWeldSpoolData, weldOverrides]);
+
+  const handleUpdateWeld = useCallback((weldId: string, updates: Partial<PdiWeldEntry>) => {
+    setWeldOverrides((prev) => ({
+      ...prev,
+      [weldId]: { ...prev[weldId], ...updates },
+    }));
+  }, []);
+
+  const handleOpenPrintModalFromWeld = useCallback((mode: "weldMap") => {
+    setPrintWeldMapMode(mode === "weldMap");
+    setPrintModalOpen(true);
+  }, []);
+
   const segmentStrokeColor = (seg: IsoSegment) => {
+    if (colorBySpool && weldSpoolData) {
+      const spool = weldSpoolData.spools.find((sp) => sp.segmentIds.includes(seg.id));
+      if (spool) {
+        if (activeSpoolFilter && activeSpoolFilter !== spool.id) {
+          return "#334155";
+        }
+        return spool.color;
+      }
+    }
     if (colorByService && seg.service) {
       const sv = projectSetup.services.find(x => x.code === seg.service);
       if (sv) return sv.color;
@@ -6207,6 +6340,7 @@ function IsometrieModule(props: { projectId?: string }) {
       unit: r.unit,
       length: r.length || 0,
       reference: r.source || "STD",
+      fittingType: r.fittingType,
     }));
   }, [planRows]);
 
@@ -6528,10 +6662,19 @@ function IsometrieModule(props: { projectId?: string }) {
       ],
     },
     {
+      title: "Soudage & Spools",
+      items: [
+        { label: "Plan de Soudage & Carnet de Spools", hint: "WELD", run: () => setWeldSpoolModalOpen(true) },
+        { label: colorBySpool ? "Désactiver coloration Spools" : "Coloration par Spool (SP-01, SP-02...)", hint: "SP", run: () => setColorBySpool((v) => !v) },
+        { label: showWelds ? "Masquer repères soudures" : "Afficher repères soudures (W01...)", hint: "W", run: () => setShowWelds((v) => !v) },
+      ],
+    },
+    {
       title: "Impression",
       items: [
         { label: "Planche ISO A3", hint: "A3", run: () => setIsoMode((v) => (v === "editor" ? "planche" : "editor")) },
         { label: "Imprimer feuille", hint: "⎙ / P", run: printPlanSheet },
+        { label: "Imprimer Plan de Soudage (Weld Map)", hint: "WM", run: () => { setPrintWeldMapMode(true); setPrintModalOpen(true); } },
       ],
     },
     {
@@ -7294,6 +7437,15 @@ function IsometrieModule(props: { projectId?: string }) {
             </button>
             <button
               type="button"
+              title="Plan de Soudage & Carnet de Spools (Weld Map ASME B31.3)"
+              onClick={() => setWeldSpoolModalOpen(true)}
+              className={`pdi-rail-tool-btn ${railCollapsed ? "justify-center p-1" : ""}`}
+            >
+              <Flame className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              {!railCollapsed && <span className="truncate">Soudage</span>}
+            </button>
+            <button
+              type="button"
               title="Imprimer Isométrie (P)"
               onClick={printPlanSheet}
               className={`pdi-rail-tool-btn ${railCollapsed ? "justify-center p-1" : ""}`}
@@ -7561,7 +7713,10 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
 
     <IsoPrintModal
       isOpen={printModalOpen}
-      onClose={() => setPrintModalOpen(false)}
+      onClose={() => {
+        setPrintModalOpen(false);
+        setPrintWeldMapMode(false);
+      }}
       projectName={projectName}
       wilaya={wilaya}
       pressDesign={pressDesign}
@@ -7578,6 +7733,18 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
       selectedSegmentIds={selectedSegmentIds}
       selectedSupportId={selectedSupportId}
       selectedCad2dIds={selectedCad2dIds}
+      weldSpoolData={weldSpoolData}
+      initialWeldMapMode={printWeldMapMode}
+    />
+
+    <IsoWeldSpoolModal
+      isOpen={weldSpoolModalOpen}
+      onClose={() => setWeldSpoolModalOpen(false)}
+      weldSpoolData={weldSpoolData}
+      onUpdateWeld={handleUpdateWeld}
+      onOpenPrintModal={handleOpenPrintModalFromWeld}
+      activeSpoolFilter={activeSpoolFilter}
+      onSelectSpool={setActiveSpoolFilter}
     />
 
     <div className={`${workspaceFullscreen?"hidden":""} bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3 text-white shadow-lg`}>
@@ -7601,6 +7768,14 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
             title="Charger un réseau complet avec 3D, By-Pass, 26 Raccords, 10 Supports MSS SP-58, Génie Civil et Cotations"
           >
             <Sparkles className="w-4 h-4 text-yellow-300 animate-pulse"/> Démo Complexe (3D & Supports)
+          </button>
+          <button
+            type="button"
+            onClick={() => setWeldSpoolModalOpen(true)}
+            className="px-3.5 py-2 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white rounded-xl text-xs font-black shadow-md flex items-center gap-1.5 transition-all border border-amber-400/30 active:scale-95"
+            title="Plan de Soudage & Carnet de Spools (Weld Map ASME B31.3)"
+          >
+            <Flame className="w-4 h-4 text-amber-200" /> Plan de Soudage ({weldSpoolData.spools.length} Spools / {weldSpoolData.welds.length} Soudures)
           </button>
           <button type="button" onClick={loadPresetPoste} className="px-3 py-2 bg-blue-600 rounded-xl text-xs font-black">
             <Flame className="inline w-4 h-4 mr-1"/> Exemple poste
@@ -8129,7 +8304,9 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                 <button type="button" onClick={()=>setGcVisibleEditor(v=>!v)} className={`px-2 py-1 rounded text-[10px] font-bold transition-all ${gcVisibleEditor?"bg-cyan-600 text-white":"bg-slate-800 text-slate-400"}`} title="Afficher le génie civil (GC)">GC</button>
                 <button type="button" onClick={()=>setShowDimensions(v=>!v)} className={`px-2 py-1 rounded text-[10px] font-bold transition-all ${showDimensions ? "bg-blue-600 text-white" : "bg-slate-800 text-slate-400"}`} title="Afficher les cotes (⇔)">⇔</button>
                 <button type="button" onClick={()=>setShowPipeLabels(v=>!v)} className={`px-2 py-1 rounded text-[10px] font-bold transition-all ${showPipeLabels?"bg-cyan-600 text-white":"bg-slate-800 text-slate-400"}`} title="Labels des tuyauteries (PL)">PL</button>
-                <button type="button" onClick={()=>setShowWelds(v=>!v)} className={`px-2 py-1 rounded text-[10px] font-bold transition-all ${showWelds?"bg-amber-600 text-white":"bg-slate-800 text-slate-400"}`} title="Afficher les soudures (W)">W</button>
+                <button type="button" onClick={()=>setShowWelds(v=>!v)} className={`px-2 py-1 rounded text-[10px] font-bold transition-all ${showWelds?"bg-amber-600 text-white":"bg-slate-800 text-slate-400"}`} title="Afficher les soudures Wxxx (W)">W</button>
+                <button type="button" onClick={()=>setColorBySpool(v=>!v)} className={`px-2 py-1 rounded text-[10px] font-bold transition-all ${colorBySpool?"bg-purple-600 text-white":"bg-slate-800 text-slate-400"}`} title="Coloration par Spool (SP)">SP</button>
+                <button type="button" onClick={()=>setWeldSpoolModalOpen(true)} className="px-2 py-1 rounded text-[10px] font-bold bg-slate-800 hover:bg-slate-700 text-amber-400 hover:text-amber-300" title="Carnet de Spools & Soudures (Weld Map)"><Flame className="w-3 h-3 inline"/></button>
                 <button type="button" onClick={()=>setShowLabels(v=>!v)} className={`px-2 py-1 rounded text-[10px] font-bold transition-all ${showLabels ? "bg-indigo-600 text-white" : "bg-slate-800 text-slate-400"}`} title="Afficher les annotations (Aa)">Aa</button>
               </div>
 
@@ -8399,6 +8576,91 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                         })()}
                   </g>
                 })}
+
+                {/* CALQUE SOUDURES INDUSTRIELLES & REPÈRES Wxxx (ASME B31.3 / ISO 14692) */}
+                {showWelds && (
+                  <g data-iso-layer="welds">
+                    {weldSpoolData.welds.map((weld) => {
+                      const wp = isoProjectV4(weld.worldPos.x, weld.worldPos.y, weld.worldPos.z, viewport.zoom, viewport.panX, viewport.panY);
+                      const isField = weld.location === "field";
+                      const isGolden = weld.location === "golden";
+                      const strokeCol = isGolden ? "#f59e0b" : isField ? "#ef4444" : "#38bdf8";
+                      const fillCol = isGolden ? "#78350f" : isField ? "#450a0a" : "#082f49";
+                      const isHov = hoveredEntity?.type === ("node" as any) && hoveredEntity.id === weld.id;
+                      const badgeW = Math.max(22, weld.id.length * 6 + 6);
+
+                      return (
+                        <g
+                          key={weld.id}
+                          transform={`translate(${wp.x}, ${wp.y})`}
+                          className="cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setWeldSpoolModalOpen(true);
+                          }}
+                          onPointerEnter={() => setHoveredEntity({ type: "node" as any, id: weld.id, label: `${weld.id} (${weld.location})` })}
+                          onPointerLeave={() => setHoveredEntity(null)}
+                        >
+                          {/* Halo au survol */}
+                          {isHov && (
+                            <circle r="13" fill={strokeCol} fillOpacity="0.25" stroke={strokeCol} strokeWidth="1" strokeDasharray="2 2" />
+                          )}
+
+                          {/* Symbole ASME selon type */}
+                          {isGolden ? (
+                            <g>
+                              <polygon points="0,-7 7,0 0,7 -7,0" fill={fillCol} stroke={strokeCol} strokeWidth="1.8" />
+                              <polygon points="0,-3.5 3.5,0 0,3.5 -3.5,0" fill="#fbbf24" />
+                            </g>
+                          ) : isField ? (
+                            <g>
+                              <circle r="5.5" fill={fillCol} stroke={strokeCol} strokeWidth="1.8" />
+                              <circle r="2.5" fill="#ef4444" />
+                              <line x1="0" y1="-5.5" x2="0" y2="-12" stroke="#ef4444" strokeWidth="1.2" />
+                              <polygon points="0,-12 5,-9.5 0,-7" fill="#ef4444" />
+                            </g>
+                          ) : (
+                            <g>
+                              <circle r="4.8" fill={fillCol} stroke={strokeCol} strokeWidth="1.5" />
+                              <line x1="-3" y1="-3" x2="3" y2="3" stroke={strokeCol} strokeWidth="1" />
+                              <line x1="3" y1="-3" x2="-3" y2="3" stroke={strokeCol} strokeWidth="1" />
+                            </g>
+                          )}
+
+                          {/* Étiquette Wxxx */}
+                          {viewport.zoom >= 0.4 && (
+                            <g transform="translate(8, -8)" pointerEvents="none">
+                              <rect
+                                x="-1"
+                                y="-8"
+                                width={badgeW}
+                                height="12"
+                                rx="3"
+                                fill="#020617"
+                                fillOpacity="0.88"
+                                stroke={strokeCol}
+                                strokeWidth="0.8"
+                              />
+                              <text
+                                x={badgeW / 2 - 1}
+                                y="1"
+                                textAnchor="middle"
+                                fill={strokeCol}
+                                fontSize="7.5"
+                                fontFamily="monospace"
+                                fontWeight="bold"
+                              >
+                                {weld.id}
+                              </text>
+                            </g>
+                          )}
+
+                          <title>{`${weld.id} · Soudure ${weld.location.toUpperCase()} · DN${weld.dn} · Spool: ${weld.spoolId || "Chantier"} · WPS: ${weld.wpsNumber} · CND: ${weld.ndtRequired}`}</title>
+                        </g>
+                      );
+                    })}
+                  </g>
+                )}
 
                 {/* Live Branch Preview during dragging */}
                 {branchDrawing && (() => {
