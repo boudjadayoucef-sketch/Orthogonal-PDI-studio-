@@ -11,7 +11,7 @@
 import * as THREE from "three";
 import { TROUVAY_CAUVIN_CATALOG } from "../catalog/trouvayCauvinCatalog";
 import type { MaterialPalette } from "./pdi3dMaterials";
-import type { IsoPipingSupport } from "../supports/pdiMssSupportEngine";
+import type { IsoPipingSupport } from "../isometric/supports/pdiMssSupportEngine";
 
 export interface PipeDimensions {
   odM: number;
@@ -115,16 +115,33 @@ export class Pdi3dGeometryFactory {
     const group = new THREE.Group();
     const dims = getPipeStandardDimensions(dn);
     const radius = dims.odM / 2;
-    const bendRadius = radius * 3.0; // Standard 1.5D Long Radius
+    const bendRadius = Math.max(0.04, radius * 3.0); // Standard 1.5D Long Radius ASME B16.9
 
-    // Représentation géométrique propre du raccord coudé
-    const geom = new THREE.SphereGeometry(radius * 1.05, 20, 20);
-    const sphereMesh = new THREE.Mesh(geom, material);
-    sphereMesh.position.copy(center);
-    sphereMesh.castShadow = true;
-    sphereMesh.receiveShadow = true;
-    sphereMesh.userData = { ...userData, isPdiEntity: true, entityType: "fitting", fittingType: "coude" };
-    group.add(sphereMesh);
+    if (inVec && outVec && inVec.lengthSq() > 0.0001 && outVec.lengthSq() > 0.0001) {
+      // Points d'entrée et de sortie tangentiels du coude ASME B16.9
+      const dirIn = inVec.clone().normalize();
+      const dirOut = outVec.clone().normalize();
+      const pStart = center.clone().addScaledVector(dirIn, -bendRadius);
+      const pEnd = center.clone().addScaledVector(dirOut, bendRadius);
+
+      // Courbe quadratique pour un raccordement fluide
+      const curve = new THREE.QuadraticBezierCurve3(pStart, center, pEnd);
+      const tubeGeom = new THREE.TubeGeometry(curve, 16, radius, 18, false);
+      const tubeMesh = new THREE.Mesh(tubeGeom, material);
+      tubeMesh.castShadow = true;
+      tubeMesh.receiveShadow = true;
+      tubeMesh.userData = { ...userData, isPdiEntity: true, entityType: "fitting", fittingType: "coude", dn };
+      group.add(tubeMesh);
+    } else {
+      // Raccord sphéroïde pour jonctions multi-directions
+      const geom = new THREE.SphereGeometry(radius * 1.05, 20, 20);
+      const sphereMesh = new THREE.Mesh(geom, material);
+      sphereMesh.position.copy(center);
+      sphereMesh.castShadow = true;
+      sphereMesh.receiveShadow = true;
+      sphereMesh.userData = { ...userData, isPdiEntity: true, entityType: "fitting", fittingType: "coude", dn };
+      group.add(sphereMesh);
+    }
 
     return group;
   }
@@ -350,10 +367,10 @@ export class Pdi3dGeometryFactory {
       isPdiEntity: true,
       entityType: "support",
       tag: support.tag,
-      typeCode: support.typeCode,
-      typeLabelFr: support.typeLabelFr,
-      standard: support.standard,
-      designLoadKn: support.designLoadKn,
+      typeCode: support.type,
+      typeLabelFr: support.comments || `Support MSS ${support.type}`,
+      standard: "MSS SP-58",
+      designLoadKn: support.customLoads?.fz ? Math.abs(support.customLoads.fz) : 5,
     };
 
     return group;

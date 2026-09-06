@@ -178,7 +178,14 @@ export class Pdi3dSceneManager {
     const nodeMap = new Map(nodes.map((n) => [n.id, n]));
     const spoolMap = new Map(spools.map((s) => [s.id, s]));
 
-    // 1. Construction des tubes (Segments)
+    // 1. Fonction de conversion de coordonnées CAD Tuyauterie -> Repère Three.js
+    // En ingénierie de tuyauterie : X = Est, Y = Nord, Z = Élévation (Hauteur)
+    // Dans Three.js : X = Est, Y = Élévation (Haut vertical), Z = Nord
+    const toThree = (x: number, y: number, z: number) => new THREE.Vector3(x, z, y);
+
+    const segMap = new Map(segments.map((s) => [s.id, s]));
+
+    // 1. Construction des tubes extrudés (Segments) & Raccords en ligne (Fittings)
     for (const seg of segments) {
       const fromNode = nodeMap.get(seg.fromNodeId);
       const toNode = nodeMap.get(seg.toNodeId);
@@ -213,9 +220,13 @@ export class Pdi3dSceneManager {
             : this.materials.carbonSteel;
       }
 
-      const p1 = new THREE.Vector3(fromNode.x, fromNode.y, fromNode.z);
-      const p2 = new THREE.Vector3(toNode.x, toNode.y, toNode.z);
+      const p1 = toThree(fromNode.x, fromNode.y, fromNode.z);
+      const p2 = toThree(toNode.x, toNode.y, toNode.z);
+      const segVec = new THREE.Vector3().subVectors(p2, p1);
+      const segLen = segVec.length();
+      const normDir = segLen > 0.0001 ? segVec.clone().normalize() : new THREE.Vector3(1, 0, 0);
 
+      // Tube cylindrique solide extrudé
       const pipeMesh = this.factory.createPipeCylinder(p1, p2, seg.dn, mat, {
         id: seg.id,
         tag: seg.tag || `SEG-${seg.id.slice(0, 6)}`,
@@ -226,17 +237,67 @@ export class Pdi3dSceneManager {
         spoolColor,
         service: seg.service || "Gaz / Procédé",
         pressureClass: seg.pressureClass || seg.pn || "Class 300",
-        lengthM: seg.length,
+        lengthM: seg.length || segLen,
       });
 
       this.modelRoot.add(pipeMesh);
+
+      // Raccords en ligne (Inline Fittings : brides, vannes, clapets)
+      if (seg.fittings && Array.isArray(seg.fittings)) {
+        for (const fit of seg.fittings) {
+          let alpha = 0.5;
+          if (typeof fit.localPosition === "number" && fit.localPosition >= 0 && fit.localPosition <= 1) {
+            alpha = fit.localPosition;
+          } else if (typeof fit.cumulativePosition === "number" && segLen > 0.01) {
+            alpha = Math.max(0.05, Math.min(0.95, fit.cumulativePosition / segLen));
+          }
+          const fitPos = new THREE.Vector3().lerpVectors(p1, p2, alpha);
+          const fitDn = fit.dn || seg.dn;
+
+          if (fit.type.includes("vanne") || fit.type.includes("soupape") || fit.type.includes("robinet")) {
+            const valve = this.factory.createValveMesh(fitPos, normDir, fitDn, mat, {
+              id: fit.id,
+              label: fit.label || `Vanne DN${fitDn}`,
+              dn: fitDn,
+              spoolId,
+            });
+            this.modelRoot.add(valve);
+          } else if (fit.type.includes("bride") || fit.type === "jmi") {
+            const flange = this.factory.createFlangeMesh(fitPos, normDir, fitDn, mat, {
+              id: fit.id,
+              label: fit.label || `Bride DN${fitDn}`,
+              dn: fitDn,
+              spoolId,
+            });
+            this.modelRoot.add(flange);
+          }
+        }
+      }
     }
 
     // 2. Construction des raccords & équipements aux nœuds
+    const nodeConnMap = new Map<string, Array<{ seg: typeof segments[0]; otherNodeId: string; dir: THREE.Vector3 }>>();
+    for (const seg of segments) {
+      const fN = nodeMap.get(seg.fromNodeId);
+      const tN = nodeMap.get(seg.toNodeId);
+      if (!fN || !tN) continue;
+      const vFrom = toThree(fN.x, fN.y, fN.z);
+      const vTo = toThree(tN.x, tN.y, tN.z);
+      const d1 = new THREE.Vector3().subVectors(vTo, vFrom).normalize();
+      const d2 = d1.clone().negate();
+
+      if (!nodeConnMap.has(seg.fromNodeId)) nodeConnMap.set(seg.fromNodeId, []);
+      nodeConnMap.get(seg.fromNodeId)!.push({ seg, otherNodeId: seg.toNodeId, dir: d1 });
+
+      if (!nodeConnMap.has(seg.toNodeId)) nodeConnMap.set(seg.toNodeId, []);
+      nodeConnMap.get(seg.toNodeId)!.push({ seg, otherNodeId: seg.fromNodeId, dir: d2 });
+    }
+
     for (const node of nodes) {
-      const pos = new THREE.Vector3(node.x, node.y, node.z);
+      const pos = toThree(node.x, node.y, node.z);
       const dn = node.dn || 100;
       const mat = this.materials.carbonSteel;
+      const conns = nodeConnMap.get(node.id) || [];
 
       if (node.type === "tee" || (node.equipmentType && node.equipmentType.startsWith("te_"))) {
         // Té 3D
@@ -252,17 +313,31 @@ export class Pdi3dSceneManager {
         teeGroup.position.copy(pos);
         teeGroup.userData = { isPdiEntity: true, entityType: "node", label: `Té DN${dn}`, id: node.id, dn };
         this.modelRoot.add(teeGroup);
+      } else if (conns.length === 2) {
+        // Détecter un coude à 90° ou angle au nœud
+        const inDir = conns[0].dir.clone().negate();
+        const outDir = conns[1].dir.clone();
+        const dot = inDir.dot(outDir);
+        if (dot < 0.98) {
+          // Il y a un angle -> générer un coude torique 3D
+          const elbow = this.factory.createElbowMesh(pos, inDir, outDir, dn, mat, {
+            id: `elbow_${node.id}`,
+            label: `Coude DN${dn}`,
+            nodeId: node.id,
+          });
+          this.modelRoot.add(elbow);
+        }
       } else if (node.equipmentType && node.equipmentType.includes("vanne")) {
-        // Vanne 3D
-        const valve = this.factory.createValveMesh(pos, new THREE.Vector3(1, 0, 0), dn, mat, {
+        const norm = conns[0] ? conns[0].dir : new THREE.Vector3(1, 0, 0);
+        const valve = this.factory.createValveMesh(pos, norm, dn, mat, {
           id: node.id,
           label: node.equipmentLabel || `Vanne DN${dn}`,
           dn,
         });
         this.modelRoot.add(valve);
       } else if (node.equipmentType && node.equipmentType.includes("bride")) {
-        // Bride 3D
-        const flange = this.factory.createFlangeMesh(pos, new THREE.Vector3(1, 0, 0), dn, mat, {
+        const norm = conns[0] ? conns[0].dir : new THREE.Vector3(1, 0, 0);
+        const flange = this.factory.createFlangeMesh(pos, norm, dn, mat, {
           id: node.id,
           label: node.equipmentLabel || `Bride DN${dn}`,
           dn,
@@ -271,7 +346,7 @@ export class Pdi3dSceneManager {
       }
     }
 
-    // 3. Construction des soudures 3D (Weld Rings)
+    // 3. Construction des soudures 3D (Weld Rings) avec alignement vectoriel
     if (this.currentOptions.showWelds) {
       for (const weld of welds) {
         if (
@@ -282,10 +357,25 @@ export class Pdi3dSceneManager {
           continue;
         }
 
-        const weldPos = new THREE.Vector3(weld.worldPos.x, weld.worldPos.y, weld.worldPos.z);
+        const weldPos = toThree(weld.worldPos.x, weld.worldPos.y, weld.worldPos.z);
+        
+        // Trouver la direction du tube pour aligner le cordon annulaire
+        let weldNorm = new THREE.Vector3(1, 0, 0);
+        const attachedSeg = segMap.get(weld.segmentId);
+        if (attachedSeg) {
+          const fN = nodeMap.get(attachedSeg.fromNodeId);
+          const tN = nodeMap.get(attachedSeg.toNodeId);
+          if (fN && tN) {
+            const v1 = toThree(fN.x, fN.y, fN.z);
+            const v2 = toThree(tN.x, tN.y, tN.z);
+            const dir = new THREE.Vector3().subVectors(v2, v1);
+            if (dir.lengthSq() > 0.0001) weldNorm = dir.normalize();
+          }
+        }
+
         const weldMesh = this.factory.createWeldRingMesh(
           weldPos,
-          new THREE.Vector3(1, 0, 0),
+          weldNorm,
           weld.dn,
           weld.location,
           {
@@ -305,8 +395,10 @@ export class Pdi3dSceneManager {
     // 4. Construction des supports 3D MSS SP-58
     if (this.currentOptions.showSupports && supports) {
       for (const sup of supports) {
-        const supPos = new THREE.Vector3(sup.worldPos.x, sup.worldPos.y, sup.worldPos.z);
-        const supMesh = this.factory.createSupportMesh(sup, supPos, sup.dn);
+        const seg = segMap.get(sup.segmentId);
+        const dn = seg?.dn || 100;
+        const supPos = toThree(sup.worldPos.x, sup.worldPos.y, sup.worldPos.z);
+        const supMesh = this.factory.createSupportMesh(sup, supPos, dn);
         this.modelRoot.add(supMesh);
       }
     }

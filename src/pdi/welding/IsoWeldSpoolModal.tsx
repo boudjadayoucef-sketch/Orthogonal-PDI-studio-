@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   Wrench,
   Download,
+  Box,
 } from "lucide-react";
 import {
   PdiWeldEntry,
@@ -32,6 +33,8 @@ interface IsoWeldSpoolModalProps {
   onOpenPrintModal?: (mode: "weldMap") => void;
   activeSpoolFilter?: string | null;
   onSelectSpool?: (spoolId: string | null) => void;
+  onOpen3DViewer?: (spoolId?: string) => void;
+  onSwitchToIso?: () => void;
 }
 
 export const IsoWeldSpoolModal: React.FC<IsoWeldSpoolModalProps> = ({
@@ -42,6 +45,8 @@ export const IsoWeldSpoolModal: React.FC<IsoWeldSpoolModalProps> = ({
   onOpenPrintModal,
   activeSpoolFilter,
   onSelectSpool,
+  onOpen3DViewer,
+  onSwitchToIso,
 }) => {
   const [activeTab, setActiveTab] = useState<"welds" | "spools" | "ndt">("welds");
   const [locationFilter, setLocationFilter] = useState<"all" | "shop" | "field" | "golden">("all");
@@ -120,6 +125,41 @@ export const IsoWeldSpoolModal: React.FC<IsoWeldSpoolModalProps> = ({
             </div>
           </div>
 
+          {/* Sélecteur des 3 Rendus Synchronisés */}
+          <div className="flex items-center bg-slate-900/90 border border-slate-700/80 rounded-xl p-1 gap-1">
+            {onSwitchToIso && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onSwitchToIso();
+                }}
+                className="px-2.5 py-1 rounded-lg text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition-all flex items-center gap-1.5"
+                title="Basculer vers le Schéma Isométrique 2D (ISO 30°)"
+              >
+                <span>📐 1. Vue ISO 2D</span>
+              </button>
+            )}
+            <div className="px-2.5 py-1 rounded-lg text-xs font-black bg-amber-600 text-white shadow-sm flex items-center gap-1.5 border border-amber-400/40">
+              <Flame className="w-3.5 h-3.5 text-amber-200" />
+              <span>2. Soudures & Spools</span>
+            </div>
+            {onOpen3DViewer && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onOpen3DViewer();
+                }}
+                className="px-2.5 py-1 rounded-lg text-xs font-bold text-cyan-300 hover:text-white hover:bg-cyan-950/60 transition-all flex items-center gap-1.5"
+                title="Basculer vers la Vue 3D Solide Extrudée & Orbite"
+              >
+                <Box className="w-3.5 h-3.5 text-cyan-400" />
+                <span>3. 3D Solide Extrudée</span>
+              </button>
+            )}
+          </div>
+
           <div className="flex items-center gap-2">
             {onOpenPrintModal && (
               <button
@@ -133,6 +173,20 @@ export const IsoWeldSpoolModal: React.FC<IsoWeldSpoolModalProps> = ({
               >
                 <Printer className="w-3.5 h-3.5" />
                 <span>Imprimer Plan Soudage</span>
+              </button>
+            )}
+            {onOpen3DViewer && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onOpen3DViewer();
+                }}
+                className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all border border-cyan-400/30"
+                title="Visualiser le réseau en 3D Solide Extrudé"
+              >
+                <Box className="w-3.5 h-3.5 text-cyan-200" />
+                <span>Vue 3D Solide</span>
               </button>
             )}
             <button
@@ -593,9 +647,25 @@ export const IsoWeldSpoolModal: React.FC<IsoWeldSpoolModalProps> = ({
                         >
                           Voir les {spool.shopWeldIds.length} soudures →
                         </button>
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
-                          {spool.status}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          {onOpen3DViewer && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onClose();
+                                onOpen3DViewer(spool.id);
+                              }}
+                              className="text-xs font-bold text-amber-400 hover:text-amber-300 flex items-center gap-1 transition-colors px-2 py-0.5 rounded bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30"
+                              title="Visualiser et isoler ce spool en 3D Solide"
+                            >
+                              <Box className="w-3 h-3 text-amber-300" />
+                              <span>3D Solide</span>
+                            </button>
+                          )}
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
+                            {spool.status}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   );

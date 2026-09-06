@@ -41,9 +41,17 @@ interface Iso3DViewerModalProps {
   isOpen: boolean;
   onClose: () => void;
   data: Viewer3dDataPayload;
+  onSwitchToIso?: () => void;
+  onSwitchToWeldMap?: () => void;
 }
 
-export const Iso3DViewerModal: React.FC<Iso3DViewerModalProps> = ({ isOpen, onClose, data }) => {
+export const Iso3DViewerModal: React.FC<Iso3DViewerModalProps> = ({
+  isOpen,
+  onClose,
+  data,
+  onSwitchToIso,
+  onSwitchToWeldMap,
+}) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const sceneManagerRef = useRef<Pdi3dSceneManager | null>(null);
 
@@ -162,20 +170,57 @@ export const Iso3DViewerModal: React.FC<Iso3DViewerModalProps> = ({ isOpen, onCl
       >
         {/* Barre d'outils supérieure 3D */}
         <header className="px-4 py-2.5 bg-[#0e1626] border-b border-slate-800 flex items-center justify-between gap-3 shrink-0 flex-wrap">
-          {/* Titre & Statut */}
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-cyan-600 to-blue-500 flex items-center justify-center text-white shadow-md shadow-cyan-900/40">
-              <Box className="w-4 h-4" />
+          {/* Titre, Statut & Bascule des 3 Rendus */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-cyan-600 to-blue-500 flex items-center justify-center text-white shadow-md shadow-cyan-900/40">
+                <Box className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-black text-white tracking-wider uppercase">Vue 3D Solide Extrudée</span>
+                  <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-cyan-950 text-cyan-400 border border-cyan-700/50">
+                    ASME B31.3
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-mono">
+                    {data.segments.length} tubes · {data.welds.length} soudures · {data.spools.length} spools
+                  </span>
+                </div>
+              </div>
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-black text-white tracking-wider uppercase">Vue 3D Solide Extrudée</span>
-                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-cyan-950 text-cyan-400 border border-cyan-700/50">
-                  ASME B31.3
-                </span>
-                <span className="text-[10px] text-slate-400 font-mono">
-                  {data.segments.length} tubes · {data.welds.length} soudures · {data.spools.length} spools
-                </span>
+
+            {/* Sélecteur rapide des 3 Rendus de Tuyauterie */}
+            <div className="flex items-center bg-slate-900/90 border border-slate-700/80 rounded-xl p-1 gap-1">
+              {onSwitchToIso && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onSwitchToIso();
+                  }}
+                  className="px-2.5 py-1 rounded-lg text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition-all flex items-center gap-1.5"
+                  title="Basculer vers le Schéma Isométrique 2D (ISO 30°)"
+                >
+                  <span>📐 1. Vue ISO 2D</span>
+                </button>
+              )}
+              {onSwitchToWeldMap && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onSwitchToWeldMap();
+                  }}
+                  className="px-2.5 py-1 rounded-lg text-xs font-bold text-amber-300 hover:text-white hover:bg-amber-950/60 transition-all flex items-center gap-1.5"
+                  title="Basculer vers le Plan de Soudage & Carnet de Spools (Weld Map)"
+                >
+                  <Flame className="w-3.5 h-3.5 text-amber-400" />
+                  <span>2. Soudures & Spools</span>
+                </button>
+              )}
+              <div className="px-2.5 py-1 rounded-lg text-xs font-black bg-cyan-600 text-white shadow-sm flex items-center gap-1.5 border border-cyan-400/40">
+                <Box className="w-3.5 h-3.5 text-cyan-200" />
+                <span>3. 3D Solide Extrudée</span>
               </div>
             </div>
           </div>
@@ -290,7 +335,7 @@ export const Iso3DViewerModal: React.FC<Iso3DViewerModalProps> = ({ isOpen, onCl
               <option value="all">Tous les spools</option>
               {data.spools.map((spool) => (
                 <option key={spool.id} value={spool.id}>
-                  {spool.spoolNumber} ({spool.totalLengthM}m - {spool.estimatedWeightKg}kg)
+                  {spool.label || spool.id} ({spool.totalLengthM}m - {spool.estimatedWeightKg}kg)
                 </option>
               ))}
             </select>

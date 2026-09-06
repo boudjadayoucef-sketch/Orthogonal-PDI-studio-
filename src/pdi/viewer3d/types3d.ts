@@ -9,7 +9,7 @@
 
 import type { IsoNode, IsoSegment } from "../isometric/types/isoGraphTypes";
 import type { PdiWeldEntry, PdiSpoolEntry } from "../welding/isoWeldSpoolEngine";
-import type { IsoPipingSupport } from "../supports/pdiMssSupportEngine";
+import type { IsoPipingSupport } from "../isometric/supports/pdiMssSupportEngine";
 
 export type RenderShadingMode =
   | "realistic"       // PBR Acier industriel avec reflets métalliques

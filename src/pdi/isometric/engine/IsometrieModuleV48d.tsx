@@ -42,6 +42,7 @@ import { pdiSignExportData } from "../../core/pdiWatermark";
 import { IsoPrintModal } from "../../impression/IsoPrintModal";
 import type { BomRow } from "../../impression/isoSvgGenerator";
 import { IsoWeldSpoolModal } from "../../welding/IsoWeldSpoolModal";
+import { Iso3DViewerModal } from "../../viewer3d/Iso3DViewerModal";
 import {
   deriveSpoolsAndWelds,
   WeldSpoolResult,
@@ -99,7 +100,7 @@ import {
   ChevronLeft, ChevronRight, SlidersHorizontal, Disc, CornerDownRight, GitFork, ArrowRightLeft,
   Eye, EyeOff, Crosshair, Check, Copy, Scissors, RotateCw, RotateCcw, PanelRightClose, PanelRightOpen,
   Circle, Spline, FolderOpen, Download, LayoutGrid, Magnet, Type, Square, Hexagon, Slash, Disc3,
-  Minimize2, Triangle, Clipboard, CopyPlus, Terminal, CornerDownLeft, ChevronDown, Anchor, Sparkles
+  Minimize2, Triangle, Clipboard, CopyPlus, Terminal, CornerDownLeft, ChevronDown, Anchor, Sparkles, Box
 } from "lucide-react";
 import { generateComplexIndustrialIsoDemo } from "../demo/pdiComplexIsoDemo";
 
@@ -135,6 +136,15 @@ import {
 import type { PdiProjectSetup } from "./pdiTagging";
 // PATCH 017K2
 import { pdiAlert } from "../../ui/PdiNotice";
+import { PdiUniversalPropertyInspector } from "../ui/PdiUniversalPropertyInspector";
+import {
+  nodeToUniversalEntity,
+  segmentToUniversalEntity,
+  fittingToUniversalEntity,
+  cad2dToUniversalEntity,
+  supportToUniversalEntity,
+} from "../../model/pdiUniversalAdapter";
+import type { PdiUniversalEntity } from "../../model/pdiUniversalEntity";
 
 export type IsoNodeType =
   | "normal" | "entree_poste" | "sortie_poste"
@@ -1986,6 +1996,7 @@ function IsometrieModule(props: { projectId?: string }) {
   const [aboutOpen,setAboutOpen]=useState(false);
   const [printModalOpen,setPrintModalOpen]=useState(false);
   const [weldSpoolModalOpen, setWeldSpoolModalOpen] = useState(false);
+  const [solid3dViewerOpen, setSolid3dViewerOpen] = useState(false);
   const [colorBySpool, setColorBySpool] = useState(false);
   const [activeSpoolFilter, setActiveSpoolFilter] = useState<string | null>(null);
   const [weldOverrides, setWeldOverrides] = useState<Record<string, Partial<PdiWeldEntry>>>({});
@@ -2093,6 +2104,7 @@ function IsometrieModule(props: { projectId?: string }) {
   // === ISO V4 : édition graphique & sélections ===
   const [isoDrawMode,setIsoDrawMode]=useState<IsoDrawMode>("select");
   const [drawStartNodeId,setDrawStartNodeId]=useState<string|null>(null);
+  const [tubeHoverWorld, setTubeHoverWorld] = useState<{ x: number; y: number; z: number } | null>(null);
   const [gcVisibleEditor,setGcVisibleEditor]=useState(true);
   const [isoSnapStep,setIsoSnapStep]=useState(.25);
   const [snapEnabled, setSnapEnabled] = useState(true);
@@ -2151,9 +2163,37 @@ function IsometrieModule(props: { projectId?: string }) {
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       const isInput = (e.target as HTMLElement)?.matches("input,textarea,select");
+      if(e.key==="Escape"){
+        e.preventDefault();
+        setDrawStartNodeId(null);
+        setTubeHoverWorld(null);
+        setBranchDrawing(null);
+        setCadDraftSession(null);
+        setActiveSupportTypeToPlace(null);
+        setIsoDrawMode("select");
+        setStatusMessage("Action annulée · Mode Sélection");
+        setAutocadPrompt("Prêt.");
+        return;
+      }
       if((e.key==="Delete"||e.key==="Backspace") && !isInput){
         e.preventDefault();
-        deleteSelection();
+        let deleted = false;
+        if(selectedCad2dIds.length > 0){
+          deleteSelectedCad2d();
+          deleted = true;
+        }
+        if(selectedSupportId){
+          setSupports(prev => prev.filter(s => s.id !== selectedSupportId));
+          setSelectedSupportId(null);
+          deleted = true;
+        }
+        if(selectedNodeIds.length > 0 || selectedSegmentIds.length > 0 || selectedFittingIds.length > 0 || selectedDimensionIds.length > 0 || selectedDimensionId){
+          deleteSelection();
+          deleted = true;
+        }
+        if(deleted){
+          setStatusMessage("Éléments sélectionnés supprimés");
+        }
         return;
       }
       if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="z" && !isInput){
@@ -2172,12 +2212,23 @@ function IsometrieModule(props: { projectId?: string }) {
       }
       if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="c" && !isInput){
         e.preventDefault();
-        copySelection();
+        if(selectedCad2dIds.length > 0){
+          copyCad2dSelection();
+        }
+        if(selectedNodeIds.length > 0 || selectedSegmentIds.length > 0){
+          copySelection();
+        }
         return;
       }
       if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="x" && !isInput){
         e.preventDefault();
-        cutSelection();
+        if(selectedCad2dIds.length > 0){
+          copyCad2dSelection();
+          deleteSelectedCad2d();
+        }
+        if(selectedNodeIds.length > 0 || selectedSegmentIds.length > 0){
+          cutSelection();
+        }
         return;
       }
       if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="v" && !isInput){
@@ -2187,29 +2238,24 @@ function IsometrieModule(props: { projectId?: string }) {
       }
       if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="d" && !isInput){
         e.preventDefault();
-        duplicateSelection();
+        if(selectedCad2dIds.length > 0){
+          duplicateSelectedCad2d();
+        }
+        if(selectedNodeIds.length > 0 || selectedSegmentIds.length > 0){
+          duplicateSelection();
+        }
         return;
       }
-      if(selectedCad2dIds.length && !(e.target as HTMLElement)?.matches("input,textarea,select")){
+      if(selectedCad2dIds.length && !isInput){
         if(e.key.startsWith("Arrow")){
           e.preventDefault();
           const step = isoSnapStep * (e.shiftKey ? 4 : 1);
           moveSelectedCad2d(e.key === "ArrowRight" ? step : e.key === "ArrowLeft" ? -step : 0, e.key === "ArrowDown" ? step : e.key === "ArrowUp" ? -step : 0);
           return;
         }
-        if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==="d"){
-          e.preventDefault();
-          duplicateSelectedCad2d();
-          return;
-        }
-        if(e.key==="Delete" || e.key==="Backspace"){
-          e.preventDefault();
-          deleteSelectedCad2d();
-          return;
-        }
       }
 
-      if(e.key.startsWith("Arrow") && selectedNodeIds.length && !(e.target as HTMLElement)?.matches("input,textarea,select")){
+      if(e.key.startsWith("Arrow") && selectedNodeIds.length && !isInput){
         e.preventDefault();
         const step=e.shiftKey?Math.max(isoSnapStep,.25)*4:Math.max(isoSnapStep,.25);
         if(e.altKey){
@@ -2223,27 +2269,12 @@ function IsometrieModule(props: { projectId?: string }) {
         }
         return;
       }
-      if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="z" && !isInput){
-        e.preventDefault();
-        e.stopPropagation();
-        if(e.shiftKey){
-          redoGraph();
-        } else {
-          undoGraph();
-        }
-        return;
-      }
-      if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="y" && !isInput){
-        e.preventDefault();
-        e.stopPropagation();
-        redoGraph();
-        return;
-      }
       if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="a" && !isInput){
         e.preventDefault();
         setSelectedNodeIds(nodes.map(n=>n.id));
         setSelectedSegmentIds(segments.map(s=>s.id));
-        setStatusMessage(`Tout sélectionné (${nodes.length} nœuds, ${segments.length} tronçons)`);
+        setSelectedCad2dIds(cad2dEntities.map(c=>c.id));
+        setStatusMessage(`Tout sélectionné (${nodes.length} nœuds, ${segments.length} tronçons, ${cad2dEntities.length} dessins 2D)`);
         return;
       }
       if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="s"){
@@ -2257,13 +2288,18 @@ function IsometrieModule(props: { projectId?: string }) {
       if(key==="v"){setInteractionMode("select");setIsoDrawMode("select");setStatusMessage("Outil Sélection");return;}
       if(key==="h"||e.code==="Space"){e.preventDefault();setInteractionMode("main");setStatusMessage("Outil Main");return;}
       if(key==="n"){setIsoDrawMode("node");setInteractionMode("select");setStatusMessage("Création de nœud");return;}
-      if(key==="t"){setIsoDrawMode("segment");setInteractionMode("select");setStatusMessage("Création de tube");return;}
+      if(key==="t"){setIsoDrawMode("segment");setInteractionMode("select");setDrawStartNodeId(null);setStatusMessage("Création de tube · Cliquez pour définir le 1er point");return;}
       if(key==="e"){setIsoDrawMode("te");setInteractionMode("select");setStatusMessage("Création de Té");return;}
       if(key==="c"){setIsoDrawMode("coude");setInteractionMode("select");setStatusMessage("Insertion de coude");return;}
+      if(key==="3"||(e.altKey&&key==="3")){setSolid3dViewerOpen(true);setStatusMessage("Ouverture de la Vue 3D Solide Extrudée");return;}
       if(key==="r"){
         e.preventDefault();
         const delta = e.shiftKey ? -15 : 15;
-        rotateSelectedEquipment(delta);
+        if(selectedCad2dIds.length > 0){
+          rotateSelectedCad2d(delta);
+        } else {
+          rotateSelectedEquipment(delta);
+        }
         return;
       }
       if(key==="g"){setShowGrid(v=>!v);return;}
@@ -4503,24 +4539,11 @@ function IsometrieModule(props: { projectId?: string }) {
       // If already in an input, let default typing happen
       if (isInput) return;
 
-      // Delete / Suppr / Backspace: Delete all selected elements
+      // Delete / Suppr / Backspace: Delete all selected elements (nodes, tubes, equipment, fittings, cad 2d, supports, dimensions)
       if (e.key === "Delete" || e.key === "Backspace" || e.key === "Suppr") {
         e.preventDefault();
-        if (selectedCad2dIds.length > 0) {
-          deleteSelectedCad2d();
-          return;
-        }
-        if (selectedNodeIds.length > 0 || selectedSegmentIds.length > 0 || selectedFittingIds.length > 0 || selectedFitting) {
-          deleteSelection();
-          return;
-        }
-        if (selectedDimensionIds.length > 0) {
-          setDimensions(prev => prev.filter(d => !selectedDimensionIds.includes(d.id)));
-          setSelectedDimensionIds([]);
-          setSelectedDimensionId(null);
-          setStatusMessage("Cotation supprimée");
-          return;
-        }
+        universalDelete();
+        return;
       }
 
       // Enter / Space during polyline drafting validates the polyline
@@ -4544,13 +4567,7 @@ function IsometrieModule(props: { projectId?: string }) {
       // Shortcut: Ctrl+C / Cmd+C for Copy
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "c") {
         e.preventDefault();
-        const hasCad = copyCad2dSelection();
-        const sub = selectionSubGraph();
-        if (sub.nodes.length) copySelection();
-        if (hasCad || sub.nodes.length) {
-          setStatusMessage("Éléments copiés dans le presse-papiers · Tapez COLLER pour insérer au clic");
-          setAutocadPrompt("COMMANDE [COPIER] : Sélection copiée. Cliquez sur Coller ou tapez COLLER.");
-        }
+        universalCopy();
         return;
       }
 
@@ -4564,27 +4581,26 @@ function IsometrieModule(props: { projectId?: string }) {
       // Shortcut: Ctrl+D / Cmd+D for Duplicate
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "d") {
         e.preventDefault();
-        if (selectedCad2dIds.length > 0) {
-          duplicateSelectedCad2d();
-        } else if (selectedNodeIds.length > 0) {
-          duplicateSelection();
-        }
+        universalDuplicate();
         return;
       }
 
-      // Rotation CAD 2D ou Équipements (R / Maj+R)
+      // Rotation universelle (R / Maj+R : 2D, Equipements, Vannes, Tés, Supports, Tronçons)
       if (e.key.toLowerCase() === "r") {
-        if (selectedCad2dIds.length > 0) {
-          e.preventDefault();
-          rotateSelectedCad2d(e.shiftKey ? -15 : 15);
-          return;
-        }
-        if (selectedNodeIds.some(id => nodes.find(n => n.id === id)?.equipmentType)) {
-          e.preventDefault();
-          rotateSelectedEquipment(e.shiftKey ? -15 : 15);
-          setStatusMessage(e.shiftKey ? "Rotation -15°" : "Rotation +15°");
-          return;
-        }
+        e.preventDefault();
+        universalRotate(e.shiftKey ? -15 : 15);
+        return;
+      }
+
+      // Déplacement au clavier (Flèches directionnelles)
+      if (e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "ArrowLeft" || e.key === "ArrowRight") {
+        e.preventDefault();
+        const step = (e.shiftKey ? isoSnapStep * 5 : isoSnapStep) || 0.25;
+        if (e.key === "ArrowUp") universalMove(0, step);
+        if (e.key === "ArrowDown") universalMove(0, -step);
+        if (e.key === "ArrowLeft") universalMove(-step, 0);
+        if (e.key === "ArrowRight") universalMove(step, 0);
+        return;
       }
 
       // Equipment flip (F)
@@ -4596,7 +4612,7 @@ function IsometrieModule(props: { projectId?: string }) {
     };
     window.addEventListener("keydown",onKey);
     return()=>window.removeEventListener("keydown",onKey);
-  },[selectedNodeIds, nodes, segments, cadDraftSession, selectedCad2dIds, selectedDimensionIds, selectedSegmentIds, selectedFittingIds, selectedFitting]);
+  },[selectedNodeIds, nodes, segments, cadDraftSession, selectedCad2dIds, selectedDimensionIds, selectedSegmentIds, selectedFittingIds, selectedFitting, selectedSupportId, isoSnapStep]);
 
   // PATCH 017I : la molette est ecoutee en natif avec { passive: false }.
   // React enregistre "wheel" en passif : preventDefault y est ignore et
@@ -4852,6 +4868,9 @@ function IsometrieModule(props: { projectId?: string }) {
         if(isoDrawMode==="node"){
           createNodeFromPointer(e);e.stopPropagation();return;
         }
+        if(isoDrawMode==="segment"){
+          createSegmentFromPointer(e);e.stopPropagation();return;
+        }
         selectSegmentV44(id,additive);
         e.stopPropagation();
         return;
@@ -4863,7 +4882,7 @@ function IsometrieModule(props: { projectId?: string }) {
       const id=nodeEl.getAttribute("data-node-id");
       if(id){
         if(isoDrawMode==="segment"){
-          handleNodeV4Click(id);e.stopPropagation();return;
+          createSegmentFromPointer(e);e.stopPropagation();return;
         }
         if(isoDrawMode==="te"){
           setBranchDrawing({fromNodeId:id,currentWorldPos:screenToIsoWorld(e)});
@@ -5268,6 +5287,9 @@ function IsometrieModule(props: { projectId?: string }) {
       return;
     }
 
+    if(isoDrawMode==="segment"){
+      createSegmentFromPointer(e);e.stopPropagation();return;
+    }
     if(isoDrawMode==="coude"){
       createElbowFromPointer(e);e.stopPropagation();return;
     }
@@ -5511,6 +5533,12 @@ function IsometrieModule(props: { projectId?: string }) {
     }
     setActiveSnap(detectedSnap);
 
+    if (isoDrawMode === "segment" && drawStartNodeId) {
+      const w = screenToIsoWorld(e, nodeZ || 0);
+      const targetPos = detectedSnap ? detectedSnap.worldPos : pdiCreatePoint(w);
+      setTubeHoverWorld(targetPos);
+    }
+
     if(branchDrawing){
       const w=screenToIsoWorld(e);
       const targetPos = detectedSnap ? detectedSnap.worldPos : { x: snapIsoV4(w.x, isoSnapStep), y: snapIsoV4(w.y, isoSnapStep), z: nodeZ || 0 };
@@ -5715,6 +5743,106 @@ function IsometrieModule(props: { projectId?: string }) {
     });
     commitGraph(nextNodes,recalcSegmentLengths(nextNodes,segments));
     setStatusMessage("Orientation équipement inversée");
+  };
+
+  const universalRotate = (delta: number) => {
+    if (selectedCad2dIds.length > 0) {
+      rotateSelectedCad2d(delta);
+      return;
+    }
+    if (selectedFitting && selectedSegmentId) {
+      rotateSelectedEquipment(delta);
+      return;
+    }
+    if (selectedNodeIds.length > 0 || selectedNodeId) {
+      rotateSelectedEquipment(delta);
+      return;
+    }
+    if (selectedSegmentIds.length > 0 || selectedSegmentId) {
+      const segId = selectedSegmentIds[0] || selectedSegmentId;
+      setSegments(prev => prev.map(s => {
+        if (s.id !== segId) return s;
+        return {
+          ...s,
+          fromNodeId: s.toNodeId,
+          toNodeId: s.fromNodeId,
+          fromPortId: s.toPortId,
+          toPortId: s.fromPortId,
+        };
+      }));
+      setStatusMessage("Sens d'écoulement du tronçon inversé");
+      return;
+    }
+    setStatusMessage("Sélectionnez un élément pour le pivoter (R)");
+  };
+
+  const universalDelete = () => {
+    let count = 0;
+    if (selectedCad2dIds.length > 0) {
+      count += selectedCad2dIds.length;
+      deleteSelectedCad2d();
+    }
+    if (selectedSupportId) {
+      setSupports(prev => prev.filter(s => s.id !== selectedSupportId));
+      setSelectedSupportId(null);
+      count++;
+    }
+    if (selectedNodeIds.length > 0 || selectedSegmentIds.length > 0 || selectedFittingIds.length > 0 || selectedDimensionIds.length > 0 || selectedDimensionId) {
+      count += selectedNodeIds.length + selectedSegmentIds.length + selectedFittingIds.length + selectedDimensionIds.length;
+      deleteSelection();
+    }
+    if (count > 0) {
+      setStatusMessage(`${count} élément(s) supprimé(s)`);
+    }
+  };
+
+  const universalCopy = () => {
+    let copied = false;
+    if (selectedCad2dIds.length > 0) {
+      copyCad2dSelection();
+      copied = true;
+    }
+    if (selectedNodeIds.length > 0 || selectedSegmentIds.length > 0) {
+      copySelection();
+      copied = true;
+    }
+    if (!copied) {
+      setStatusMessage("Rien à copier");
+    }
+  };
+
+  const universalDuplicate = () => {
+    if (selectedCad2dIds.length > 0) {
+      duplicateSelectedCad2d();
+    }
+    if (selectedNodeIds.length > 0 || selectedSegmentIds.length > 0) {
+      duplicateSelection();
+    }
+  };
+
+  const universalMove = (dx: number, dy: number, dz: number = 0) => {
+    if (selectedCad2dIds.length > 0) {
+      moveSelectedCad2d(dx, dy);
+    }
+    if (selectedNodeIds.length > 0) {
+      moveSelection(dx, dy, dz);
+    } else if (selectedSegmentIds.length > 0) {
+      const seg = segments.find(s => selectedSegmentIds.includes(s.id));
+      if (seg) {
+        setNodes(prev => prev.map(n => {
+          if (n.id === seg.fromNodeId || n.id === seg.toNodeId) {
+            return {
+              ...n,
+              x: snapIsoV4(n.x + dx, isoSnapStep),
+              y: snapIsoV4(n.y + dy, isoSnapStep),
+              z: Number(((n.z || 0) + dz).toFixed(3)),
+            };
+          }
+          return n;
+        }));
+        setSegments(prev => recalcSegmentLengths(nodes, prev));
+      }
+    }
   };
 
   // PATCH 017K3 : signaler une classe qui s ecarte de la spec du projet.
@@ -6189,6 +6317,123 @@ function IsometrieModule(props: { projectId?: string }) {
     setSelectedSegmentId(segment.id);
     setSelectedFitting(null);
     return segment.id;
+  };
+
+  const createSegmentFromPointer = (e: React.PointerEvent<SVGSVGElement>) => {
+    const target = e.target as Element;
+    const nodeEl = target.closest("[data-iso-node='true']");
+    const clickedNodeId = nodeEl?.getAttribute("data-node-id");
+
+    const portEl = target.closest("[data-iso-port='true']");
+    const portNodeId = portEl?.getAttribute("data-port-node-id");
+    const portIdx = portEl ? Number(portEl.getAttribute("data-port-idx") || "0") : undefined;
+
+    let targetNodeId = clickedNodeId || portNodeId;
+    let targetPortId: string | undefined = undefined;
+
+    const w = screenToIsoWorld(e, nodeZ || 0);
+    const pt = activeSnap ? activeSnap.worldPos : pdiCreatePoint(w);
+
+    // Si clic sur un segment en mode tube : couper le segment pour insérer un nœud de dérivation
+    if (!targetNodeId) {
+      const { sx, sy } = getSvgCoordinates(e.clientX, e.clientY, svgRef.current || (e.currentTarget as unknown as SVGSVGElement));
+      const hit = findSegmentAtScreen(sx, sy);
+      if (hit) {
+        const seg = segments.find(s => s.id === hit.id);
+        if (seg) {
+          const a = nodes.find(n => n.id === seg.fromNodeId);
+          const b = nodes.find(n => n.id === seg.toNodeId);
+          if (a && b) {
+            const t = clamp(hit.t, 0, 1);
+            const p = pointOnSegment(a, b, t);
+            const insNode = makeNode(`N${nodes.length + 1}`, Number(p.x.toFixed(3)), Number(p.y.toFixed(3)), Number(p.z.toFixed(3)), "normal");
+            const l1 = Math.hypot(p.x - a.x, p.y - a.y, p.z - a.z);
+            const l2 = Math.hypot(b.x - p.x, b.y - p.y, b.z - p.z);
+            const s1 = { ...cloneSegmentBetween(seg, a.id, insNode.id, l1, seg.type), fromPortId: seg.fromPortId, toPortId: availablePortId(insNode, [], 0) };
+            const s2 = { ...cloneSegmentBetween(seg, insNode.id, b.id, l2, seg.type), fromPortId: availablePortId(insNode, [], 1), toPortId: seg.toPortId };
+            const nextNodes = [...nodes, insNode];
+            const nextSegments = recalcSegmentLengths(nextNodes, [...segments.filter(x => x.id !== seg.id), s1, s2]);
+            commitGraph(nextNodes, nextSegments);
+            targetNodeId = insNode.id;
+          }
+        }
+      }
+    }
+
+    // Snap de proximité aux nœuds existants
+    if (!targetNodeId) {
+      const snapDist = 0.4 / viewport.zoom;
+      const nearby = nodes.find(
+        (n) => Math.hypot(n.x - pt.x, n.y - pt.y, (n.z || 0) - (pt.z || 0)) < snapDist
+      );
+      if (nearby) {
+        targetNodeId = nearby.id;
+      }
+    }
+
+    // Si toujours aucun nœud existant : en créer un nouveau aux coordonnées mondes
+    if (!targetNodeId) {
+      const newNode = makeNode(
+        `N${nodes.length + 1}`,
+        Number(pt.x.toFixed(3)),
+        Number(pt.y.toFixed(3)),
+        Number((pt.z ?? (nodeZ || 0)).toFixed(3)),
+        "normal"
+      );
+      const nextNodes = [...nodes, newNode];
+      setNodes(nextNodes);
+      targetNodeId = newNode.id;
+    }
+
+    // Étape 1 : Si pas de départ défini, ce nœud est le départ
+    if (!drawStartNodeId) {
+      setDrawStartNodeId(targetNodeId);
+      setSelectedNodeId(targetNodeId);
+      setSelectedNodeIds([targetNodeId]);
+      setStatusMessage(`Point 1 fixé (${nodes.find(n => n.id === targetNodeId)?.name || targetNodeId}). Cliquez le point 2 pour créer le tube (ou Échap).`);
+      setAutocadPrompt("TUBE [Étape 2/2] : Cliquez le point d'arrivée pour créer le tube");
+      return targetNodeId;
+    }
+
+    // Étape 2 : Création du tube entre drawStartNodeId et targetNodeId
+    if (drawStartNodeId === targetNodeId) {
+      return;
+    }
+
+    const startNode = nodes.find(n => n.id === drawStartNodeId);
+    const endNode = nodes.find(n => n.id === targetNodeId) || { id: targetNodeId, x: pt.x, y: pt.y, z: pt.z };
+    if (!startNode || !endNode) return;
+
+    const length = Math.max(0.05, Math.hypot(endNode.x - startNode.x, endNode.y - startNode.y, (endNode.z || 0) - (startNode.z || 0)));
+    const seg: IsoSegment = {
+      id: uid("seg"),
+      fromNodeId: drawStartNodeId,
+      fromPortId: availablePortId(startNode, segments, 1),
+      toNodeId: targetNodeId,
+      toPortId: availablePortId(endNode as any, segments, 0),
+      lineId: DEFAULT_LINE_ID,
+      dn: newDN,
+      pn: newPN,
+      material: newMaterial,
+      length: Number(length.toFixed(3)),
+      type: Math.abs((endNode.z || 0) - (startNode.z || 0)) > 0.05 ? "riser" : "straight",
+      fittings: [],
+      color: newSegmentColor,
+      sourceName: newSourceName.trim() || `${dia(newDN).inch} — Pipeline`,
+      tag: `${newDN}-L-${segments.length + 1}`,
+      service: "PROC",
+      spec: "PMS-01",
+    };
+
+    setSegments(prev => [...prev, seg]);
+    setSelectedSegmentId(seg.id);
+    setSelectedSegmentIds([seg.id]);
+    setSelectedNodeId(targetNodeId);
+    setSelectedNodeIds([targetNodeId]);
+    setDrawStartNodeId(targetNodeId); // Chaînage immédiat
+    setStatusMessage(`Tube DN${newDN} créé (L = ${length.toFixed(2)}m) ! Cliquez pour continuer le tracé ou Échap pour terminer.`);
+    setAutocadPrompt(`Tube créé (DN${newDN}, ${length.toFixed(2)}m). Prêt pour le tronçon suivant (ou Échap).`);
+    return seg.id;
   };
 
   const insertGraphicFitting=(segmentId:string,type:IsoFittingType,position:number)=>{
@@ -7670,6 +7915,25 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                   ASME / MSS
                 </span>
               </button>
+              <button
+                onClick={() => runWorkspaceCommand(() => setSolid3dViewerOpen(true), "Vue 3D Solide Extrudée")}
+                className="col-span-2 p-3 text-left rounded-xl bg-gradient-to-r from-blue-950 via-cyan-950 to-slate-900 hover:from-blue-900 hover:to-cyan-900 text-cyan-200 border border-cyan-700/60 shadow-lg flex items-center justify-between transition-all"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Box className="w-4 h-4 text-cyan-400 shrink-0" />
+                  <div>
+                    <div className="font-bold text-sm text-cyan-100 flex items-center gap-1.5">
+                      Vue 3D Solide Extrudée &amp; Contrôle d'Orbite
+                    </div>
+                    <div className="text-[10px] text-slate-300 font-normal mt-0.5">
+                      Rendu solide temps-réel, spools colorés, soudures 3D, inspection &amp; snapshot HD
+                    </div>
+                  </div>
+                </div>
+                <span className="text-[10px] bg-cyan-800/40 text-cyan-300 px-2 py-0.5 rounded border border-cyan-500/30 font-mono font-bold shrink-0">
+                  3D / Touche 3
+                </span>
+              </button>
               <button onClick={()=>runWorkspaceCommand(()=>setIsoDrawMode("segment"),"Outil Tube")} className="p-3 text-left rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700"><b>T</b> · Nouveau tube</button><button onClick={()=>runWorkspaceCommand(()=>setIsoDrawMode("node"),"Outil Nœud")} className="p-3 text-left rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700"><b>N</b> · Nouveau nœud</button><button onClick={()=>runWorkspaceCommand(resetView,"Vue recentrée")} className="p-3 text-left rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700"><b>F</b> · Recentrer</button><button onClick={()=>runWorkspaceCommand(exportProjectJson,"Projet exporté")} className="p-3 text-left rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700"><b>Ctrl+S</b> · Export JSON</button><button onClick={()=>runWorkspaceCommand(()=>setShortcutsOpen(true),"Aide raccourcis")} className="p-3 text-left rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700"><b>?</b> · Raccourcis</button><button onClick={()=>runWorkspaceCommand(printPlanSheet,"Impression A3")} className="p-3 text-left rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700"><b>P</b> · Imprimer</button>
               <button
                 onClick={() =>
@@ -7709,7 +7973,7 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
               <button onClick={() => runWorkspaceCommand(makeSelectedSegmentsParallel, "Parallèle")} className="p-3 text-left rounded-xl bg-amber-950 hover:bg-amber-900 text-amber-100 border border-amber-800"><b>//</b> · Rendre parallèle</button>
               <button onClick={() => runWorkspaceCommand(redressIsoSelection, "Redresser ISO")} className="p-3 text-left rounded-xl bg-emerald-950 hover:bg-emerald-900 text-emerald-100 border border-emerald-800"><b>ISO</b> · Redresser ISO</button>
               <button onClick={() => runWorkspaceCommand(removeSelectedDimensions, "Cotation supprimée")} className="p-3 text-left rounded-xl bg-red-950 hover:bg-red-900 text-red-100 border border-red-800"><b>⌫</b> · Suppr. dernière cote</button></div></div></div>}
-    {shortcutsOpen&&<div className="fixed inset-0 z-[10001] bg-slate-950/60 flex items-center justify-center p-4" onMouseDown={()=>setShortcutsOpen(false)}><div className="bg-slate-900 text-slate-100 rounded-2xl shadow-2xl border border-slate-700 w-[min(720px,95vw)] p-5" onMouseDown={e=>e.stopPropagation()}><div className="flex justify-between"><h3 className="font-black">Raccourcis V4.6</h3><button onClick={()=>setShortcutsOpen(false)} className="text-slate-300 hover:text-white">✕</button></div><div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-4 text-xs">{[["V","Sélection"],["H / Espace","Main"],["N","Nœud"],["T","Tube"],["E","Té"],["C","Coude"],["R / Shift+R","Rotation ±15°"],["G","Grille"],["D","Afficher/Masquer cotations"],["M","Créer cotation"],["L","Labels"],["F / 0","Recentrer"],["+ / −","Zoom"],["Suppr","Supprimer"],["Ctrl+Z","Annuler"],["Ctrl+S","Exporter JSON"],["Ctrl+K","Commandes"],["P","Imprimer"],["Échap","Annuler l’outil"]].map(([k,v])=><div key={k} className="flex items-center gap-2 p-2 rounded-lg bg-slate-800 border border-slate-700"><kbd className="px-2 py-1 bg-slate-950 border border-slate-700 text-cyan-300 rounded font-mono font-black">{k}</kbd><span>{v}</span></div>)}</div></div></div>}
+    {shortcutsOpen&&<div className="fixed inset-0 z-[10001] bg-slate-950/60 flex items-center justify-center p-4" onMouseDown={()=>setShortcutsOpen(false)}><div className="bg-slate-900 text-slate-100 rounded-2xl shadow-2xl border border-slate-700 w-[min(720px,95vw)] p-5" onMouseDown={e=>e.stopPropagation()}><div className="flex justify-between"><h3 className="font-black">Raccourcis V4.6</h3><button onClick={()=>setShortcutsOpen(false)} className="text-slate-300 hover:text-white">✕</button></div><div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-4 text-xs">{[["V","Sélection"],["H / Espace","Main"],["N","Nœud"],["T","Tube"],["E","Té"],["C","Coude"],["3 / Alt+3","Vue 3D Solide"],["R / Shift+R","Rotation ±15°"],["G","Grille"],["D","Afficher/Masquer cotations"],["M","Créer cotation"],["L","Labels"],["F / 0","Recentrer"],["+ / −","Zoom"],["Suppr","Supprimer"],["Ctrl+Z","Annuler"],["Ctrl+S","Exporter JSON"],["Ctrl+K","Commandes"],["P","Imprimer"],["Échap","Annuler l’outil"]].map(([k,v])=><div key={k} className="flex items-center gap-2 p-2 rounded-lg bg-slate-800 border border-slate-700"><kbd className="px-2 py-1 bg-slate-950 border border-slate-700 text-cyan-300 rounded font-mono font-black">{k}</kbd><span>{v}</span></div>)}</div></div></div>}
 
     <IsoPrintModal
       isOpen={printModalOpen}
@@ -7745,6 +8009,37 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
       onOpenPrintModal={handleOpenPrintModalFromWeld}
       activeSpoolFilter={activeSpoolFilter}
       onSelectSpool={setActiveSpoolFilter}
+      onOpen3DViewer={(spoolId) => {
+        if (spoolId) setActiveSpoolFilter(spoolId);
+        setWeldSpoolModalOpen(false);
+        setSolid3dViewerOpen(true);
+      }}
+      onSwitchToIso={() => {
+        setWeldSpoolModalOpen(false);
+        setSolid3dViewerOpen(false);
+      }}
+    />
+
+    <Iso3DViewerModal
+      isOpen={solid3dViewerOpen}
+      onClose={() => setSolid3dViewerOpen(false)}
+      data={{
+        nodes,
+        segments,
+        welds: weldSpoolData.welds,
+        spools: weldSpoolData.spools,
+        supports,
+        projectName,
+        activeUnitSystem: unitSystem === "imperial" ? "imperial" : "metric",
+      }}
+      onSwitchToIso={() => {
+        setSolid3dViewerOpen(false);
+        setWeldSpoolModalOpen(false);
+      }}
+      onSwitchToWeldMap={() => {
+        setSolid3dViewerOpen(false);
+        setWeldSpoolModalOpen(true);
+      }}
     />
 
     <div className={`${workspaceFullscreen?"hidden":""} bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3 text-white shadow-lg`}>
@@ -7753,6 +8048,7 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
           <div className="flex gap-2 mb-2">
             <span className="bg-blue-500/20 text-blue-300 border border-blue-400/40 text-[10px] font-black px-2 py-1 rounded-full">ÉDITEUR MÉCANIQUE</span>
             <span className="bg-amber-500/20 text-amber-300 border border-amber-400/40 text-[10px] font-black px-2 py-1 rounded-full">ISO 30°</span>
+            <span className="bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 text-[10px] font-black px-2 py-1 rounded-full flex items-center gap-1"><Box className="w-3 h-3 text-cyan-400"/> VUE 3D SOLIDE</span>
           </div>
           <h2 className="text-2xl font-black">Concepteur & Schéma Isométrique de Tuyauterie</h2>
           <p className="text-xs text-slate-300 mt-1 max-w-3xl">
@@ -7763,11 +8059,19 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
+            onClick={() => setSolid3dViewerOpen(true)}
+            className="px-3.5 py-2 bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white rounded-xl text-xs font-black shadow-md flex items-center gap-1.5 transition-all border border-cyan-400/30 active:scale-95"
+            title="Visualiser le réseau complet en 3D Solide Extrudé & Orbite (Raccourci : Touche 3)"
+          >
+            <Box className="w-4 h-4 text-cyan-200" /> Vue 3D Solide
+          </button>
+          <button
+            type="button"
             onClick={loadPresetDemoComplexe}
             className="px-3.5 py-2 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-500 hover:to-pink-500 text-white rounded-xl text-xs font-black shadow-md flex items-center gap-1.5 transition-all border border-purple-400/30 active:scale-95"
-            title="Charger un réseau complet avec 3D, By-Pass, 26 Raccords, 10 Supports MSS SP-58, Génie Civil et Cotations"
+            title="Charger la Démo 3D complète avec géométrie extrudée, 26 raccords, 10 supports MSS et les 3 Rendus Synchronisés"
           >
-            <Sparkles className="w-4 h-4 text-yellow-300 animate-pulse"/> Démo Complexe (3D & Supports)
+            <Sparkles className="w-4 h-4 text-yellow-300 animate-pulse"/> Démo 3D (3 Rendus : ISO · Soudure · 3D)
           </button>
           <button
             type="button"
@@ -7790,10 +8094,109 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
       </div>
     </div>
 
+    {/* BANC D'ESSAI TRIPODE : TESTEUR DES 3 RENDUS (ISO 2D, PLAN SOUDAGE & 3D SOLIDE EXTRUDÉE) */}
+    <div className={`${workspaceFullscreen?"hidden":""} bg-gradient-to-r from-slate-950 via-[#0a1120] to-[#0c182c] border border-cyan-500/30 rounded-2xl px-4 py-2.5 text-white shadow-xl flex flex-wrap items-center justify-between gap-3`}>
+      <div className="flex items-center gap-3">
+        <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-cyan-600 to-blue-600 flex items-center justify-center text-white shadow-md shadow-cyan-900/40 shrink-0">
+          <Sparkles className="w-4 h-4 text-cyan-200" />
+        </div>
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-black uppercase tracking-wider text-cyan-300">Banc d'Essai · 3 Rendus Synchronisés</span>
+            <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-cyan-950 text-cyan-400 border border-cyan-700/50">ASME B31.3 / ISO 14692</span>
+          </div>
+          <p className="text-[11px] text-slate-300">
+            Comparez le réseau sous ses 3 projections normées : <b>1. Isométrie 2D</b>, <b>2. Plan de Soudage & Spools</b> et <b>3. Modélisation 3D Solide Extrudée</b>.
+          </p>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 flex-wrap">
+        <button
+          type="button"
+          onClick={() => {
+            setWeldSpoolModalOpen(false);
+            setSolid3dViewerOpen(false);
+            setStatusMessage("Rendu 1 Actif : Schéma Isométrique 2D (ISO 30°)");
+          }}
+          className={`px-3.5 py-2 rounded-xl text-xs font-black flex items-center gap-2 transition-all shadow-sm ${
+            !weldSpoolModalOpen && !solid3dViewerOpen
+              ? "bg-blue-600 text-white ring-2 ring-blue-400 shadow-blue-900/40"
+              : "bg-slate-800/90 text-slate-300 hover:text-white hover:bg-slate-700 border border-slate-700"
+          }`}
+          title="Rendu 1 : Vue Isométrique Vectorielle 2D (Cotations, Symboles, Cartouche ISO)"
+        >
+          <span>📐 1. Vue Isométrique 2D</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setSolid3dViewerOpen(false);
+            setWeldSpoolModalOpen(true);
+            setStatusMessage("Rendu 2 Actif : Plan de Soudage & Carnet de Spools (Weld Map)");
+          }}
+          className={`px-3.5 py-2 rounded-xl text-xs font-black flex items-center gap-2 transition-all shadow-sm ${
+            weldSpoolModalOpen
+              ? "bg-amber-600 text-white ring-2 ring-amber-400 shadow-amber-900/40"
+              : "bg-amber-950/40 text-amber-300 hover:bg-amber-900/60 hover:text-white border border-amber-800/60"
+          }`}
+          title="Rendu 2 : Plan de Soudage & Carnet de Spools (Weld Map, Shop/Field Welds, CND)"
+        >
+          <Flame className="w-3.5 h-3.5 text-amber-300" />
+          <span>🔥 2. Plan Soudage & Spools ({weldSpoolData.welds.length})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setWeldSpoolModalOpen(false);
+            setSolid3dViewerOpen(true);
+            setStatusMessage("Rendu 3 Actif : Vue 3D Solide Extrudée & Orbite");
+          }}
+          className={`px-3.5 py-2 rounded-xl text-xs font-black flex items-center gap-2 transition-all shadow-sm ${
+            solid3dViewerOpen
+              ? "bg-gradient-to-r from-cyan-600 to-blue-600 text-white ring-2 ring-cyan-400 shadow-cyan-900/40"
+              : "bg-gradient-to-r from-cyan-950/60 to-blue-950/60 text-cyan-200 hover:text-white border border-cyan-500/40"
+          }`}
+          title="Rendu 3 : Tuyauterie 3D Solide Extrudée (Three.js Orbit, tubes solides, coudes, brides, vannes, soudures 3D & supports)"
+        >
+          <Box className="w-3.5 h-3.5 text-cyan-300" />
+          <span>🧊 3. Vue 3D Solide Extrudée</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            loadPresetDemoComplexe();
+            setStatusMessage("✨ Démo Tuyauterie 3D Extrudée chargée : Testez les 3 Rendus Synchronisés !");
+          }}
+          className="px-3 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-500 hover:to-pink-500 text-white flex items-center gap-1.5 shadow-md border border-purple-400/40 active:scale-95 ml-1"
+          title="Recharger la Démo Industrielle Complète avec Géométrie 3D, By-Pass et 3 Rendus"
+        >
+          <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
+          <span>Charger Démo 3D</span>
+        </button>
+      </div>
+    </div>
+
     <div className={`${workspaceFullscreen?"hidden":"sticky"} top-2 z-40 bg-white/95 backdrop-blur border border-slate-200 rounded-xl shadow-sm px-2 py-2 flex-wrap items-center justify-between gap-2 ${workspaceFullscreen?"":"flex"}`}>
-      <div className="flex items-center gap-1"><button onClick={()=>setLeftPanelOpen(v=>!v)} className="h-9 px-3 rounded-lg bg-slate-100 text-xs font-black">☰ Bibliothèque</button><button onClick={()=>{setInteractionMode("select");setIsoDrawMode("select")}} className={`h-9 px-3 rounded-lg text-xs font-black ${interactionMode==="select"&&isoDrawMode==="select"?"bg-blue-600 text-white":"bg-slate-100"}`}>V Sélection</button><button onClick={()=>setInteractionMode("main")} className={`h-9 px-3 rounded-lg text-xs font-black ${interactionMode==="main"?"bg-cyan-600 text-white":"bg-slate-100"}`}>H Main</button><button onClick={()=>setIsoDrawMode("segment")} className="h-9 px-3 rounded-lg bg-slate-100 text-xs font-black">T Tube</button><button onClick={()=>setIsoDrawMode("node")} className="h-9 px-3 rounded-lg bg-slate-100 text-xs font-black">N Nœud</button><button onClick={()=>setIsoDrawMode("te")} className="h-9 px-3 rounded-lg bg-slate-100 text-xs font-black">E Té</button>{/* PATCH 013: Coude présent dans la colonne gauche, doublon supprimé */}
-          {/* PATCH 013: Cotation présente dans la colonne gauche, doublon supprimé */}
-</div>
+      <div className="flex items-center gap-1">
+        <button onClick={()=>setLeftPanelOpen(v=>!v)} className="h-9 px-3 rounded-lg bg-slate-100 text-xs font-black">☰ Bibliothèque</button>
+        <button onClick={()=>{setInteractionMode("select");setIsoDrawMode("select")}} className={`h-9 px-3 rounded-lg text-xs font-black ${interactionMode==="select"&&isoDrawMode==="select"?"bg-blue-600 text-white":"bg-slate-100"}`}>V Sélection</button>
+        <button onClick={()=>setInteractionMode("main")} className={`h-9 px-3 rounded-lg text-xs font-black ${interactionMode==="main"?"bg-cyan-600 text-white":"bg-slate-100"}`}>H Main</button>
+        <button onClick={()=>setIsoDrawMode("segment")} className="h-9 px-3 rounded-lg bg-slate-100 text-xs font-black">T Tube</button>
+        <button onClick={()=>setIsoDrawMode("node")} className="h-9 px-3 rounded-lg bg-slate-100 text-xs font-black">N Nœud</button>
+        <button onClick={()=>setIsoDrawMode("te")} className="h-9 px-3 rounded-lg bg-slate-100 text-xs font-black">E Té</button>
+        <button
+          type="button"
+          onClick={()=>setSolid3dViewerOpen(true)}
+          title="Vue 3D Solide Extrudée & Orbite (Raccourci : 3)"
+          className="h-9 px-3 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white text-xs font-black flex items-center gap-1.5 shadow-sm transition-all"
+        >
+          <Box className="w-4 h-4 text-cyan-200"/> 3D Solide
+        </button>
+      </div>
       <div className="flex items-center gap-1"><button onClick={undoGraph} className="h-9 px-3 rounded-lg bg-slate-100 text-xs font-black">↶ Ctrl+Z</button><button onClick={exportProjectJson} className="h-9 px-3 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-black">Sauver JSON</button><input ref={importProjectRef} type="file" accept="application/json,.json" className="hidden" onChange={e=>{importProjectJson(e.target.files?.[0]);e.currentTarget.value=""}}/><button onClick={()=>importProjectRef.current?.click()} className="h-9 px-3 rounded-lg bg-blue-50 text-blue-700 text-xs font-black">Ouvrir JSON</button><button onClick={()=>setCommandPaletteOpen(true)} className="h-9 px-3 rounded-lg bg-slate-900 text-white text-xs font-black">Ctrl+K</button><button onClick={()=>setShortcutsOpen(true)} className="h-9 w-9 rounded-lg bg-slate-100 font-black">?</button><button onClick={()=>setWorkspaceFullscreen(v=>!v)} className="h-9 px-3 rounded-lg bg-blue-50 text-blue-700 text-xs font-black">{workspaceFullscreen?"Retour accueil":"Mode focus"}</button></div>
     </div>
 
@@ -8674,6 +9077,29 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                       <line x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} stroke="#22c55e" strokeWidth="2.5" strokeDasharray="5 3" />
                       <circle cx={p2.x} cy={p2.y} r="6" fill="#22c55e" stroke="#ffffff" strokeWidth="2" />
                       <text x={p2.x + 10} y={p2.y - 5} fill="#4ade80" fontSize="9" fontWeight="bold">Nouvelle branche (relâcher pour valider)</text>
+                    </g>
+                  );
+                })()}
+
+                {/* Live Tube Preview during drawing (Rubber Band) */}
+                {drawStartNodeId && isoDrawMode === "segment" && (() => {
+                  const fromN = nodes.find(n => n.id === drawStartNodeId);
+                  if (!fromN) return null;
+                  const p1 = isoProjectV4(fromN.x, fromN.y, fromN.z || 0, viewport.zoom, viewport.panX, viewport.panY);
+                  const targetWorld = activeSnap ? activeSnap.worldPos : (tubeHoverWorld || { x: fromN.x + 2, y: fromN.y, z: fromN.z || 0 });
+                  const p2 = isoProjectV4(targetWorld.x, targetWorld.y, targetWorld.z || 0, viewport.zoom, viewport.panX, viewport.panY);
+                  const lengthM = Math.hypot(targetWorld.x - fromN.x, targetWorld.y - fromN.y, (targetWorld.z || 0) - (fromN.z || 0));
+                  const midX = (p1.x + p2.x) / 2;
+                  const midY = (p1.y + p2.y) / 2;
+                  return (
+                    <g pointerEvents="none">
+                      <line x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} stroke="#0284c7" strokeWidth="3" strokeDasharray="6 3" />
+                      <circle cx={p1.x} cy={p1.y} r="5" fill="#38bdf8" stroke="#ffffff" strokeWidth="1.5" />
+                      <circle cx={p2.x} cy={p2.y} r="6" fill="#0284c7" stroke="#ffffff" strokeWidth="2" />
+                      <rect x={midX - 45} y={midY - 22} width="90" height="20" rx="4" fill="#0f172a" fillOpacity="0.9" stroke="#38bdf8" strokeWidth="1" />
+                      <text x={midX} y={midY - 8} textAnchor="middle" fill="#38bdf8" fontSize="10" fontWeight="bold" fontFamily="monospace">
+                        DN{newDN} · {lengthM.toFixed(2)}m
+                      </text>
                     </g>
                   );
                 })()}
@@ -10265,187 +10691,9 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
           {/* TAB: PROPERTIES */}
           {rightPanelTab === "properties" && (
             <div className="space-y-3 text-xs">
-              {/* PATCH 017F1 : inspecteur cible. Les champs affiches dependent du
-                  type reel de l element selectionne, plus de table generique. */}
+              {/* Panneau Universel d'Inspection et d'Édition CAO (PdiUniversalPropertyInspector) */}
               {(() => {
-                const totalTargeted = selectedNodeIds.length + selectedSegmentIds.length + selectedFittingIds.length;
-                if (totalTargeted !== 1) return null;
-                const line = (label: string, value: string, key: string) => (
-                  <div key={key} className="flex justify-between gap-2 text-[11px]">
-                    <span className="text-slate-400">{label}</span>
-                    <span className="font-bold text-slate-100 text-right">{value}</span>
-                  </div>
-                );
-                if (selectedSegmentIds.length === 1) {
-                  const seg = segments.find((s) => s.id === selectedSegmentIds[0]);
-                  if (!seg) return null;
-                  const rows: Array<[string, string]> = [
-                    ["Tag", String(seg.tag || "non tagge")],
-                    ["Diametre", "DN" + String(seg.dn)],
-                    ["Service / fluide", String(seg.service || "-")],
-                    ["Spec", String(seg.spec || "-")],
-                    ["Materiau", String(seg.material || "-")],
-                    ["Classe", String(seg.pressureClass || seg.pn || "-")],
-                    ["Longueur", (Number(seg.length) || 0).toFixed(3) + " m"],
-                    ["Type", String(seg.type || "-")],
-                    ["Isolation", String(seg.insulation || "-")],
-                    ["Ligne", String(seg.lineId || "-")],
-                    ["Raccords", String((seg.fittings || []).length)],
-                  ];
-                  return (
-                    <div className="p-3 rounded-xl bg-slate-950 border border-cyan-700/70 space-y-1.5">
-                      <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
-                        <span className="text-[10px] font-black text-cyan-400 uppercase">Troncon selectionne</span>
-                        <span className="font-mono text-[9px] text-cyan-300">{seg.id}</span>
-                      </div>
-                      {rows.map(([label, value]) => line(label, value, label))}
-                      {/* PATCH 017F2 : edition en place validee par la spec du projet. */}
-                      {/* PATCH 017F2B : retour visible du refus de validation. */}
-                      {segEditError017F2B ? (
-                        <div className="mt-1 px-2 py-1 rounded-lg bg-red-950 border border-red-600 text-[10px] font-bold text-red-300 leading-snug">
-                          {segEditError017F2B}
-                        </div>
-                      ) : null}
-                      <div className="pt-1.5 border-t border-slate-800 grid grid-cols-2 gap-1.5">
-                        <label className="text-[9px] font-black text-slate-400 uppercase">
-                          DN
-                          <input
-                            key={"dn-" + seg.id + "-" + String(seg.dn) + "-" + String(segEditRev017F2B)}
-                            type="number"
-                            defaultValue={String(seg.dn)}
-                            onBlur={(e) => applySegmentEdit017F2(seg.id, { dn: Number(e.target.value) })}
-                            onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
-                            className="w-full mt-0.5 px-1.5 py-1 rounded bg-slate-900 border border-slate-700 text-slate-100 text-[11px] font-bold"
-                          />
-                        </label>
-                        <label className="text-[9px] font-black text-slate-400 uppercase">
-                          Longueur (m)
-                          <input
-                            key={"len-" + seg.id + "-" + String(seg.length) + "-" + String(segEditRev017F2B)}
-                            type="number"
-                            step="0.001"
-                            defaultValue={String(Number(seg.length) || 0)}
-                            onBlur={(e) => applySegmentEdit017F2(seg.id, { length: Number(e.target.value) })}
-                            onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
-                            className="w-full mt-0.5 px-1.5 py-1 rounded bg-slate-900 border border-slate-700 text-slate-100 text-[11px] font-bold"
-                          />
-                        </label>
-                        <label className="text-[9px] font-black text-slate-400 uppercase">
-                          Service
-                          <select
-                            value={String(seg.service || "")}
-                            onChange={(e) => applySegmentEdit017F2(seg.id, { service: e.target.value })}
-                            className="w-full mt-0.5 px-1.5 py-1 rounded bg-slate-900 border border-slate-700 text-slate-100 text-[11px] font-bold"
-                          >
-                            <option value="">-</option>
-                            {projectSetup.services.map((sv) => (
-                              <option key={sv.code} value={sv.code}>{sv.code}</option>
-                            ))}
-                          </select>
-                        </label>
-                        <label className="text-[9px] font-black text-slate-400 uppercase">
-                          Spec
-                          <select
-                            value={String(seg.spec || "")}
-                            onChange={(e) => applySegmentEdit017F2(seg.id, { spec: e.target.value })}
-                            className="w-full mt-0.5 px-1.5 py-1 rounded bg-slate-900 border border-slate-700 text-slate-100 text-[11px] font-bold"
-                          >
-                            <option value="">-</option>
-                            {projectSetup.specs.map((sp) => (
-                              <option key={sp.code} value={sp.code}>
-                                {sp.code + " (DN" + sp.minDn + "-" + sp.maxDn + ")"}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                      </div>
-                    </div>
-                  );
-                }
-                const targetedId = selectedNodeIds[0] || selectedFittingIds[0];
-                const node = nodes.find((n) => n.id === targetedId);
-                if (!node) return null;
-                const linked = segments.filter((s) => s.fromNodeId === node.id || s.toNodeId === node.id);
-                const rows: Array<[string, string]> = [
-                  ["Repere", String(node.name || node.id)],
-                  ["Type", String(node.type || "-")],
-                  ["Equipement", String(node.equipmentLabel || node.equipmentType || "-")],
-                  ["Diametre", node.dn ? "DN" + String(node.dn) : "-"],
-                  ["Angle de branche", node.branchAngle != null ? String(node.branchAngle) + " deg" : "-"],
-                  ["Direction de coude", String(node.bendDirection || "-")],
-                  ["Rotation", node.rotation != null ? String(node.rotation) + " deg" : "-"],
-                  ["Miroir", node.mirrored ? "oui" : "non"],
-                  ["Position X / Y / Z", Number(node.x || 0).toFixed(2) + " / " + Number(node.y || 0).toFixed(2) + " / " + Number(node.z || 0).toFixed(2)],
-                  ["Troncons relies", String(linked.length)],
-                  ["Reference", String(node.reference || "-")],
-                  ["Fabricant", String(node.manufacturer || "-")],
-                ];
-                return (
-                  <div className="p-3 rounded-xl bg-slate-950 border border-amber-700/70 space-y-1.5">
-                    <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
-                      <span className="text-[10px] font-black text-amber-400 uppercase">
-                        {selectedFittingIds.length === 1 ? "Raccord selectionne" : "Noeud selectionne"}
-                      </span>
-                      <span className="font-mono text-[9px] text-amber-300">{node.id}</span>
-                    </div>
-                    {rows.map(([label, value]) => line(label, value, label))}
-                    {linked.length > 0 && (
-                      <div className="pt-1.5 border-t border-slate-800 text-[10px] text-slate-400">
-                        {linked.map((s) => (
-                          <button key={s.id} type="button" onClick={() => selectSegmentV44(s.id, false)} className="mr-1 mb-1 px-1.5 py-0.5 rounded bg-slate-900 border border-slate-700 text-slate-300 font-bold">
-                            {s.tag || s.id} · DN{String(s.dn)}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
-              {/* PATCH 017F2 : volet Anomalies cliquable. */}
-              {(() => {
-                // PATCH 017P9 : le volet ne calcule plus ses propres regles. Il lit la
-                // source unique (graphIssues). Le clic-vers-entite du 017F2 est conserve.
-                const issues: Array<{ id: string; kind: "segment" | "node"; label: string }> =
-                  graphIssues.map((issue) => ({
-                    id: issue.entityId || issue.id,
-                    kind: pdiAnomalieKind017P9(issue, nodes),
-                    label: pdiAnomalieLibelle017P9(issue),
-                  }));
-                return (
-                  <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5">
-                    <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
-                      <span className="text-[10px] font-black text-amber-300 uppercase">Anomalies</span>
-                      <span className={`font-mono text-[10px] font-black px-2 py-0.5 rounded border ${issues.length === 0 ? "text-emerald-300 border-emerald-800 bg-emerald-950" : "text-amber-300 border-amber-800 bg-amber-950"}`}>
-                        {issues.length}
-                      </span>
-                    </div>
-                    {issues.length === 0 && (
-                      <div className="text-[11px] text-emerald-300 font-bold">Aucune anomalie detectee.</div>
-                    )}
-                    {issues.slice(0, 40).map((issue, idx) => (
-                      <button
-                        key={issue.kind + issue.id + String(idx)}
-                        type="button"
-                        onClick={() => {
-                          if (issue.kind === "segment") selectSegmentV44(issue.id, false);
-                          else selectNodeV44(issue.id, false);
-                          setRightPanelOpen(true);
-                          setRightPanelTab("properties");
-                        }}
-                        className="w-full text-left px-1.5 py-1 rounded bg-slate-900 border border-slate-700 hover:border-amber-600 text-[10px] font-bold text-slate-300"
-                      >
-                        <span className="text-amber-300">{issue.label}</span>
-                        <span className="font-mono text-slate-500"> · {issue.id}</span>
-                      </button>
-                    ))}
-                    {issues.length > 40 && (
-                      <div className="text-[10px] text-slate-500 font-bold">... et {issues.length - 40} autre(s).</div>
-                    )}
-                  </div>
-                );
-              })()}
-              {(() => {
-                const totalSel = selectedNodeIds.length + selectedSegmentIds.length + selectedFittingIds.length;
+                const totalSel = selectedNodeIds.length + selectedSegmentIds.length + selectedFittingIds.length + selectedCad2dIds.length;
                 if (totalSel > 1) {
                   return (
                     <div className="p-3 rounded-xl bg-slate-950 border border-cyan-800/80 space-y-2 text-xs">
@@ -10454,14 +10702,15 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                         <span className="font-mono text-cyan-300 font-bold bg-cyan-950 px-2 py-0.5 rounded border border-cyan-800">{totalSel} éléments</span>
                       </div>
                       <div className="space-y-1 text-[11px] text-slate-300">
-                        {selectedNodeIds.length > 0 && <div className="flex justify-between"><span>Nœuds :</span><span className="font-bold text-amber-300">{selectedNodeIds.length}</span></div>}
+                        {selectedNodeIds.length > 0 && <div className="flex justify-between"><span>Nœuds / Équipements :</span><span className="font-bold text-amber-300">{selectedNodeIds.length}</span></div>}
                         {selectedSegmentIds.length > 0 && <div className="flex justify-between"><span>Tronçons :</span><span className="font-bold text-blue-300">{selectedSegmentIds.length}</span></div>}
                         {selectedFittingIds.length > 0 && <div className="flex justify-between"><span>Organes / Raccords :</span><span className="font-bold text-emerald-300">{selectedFittingIds.length}</span></div>}
+                        {selectedCad2dIds.length > 0 && <div className="flex justify-between"><span>Dessins 2D :</span><span className="font-bold text-purple-300">{selectedCad2dIds.length}</span></div>}
                       </div>
                       <div className="pt-2 border-t border-slate-800 flex gap-1.5">
                         <button
                           type="button"
-                          onClick={deleteSelection}
+                          onClick={universalDelete}
                           className="flex-1 py-1 rounded bg-red-950/80 hover:bg-red-900 border border-red-800/80 text-red-300 text-[10px] font-bold"
                         >
                           Supprimer tout
@@ -10478,159 +10727,178 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                   );
                 }
 
-                const selectedSeg = segments.find(s => s.id === selectedSegmentId || selectedSegmentIds.includes(s.id));
-                const selectedNd = nodes.find(n => n.id === selectedNodeId || selectedNodeIds.includes(n.id));
+                // Résolution de l'entité universelle sélectionnée
+                let universalEntity: PdiUniversalEntity | null = null;
 
-                if (selectedSeg) {
-                  return (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between border-b border-slate-800 pb-1">
-                        <span className="text-[10px] font-black text-blue-400 uppercase">Tronçon sélectionné</span>
-                        <span className="font-mono text-cyan-300 font-bold">DN{selectedSeg.dn}</span>
-                      </div>
-                      <div className="p-2 rounded-lg bg-slate-950 border border-amber-700/50 space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[9px] font-black text-amber-300 uppercase">Tag industriel</span>
-                          <span className="text-[8px] text-slate-500 font-mono">{activeTagFormat.name}</span>
-                        </div>
-                        <input
-                          value={selectedSeg.tag || ""}
-                          placeholder="100-HC-001-CS300"
-                          onChange={e => setSegments(prev => prev.map(s => s.id === selectedSeg.id ? { ...s, tag: e.target.value, tagFormatName: activeTagFormat.name } : s))}
-                          className="w-full bg-slate-900 border border-amber-700/60 rounded px-2 py-1 text-[11px] font-mono font-bold text-amber-200 outline-none"
-                        />
-                        <div className="grid grid-cols-2 gap-1.5">
-                          <select
-                            value={selectedSeg.service || ""}
-                            onChange={e => applyTagToSelection(e.target.value, undefined)}
-                            className="w-full bg-slate-900 border border-slate-700 rounded px-1.5 py-1 text-[9px] font-bold text-white outline-none"
-                          >
-                            <option value="">Service…</option>
-                            {projectSetup.services.map(sv => (
-                              <option key={sv.code} value={sv.code}>{sv.code} — {sv.label}</option>
-                            ))}
-                          </select>
-                          <select
-                            value={selectedSeg.spec || ""}
-                            onChange={e => applyTagToSelection(undefined, e.target.value)}
-                            className="w-full bg-slate-900 border border-slate-700 rounded px-1.5 py-1 text-[9px] font-bold text-white outline-none"
-                          >
-                            <option value="">Spec…</option>
-                            {projectSetup.specs.map(sp => (
-                              <option key={sp.code} value={sp.code}>{sp.code} — {sp.pressureClass}</option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <button type="button" onClick={() => applyTagToSelection()} className="flex-1 py-1 rounded bg-amber-950/70 hover:bg-amber-900 border border-amber-700/70 text-amber-200 text-[9px] font-black">Generer le tag</button>
-                          <button type="button" onClick={() => setProjectSetupOpen(true)} className="py-1 px-2 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[9px] font-black">Setup</button>
-                        </div>
-                        {selectedSeg.tag && !pdiValidateTag(selectedSeg.tag, segments.map(x => x.tag || ""), activeTagFormat).ok && (
-                          <div className="text-[9px] font-bold text-red-400">
-                            Tag invalide : {pdiValidateTag(selectedSeg.tag, segments.map(x => x.tag || ""), activeTagFormat).reason}
-                          </div>
-                        )}
-                      </div>
-                      <div>
-                        <label className="text-[8px] font-bold text-slate-400 block mb-0.5">Pipeline / Source</label>
-                        <input
-                          value={selectedSeg.sourceName || ""}
-                          onChange={e => setSegments(prev => prev.map(s => s.id === selectedSeg.id ? { ...s, sourceName: e.target.value } : s))}
-                          className="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-[10px] font-bold text-white outline-none"
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-1.5">
-                        <div>
-                          <label className="text-[8px] font-bold text-slate-400 block mb-0.5">Longueur (m)</label>
-                          <input
-                            type="number"
-                            step="0.05"
-                            value={selectedSeg.length}
-                            onChange={e => setSegmentLength(selectedSeg.id, Number(e.target.value))}
-                            className="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-[10px] font-mono font-bold text-cyan-300 outline-none"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[8px] font-bold text-slate-400 block mb-0.5">Diamètre</label>
-                          <select
-                            value={selectedSeg.dn}
-                            onChange={e => setSegments(prev => prev.map(s => s.id === selectedSeg.id ? { ...s, dn: Number(e.target.value) } : s))}
-                            className="w-full bg-slate-950 border border-slate-700 rounded px-1.5 py-1 text-[9px] font-bold text-white outline-none"
-                          >
-                            {DIAMETERS.map(([dn, inch]) => (
-                              <option key={dn} value={dn}>DN{dn} ({inch})</option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-                    </div>
-                  );
+                // A. Objet CAO 2D
+                if (selectedCad2dIds.length === 1) {
+                  const cad = cad2dEntities.find(c => c.id === selectedCad2dIds[0]);
+                  if (cad) universalEntity = cad2dToUniversalEntity(cad);
                 }
 
-                if (selectedNd) {
+                // B. Support MSS SP-58
+                if (!universalEntity && selectedSupportId) {
+                  const sup = supports.find(s => s.id === selectedSupportId);
+                  if (sup) {
+                    const parentSeg = segments.find(seg => seg.id === sup.segmentId);
+                    universalEntity = supportToUniversalEntity(sup, parentSeg);
+                  }
+                }
+
+                // C. Raccord en ligne (fitting)
+                if (!universalEntity && selectedFitting) {
+                  const seg = segments.find(s => s.id === selectedFitting.segmentId);
+                  const fit = seg?.fittings.find(f => f.id === selectedFitting.fittingId);
+                  if (fit && seg) universalEntity = fittingToUniversalEntity(fit, seg);
+                }
+
+                // D. Tronçon / Tube
+                if (!universalEntity) {
+                  const seg = segments.find(s => s.id === selectedSegmentId || selectedSegmentIds.includes(s.id));
+                  if (seg) {
+                    const fromN = nodes.find(n => n.id === seg.fromNodeId);
+                    const toN = nodes.find(n => n.id === seg.toNodeId);
+                    universalEntity = segmentToUniversalEntity(seg, fromN, toN);
+                  }
+                }
+
+                // E. Nœud / Équipement / Vanne / Té / Coude
+                if (!universalEntity) {
+                  const targetNodeId = selectedNodeId || selectedNodeIds[0] || selectedFittingIds[0];
+                  const nd = nodes.find(n => n.id === targetNodeId);
+                  if (nd) {
+                    const linked = segments.filter(s => s.fromNodeId === nd.id || s.toNodeId === nd.id);
+                    universalEntity = nodeToUniversalEntity(nd, linked);
+                  }
+                }
+
+                if (universalEntity) {
                   return (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between border-b border-slate-800 pb-1">
-                        <span className="text-[10px] font-black text-amber-400 uppercase">Point / Équipement</span>
-                        <span className="font-mono text-amber-300 font-bold">{selectedNd.name}</span>
-                      </div>
-                      <div>
-                        <label className="text-[8px] font-bold text-slate-400 block mb-0.5">Nom du repère</label>
-                        <input
-                          value={selectedNd.name}
-                          onChange={e => setNodes(prev => prev.map(n => n.id === selectedNd.id ? { ...n, name: e.target.value } : n))}
-                          className="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-[10px] font-bold text-white outline-none"
-                        />
-                      </div>
-                      <div className="grid grid-cols-3 gap-1">
-                        <div>
-                          <label className="text-[8px] font-bold text-slate-400 block mb-0.5">X</label>
-                          <input
-                            type="number"
-                            step="0.1"
-                            value={selectedNd.x}
-                            onChange={e => setNodes(prev => prev.map(n => n.id === selectedNd.id ? { ...n, x: Number(e.target.value) } : n))}
-                            className="w-full bg-slate-950 border border-slate-700 rounded px-1.5 py-1 text-[9px] font-mono text-cyan-300"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[8px] font-bold text-slate-400 block mb-0.5">Y</label>
-                          <input
-                            type="number"
-                            step="0.1"
-                            value={selectedNd.y}
-                            onChange={e => setNodes(prev => prev.map(n => n.id === selectedNd.id ? { ...n, y: Number(e.target.value) } : n))}
-                            className="w-full bg-slate-950 border border-slate-700 rounded px-1.5 py-1 text-[9px] font-mono text-cyan-300"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[8px] font-bold text-slate-400 block mb-0.5">Z (m)</label>
-                          <input
-                            type="number"
-                            step="0.1"
-                            value={selectedNd.z || 0}
-                            onChange={e => setNodes(prev => prev.map(n => n.id === selectedNd.id ? { ...n, z: Number(e.target.value) } : n))}
-                            className="w-full bg-slate-950 border border-slate-700 rounded px-1.5 py-1 text-[9px] font-mono text-amber-300"
-                          />
-                        </div>
-                      </div>
-                      {selectedNd.equipmentType && (
-                        <div className="pt-2 border-t border-slate-800">
-                          <label className="text-[8px] font-bold text-slate-400 block mb-1">Orientation / Rotation</label>
-                          <div className="grid grid-cols-3 gap-1">
-                            <button type="button" onClick={() => rotateSelectedEquipment(-15)} className="py-1.5 rounded bg-slate-800 text-[10px] font-bold">−15°</button>
-                            <button type="button" onClick={() => rotateSelectedEquipment(15)} className="py-1.5 rounded bg-slate-800 text-[10px] font-bold">+15°</button>
-                            <button type="button" onClick={flipSelectedEquipment} className="py-1.5 rounded bg-amber-950 text-amber-300 text-[10px] font-bold">Miroir</button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                    <PdiUniversalPropertyInspector
+                      entity={universalEntity}
+                      onChange={(updated) => {
+                        if (updated.identity.category === "cad2d") {
+                          setCad2dEntities(prev => prev.map(c => c.id === updated.identity.id ? {
+                            ...c,
+                            text: updated.identity.name || c.text,
+                            layerId: updated.specific.cad2d?.layerId || c.layerId,
+                            color: updated.specific.cad2d?.strokeColor || c.color,
+                            lineWeight: updated.specific.cad2d?.strokeWidth || c.lineWeight,
+                            fill: updated.specific.cad2d?.fillColor || c.fill,
+                            rotation: updated.geometry.rotation != null ? updated.geometry.rotation : c.rotation,
+                          } : c));
+                        } else if (updated.identity.category === "support") {
+                          setSupports(prev => prev.map(s => s.id === updated.identity.id ? {
+                            ...s,
+                            tag: updated.tag.fullTag || s.tag,
+                            type: (updated.specific.support?.mssType as any) || s.type,
+                            orientationAngleDeg: updated.geometry.rotation != null ? updated.geometry.rotation : s.orientationAngleDeg,
+                          } : s));
+                        } else if (updated.identity.category === "fitting" && selectedFitting) {
+                          setSegments(prev => prev.map(s => s.id === selectedFitting.segmentId ? {
+                            ...s,
+                            fittings: s.fittings.map(f => f.id === updated.identity.id ? {
+                              ...f,
+                              label: updated.identity.name,
+                              dn: updated.dn.dn,
+                              reference: updated.documentation.catalogRef,
+                              manufacturer: updated.documentation.manufacturer,
+                            } : f),
+                          } : s));
+                        } else if (updated.identity.category === "pipe") {
+                          setSegments(prev => prev.map(s => s.id === updated.identity.id ? {
+                            ...s,
+                            sourceName: updated.identity.name,
+                            tag: updated.tag.fullTag,
+                            dn: updated.dn.dn,
+                            pn: updated.pn.rating,
+                            material: updated.material.grade,
+                            schedule: updated.material.schedule,
+                            service: updated.service.code,
+                            spec: updated.spec.pmsCode,
+                            length: updated.geometry.length != null ? updated.geometry.length : s.length,
+                            insulation: updated.specific.pipe?.insulation || s.insulation,
+                          } : s));
+                        } else {
+                          // Nœud / Équipement / Vanne / Té / Coude
+                          setNodes(prev => prev.map(n => n.id === updated.identity.id ? {
+                            ...n,
+                            name: updated.identity.name,
+                            dn: updated.dn.dn,
+                            reducedDn: updated.dn.reducedDn,
+                            pn: updated.pn.rating,
+                            material: updated.material.grade,
+                            schedule: updated.material.schedule,
+                            service: updated.service.code,
+                            spec: updated.spec.pmsCode,
+                            tag: updated.tag.fullTag,
+                            reference: updated.documentation.catalogRef,
+                            manufacturer: updated.documentation.manufacturer,
+                            x: updated.geometry.x,
+                            y: updated.geometry.y,
+                            z: updated.geometry.z,
+                            rotation: updated.geometry.rotation,
+                            branchAngle: updated.geometry.branchAngle,
+                          } : n));
+                          setSegments(prev => recalcSegmentLengths(nodes, prev));
+                        }
+                      }}
+                      onClose={() => clearSelection()}
+                      onDelete={() => universalDelete()}
+                      onRotate={(delta) => universalRotate(delta)}
+                      onDuplicate={() => universalDuplicate()}
+                    />
                   );
                 }
 
                 return (
-                  <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-center text-slate-500 text-[10px]">
-                    Sélectionnez un élément sur le schéma pour inspecter ses propriétés.
+                  <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 text-center space-y-2">
+                    <div className="text-slate-400 text-xs font-bold">Aucun élément sélectionné</div>
+                    <div className="text-slate-500 text-[11px] leading-relaxed">
+                      Cliquez sur un tube, une vanne, un té, un coude, un support MSS ou un dessin 2D pour inspecter et modifier ses propriétés universelles.
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Volet Anomalies & Spécification */}
+              {(() => {
+                const issues: Array<{ id: string; kind: "segment" | "node"; label: string }> =
+                  graphIssues.map((issue) => ({
+                    id: issue.entityId || issue.id,
+                    kind: pdiAnomalieKind017P9(issue, nodes),
+                    label: pdiAnomalieLibelle017P9(issue),
+                  }));
+                return (
+                  <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5">
+                    <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                      <span className="text-[10px] font-black text-amber-300 uppercase">Contrôle de Spécification & Anomalies</span>
+                      <span className={`font-mono text-[10px] font-black px-2 py-0.5 rounded border ${issues.length === 0 ? "text-emerald-300 border-emerald-800 bg-emerald-950" : "text-amber-300 border-amber-800 bg-amber-950"}`}>
+                        {issues.length}
+                      </span>
+                    </div>
+                    {issues.length === 0 && (
+                      <div className="text-[11px] text-emerald-300 font-bold">Aucune anomalie détectée · Conforme aux specs.</div>
+                    )}
+                    {issues.slice(0, 20).map((issue, idx) => (
+                      <button
+                        key={issue.kind + issue.id + String(idx)}
+                        type="button"
+                        onClick={() => {
+                          if (issue.kind === "segment") selectSegmentV44(issue.id, false);
+                          else selectNodeV44(issue.id, false);
+                          setRightPanelOpen(true);
+                          setRightPanelTab("properties");
+                        }}
+                        className="w-full text-left px-2 py-1.5 rounded bg-slate-900 border border-slate-700 hover:border-amber-600 text-[10px] font-bold text-slate-300"
+                      >
+                        <span className="text-amber-300">{issue.label}</span>
+                        <span className="font-mono text-slate-500"> · {issue.id}</span>
+                      </button>
+                    ))}
+                    {issues.length > 20 && (
+                      <div className="text-[10px] text-slate-500 font-bold">... et {issues.length - 20} autre(s).</div>
+                    )}
                   </div>
                 );
               })()}
