@@ -2005,6 +2005,8 @@ function IsometrieModule(props: { projectId?: string }) {
   const [weldOverrides, setWeldOverrides] = useState<Record<string, Partial<PdiWeldEntry>>>({});
   const [printWeldMapMode, setPrintWeldMapMode] = useState(false);
   const [libraryQuery,setLibraryQuery]=useState("");
+  const [libraryRightOpen, setLibraryRightOpen] = useState(true);
+  const [libraryCategoryTab, setLibraryCategoryTab] = useState<"all"|"vannes"|"raccords"|"brides"|"equipements"|"gc"|"trouvay"|"trigo2d">("all");
   const [draggedEquipmentType,setDraggedEquipmentType]=useState<IsoFittingType|null>(null);
   const [statusMessage,setStatusMessage]=useState("Prêt");
   const [selectedNodeIds,setSelectedNodeIds]=useState<string[]>([]);
@@ -2315,6 +2317,7 @@ function IsometrieModule(props: { projectId?: string }) {
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
+      if (solid3dViewerOpen || weldSpoolModalOpen) return;
       if (!e.key) return;
       const key = (e.key || "").toLowerCase();
       const isInput = (e.target as HTMLElement)?.matches("input,textarea,select");
@@ -2443,6 +2446,18 @@ function IsometrieModule(props: { projectId?: string }) {
       if(isInput) return;
       if(key==="v"){setInteractionMode("select");setIsoDrawMode("select");setStatusMessage("Outil Sélection");return;}
       if(key==="h"||e.code==="Space"){e.preventDefault();setInteractionMode("main");setStatusMessage("Outil Main");return;}
+      if (e.key === "ArrowLeft" || e.key === "ArrowRight" || e.key === "ArrowUp" || e.key === "ArrowDown") {
+        e.preventDefault();
+        const panStep = e.shiftKey ? 80 : 35;
+        let dx = 0;
+        let dy = 0;
+        if (e.key === "ArrowLeft") dx = panStep;
+        if (e.key === "ArrowRight") dx = -panStep;
+        if (e.key === "ArrowUp") dy = panStep;
+        if (e.key === "ArrowDown") dy = -panStep;
+        setViewport(vp => ({ ...vp, panX: vp.panX + dx, panY: vp.panY + dy }));
+        return;
+      }
       if(key==="n"){setIsoDrawMode("node");setInteractionMode("select");setStatusMessage("Création de nœud");return;}
       if(key==="t"){e.preventDefault();createTubeFromSelection();return;}
       if(key==="e"){setIsoDrawMode("te");setInteractionMode("select");setStatusMessage("Création de Té");return;}
@@ -8797,78 +8812,65 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-xs font-black uppercase text-slate-200 flex items-center gap-1.5">
               <Layers className="w-3.5 h-3.5 text-cyan-400" />
-              Bibliothèque équipements
+              Bibliothèque & Catalogue
             </h3>
             <span className="text-[9px] text-cyan-300 font-bold bg-cyan-950/80 border border-cyan-800/60 px-1.5 py-0.5 rounded">
-              Double-clic ou Glisser
+              Barre droite
             </span>
           </div>
-          <input
-            value={libraryQuery}
-            onChange={e => setLibraryQuery(e.target.value)}
-            placeholder="Rechercher vanne, coude, bride, clapet…"
-            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-500 focus:border-cyan-400 outline-none mb-2"
-          />
-          <div className="grid grid-cols-2 gap-1.5 max-h-72 overflow-y-auto pr-1">
-            {libraryItems.map(t => {
-              const isValve = t.includes("vanne") || t.includes("soupape") || t.includes("clapet");
-              const isBend = t.startsWith("coude");
-              const isFlange = t.includes("bride") || t === "jmi";
-              const cat = isValve ? "VANNE" : isBend ? "COUDE" : isFlange ? "RACCORD" : "ÉQUIPEMENT";
-              const catColor = isValve ? "text-cyan-400" : isBend ? "text-amber-400" : isFlange ? "text-emerald-400" : "text-purple-400";
-              const svgGraphic = getFittingSvgGraphic(t, false);
-
-              return (
-                <button
-                  key={t}
-                  type="button"
-                  draggable
-                  onDragStart={e => {
-                    e.dataTransfer.setData("application/x-iso-equipment", t);
-                    e.dataTransfer.setData("text/plain", t);
-                    e.dataTransfer.effectAllowed = "copy";
-                    setDraggedEquipmentType(t);
-                    setStatusMessage(`Glisser ${FITTING_LABELS[t]} sur le dessin`);
-                  }}
-                  onDragEnd={() => setDraggedEquipmentType(null)}
-                  onClick={() => {
-                    setFitType(t);
-                    setFitLabel(FITTING_LABELS[t]);
-                    setStatusMessage(`${FITTING_LABELS[t]} sélectionné`);
-                  }}
-                  onDoubleClick={() => {
-                    if (selectedSegmentId) {
-                      insertEquipmentNode(selectedSegmentId, t, 0.5, FITTING_LABELS[t]);
-                      setStatusMessage(`${FITTING_LABELS[t]} inséré sur le tronçon sélectionné`);
-                    } else if (selectedSegmentIds.length) {
-                      insertEquipmentNode(selectedSegmentIds[0], t, 0.5, FITTING_LABELS[t]);
-                      setStatusMessage(`${FITTING_LABELS[t]} inséré sur le tronçon sélectionné`);
-                    } else {
-                      // Insert at screen center
-                      const world = isoUnprojectV4(310, 200, viewport.zoom, viewport.panX, viewport.panY, nodeZ || 0);
-                      const node = makeEquipmentNode(t, FITTING_LABELS[t], snapIsoV4(world.x, isoSnapStep), snapIsoV4(world.y, isoSnapStep), nodeZ || 0, newDN, 0);
-                      setNodes(prev => [...prev, node]);
-                      setSelectedNodeId(node.id);
-                      setSelectedNodeIds([node.id]);
-                      setStatusMessage(`${FITTING_LABELS[t]} inséré au centre du plan`);
-                    }
-                  }}
-                  className={`pdi-library-card relative group p-2 rounded-xl border flex flex-col justify-between text-left transition-all ${
-                    fitType === t ? "active" : ""
-                  } ${draggedEquipmentType === t ? "dragging" : ""}`}
-                >
-                  <div className="flex items-center justify-between w-full mb-1">
-                    <span className={`text-[8px] font-black uppercase tracking-wider ${catColor}`}>{cat}</span>
-                    <div className="w-5 h-5 flex items-center justify-center shrink-0 opacity-80 group-hover:opacity-100">
-                      <svg viewBox="-18 -18 36 36" className="w-4 h-4 overflow-visible">
-                        <g dangerouslySetInnerHTML={{ __html: svgGraphic }} />
-                      </svg>
-                    </div>
-                  </div>
-                  <span className="text-[10px] font-bold text-slate-100 leading-snug line-clamp-2">{FITTING_LABELS[t]}</span>
-                </button>
-              );
-            })}
+          <button
+            type="button"
+            onClick={() => setLibraryRightOpen(prev => !prev)}
+            className={`w-full py-2 px-3 rounded-xl border flex items-center justify-between text-xs font-bold transition-all shadow-sm ${
+              libraryRightOpen
+                ? "bg-cyan-950/80 border-cyan-500/80 text-cyan-300 shadow-cyan-950/50"
+                : "bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700"
+            }`}
+          >
+            <span className="flex items-center gap-2">
+              <span className="text-base">📦</span>
+              <span>{libraryRightOpen ? "Masquer Bibliothèque" : "Ouvrir Bibliothèque (Droite)"}</span>
+            </span>
+            <span className="text-[10px] bg-slate-950/80 border border-slate-700 px-1.5 py-0.5 rounded font-mono">
+              {FITTING_TYPES.length + 12} items
+            </span>
+          </button>
+          <div className="mt-2 grid grid-cols-2 gap-1 text-[10px]">
+            <button
+              type="button"
+              onClick={() => { setLibraryRightOpen(true); setLibraryCategoryTab("vannes"); }}
+              className="px-2 py-1 rounded-lg bg-slate-950/60 border border-slate-800 text-cyan-400 hover:bg-slate-800 text-left font-semibold truncate"
+            >
+              🚰 Vannes & Robinets
+            </button>
+            <button
+              type="button"
+              onClick={() => { setLibraryRightOpen(true); setLibraryCategoryTab("raccords"); }}
+              className="px-2 py-1 rounded-lg bg-slate-950/60 border border-slate-800 text-amber-400 hover:bg-slate-800 text-left font-semibold truncate"
+            >
+              🔄 Coudes & Tés
+            </button>
+            <button
+              type="button"
+              onClick={() => { setLibraryRightOpen(true); setLibraryCategoryTab("equipements"); }}
+              className="px-2 py-1 rounded-lg bg-slate-950/60 border border-slate-800 text-purple-400 hover:bg-slate-800 text-left font-semibold truncate"
+            >
+              🏭 Équipements 3D
+            </button>
+            <button
+              type="button"
+              onClick={() => { setLibraryRightOpen(true); setLibraryCategoryTab("gc"); }}
+              className="px-2 py-1 rounded-lg bg-slate-950/60 border border-slate-800 text-emerald-400 hover:bg-slate-800 text-left font-semibold truncate"
+            >
+              🏗️ Génie Civil & SP-58
+            </button>
+            <button
+              type="button"
+              onClick={() => { setLibraryRightOpen(true); setLibraryCategoryTab("trouvay"); }}
+              className="px-2 py-1 rounded-lg bg-slate-950/60 border border-slate-800 text-blue-400 hover:bg-slate-800 text-left font-semibold truncate col-span-2"
+            >
+              📦 Trouvay & Cauvin (Catalogue ASTM/ASME)
+            </button>
           </div>
         </div>
 
@@ -10463,6 +10465,440 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                     </div>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* ================= BARRE LATÉRALE DROITE : BIBLIOTHÈQUE & SOUS-FAMILLES ================= */}
+            {libraryRightOpen && (
+              <div className="absolute top-3 right-3 z-20 w-88 md:w-96 bg-slate-900/95 backdrop-blur border border-slate-700 text-slate-100 rounded-2xl shadow-2xl p-3 flex flex-col gap-2 max-h-[88vh] overflow-hidden">
+                {/* Header Bibliothèque */}
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                  <div className="flex items-center gap-1.5">
+                    <Layers className="w-4 h-4 text-cyan-400" />
+                    <strong className="text-xs font-black uppercase text-cyan-300">Bibliothèque & Catalogue CAO</strong>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-[9px] text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded font-mono">
+                      DN {newDN} · Z {nodeZ}m
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setLibraryRightOpen(false)}
+                      className="text-slate-400 hover:text-white px-1.5 py-0.5 rounded bg-slate-800 text-xs font-bold"
+                    >
+                      &times;
+                    </button>
+                  </div>
+                </div>
+
+                {/* Barre de recherche */}
+                <div className="relative">
+                  <input
+                    value={libraryQuery}
+                    onChange={e => setLibraryQuery(e.target.value)}
+                    placeholder="Rechercher vanne, coude, pompe, massif, ASTM, carré…"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg pl-3 pr-8 py-1.5 text-xs text-white placeholder-slate-500 focus:border-cyan-400 outline-none"
+                  />
+                  {libraryQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setLibraryQuery("")}
+                      className="absolute right-2.5 top-1.5 text-slate-400 hover:text-white text-xs"
+                    >
+                      &times;
+                    </button>
+                  )}
+                </div>
+
+                {/* Onglets Sous-Familles */}
+                <div className="flex items-center gap-1 overflow-x-auto pb-1 text-[10px] font-bold border-b border-slate-800 scrollbar-thin">
+                  <button
+                    type="button"
+                    onClick={() => setLibraryCategoryTab("all")}
+                    className={`px-2 py-1 rounded whitespace-nowrap transition-all ${
+                      libraryCategoryTab === "all" ? "bg-cyan-500 text-slate-950 font-black" : "bg-slate-800/80 text-slate-300 hover:bg-slate-800"
+                    }`}
+                  >
+                    Toutes
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLibraryCategoryTab("vannes")}
+                    className={`px-2 py-1 rounded whitespace-nowrap transition-all ${
+                      libraryCategoryTab === "vannes" ? "bg-cyan-500 text-slate-950 font-black" : "bg-slate-800/80 text-cyan-300 hover:bg-slate-800"
+                    }`}
+                  >
+                    🚰 Vannes
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLibraryCategoryTab("raccords")}
+                    className={`px-2 py-1 rounded whitespace-nowrap transition-all ${
+                      libraryCategoryTab === "raccords" ? "bg-amber-500 text-slate-950 font-black" : "bg-slate-800/80 text-amber-300 hover:bg-slate-800"
+                    }`}
+                  >
+                    🔄 Raccords
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLibraryCategoryTab("brides")}
+                    className={`px-2 py-1 rounded whitespace-nowrap transition-all ${
+                      libraryCategoryTab === "brides" ? "bg-emerald-500 text-slate-950 font-black" : "bg-slate-800/80 text-emerald-300 hover:bg-slate-800"
+                    }`}
+                  >
+                    🔘 Brides
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLibraryCategoryTab("equipements")}
+                    className={`px-2 py-1 rounded whitespace-nowrap transition-all ${
+                      libraryCategoryTab === "equipements" ? "bg-purple-500 text-slate-950 font-black" : "bg-slate-800/80 text-purple-300 hover:bg-slate-800"
+                    }`}
+                  >
+                    🏭 Équipements 3D
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLibraryCategoryTab("gc")}
+                    className={`px-2 py-1 rounded whitespace-nowrap transition-all ${
+                      libraryCategoryTab === "gc" ? "bg-emerald-500 text-slate-950 font-black" : "bg-slate-800/80 text-emerald-300 hover:bg-slate-800"
+                    }`}
+                  >
+                    🏗️ Génie Civil / SP-58
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLibraryCategoryTab("trouvay")}
+                    className={`px-2 py-1 rounded whitespace-nowrap transition-all ${
+                      libraryCategoryTab === "trouvay" ? "bg-blue-500 text-white font-black" : "bg-slate-800/80 text-blue-300 hover:bg-slate-800"
+                    }`}
+                  >
+                    📦 Trouvay & Cauvin
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLibraryCategoryTab("trigo2d")}
+                    className={`px-2 py-1 rounded whitespace-nowrap transition-all ${
+                      libraryCategoryTab === "trigo2d" ? "bg-rose-500 text-white font-black" : "bg-slate-800/80 text-rose-300 hover:bg-slate-800"
+                    }`}
+                  >
+                    📐 Trigonométrie 2D
+                  </button>
+                </div>
+
+                {/* Grille des éléments filtrés */}
+                <div className="flex-1 overflow-y-auto pr-1 space-y-2 max-h-[60vh]">
+                  {/* SOUS-FAMILLE : TRIGONOMÉTRIE 2D (Carré, Rectangle, Triangle, Cercle, Axe avec points d'ancrage) */}
+                  {(libraryCategoryTab === "all" || libraryCategoryTab === "trigo2d") && !libraryQuery && (
+                    <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-2 space-y-1.5">
+                      <div className="flex items-center justify-between text-[10px] font-black uppercase text-rose-300">
+                        <span>📐 Formes Trigonométriques 2D (Points d&apos;ancrage sur coins)</span>
+                        <span className="text-[8px] text-slate-400">Clic pour insérer</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const world = isoUnprojectV4(310, 200, viewport.zoom, viewport.panX, viewport.panY, nodeZ || 0);
+                            const w = 2.0;
+                            const h = 2.0;
+                            const x = snapIsoV4(world.x, isoSnapStep);
+                            const y = snapIsoV4(world.y, isoSnapStep);
+                            const polyEntity: Cad2dEntity = {
+                              id: `cad_carre_${Date.now()}`,
+                              type: "polygon",
+                              layerId: "GENIE_CIVIL",
+                              color: "#F43F5E",
+                              lineWeight: 2,
+                              points: [
+                                { x, y },
+                                { x: x + w, y },
+                                { x: x + w, y: y + h },
+                                { x, y: y + h },
+                              ],
+                              center: { x: x + w / 2, y: y + h / 2 },
+                              width: w,
+                              height: h,
+                              metadata: { intent: "draft", subType: "carre_trig", elevationZ: nodeZ || 0 },
+                            };
+                            setCad2dEntitiesRaw(prev => [...prev, polyEntity]);
+                            setSelectedCad2dIds([polyEntity.id]);
+                            setStatusMessage("Carré 2D inséré avec 4 ancrages de coins");
+                          }}
+                          className="p-2 rounded-lg bg-slate-900 border border-slate-700/80 hover:border-rose-400 text-left flex flex-col justify-between transition-all group"
+                        >
+                          <span className="text-[9px] font-bold text-rose-400 uppercase">Carré 2D</span>
+                          <span className="text-[11px] font-bold text-white">Carré 2.0 × 2.0m</span>
+                          <span className="text-[8px] text-slate-400">4 coins ancrables</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const world = isoUnprojectV4(310, 200, viewport.zoom, viewport.panX, viewport.panY, nodeZ || 0);
+                            const w = 3.0;
+                            const h = 1.5;
+                            const x = snapIsoV4(world.x, isoSnapStep);
+                            const y = snapIsoV4(world.y, isoSnapStep);
+                            const polyEntity: Cad2dEntity = {
+                              id: `cad_rect_${Date.now()}`,
+                              type: "polygon",
+                              layerId: "GENIE_CIVIL",
+                              color: "#F43F5E",
+                              lineWeight: 2,
+                              points: [
+                                { x, y },
+                                { x: x + w, y },
+                                { x: x + w, y: y + h },
+                                { x, y: y + h },
+                              ],
+                              center: { x: x + w / 2, y: y + h / 2 },
+                              width: w,
+                              height: h,
+                              metadata: { intent: "draft", subType: "rectangle_trig", elevationZ: nodeZ || 0 },
+                            };
+                            setCad2dEntitiesRaw(prev => [...prev, polyEntity]);
+                            setSelectedCad2dIds([polyEntity.id]);
+                            setStatusMessage("Rectangle 2D inséré avec 4 ancrages de coins");
+                          }}
+                          className="p-2 rounded-lg bg-slate-900 border border-slate-700/80 hover:border-rose-400 text-left flex flex-col justify-between transition-all group"
+                        >
+                          <span className="text-[9px] font-bold text-rose-400 uppercase">Rectangle 2D</span>
+                          <span className="text-[11px] font-bold text-white">Rect 3.0 × 1.5m</span>
+                          <span className="text-[8px] text-slate-400">4 coins ancrables</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const world = isoUnprojectV4(310, 200, viewport.zoom, viewport.panX, viewport.panY, nodeZ || 0);
+                            const base = 2.0;
+                            const height = 1.8;
+                            const x = snapIsoV4(world.x, isoSnapStep);
+                            const y = snapIsoV4(world.y, isoSnapStep);
+                            const triEntity: Cad2dEntity = {
+                              id: `cad_tri_${Date.now()}`,
+                              type: "polygon",
+                              layerId: "GENIE_CIVIL",
+                              color: "#F43F5E",
+                              lineWeight: 2,
+                              points: [
+                                { x, y },
+                                { x: x + base, y },
+                                { x: x + base / 2, y: y + height },
+                              ],
+                              center: { x: x + base / 2, y: y + height / 3 },
+                              width: base,
+                              height: height,
+                              metadata: { intent: "draft", subType: "triangle_trig", elevationZ: nodeZ || 0 },
+                            };
+                            setCad2dEntitiesRaw(prev => [...prev, triEntity]);
+                            setSelectedCad2dIds([triEntity.id]);
+                            setStatusMessage("Triangle 2D inséré avec 3 sommets ancrables");
+                          }}
+                          className="p-2 rounded-lg bg-slate-900 border border-slate-700/80 hover:border-rose-400 text-left flex flex-col justify-between transition-all group"
+                        >
+                          <span className="text-[9px] font-bold text-rose-400 uppercase">Triangle 2D</span>
+                          <span className="text-[11px] font-bold text-white">Triangle Base 2m</span>
+                          <span className="text-[8px] text-slate-400">3 sommets ancrables</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const world = isoUnprojectV4(310, 200, viewport.zoom, viewport.panX, viewport.panY, nodeZ || 0);
+                            const x = snapIsoV4(world.x, isoSnapStep);
+                            const y = snapIsoV4(world.y, isoSnapStep);
+                            const circleEntity: Cad2dEntity = {
+                              id: `cad_circ_${Date.now()}`,
+                              type: "circle",
+                              layerId: "GENIE_CIVIL",
+                              color: "#F43F5E",
+                              lineWeight: 2,
+                              center: { x, y },
+                              radius: 1.0,
+                              points: [{ x, y }],
+                              metadata: { intent: "draft", subType: "cercle_trig", elevationZ: nodeZ || 0 },
+                            };
+                            setCad2dEntitiesRaw(prev => [...prev, circleEntity]);
+                            setSelectedCad2dIds([circleEntity.id]);
+                            setStatusMessage("Cercle 2D inséré avec centre et quadrants ancrables");
+                          }}
+                          className="p-2 rounded-lg bg-slate-900 border border-slate-700/80 hover:border-rose-400 text-left flex flex-col justify-between transition-all group"
+                        >
+                          <span className="text-[9px] font-bold text-rose-400 uppercase">Cercle 2D</span>
+                          <span className="text-[11px] font-bold text-white">Cercle R = 1.0m</span>
+                          <span className="text-[8px] text-slate-400">Centre & 4 quadrants</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* SOUS-FAMILLE : GÉNIE CIVIL (GC) & SUPPORTS MSS SP-58 */}
+                  {(libraryCategoryTab === "all" || libraryCategoryTab === "gc") && !libraryQuery && (
+                    <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-2 space-y-1.5">
+                      <div className="flex items-center justify-between text-[10px] font-black uppercase text-emerald-300">
+                        <span>🏗️ Génie Civil (GC) & Massifs Béton Armé</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const world = isoUnprojectV4(310, 200, viewport.zoom, viewport.panX, viewport.panY, 0);
+                            const x = snapIsoV4(world.x, isoSnapStep);
+                            const y = snapIsoV4(world.y, isoSnapStep);
+                            const gcNode = makeEquipmentNode("pompe_centrifuge" as any, "Massif Béton GC", x, y, 0, 100, 0);
+                            (gcNode as any).equipmentType = "massif_beton_gc";
+                            (gcNode as any).equipmentLabel = "Massif Béton 1.2×1.2m";
+                            setNodes(prev => [...prev, gcNode]);
+                            setSelectedNodeId(gcNode.id);
+                            setSelectedNodeIds([gcNode.id]);
+                            setStatusMessage("Massif béton Génie Civil inséré au sol (Z=0)");
+                          }}
+                          className="p-2 rounded-lg bg-slate-900 border border-slate-700/80 hover:border-emerald-400 text-left flex flex-col justify-between transition-all"
+                        >
+                          <span className="text-[9px] font-bold text-emerald-400 uppercase">Massif Béton</span>
+                          <span className="text-[11px] font-bold text-white">Massif GC 1.2×1.2m</span>
+                          <span className="text-[8px] text-slate-400">Fondation béton Z=0</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const world = isoUnprojectV4(310, 200, viewport.zoom, viewport.panX, viewport.panY, nodeZ || 0);
+                            const x = snapIsoV4(world.x, isoSnapStep);
+                            const y = snapIsoV4(world.y, isoSnapStep);
+                            const gcNode = makeEquipmentNode("pompe_centrifuge" as any, "Traversée Murale GC", x, y, nodeZ || 0, newDN, 0);
+                            (gcNode as any).equipmentType = "traversee_murale_gc";
+                            (gcNode as any).equipmentLabel = `Fourreau Traversée DN${newDN}`;
+                            setNodes(prev => [...prev, gcNode]);
+                            setSelectedNodeId(gcNode.id);
+                            setSelectedNodeIds([gcNode.id]);
+                            setStatusMessage("Traversée murale / Fourreau Génie Civil inséré");
+                          }}
+                          className="p-2 rounded-lg bg-slate-900 border border-slate-700/80 hover:border-emerald-400 text-left flex flex-col justify-between transition-all"
+                        >
+                          <span className="text-[9px] font-bold text-emerald-400 uppercase">Fourreau / Mur</span>
+                          <span className="text-[11px] font-bold text-white">Traversée Murale</span>
+                          <span className="text-[8px] text-slate-400">Fourreau étanche GC</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* SOUS-FAMILLE : TROUVAY & CAUVIN (Catalogue Tuyauterie Industrielle) */}
+                  {(libraryCategoryTab === "all" || libraryCategoryTab === "trouvay") && !libraryQuery && (
+                    <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-2 space-y-1.5">
+                      <div className="flex items-center justify-between text-[10px] font-black uppercase text-blue-300">
+                        <span>📦 Spécifications Trouvay & Cauvin (ASTM / ASME)</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNewDN(100);
+                            setNewPN("Class 150");
+                            setStatusMessage("Trouvay & Cauvin : Tube ASTM A106 Gr.B DN100 Sch.STD sélectionné");
+                          }}
+                          className="p-2 rounded-lg bg-slate-900 border border-slate-700/80 hover:border-blue-400 text-left flex flex-col justify-between transition-all"
+                        >
+                          <span className="text-[9px] font-bold text-blue-400 uppercase">Tube TC ASTM</span>
+                          <span className="text-[11px] font-bold text-white">ASTM A106 Gr.B</span>
+                          <span className="text-[8px] text-slate-400">Sans soudure Sch 40/STD</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNewDN(150);
+                            setNewPN("Class 300");
+                            setStatusMessage("Trouvay & Cauvin : Bride ASME B16.5 Cl.300 WN sélectionnée");
+                          }}
+                          className="p-2 rounded-lg bg-slate-900 border border-slate-700/80 hover:border-blue-400 text-left flex flex-col justify-between transition-all"
+                        >
+                          <span className="text-[9px] font-bold text-blue-400 uppercase">Bride TC ASME</span>
+                          <span className="text-[11px] font-bold text-white">ASME B16.5 Cl.300</span>
+                          <span className="text-[8px] text-slate-400">Collerette à souder (WN)</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* GRILLE COMPLÈTE DES ORGANES & ROBINETTERIE */}
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {libraryItems
+                      .filter(t => {
+                        if (libraryCategoryTab === "all") return true;
+                        const isValve = t.includes("vanne") || t.includes("soupape") || t.includes("clapet") || t.includes("robinet");
+                        const isBend = t.startsWith("coude");
+                        const isFlange = t.includes("bride") || t === "jmi";
+                        const isEq = t.includes("pompe") || t.includes("ballon") || t.includes("echangeur") || t.includes("filtre") || t.includes("gare");
+                        if (libraryCategoryTab === "vannes") return isValve;
+                        if (libraryCategoryTab === "raccords") return isBend || t.startsWith("te_") || t.includes("reduction");
+                        if (libraryCategoryTab === "brides") return isFlange;
+                        if (libraryCategoryTab === "equipements") return isEq;
+                        return true;
+                      })
+                      .map(t => {
+                        const isValve = t.includes("vanne") || t.includes("soupape") || t.includes("clapet");
+                        const isBend = t.startsWith("coude");
+                        const isFlange = t.includes("bride") || t === "jmi";
+                        const cat = isValve ? "VANNE" : isBend ? "COUDE" : isFlange ? "BRIDE" : "ÉQUIPEMENT";
+                        const catColor = isValve ? "text-cyan-400" : isBend ? "text-amber-400" : isFlange ? "text-emerald-400" : "text-purple-400";
+                        const svgGraphic = getFittingSvgGraphic(t, false);
+
+                        return (
+                          <button
+                            key={t}
+                            type="button"
+                            draggable
+                            onDragStart={e => {
+                              e.dataTransfer.setData("application/x-iso-equipment", t);
+                              e.dataTransfer.setData("text/plain", t);
+                              e.dataTransfer.effectAllowed = "copy";
+                              setDraggedEquipmentType(t);
+                              setStatusMessage(`Glisser ${FITTING_LABELS[t]} sur le dessin`);
+                            }}
+                            onDragEnd={() => setDraggedEquipmentType(null)}
+                            onClick={() => {
+                              setFitType(t);
+                              setFitLabel(FITTING_LABELS[t]);
+                              setStatusMessage(`${FITTING_LABELS[t]} sélectionné (double-clic pour insérer)`);
+                            }}
+                            onDoubleClick={() => {
+                              if (selectedSegmentId) {
+                                insertEquipmentNode(selectedSegmentId, t, 0.5, FITTING_LABELS[t]);
+                                setStatusMessage(`${FITTING_LABELS[t]} inséré sur le tronçon sélectionné`);
+                              } else if (selectedSegmentIds.length) {
+                                insertEquipmentNode(selectedSegmentIds[0], t, 0.5, FITTING_LABELS[t]);
+                                setStatusMessage(`${FITTING_LABELS[t]} inséré sur le tronçon sélectionné`);
+                              } else {
+                                const world = isoUnprojectV4(310, 200, viewport.zoom, viewport.panX, viewport.panY, nodeZ || 0);
+                                const node = makeEquipmentNode(t, FITTING_LABELS[t], snapIsoV4(world.x, isoSnapStep), snapIsoV4(world.y, isoSnapStep), nodeZ || 0, newDN, 0);
+                                setNodes(prev => [...prev, node]);
+                                setSelectedNodeId(node.id);
+                                setSelectedNodeIds([node.id]);
+                                setStatusMessage(`${FITTING_LABELS[t]} inséré au centre du plan`);
+                              }
+                            }}
+                            className={`pdi-library-card relative group p-2 rounded-xl border flex flex-col justify-between text-left transition-all ${
+                              fitType === t ? "active" : ""
+                            } ${draggedEquipmentType === t ? "dragging" : ""}`}
+                          >
+                            <div className="flex items-center justify-between w-full mb-1">
+                              <span className={`text-[8px] font-black uppercase tracking-wider ${catColor}`}>{cat}</span>
+                              <div className="w-5 h-5 flex items-center justify-center shrink-0 opacity-80 group-hover:opacity-100">
+                                <svg viewBox="-18 -18 36 36" className="w-4 h-4 overflow-visible">
+                                  <g dangerouslySetInnerHTML={{ __html: svgGraphic }} />
+                                </svg>
+                              </div>
+                            </div>
+                            <span className="text-[10px] font-bold text-slate-100 leading-snug line-clamp-2">{FITTING_LABELS[t]}</span>
+                          </button>
+                        );
+                      })}
+                  </div>
+                </div>
               </div>
             )}
 </div>

@@ -25,6 +25,19 @@ export interface MaterialPalette {
   highlightSelected: THREE.MeshStandardMaterial;
   highlightHover: THREE.MeshStandardMaterial;
   wireframeMat: THREE.MeshBasicMaterial;
+  equipmentMotor: THREE.MeshStandardMaterial;
+  equipmentPump: THREE.MeshStandardMaterial;
+  equipmentBrass: THREE.MeshStandardMaterial;
+  equipmentVessel: THREE.MeshStandardMaterial;
+  equipmentExchanger: THREE.MeshStandardMaterial;
+  equipmentSightGlass: THREE.MeshPhysicalMaterial;
+  anchorBolts: THREE.MeshStandardMaterial;
+  equipmentYellowLever: THREE.MeshStandardMaterial;
+  equipmentBlueLever: THREE.MeshStandardMaterial;
+  gaugeDial: THREE.MeshStandardMaterial;
+  gaugeNeedle: THREE.MeshStandardMaterial;
+  copperBrass: THREE.MeshStandardMaterial;
+  insulationOrange: THREE.MeshStandardMaterial;
   getSpoolMaterial: (spoolId?: string, spoolColor?: string, mode?: RenderShadingMode) => THREE.Material;
   getServiceMaterial: (service?: string, mode?: RenderShadingMode) => THREE.Material;
 }
@@ -44,98 +57,180 @@ const SPOOL_COLOR_PALETTE = [
 
 export function createPdi3dMaterialPalette(): MaterialPalette {
   const carbonSteel = new THREE.MeshStandardMaterial({
-    color: 0x475569, // Slate steel
-    metalness: 0.85,
-    roughness: 0.32,
-    envMapIntensity: 1.0,
-  });
-
-  const stainlessSteel = new THREE.MeshStandardMaterial({
-    color: 0x94a3b8, // Bright stainless 316L
-    metalness: 0.95,
-    roughness: 0.22,
+    color: 0x334155, // Deep Slate steel
+    metalness: 0.88,
+    roughness: 0.28,
     envMapIntensity: 1.2,
   });
 
+  const stainlessSteel = new THREE.MeshStandardMaterial({
+    color: 0xcbd5e1, // Bright stainless 316L
+    metalness: 0.95,
+    roughness: 0.18,
+    envMapIntensity: 1.5,
+  });
+
   const flangeBolts = new THREE.MeshStandardMaterial({
-    color: 0xcfd8dc,
-    metalness: 0.9,
-    roughness: 0.2,
+    color: 0xe2e8f0,
+    metalness: 0.92,
+    roughness: 0.18,
   });
 
   const valveBody = new THREE.MeshStandardMaterial({
     color: 0x1e293b,
-    metalness: 0.7,
-    roughness: 0.4,
+    metalness: 0.75,
+    roughness: 0.35,
   });
 
   const valveHandwheel = new THREE.MeshStandardMaterial({
     color: 0xdc2626, // Industrial safety red
-    metalness: 0.4,
-    roughness: 0.45,
+    metalness: 0.35,
+    roughness: 0.4,
   });
 
   const gasket = new THREE.MeshStandardMaterial({
-    color: 0x111827,
-    roughness: 0.85,
-    metalness: 0.1,
+    color: 0x0f172a,
+    roughness: 0.9,
+    metalness: 0.05,
   });
 
   const weldShop = new THREE.MeshStandardMaterial({
     color: 0x0284c7,
     emissive: 0x0369a1,
-    emissiveIntensity: 0.4,
-    metalness: 0.6,
-    roughness: 0.4,
+    emissiveIntensity: 0.45,
+    metalness: 0.65,
+    roughness: 0.35,
   });
 
   const weldField = new THREE.MeshStandardMaterial({
     color: 0xe11d48,
     emissive: 0xbe123c,
-    emissiveIntensity: 0.5,
-    metalness: 0.6,
-    roughness: 0.4,
+    emissiveIntensity: 0.55,
+    metalness: 0.65,
+    roughness: 0.35,
   });
 
   const weldGolden = new THREE.MeshStandardMaterial({
     color: 0xd97706,
     emissive: 0xb45309,
-    emissiveIntensity: 0.6,
-    metalness: 0.8,
-    roughness: 0.3,
+    emissiveIntensity: 0.65,
+    metalness: 0.85,
+    roughness: 0.25,
   });
 
   const supportSteel = new THREE.MeshStandardMaterial({
-    color: 0x64748b,
-    metalness: 0.75,
-    roughness: 0.4,
+    color: 0x475569,
+    metalness: 0.8,
+    roughness: 0.35,
   });
 
   const concretePad = new THREE.MeshStandardMaterial({
-    color: 0x9ca3af,
-    roughness: 0.9,
-    metalness: 0.05,
+    color: 0x94a3b8,
+    roughness: 0.95,
+    metalness: 0.02,
   });
 
   const highlightSelected = new THREE.MeshStandardMaterial({
     color: 0x00f0ff,
     emissive: 0x00d0f0,
-    emissiveIntensity: 0.8,
+    emissiveIntensity: 0.85,
     metalness: 0.5,
-    roughness: 0.2,
+    roughness: 0.15,
   });
 
   const highlightHover = new THREE.MeshStandardMaterial({
     color: 0xfef08a,
     emissive: 0xf59e0b,
-    emissiveIntensity: 0.4,
+    emissiveIntensity: 0.45,
     metalness: 0.4,
-    roughness: 0.3,
+    roughness: 0.25,
   });
 
   const wireframeMat = new THREE.MeshBasicMaterial({
     color: 0x38bdf8,
     wireframe: true,
+  });
+
+  const equipmentMotor = new THREE.MeshStandardMaterial({
+    color: 0x0284c7, // Industrial Electric Blue
+    metalness: 0.65,
+    roughness: 0.32,
+  });
+
+  const equipmentPump = new THREE.MeshStandardMaterial({
+    color: 0x0f766e, // Industrial Process Teal / Dark Green
+    metalness: 0.72,
+    roughness: 0.38,
+  });
+
+  const equipmentBrass = new THREE.MeshStandardMaterial({
+    color: 0xd97706, // Brass / Bronze
+    metalness: 0.9,
+    roughness: 0.25,
+  });
+
+  const equipmentVessel = new THREE.MeshStandardMaterial({
+    color: 0x334155, // Heavy Pressure Vessel Slate
+    metalness: 0.82,
+    roughness: 0.3,
+  });
+
+  const equipmentExchanger = new THREE.MeshStandardMaterial({
+    color: 0x1e3a8a, // Exchanger Blue
+    metalness: 0.78,
+    roughness: 0.32,
+  });
+
+  const equipmentSightGlass = new THREE.MeshPhysicalMaterial({
+    color: 0xe0f2fe,
+    metalness: 0.1,
+    roughness: 0.1,
+    transmission: 0.85,
+    ior: 1.5,
+    transparent: true,
+    opacity: 0.75,
+  });
+
+  const anchorBolts = new THREE.MeshStandardMaterial({
+    color: 0xf1f5f9, // Bright zinc-plated
+    metalness: 0.95,
+    roughness: 0.15,
+  });
+
+  const equipmentYellowLever = new THREE.MeshStandardMaterial({
+    color: 0xf59e0b, // Industrial safety amber/yellow for quarter-turn ball valves
+    metalness: 0.45,
+    roughness: 0.35,
+  });
+
+  const equipmentBlueLever = new THREE.MeshStandardMaterial({
+    color: 0x2563eb, // Cobalt blue for butterfly / control handles
+    metalness: 0.45,
+    roughness: 0.35,
+  });
+
+  const gaugeDial = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    metalness: 0.05,
+    roughness: 0.2,
+  });
+
+  const gaugeNeedle = new THREE.MeshStandardMaterial({
+    color: 0xef4444, // Indicator red
+    metalness: 0.3,
+    roughness: 0.2,
+  });
+
+  const copperBrass = new THREE.MeshStandardMaterial({
+    color: 0xb45309, // Polished brass/bronze
+    metalness: 0.92,
+    roughness: 0.22,
+  });
+
+  const insulationOrange = new THREE.MeshStandardMaterial({
+    color: 0xea580c, // Thermal jacket orange / safety
+    metalness: 0.3,
+    roughness: 0.5,
   });
 
   const spoolCache = new Map<string, THREE.MeshStandardMaterial>();
@@ -204,6 +299,19 @@ export function createPdi3dMaterialPalette(): MaterialPalette {
     highlightSelected,
     highlightHover,
     wireframeMat,
+    equipmentMotor,
+    equipmentPump,
+    equipmentBrass,
+    equipmentVessel,
+    equipmentExchanger,
+    equipmentSightGlass,
+    anchorBolts,
+    equipmentYellowLever,
+    equipmentBlueLever,
+    gaugeDial,
+    gaugeNeedle,
+    copperBrass,
+    insulationOrange,
     getSpoolMaterial,
     getServiceMaterial,
   };

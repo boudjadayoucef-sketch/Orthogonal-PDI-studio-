@@ -9,49 +9,67 @@
  * - Rétrocompatibilité totale et intégration avec commitGraph / pushHistory (Undo/Redo)
  */
 
-import type { IsoNode, IsoSegment } from "../types/isoGraphTypes";
+import type { IsoNode, IsoSegment, Cad2dEntity } from "../types/isoGraphTypes";
+import type { IsoPipingSupport } from "../supports/pdiMssSupportEngine";
 import { pdiRound3, pdiSnapValue, pdiFindCoincidentNodes, pdiSnapDirectionIso } from "./pdiPrecision017P";
 
-export type AnchorType = "node" | "endpoint_from" | "endpoint_to" | "midpoint" | "port" | "center" | "custom";
+export type AnchorType = 
+  | "node" 
+  | "endpoint_from" 
+  | "endpoint_to" 
+  | "midpoint" 
+  | "port" 
+  | "center" 
+  | "corner" 
+  | "vertex" 
+  | "edge_midpoint" 
+  | "quadrant" 
+  | "bolt" 
+  | "custom";
 
 export interface PdiAnchorPoint {
   id: string;
   entityId: string;
-  entityKind: "node" | "segment" | "cad2d";
+  entityKind: "node" | "segment" | "cad2d" | "support";
   type: AnchorType;
   label: string;
   x: number;
   y: number;
   z: number;
+  subIndex?: number;
 }
 
 /**
- * Extrait les points d'ancrage réels à partir du modèle existant
- * (sans duplication de géométrie ni création d'entités fictives).
+ * Extrait les points d'ancrage réels à partir de tous les éléments du modèle existant :
+ * Nœuds, Équipements, Tronçons, Formes trigonométriques 2D (carré, rectangle, triangle, polygone, cercle),
+ * Génie Civil (GC) et Supports de tuyauterie MSS SP-58.
  */
 export function extractEntityAnchors(
   nodes: IsoNode[],
   segments: IsoSegment[],
+  cad2dEntities: Cad2dEntity[] = [],
+  supports: IsoPipingSupport[] = [],
   filterEntityIds?: Set<string>
 ): PdiAnchorPoint[] {
   const anchors: PdiAnchorPoint[] = [];
   const nodeMap = new Map<string, IsoNode>(nodes.map((n) => [n.id, n]));
 
-  // 1. Ancrages sur les nœuds (centre + ports d'équipements)
+  // 1. Ancrages sur les nœuds (centre + ports réels d'équipements & génie civil)
   for (const node of nodes) {
     if (filterEntityIds && !filterEntityIds.has(node.id)) continue;
+    const isEquip = Boolean(node.equipmentType || node.type !== "normal");
     anchors.push({
       id: `anchor-node-${node.id}`,
       entityId: node.id,
       entityKind: "node",
-      type: "node",
-      label: `Nœud ${node.name || node.id}`,
+      type: isEquip ? "center" : "node",
+      label: `${isEquip ? "Équipement" : "Nœud"} ${node.name || node.id}`,
       x: pdiRound3(node.x),
       y: pdiRound3(node.y),
       z: pdiRound3(node.z || 0),
     });
 
-    // Ports réels de l'équipement
+    // Ports réels de l'équipement (buses, piquages, brides de raccordement)
     if (Array.isArray(node.ports)) {
       node.ports.forEach((port, idx) => {
         const px = node.x + (port.dx || 0);
@@ -62,16 +80,17 @@ export function extractEntityAnchors(
           entityId: node.id,
           entityKind: "node",
           type: "port",
-          label: `Port ${port.role || `#${idx + 1}`} (${node.name})`,
+          label: `Port ${port.role || `#${idx + 1}`} (${node.name || node.id})`,
           x: pdiRound3(px),
           y: pdiRound3(py),
           z: pdiRound3(pz),
+          subIndex: idx,
         });
       });
     }
   }
 
-  // 2. Ancrages sur les tronçons (Début, Fin, Milieu)
+  // 2. Ancrages sur les tronçons de tuyauterie (Début, Fin, Milieu)
   for (const seg of segments) {
     if (filterEntityIds && !filterEntityIds.has(seg.id)) continue;
     const a = nodeMap.get(seg.fromNodeId);
@@ -83,7 +102,7 @@ export function extractEntityAnchors(
       entityId: seg.id,
       entityKind: "segment",
       type: "endpoint_from",
-      label: `Début tube (${a.name || a.id})`,
+      label: `Début tube DN${seg.dn || 100} (${a.name || a.id})`,
       x: pdiRound3(a.x),
       y: pdiRound3(a.y),
       z: pdiRound3(a.z || 0),
@@ -94,7 +113,7 @@ export function extractEntityAnchors(
       entityId: seg.id,
       entityKind: "segment",
       type: "endpoint_to",
-      label: `Fin tube (${b.name || b.id})`,
+      label: `Fin tube DN${seg.dn || 100} (${b.name || b.id})`,
       x: pdiRound3(b.x),
       y: pdiRound3(b.y),
       z: pdiRound3(b.z || 0),
@@ -105,11 +124,173 @@ export function extractEntityAnchors(
       entityId: seg.id,
       entityKind: "segment",
       type: "midpoint",
-      label: `Milieu tube (${seg.id})`,
+      label: `Milieu tube DN${seg.dn || 100} (${seg.id.slice(0, 8)})`,
       x: pdiRound3((a.x + b.x) / 2),
       y: pdiRound3((a.y + b.y) / 2),
       z: pdiRound3(((a.z || 0) + (b.z || 0)) / 2),
     });
+  }
+
+  // 3. Ancrages précis sur les éléments trigonométriques et dessin 2D / Génie Civil
+  // (Coins de carrés/rectangles/triangles, sommets de polygones, milieux d'arêtes, centre géométrique, quadrants de cercles)
+  for (const ent of cad2dEntities) {
+    if (filterEntityIds && !filterEntityIds.has(ent.id)) continue;
+    const z = ent.metadata?.elevationZ || 0;
+    const entLabel = ent.text || ent.subType || ent.type;
+
+    // A. Formes à sommets multiples : rectangle, triangle, polygon, polyline, line
+    if (ent.points && ent.points.length > 0) {
+      const pts = ent.points;
+      
+      // Points des coins / sommets
+      pts.forEach((pt, idx) => {
+        const isCorner = ent.type === "rectangle" || ent.type === "triangle" || ent.type === "polygon";
+        anchors.push({
+          id: `anchor-cad2d-v-${ent.id}-${idx}`,
+          entityId: ent.id,
+          entityKind: "cad2d",
+          type: isCorner ? "corner" : "vertex",
+          label: `Coin/Sommet ${idx + 1} (${entLabel})`,
+          x: pdiRound3(pt.x),
+          y: pdiRound3(pt.y),
+          z: pdiRound3(z),
+          subIndex: idx,
+        });
+      });
+
+      // Milieux des arêtes pour formes polygonales / trigonométrie
+      const edgeCount = (ent.closed || ent.type === "rectangle" || ent.type === "triangle" || ent.type === "polygon") 
+        ? pts.length 
+        : pts.length - 1;
+
+      for (let i = 0; i < edgeCount; i++) {
+        const p1 = pts[i];
+        const p2 = pts[(i + 1) % pts.length];
+        anchors.push({
+          id: `anchor-cad2d-mid-${ent.id}-${i}`,
+          entityId: ent.id,
+          entityKind: "cad2d",
+          type: "edge_midpoint",
+          label: `Milieu arête ${i + 1}-${((i + 1) % pts.length) + 1} (${entLabel})`,
+          x: pdiRound3((p1.x + p2.x) / 2),
+          y: pdiRound3((p1.y + p2.y) / 2),
+          z: pdiRound3(z),
+          subIndex: i,
+        });
+      }
+
+      // Centre géométrique / Centroïde
+      const sumX = pts.reduce((acc, p) => acc + p.x, 0);
+      const sumY = pts.reduce((acc, p) => acc + p.y, 0);
+      anchors.push({
+        id: `anchor-cad2d-center-${ent.id}`,
+        entityId: ent.id,
+        entityKind: "cad2d",
+        type: "center",
+        label: `Centre géométrique (${entLabel})`,
+        x: pdiRound3(sumX / pts.length),
+        y: pdiRound3(sumY / pts.length),
+        z: pdiRound3(z),
+      });
+    }
+
+    // B. Cercles & Arcs
+    if ((ent.type === "circle" || ent.type === "arc") && ent.center) {
+      const cx = ent.center.x;
+      const cy = ent.center.y;
+      const r = ent.radius || 1;
+
+      anchors.push({
+        id: `anchor-cad2d-center-${ent.id}`,
+        entityId: ent.id,
+        entityKind: "cad2d",
+        type: "center",
+        label: `Centre (${entLabel})`,
+        x: pdiRound3(cx),
+        y: pdiRound3(cy),
+        z: pdiRound3(z),
+      });
+
+      // Quadrants cardinaux (0°, 90°, 180°, 270°)
+      const cardinals = [
+        { label: "Est (0°)", dx: r, dy: 0 },
+        { label: "Nord (90°)", dx: 0, dy: r },
+        { label: "Ouest (180°)", dx: -r, dy: 0 },
+        { label: "Sud (270°)", dx: 0, dy: -r },
+      ];
+
+      cardinals.forEach((card, idx) => {
+        anchors.push({
+          id: `anchor-cad2d-quad-${ent.id}-${idx}`,
+          entityId: ent.id,
+          entityKind: "cad2d",
+          type: "quadrant",
+          label: `Quadrant ${card.label} (${entLabel})`,
+          x: pdiRound3(cx + card.dx),
+          y: pdiRound3(cy + card.dy),
+          z: pdiRound3(z),
+          subIndex: idx,
+        });
+      });
+    }
+  }
+
+  // 4. Ancrages sur les supports de tuyauterie MSS SP-58
+  for (const sup of supports) {
+    if (filterEntityIds && !filterEntityIds.has(sup.id)) continue;
+    const seg = segments.find((s) => s.id === sup.segmentId);
+    let wx = sup.worldPos?.x;
+    let wy = sup.worldPos?.y;
+    let wz = sup.worldPos?.z ?? 0;
+
+    if ((wx == null || wy == null) && seg) {
+      const a = nodeMap.get(seg.fromNodeId);
+      const b = nodeMap.get(seg.toNodeId);
+      if (a && b) {
+        const distM = sup.distanceFromFromNodeM ?? (sup as any).distanceFromFromNode;
+        const t = distM != null && seg.length ? Math.min(1, Math.max(0, distM / seg.length)) : 0.5;
+        wx = a.x + (b.x - a.x) * t;
+        wy = a.y + (b.y - a.y) * t;
+        wz = (a.z || 0) + ((b.z || 0) - (a.z || 0)) * t;
+      }
+    }
+
+    if (wx != null && wy != null) {
+      // Point d'axe tuyauterie / patin
+      anchors.push({
+        id: `anchor-sup-center-${sup.id}`,
+        entityId: sup.id,
+        entityKind: "support",
+        type: "center",
+        label: `Support ${sup.tag || sup.type} (Axe)`,
+        x: pdiRound3(wx),
+        y: pdiRound3(wy),
+        z: pdiRound3(wz),
+      });
+
+      // Goujons d'ancrage GC & Coins de platine (4 points au sol Z=0 ou wz)
+      const baseHalfSize = 0.15;
+      const corners = [
+        { label: "Goujon A1 (NO)", dx: -baseHalfSize, dy: baseHalfSize },
+        { label: "Goujon A2 (NE)", dx: baseHalfSize, dy: baseHalfSize },
+        { label: "Goujon A3 (SE)", dx: baseHalfSize, dy: -baseHalfSize },
+        { label: "Goujon A4 (SO)", dx: -baseHalfSize, dy: -baseHalfSize },
+      ];
+
+      corners.forEach((c, idx) => {
+        anchors.push({
+          id: `anchor-sup-bolt-${sup.id}-${idx}`,
+          entityId: sup.id,
+          entityKind: "support",
+          type: "bolt",
+          label: `${c.label} (${sup.tag || sup.type})`,
+          x: pdiRound3(wx + c.dx),
+          y: pdiRound3(wy + c.dy),
+          z: 0,
+          subIndex: idx,
+        });
+      });
+    }
   }
 
   return anchors;
@@ -142,6 +323,10 @@ export interface UniversalAlignParams {
   segments: IsoSegment[];
   selectedNodeIds: string[];
   selectedSegmentIds: string[];
+  cad2dEntities?: Cad2dEntity[];
+  selectedCad2dIds?: string[];
+  supports?: IsoPipingSupport[];
+  selectedSupportIds?: string[];
   activeAnchor?: PdiAnchorPoint | null;
   explicitReferenceId?: string;
   snapGrid?: boolean;
@@ -151,16 +336,20 @@ export interface UniversalAlignParams {
 export interface UniversalAlignOutput {
   success: boolean;
   nextNodes: IsoNode[];
+  nextCad2dEntities?: Cad2dEntity[];
+  nextSupports?: IsoPipingSupport[];
   referenceValue: number;
   referenceLabel: string;
   movedNodeCount: number;
+  movedCad2dCount?: number;
+  movedSupportCount?: number;
   message: string;
 }
 
 /**
- * ALIGN UNIVERSEL DIRECT
+ * ALIGN UNIVERSEL DIRECT (MSP, Génie Civil, Équipements, Dessin 2D trigonométrie, Supports, Nœuds, Tronçons)
  * Fonctionne directement avec 2 objets, 3 objets ou N objets sélectionnés
- * (nœuds, tronçons, ou combinaison des deux).
+ * (nœuds, tronçons, formes 2D, supports ou combinaison universelle).
  */
 export function performUniversalAlign(params: UniversalAlignParams): UniversalAlignOutput {
   const {
@@ -169,6 +358,10 @@ export function performUniversalAlign(params: UniversalAlignParams): UniversalAl
     segments,
     selectedNodeIds,
     selectedSegmentIds,
+    cad2dEntities = [],
+    selectedCad2dIds = [],
+    supports = [],
+    selectedSupportIds = [],
     activeAnchor,
     explicitReferenceId,
     snapGrid = false,
@@ -178,6 +371,8 @@ export function performUniversalAlign(params: UniversalAlignParams): UniversalAl
   // Rassembler l'ensemble des nœuds cibles et segments cibles
   const nodeMap = new Map<string, IsoNode>(nodes.map((n) => [n.id, n]));
   const targetNodeIdSet = new Set<string>(selectedNodeIds);
+  const targetCad2dIdSet = new Set<string>(selectedCad2dIds);
+  const targetSupportIdSet = new Set<string>(selectedSupportIds);
   
   // Les segments sélectionnés ajoutent leurs nœuds de terminaison
   selectedSegmentIds.forEach((segId) => {
@@ -188,14 +383,20 @@ export function performUniversalAlign(params: UniversalAlignParams): UniversalAl
     }
   });
 
-  if (targetNodeIdSet.size < 2 && !activeAnchor && !explicitReferenceId) {
+  const totalSelectedCount = targetNodeIdSet.size + targetCad2dIdSet.size + targetSupportIdSet.size;
+
+  if (totalSelectedCount < 2 && !activeAnchor && !explicitReferenceId) {
     return {
       success: false,
       nextNodes: nodes,
+      nextCad2dEntities: cad2dEntities,
+      nextSupports: supports,
       referenceValue: 0,
       referenceLabel: "",
       movedNodeCount: 0,
-      message: `Aligner ${axis.toUpperCase()} : sélectionner au moins 2 éléments (nœuds ou tronçons)`,
+      movedCad2dCount: 0,
+      movedSupportCount: 0,
+      message: `Aligner ${axis.toUpperCase()} : sélectionner au moins 2 éléments (nœuds, tronçons, formes 2D, GC ou supports)`,
     };
   }
 
@@ -203,16 +404,46 @@ export function performUniversalAlign(params: UniversalAlignParams): UniversalAl
   let refValue: number = 0;
   let refLabel: string = "";
   let refNodeId: string | null = null;
+  let refCad2dId: string | null = null;
+  let refSupportId: string | null = null;
 
   if (activeAnchor) {
     refValue = activeAnchor[axis];
     refLabel = `Ancrage ${activeAnchor.label}`;
     if (activeAnchor.entityKind === "node") refNodeId = activeAnchor.entityId;
+    if (activeAnchor.entityKind === "cad2d") refCad2dId = activeAnchor.entityId;
+    if (activeAnchor.entityKind === "support") refSupportId = activeAnchor.entityId;
   } else if (explicitReferenceId && nodeMap.has(explicitReferenceId)) {
     const refNode = nodeMap.get(explicitReferenceId)!;
     refValue = Number(refNode[axis] || 0);
     refLabel = refNode.name || refNode.id;
     refNodeId = refNode.id;
+  } else if (explicitReferenceId && cad2dEntities.some((c) => c.id === explicitReferenceId)) {
+    const refCad = cad2dEntities.find((c) => c.id === explicitReferenceId)!;
+    refCad2dId = refCad.id;
+    refLabel = refCad.text || refCad.subType || refCad.type;
+    if (axis === "z") {
+      refValue = refCad.metadata?.elevationZ || 0;
+    } else if (refCad.center) {
+      refValue = refCad.center[axis];
+    } else if (refCad.points && refCad.points.length > 0) {
+      refValue = refCad.points[0][axis];
+    }
+  } else if (selectedCad2dIds.length > 0 && selectedNodeIds.length === 0 && selectedSegmentIds.length === 0) {
+    // Si uniquement des formes 2D sont sélectionnées, la dernière est la référence
+    const lastCadId = selectedCad2dIds[selectedCad2dIds.length - 1];
+    const lastCad = cad2dEntities.find((c) => c.id === lastCadId);
+    if (lastCad) {
+      refCad2dId = lastCad.id;
+      refLabel = lastCad.text || lastCad.subType || lastCad.type;
+      if (axis === "z") {
+        refValue = lastCad.metadata?.elevationZ || 0;
+      } else if (lastCad.center) {
+        refValue = lastCad.center[axis];
+      } else if (lastCad.points && lastCad.points.length > 0) {
+        refValue = lastCad.points[0][axis];
+      }
+    }
   } else if (selectedSegmentIds.length > 0 && selectedNodeIds.length === 0) {
     // Si uniquement des segments sont sélectionnés, le dernier segment est la référence
     const refSegId = selectedSegmentIds[selectedSegmentIds.length - 1];
@@ -221,7 +452,6 @@ export function performUniversalAlign(params: UniversalAlignParams): UniversalAl
       const a = nodeMap.get(refSeg.fromNodeId);
       const b = nodeMap.get(refSeg.toNodeId);
       if (a && b) {
-        // Aligner sur le point milieu ou point de début du tube référence
         refValue = (Number(a[axis] || 0) + Number(b[axis] || 0)) / 2;
         refLabel = `Tube ${refSeg.id} (milieu)`;
       }
@@ -242,10 +472,9 @@ export function performUniversalAlign(params: UniversalAlignParams): UniversalAl
   // Application du pas de grille si actif
   const finalRefValue = snapGrid && snapStep > 0 ? pdiSnapValue(refValue, snapStep) : pdiRound3(refValue);
 
-  // Déplacement des nœuds cibles
+  // 1. Déplacement des nœuds cibles
   let movedCount = 0;
   const nextNodes = nodes.map((node) => {
-    // Le nœud de référence exact ne bouge pas
     if (refNodeId && node.id === refNodeId) return node;
     if (!targetNodeIdSet.has(node.id)) return node;
 
@@ -260,13 +489,82 @@ export function performUniversalAlign(params: UniversalAlignParams): UniversalAl
     };
   });
 
-  if (movedCount === 0) {
+  // 2. Déplacement des formes 2D / Génie Civil trigonométriques cibles
+  let movedCad2dCount = 0;
+  const nextCad2dEntities = cad2dEntities.map((cad) => {
+    if (refCad2dId && cad.id === refCad2dId) return cad;
+    if (!targetCad2dIdSet.has(cad.id)) return cad;
+
+    if (axis === "z") {
+      const curZ = cad.metadata?.elevationZ || 0;
+      if (Math.abs(finalRefValue - curZ) < 1e-6) return cad;
+      movedCad2dCount++;
+      return {
+        ...cad,
+        metadata: { ...cad.metadata, elevationZ: finalRefValue },
+      };
+    }
+
+    // Calcul du point de référence actuel de la forme
+    let curVal = 0;
+    if (cad.center) {
+      curVal = cad.center[axis];
+    } else if (cad.points && cad.points.length > 0) {
+      curVal = cad.points[0][axis];
+    }
+    const delta = finalRefValue - curVal;
+    if (Math.abs(delta) < 1e-6) return cad;
+
+    movedCad2dCount++;
+    const nextPoints = cad.points?.map((pt) => ({
+      ...pt,
+      [axis]: pdiRound3(pt[axis] + delta),
+    }));
+    const nextCenter = cad.center ? {
+      ...cad.center,
+      [axis]: pdiRound3(cad.center[axis] + delta),
+    } : undefined;
+
+    return {
+      ...cad,
+      points: nextPoints,
+      center: nextCenter,
+    };
+  });
+
+  // 3. Déplacement des supports cibles
+  let movedSupportCount = 0;
+  const nextSupports = supports.map((sup) => {
+    if (refSupportId && sup.id === refSupportId) return sup;
+    if (!targetSupportIdSet.has(sup.id)) return sup;
+
+    const curVal = sup.worldPos ? sup.worldPos[axis] : 0;
+    const delta = finalRefValue - curVal;
+    if (Math.abs(delta) < 1e-6) return sup;
+
+    movedSupportCount++;
+    return {
+      ...sup,
+      worldPos: sup.worldPos ? {
+        ...sup.worldPos,
+        [axis]: pdiRound3(sup.worldPos[axis] + delta),
+      } : undefined,
+    };
+  });
+
+  const totalMoved = movedCount + movedCad2dCount + movedSupportCount;
+
+  if (totalMoved === 0) {
     return {
       success: true,
       nextNodes: nodes,
+      nextCad2dEntities: cad2dEntities,
+      nextSupports: supports,
       referenceValue: finalRefValue,
       referenceLabel: refLabel,
       movedNodeCount: 0,
+      movedCad2dCount: 0,
+      movedSupportCount: 0,
       message: `Alignement ${axis.toUpperCase()} : éléments déjà alignés sur ${finalRefValue.toFixed(3)} m`,
     };
   }
@@ -277,9 +575,13 @@ export function performUniversalAlign(params: UniversalAlignParams): UniversalAl
     return {
       success: false,
       nextNodes: nodes,
+      nextCad2dEntities: cad2dEntities,
+      nextSupports: supports,
       referenceValue: finalRefValue,
       referenceLabel: refLabel,
       movedNodeCount: 0,
+      movedCad2dCount: 0,
+      movedSupportCount: 0,
       message: `Alignement ${axis.toUpperCase()} refusé : ${auditConflict}`,
     };
   }
@@ -287,10 +589,14 @@ export function performUniversalAlign(params: UniversalAlignParams): UniversalAl
   return {
     success: true,
     nextNodes,
+    nextCad2dEntities,
+    nextSupports,
     referenceValue: finalRefValue,
     referenceLabel: refLabel,
     movedNodeCount: movedCount,
-    message: `Alignement ${axis.toUpperCase()} sur ${finalRefValue.toFixed(3)} m (${movedCount} nœud(s) ajusté(s) · Réf: ${refLabel})`,
+    movedCad2dCount,
+    movedSupportCount,
+    message: `Alignement ${axis.toUpperCase()} sur ${finalRefValue.toFixed(3)} m (${totalMoved} élément(s) ajusté(s) · Réf: ${refLabel})`,
   };
 }
 

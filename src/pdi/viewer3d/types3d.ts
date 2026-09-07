@@ -44,6 +44,7 @@ export interface Viewer3dOptions {
   ambientOcclusion: boolean;
   bloomHighlights: boolean;
   wallThicknessVisible: boolean;
+  forceAutoFit?: boolean;
 }
 
 export interface Selected3dEntity {

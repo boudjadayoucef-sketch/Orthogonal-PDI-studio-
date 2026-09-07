@@ -93,25 +93,48 @@ export const Iso3DViewerModal: React.FC<Iso3DViewerModalProps> = ({
     manager.buildModel(data, options);
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-      else if (e.key === "0") manager.fitToExtents();
-      else if (e.key === "1") manager.setViewPreset("iso_sw");
-      else if (e.key === "2") manager.setViewPreset("iso_se");
-      else if (e.key === "3") manager.setViewPreset("top");
-      else if (e.key === "4") manager.setViewPreset("front");
-      else if (e.key === "r" || e.key === "R") {
+      e.stopPropagation();
+      manager.onKeyDown(e);
+      if (e.key === "Escape") {
+        onClose();
+      } else if (e.key === "0" || e.key === "Home") {
+        manager.fitToExtents();
+      } else if (e.key === "1") {
+        manager.setViewPreset("iso_sw");
+      } else if (e.key === "2") {
+        manager.setViewPreset("iso_se");
+      } else if (e.key === "3") {
+        manager.setViewPreset("top");
+      } else if (e.key === "4") {
+        manager.setViewPreset("front");
+      } else if (e.key === "r" || e.key === "R") {
         setOptions((prev) => {
           const next = !prev.autoRotate;
           manager.setAutoRotate(next);
           return { ...prev, autoRotate: next };
         });
+      } else if (e.key.startsWith("Arrow")) {
+        e.preventDefault();
+      } else if (e.key === "+" || e.key === "=" || e.key === "PageUp") {
+        e.preventDefault();
+        manager.zoomStep(0.88);
+      } else if (e.key === "-" || e.key === "_" || e.key === "PageDown") {
+        e.preventDefault();
+        manager.zoomStep(1.14);
       }
     };
 
-    window.addEventListener("keydown", handleKeyDown);
+    const handleKeyUp = (e: KeyboardEvent) => {
+      e.stopPropagation();
+      manager.onKeyUp(e);
+    };
+
+    window.addEventListener("keydown", handleKeyDown, { capture: true });
+    window.addEventListener("keyup", handleKeyUp, { capture: true });
 
     return () => {
-      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keydown", handleKeyDown, { capture: true });
+      window.removeEventListener("keyup", handleKeyUp, { capture: true });
       manager.dispose();
       sceneManagerRef.current = null;
     };
@@ -395,16 +418,139 @@ export const Iso3DViewerModal: React.FC<Iso3DViewerModalProps> = ({
           <div ref={containerRef} className="w-full h-full cursor-grab active:cursor-grabbing" />
 
           {/* Badge d'aide aux commandes au survol / bas gauche */}
-          <div className="absolute bottom-3 left-3 pointer-events-none bg-slate-900/85 backdrop-blur-md border border-slate-800/80 rounded-xl px-3 py-2 text-[11px] text-slate-400 flex flex-col gap-0.5">
-            <div className="flex items-center gap-3">
-              <span>🖱️ Clic gauche : <b>Orbite 360°</b></span>
-              <span>🖱️ Clic droit / Shift : <b>Panoramique</b></span>
-              <span>🔍 Molette : <b>Zoom</b></span>
+          <div className="absolute bottom-3 left-3 pointer-events-none bg-slate-900/90 backdrop-blur-md border border-slate-800 rounded-xl px-3.5 py-2.5 text-[11px] text-slate-300 flex flex-col gap-1.5 shadow-xl max-w-md">
+            <div className="flex items-center gap-3 text-slate-200">
+              <span className="flex items-center gap-1 font-semibold text-cyan-300">
+                ⌨️ Flèches <kbd className="px-1 py-0.2 bg-slate-800 border border-slate-700 rounded text-[10px]">⬅️</kbd><kbd className="px-1 py-0.2 bg-slate-800 border border-slate-700 rounded text-[10px]">➡️</kbd><kbd className="px-1 py-0.2 bg-slate-800 border border-slate-700 rounded text-[10px]">⬆️</kbd><kbd className="px-1 py-0.2 bg-slate-800 border border-slate-700 rounded text-[10px]">⬇️</kbd>
+              </span>
+              <span>: <b>Nav. Horizontale & Latérale</b></span>
             </div>
-            <div className="flex items-center gap-3 text-[10px] text-slate-500">
-              <span>Touche <b>0</b> : Cadrer</span>
-              <span>Touche <b>1</b> : ISO</span>
-              <span>Touche <b>R</b> : Platine 360°</span>
+            <div className="flex items-center gap-2.5 text-[10px] text-slate-400">
+              <span><b>Shift + Flèches</b> : Rotation 360°</span>
+              <span>·</span>
+              <span><b>Ctrl + ⬆️/⬇️</b> : Zoom</span>
+              <span>·</span>
+              <span><b>0</b> : Cadrer</span>
+            </div>
+            <div className="flex items-center gap-2.5 text-[10px] text-slate-400">
+              <span>🖱️ Clic gauche : <b>Orbite</b></span>
+              <span>·</span>
+              <span>Clic droit : <b>Panoramique</b></span>
+              <span>·</span>
+              <span>Double-clic : <b>Centrer</b></span>
+            </div>
+          </div>
+
+          {/* Pavé de navigation D-Pad interactif (bas droit) */}
+          <div className="absolute bottom-3 right-3 bg-slate-900/90 backdrop-blur-md border border-slate-800 rounded-2xl p-2 shadow-2xl flex flex-col items-center gap-1 z-10 select-none">
+            <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">Navigation</span>
+            <div className="grid grid-cols-3 gap-1">
+              <div />
+              <button
+                type="button"
+                onPointerDown={() => sceneManagerRef.current?.startPanContinuous(0, 1)}
+                onPointerUp={() => sceneManagerRef.current?.stopPanContinuous()}
+                onPointerLeave={() => sceneManagerRef.current?.stopPanContinuous()}
+                onClick={() => sceneManagerRef.current?.panLateral(0, 1)}
+                className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-cyan-600 active:scale-95 text-slate-200 hover:text-white flex items-center justify-center transition-all border border-slate-700/60 shadow-sm"
+                title="Déplacer vers le haut (Maintenir ou Flèche Haut)"
+              >
+                ▲
+              </button>
+              <div />
+
+              <button
+                type="button"
+                onPointerDown={() => sceneManagerRef.current?.startPanContinuous(-1, 0)}
+                onPointerUp={() => sceneManagerRef.current?.stopPanContinuous()}
+                onPointerLeave={() => sceneManagerRef.current?.stopPanContinuous()}
+                onClick={() => sceneManagerRef.current?.panLateral(-1, 0)}
+                className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-cyan-600 active:scale-95 text-slate-200 hover:text-white flex items-center justify-center transition-all border border-slate-700/60 shadow-sm"
+                title="Navigation latérale gauche (Maintenir ou Flèche Gauche)"
+              >
+                ◀
+              </button>
+              <button
+                type="button"
+                onClick={handleFit}
+                className="w-8 h-8 rounded-lg bg-cyan-950 hover:bg-cyan-800 active:scale-95 text-cyan-300 hover:text-white flex items-center justify-center text-[10px] font-black transition-all border border-cyan-700/60 shadow-sm"
+                title="Recadrer tout (Touche 0)"
+              >
+                🎯
+              </button>
+              <button
+                type="button"
+                onPointerDown={() => sceneManagerRef.current?.startPanContinuous(1, 0)}
+                onPointerUp={() => sceneManagerRef.current?.stopPanContinuous()}
+                onPointerLeave={() => sceneManagerRef.current?.stopPanContinuous()}
+                onClick={() => sceneManagerRef.current?.panLateral(1, 0)}
+                className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-cyan-600 active:scale-95 text-slate-200 hover:text-white flex items-center justify-center transition-all border border-slate-700/60 shadow-sm"
+                title="Navigation latérale droite (Maintenir ou Flèche Droite)"
+              >
+                ▶
+              </button>
+
+              <div />
+              <button
+                type="button"
+                onPointerDown={() => sceneManagerRef.current?.startPanContinuous(0, -1)}
+                onPointerUp={() => sceneManagerRef.current?.stopPanContinuous()}
+                onPointerLeave={() => sceneManagerRef.current?.stopPanContinuous()}
+                onClick={() => sceneManagerRef.current?.panLateral(0, -1)}
+                className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-cyan-600 active:scale-95 text-slate-200 hover:text-white flex items-center justify-center transition-all border border-slate-700/60 shadow-sm"
+                title="Déplacer vers le bas (Maintenir ou Flèche Bas)"
+              >
+                ▼
+              </button>
+              <div />
+            </div>
+
+            {/* Boutons rapides Zoom & Rotation */}
+            <div className="flex items-center gap-1 mt-1 pt-1 border-t border-slate-800 w-full justify-center">
+              <button
+                type="button"
+                onPointerDown={() => sceneManagerRef.current?.startOrbitContinuous(-1, 0)}
+                onPointerUp={() => sceneManagerRef.current?.stopOrbitContinuous()}
+                onPointerLeave={() => sceneManagerRef.current?.stopOrbitContinuous()}
+                onClick={() => sceneManagerRef.current?.rotateOrbital(-0.15, 0)}
+                className="px-1.5 py-1 rounded bg-slate-800/80 hover:bg-slate-700 text-[10px] text-slate-300 hover:text-white"
+                title="Pivoter à gauche (Shift+Gauche)"
+              >
+                ↺
+              </button>
+              <button
+                type="button"
+                onPointerDown={() => sceneManagerRef.current?.startZoomContinuous(-1)}
+                onPointerUp={() => sceneManagerRef.current?.stopZoomContinuous()}
+                onPointerLeave={() => sceneManagerRef.current?.stopZoomContinuous()}
+                onClick={() => sceneManagerRef.current?.zoomStep(0.85)}
+                className="px-2 py-1 rounded bg-slate-800/80 hover:bg-cyan-700 text-[11px] font-bold text-slate-200 hover:text-white"
+                title="Zoom Avant (+)"
+              >
+                +
+              </button>
+              <button
+                type="button"
+                onPointerDown={() => sceneManagerRef.current?.startZoomContinuous(1)}
+                onPointerUp={() => sceneManagerRef.current?.stopZoomContinuous()}
+                onPointerLeave={() => sceneManagerRef.current?.stopZoomContinuous()}
+                onClick={() => sceneManagerRef.current?.zoomStep(1.15)}
+                className="px-2 py-1 rounded bg-slate-800/80 hover:bg-cyan-700 text-[11px] font-bold text-slate-200 hover:text-white"
+                title="Zoom Arrière (-)"
+              >
+                -
+              </button>
+              <button
+                type="button"
+                onPointerDown={() => sceneManagerRef.current?.startOrbitContinuous(1, 0)}
+                onPointerUp={() => sceneManagerRef.current?.stopOrbitContinuous()}
+                onPointerLeave={() => sceneManagerRef.current?.stopOrbitContinuous()}
+                onClick={() => sceneManagerRef.current?.rotateOrbital(0.15, 0)}
+                className="px-1.5 py-1 rounded bg-slate-800/80 hover:bg-slate-700 text-[10px] text-slate-300 hover:text-white"
+                title="Pivoter à droite (Shift+Droite)"
+              >
+                ↻
+              </button>
             </div>
           </div>
 

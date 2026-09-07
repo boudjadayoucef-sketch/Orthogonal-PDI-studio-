@@ -447,3 +447,135 @@ export function supportToUniversalEntity(sup: IsoPipingSupport, parentSegment?: 
     },
   };
 }
+
+export interface UniversalGraphState {
+  nodes: IsoNode[];
+  segments: IsoSegment[];
+  cad2dEntities: Cad2dEntity[];
+  supports: IsoPipingSupport[];
+}
+
+/**
+ * Applique de façon atomique et bidirectionnelle une entité modifiée au graphe du modèle CAO
+ */
+export function applyUniversalEntityToGraph(
+  updated: PdiUniversalEntity,
+  state: UniversalGraphState
+): UniversalGraphState {
+  const { nodes, segments, cad2dEntities, supports } = state;
+
+  if (updated.identity.category === "cad2d") {
+    const nextCad = cad2dEntities.map((c) => {
+      if (c.id !== updated.identity.id) return c;
+      return {
+        ...c,
+        text: updated.identity.name || c.text,
+        layerId: updated.specific.cad2d?.layerId || c.layerId,
+        color: updated.specific.cad2d?.strokeColor || c.color,
+        lineWeight: updated.specific.cad2d?.strokeWidth || c.lineWeight,
+        fill: updated.specific.cad2d?.fillColor || c.fill,
+        fillOpacity: updated.specific.cad2d?.fillOpacity ?? c.fillOpacity,
+        rotation: updated.geometry.rotation != null ? updated.geometry.rotation : c.rotation,
+        length: updated.geometry.length != null ? updated.geometry.length : c.length,
+        width: updated.geometry.width != null ? updated.geometry.width : c.width,
+        height: updated.geometry.height != null ? updated.geometry.height : c.height,
+        radius: updated.geometry.radius != null ? updated.geometry.radius : c.radius,
+        metadata: {
+          ...c.metadata,
+          elevationZ: updated.geometry.z != null ? updated.geometry.z : c.metadata?.elevationZ,
+          dn: updated.dn.dn || c.metadata?.dn,
+        },
+      };
+    });
+    return { ...state, cad2dEntities: nextCad };
+  }
+
+  if (updated.identity.category === "support") {
+    const nextSup = supports.map((s) => {
+      if (s.id !== updated.identity.id) return s;
+      return {
+        ...s,
+        tag: updated.tag.fullTag || s.tag,
+        type: (updated.specific.support?.mssType as any) || s.type,
+        orientationAngleDeg: updated.geometry.rotation != null ? updated.geometry.rotation : s.orientationAngleDeg,
+        elevationZ: updated.geometry.z != null ? updated.geometry.z : s.elevationZ,
+        worldPos: {
+          x: updated.geometry.x != null ? updated.geometry.x : s.worldPos.x,
+          y: updated.geometry.y != null ? updated.geometry.y : s.worldPos.y,
+          z: updated.geometry.z != null ? updated.geometry.z : s.worldPos.z,
+        },
+      };
+    });
+    return { ...state, supports: nextSup };
+  }
+
+  if (updated.identity.category === "pipe") {
+    const nextSeg = segments.map((s) => {
+      if (s.id !== updated.identity.id) return s;
+      return {
+        ...s,
+        sourceName: updated.identity.name || s.sourceName,
+        tag: updated.tag.fullTag || s.tag,
+        dn: updated.dn.dn || s.dn,
+        pn: updated.pn.rating || s.pn,
+        material: updated.material.grade || s.material,
+        schedule: updated.material.schedule || s.schedule,
+        service: updated.service.code || s.service,
+        spec: updated.spec.pmsCode || s.spec,
+        length: updated.geometry.length != null ? updated.geometry.length : s.length,
+        insulation: updated.specific.pipe?.insulation || s.insulation,
+      };
+    });
+    return { ...state, segments: nextSeg };
+  }
+
+  // Nœud / Équipement / Vanne / Bride / Té / Raccord
+  const isNode = nodes.some((n) => n.id === updated.identity.id);
+  if (isNode) {
+    const nextNodes = nodes.map((n) => {
+      if (n.id !== updated.identity.id) return n;
+      return {
+        ...n,
+        name: updated.identity.name || n.name,
+        equipmentLabel: updated.identity.labelFr || n.equipmentLabel,
+        dn: updated.dn.dn || n.dn,
+        reducedDn: updated.dn.reducedDn || (n as any).reducedDn,
+        pn: updated.pn.rating || (n as any).pn,
+        material: updated.material.grade || (n as any).material,
+        schedule: updated.material.schedule || (n as any).schedule,
+        service: updated.service.code || (n as any).service,
+        spec: updated.spec.pmsCode || (n as any).spec,
+        tag: updated.tag.fullTag || (n as any).tag,
+        reference: updated.documentation.catalogRef || (n as any).reference,
+        manufacturer: updated.documentation.manufacturer || (n as any).manufacturer,
+        x: updated.geometry.x != null ? updated.geometry.x : n.x,
+        y: updated.geometry.y != null ? updated.geometry.y : n.y,
+        z: updated.geometry.z != null ? updated.geometry.z : n.z,
+        rotation: updated.geometry.rotation != null ? updated.geometry.rotation : n.rotation,
+        branchAngle: updated.geometry.branchAngle != null ? updated.geometry.branchAngle : n.branchAngle,
+      };
+    });
+    return { ...state, nodes: nextNodes };
+  }
+
+  // Fitting imbriqué dans segment
+  const nextSeg = segments.map((s) => {
+    const hasFitting = s.fittings?.some((f) => f.id === updated.identity.id);
+    if (!hasFitting) return s;
+    return {
+      ...s,
+      fittings: s.fittings.map((f) => {
+        if (f.id !== updated.identity.id) return f;
+        return {
+          ...f,
+          label: updated.identity.name || f.label,
+          dn: updated.dn.dn || f.dn,
+          reference: updated.documentation.catalogRef || f.reference,
+          manufacturer: updated.documentation.manufacturer || f.manufacturer,
+        };
+      }),
+    };
+  });
+
+  return { ...state, segments: nextSeg };
+}
