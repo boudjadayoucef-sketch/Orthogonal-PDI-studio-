@@ -28,7 +28,7 @@ import {
 } from "./pdiPrecision017P";
 import { pdiReorientPorts, pdiTolViewBox } from "./pdiPorts017P2";
 import { pdiIsoAxisDirs017P3, pdiNodeRadius017P3, pdiNodeHasFaceOffset017P3, PDI_METRE_CONVENTION_017P3 } from "./pdiAxes017P3";
-import { performUniversalAlign, performUniversalParallel, extractEntityAnchors, type PdiAnchorPoint } from "./pdiAlignParallel017Q";
+import { performUniversalAlign, performUniversalParallel, performObjectAlign, performObjectParallel, extractEntityAnchors, type PdiAnchorPoint } from "./pdiAlignParallel017Q";
 import { PDI_PATCH_VERSION } from "../../pdiVersion";
 import { pdiGlyphScale017P5 } from "./pdiGlyphes017P5";
 // PATCH 017P9 : source unique des anomalies (11 codes, un seul module).
@@ -2139,6 +2139,23 @@ function IsometrieModule(props: { projectId?: string }) {
   const [branchDrawing, setBranchDrawing] = useState<{fromNodeId:string; fromPortId?:string; handleIndex?:number; currentWorldPos:{x:number;y:number;z:number}}|null>(null);
   const [dimensionPick, setDimensionPick] = useState<IsoDimensionAnchor | null>(null);
 
+  // 017Q : Wizards interactifs par étapes pour Aligner et Rendre parallèle selon objet & orientation
+  const [alignWizard, setAlignWizard] = useState<{
+    step: 1 | 2 | 3;
+    refSegmentId?: string;
+    refNodeId?: string;
+    refLabel?: string;
+    targetSegmentId?: string;
+    targetNodeId?: string;
+    targetLabel?: string;
+  } | null>(null);
+
+  const [parallelWizard, setParallelWizard] = useState<{
+    step: 1 | 2;
+    refSegmentId?: string;
+    refLabel?: string;
+  } | null>(null);
+
   // ===== PATCH 004 : edition professionnelle =====
   // Menu contextuel (clic droit) et panneau de proprietes.
   const [ctxMenu,setCtxMenu]=useState<{x:number;y:number}|null>(null);
@@ -2163,8 +2180,143 @@ function IsometrieModule(props: { projectId?: string }) {
   // PATCH 004b : le presse-papiers transporte aussi les cotations internes.
   const clipboardRef = useRef<{ nodes: IsoNode[]; segments: IsoSegment[]; dimensions: IsoDimension[] } | null>(null);
 
+  // ===== CORE TUBE & SEGMENT CREATION ENGINE =====
+  const createSegmentFromNodes = (
+    fromId: string,
+    toId: string,
+    fromPortId?: string,
+    toPortId?: string
+  ): string | null => {
+    if (!fromId || !toId || fromId === toId) {
+      setStatusMessage("Impossible de créer un tube : veuillez désigner deux nœuds distincts.");
+      return null;
+    }
+    const a = nodes.find((n) => n.id === fromId);
+    const b = nodes.find((n) => n.id === toId);
+    if (!a || !b) {
+      setStatusMessage("Nœud introuvable pour la création du tube.");
+      return null;
+    }
+
+    // Vérifier si un tronçon existe déjà entre ces 2 nœuds
+    const existing = segments.find(
+      (s) =>
+        (s.fromNodeId === fromId && s.toNodeId === toId) ||
+        (s.fromNodeId === toId && s.toNodeId === fromId),
+    );
+    if (existing) {
+      setSelectedSegmentId(existing.id);
+      setSelectedSegmentIds([existing.id]);
+      setStatusMessage(`Un tronçon (${existing.tag || "DN" + existing.dn}) relie déjà ces deux nœuds.`);
+      setAutocadPrompt(`Tronçon existant sélectionné : ${a.name} ➔ ${b.name} (${existing.tag || existing.id})`);
+      return existing.id;
+    }
+
+    // Initialiser les ports si absents
+    let nextNodes = [...nodes];
+    let nodeA = a;
+    let nodeB = b;
+    if (!nodeA.ports || nodeA.ports.length === 0) {
+      nodeA = { ...nodeA, ports: defaultFreeNodePorts() };
+      nextNodes = nextNodes.map((n) => (n.id === nodeA.id ? nodeA : n));
+    }
+    if (!nodeB.ports || nodeB.ports.length === 0) {
+      nodeB = { ...nodeB, ports: defaultFreeNodePorts() };
+      nextNodes = nextNodes.map((n) => (n.id === nodeB.id ? nodeB : n));
+    }
+
+    const length = Math.max(
+      0.05,
+      Math.hypot(nodeB.x - nodeA.x, nodeB.y - nodeA.y, (nodeB.z || 0) - (nodeA.z || 0)),
+    );
+    const resolvedFromPortId =
+      fromPortId || availablePortId(nodeA, segments, 1) || nodeA.ports?.[0]?.id || "p0";
+    const resolvedToPortId =
+      toPortId || availablePortId(nodeB, segments, 0) || nodeB.ports?.[0]?.id || "p0";
+
+    const seg: IsoSegment = {
+      id: uid("seg"),
+      fromNodeId: fromId,
+      fromPortId: resolvedFromPortId,
+      toNodeId: toId,
+      toPortId: resolvedToPortId,
+      lineId: DEFAULT_LINE_ID,
+      dn: newDN,
+      pn: newPN,
+      material: newMaterial,
+      length: Number(length.toFixed(3)),
+      type: Math.abs((nodeB.z || 0) - (nodeA.z || 0)) > 0.05 ? "riser" : "straight",
+      fittings: [],
+      color: newSegmentColor,
+      sourceName: newSourceName.trim() || `${dia(newDN).inch} — Pipeline`,
+      tag: `${newDN}-L-${segments.length + 1}`,
+      service: "PROC",
+      spec: "PMS-01",
+    };
+
+    const nextSegments = [...segments, seg];
+    commitGraph(nextNodes, nextSegments);
+    setSelectedSegmentId(seg.id);
+    setSelectedSegmentIds([seg.id]);
+    setSelectedFitting(null);
+    setSelectedNodeId(toId);
+    setSelectedNodeIds([toId]);
+    setStatusMessage(`Tube DN${newDN} créé avec succès entre ${nodeA.name} et ${nodeB.name} (L = ${length.toFixed(2)}m)`);
+    setAutocadPrompt(`Tube créé : ${nodeA.name} ➔ ${nodeB.name} (DN${newDN}, L=${length.toFixed(2)}m, tag: ${seg.tag})`);
+    return seg.id;
+  };
+
+  const createTubeFromSelection = (): string | null => {
+    if (selectedNodeIds.length === 2) {
+      return createSegmentFromNodes(selectedNodeIds[0], selectedNodeIds[1]);
+    } else if (selectedNodeIds.length > 2) {
+      let lastId: string | null = null;
+      for (let i = 0; i < selectedNodeIds.length - 1; i++) {
+        lastId = createSegmentFromNodes(selectedNodeIds[i], selectedNodeIds[i + 1]);
+      }
+      return lastId;
+    } else if (selectedNodeIds.length === 1) {
+      setIsoDrawMode("segment");
+      setInteractionMode("select");
+      setDrawStartNodeId(selectedNodeIds[0]);
+      const n = nodes.find((item) => item.id === selectedNodeIds[0]);
+      setStatusMessage(`Point 1 fixé (${n?.name || selectedNodeIds[0]}). Cliquez sur le deuxième nœud d'arrivée pour créer le tube (ou Échap).`);
+      setAutocadPrompt(`TUBE [Étape 2/2] : Cliquez sur le deuxième nœud d'arrivée (${n?.name || selectedNodeIds[0]} ➔ ?)`);
+      return null;
+    } else {
+      setIsoDrawMode("segment");
+      setInteractionMode("select");
+      setDrawStartNodeId(null);
+      setStatusMessage("Mode Tube actif · Cliquez sur le premier nœud de départ");
+      setAutocadPrompt("TUBE [Étape 1/2] : Cliquez sur le premier nœud de départ");
+      return null;
+    }
+  };
+
+  const handleNodeClickForTube = (id: string) => {
+    if (!drawStartNodeId) {
+      setDrawStartNodeId(id);
+      setSelectedNodeId(id);
+      setSelectedNodeIds([id]);
+      const n = nodes.find((item) => item.id === id);
+      setStatusMessage(`Point 1 fixé (${n?.name || id}). Cliquez sur le 2ème nœud d'arrivée pour créer le tube (ou Échap).`);
+      setAutocadPrompt(`TUBE [Étape 2/2] : Cliquez sur le deuxième nœud pour relier avec ${n?.name || id}`);
+    } else {
+      if (drawStartNodeId === id) {
+        setStatusMessage("Point de départ déjà sélectionné. Cliquez sur un autre nœud pour créer le tube.");
+        return;
+      }
+      const createdId = createSegmentFromNodes(drawStartNodeId, id);
+      if (createdId) {
+        setDrawStartNodeId(id); // Chaînage continu comme dans AutoCAD / Plant 3D
+      }
+    }
+  };
+
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
+      if (!e.key) return;
+      const key = (e.key || "").toLowerCase();
       const isInput = (e.target as HTMLElement)?.matches("input,textarea,select");
       if(e.key==="Escape"){
         e.preventDefault();
@@ -2173,6 +2325,8 @@ function IsometrieModule(props: { projectId?: string }) {
         setBranchDrawing(null);
         setCadDraftSession(null);
         setActiveSupportTypeToPlace(null);
+        setAlignWizard(null);
+        setParallelWizard(null);
         setIsoDrawMode("select");
         setStatusMessage("Action annulée · Mode Sélection");
         setAutocadPrompt("Prêt.");
@@ -2199,7 +2353,7 @@ function IsometrieModule(props: { projectId?: string }) {
         }
         return;
       }
-      if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="z" && !isInput){
+      if((e.ctrlKey||e.metaKey)&&key==="z" && !isInput){
         e.preventDefault();
         if(e.shiftKey) {
           redoGraph();
@@ -2208,12 +2362,12 @@ function IsometrieModule(props: { projectId?: string }) {
         }
         return;
       }
-      if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="y" && !isInput){
+      if((e.ctrlKey||e.metaKey)&&key==="y" && !isInput){
         e.preventDefault();
         redoGraph();
         return;
       }
-      if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="c" && !isInput){
+      if((e.ctrlKey||e.metaKey)&&key==="c" && !isInput){
         e.preventDefault();
         if(selectedCad2dIds.length > 0){
           copyCad2dSelection();
@@ -2223,7 +2377,7 @@ function IsometrieModule(props: { projectId?: string }) {
         }
         return;
       }
-      if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="x" && !isInput){
+      if((e.ctrlKey||e.metaKey)&&key==="x" && !isInput){
         e.preventDefault();
         if(selectedCad2dIds.length > 0){
           copyCad2dSelection();
@@ -2234,12 +2388,12 @@ function IsometrieModule(props: { projectId?: string }) {
         }
         return;
       }
-      if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="v" && !isInput){
+      if((e.ctrlKey||e.metaKey)&&key==="v" && !isInput){
         e.preventDefault();
         pasteClipboard();
         return;
       }
-      if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="d" && !isInput){
+      if((e.ctrlKey||e.metaKey)&&key==="d" && !isInput){
         e.preventDefault();
         if(selectedCad2dIds.length > 0){
           duplicateSelectedCad2d();
@@ -2272,7 +2426,7 @@ function IsometrieModule(props: { projectId?: string }) {
         }
         return;
       }
-      if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="a" && !isInput){
+      if((e.ctrlKey||e.metaKey)&&key==="a" && !isInput){
         e.preventDefault();
         setSelectedNodeIds(nodes.map(n=>n.id));
         setSelectedSegmentIds(segments.map(s=>s.id));
@@ -2280,18 +2434,17 @@ function IsometrieModule(props: { projectId?: string }) {
         setStatusMessage(`Tout sélectionné (${nodes.length} nœuds, ${segments.length} tronçons, ${cad2dEntities.length} dessins 2D)`);
         return;
       }
-      if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="s"){
+      if((e.ctrlKey||e.metaKey)&&key==="s"){
         e.preventDefault(); exportProjectJson(); return;
       }
-      if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="k"){
+      if((e.ctrlKey||e.metaKey)&&key==="k"){
         e.preventDefault(); setCommandPaletteOpen(v=>!v); return;
       }
       if(isInput) return;
-      const key=e.key.toLowerCase();
       if(key==="v"){setInteractionMode("select");setIsoDrawMode("select");setStatusMessage("Outil Sélection");return;}
       if(key==="h"||e.code==="Space"){e.preventDefault();setInteractionMode("main");setStatusMessage("Outil Main");return;}
       if(key==="n"){setIsoDrawMode("node");setInteractionMode("select");setStatusMessage("Création de nœud");return;}
-      if(key==="t"){setIsoDrawMode("segment");setInteractionMode("select");setDrawStartNodeId(null);setStatusMessage("Création de tube · Cliquez pour définir le 1er point");return;}
+      if(key==="t"){e.preventDefault();createTubeFromSelection();return;}
       if(key==="e"){setIsoDrawMode("te");setInteractionMode("select");setStatusMessage("Création de Té");return;}
       if(key==="c"){setIsoDrawMode("coude");setInteractionMode("select");setStatusMessage("Insertion de coude");return;}
       if(key==="3"||(e.altKey&&key==="3")){setSolid3dViewerOpen(true);setStatusMessage("Ouverture de la Vue 3D Solide Extrudée");return;}
@@ -2327,6 +2480,8 @@ function IsometrieModule(props: { projectId?: string }) {
         setDragFittingInfo(null);
         dragSelectionRef.current=null;
         clearSelection();
+        setAlignWizard(null);
+        setParallelWizard(null);
         setIsoDrawMode("select");
         setInteractionMode("select");
         setContextMenu(null);
@@ -2602,6 +2757,91 @@ function IsometrieModule(props: { projectId?: string }) {
 
   const selectedCount=selectedNodeIds.length+selectedSegmentIds.length+selectedFittingIds.length;
 
+  const executeObjectAlign = (scaleMode: "keep" | "match") => {
+    if (!alignWizard) return;
+    const { refSegmentId, refNodeId, targetSegmentId, targetNodeId } = alignWizard;
+    const res = performObjectAlign({
+      nodes,
+      segments,
+      refSegmentId,
+      refNodeId,
+      targetSegmentId,
+      targetNodeId,
+      scaleMode,
+    });
+    setStatusMessage(res.message);
+    setAutocadPrompt(res.message);
+    setAlignWizard(null);
+    if (!res.success) return;
+    commitGraph(res.nextNodes, recalcSegmentLengths(res.nextNodes, segments));
+  };
+
+  const executeObjectParallel = (refSegId: string, targetSegId: string) => {
+    const res = performObjectParallel({
+      nodes,
+      segments,
+      refSegmentId: refSegId,
+      targetSegmentId: targetSegId,
+      pivotAnchor: "from",
+    });
+    setStatusMessage(res.message);
+    setAutocadPrompt(res.message);
+    if (!res.success) return;
+    commitGraph(res.nextNodes, recalcSegmentLengths(res.nextNodes, segments));
+  };
+
+  const startAlignWizard = () => {
+    if (selectedSegmentIds.length >= 2) {
+      const targetSegId = selectedSegmentIds[0];
+      const refSegId = selectedSegmentIds[1];
+      const sT = segments.find((s) => s.id === targetSegId);
+      const sR = segments.find((s) => s.id === refSegId);
+      setParallelWizard(null);
+      setAlignWizard({
+        step: 3,
+        refSegmentId: refSegId,
+        refLabel: sR?.tag ? `Tube ${sR.tag}` : `Tube Réf`,
+        targetSegmentId: targetSegId,
+        targetLabel: sT?.tag ? `Tube ${sT.tag}` : `Tube Cible`,
+      });
+      setStatusMessage("Alignement : 2 tronçons détectés. Choisissez si vous gardez l'échelle ou prenez celle de la référence.");
+      return;
+    }
+    if (selectedSegmentIds.length === 1 && selectedNodeIds.length >= 1) {
+      const refSegId = selectedSegmentIds[0];
+      const targetNId = selectedNodeIds[0];
+      const sR = segments.find((s) => s.id === refSegId);
+      const nT = nodes.find((n) => n.id === targetNId);
+      setParallelWizard(null);
+      setAlignWizard({
+        step: 3,
+        refSegmentId: refSegId,
+        refLabel: sR?.tag ? `Tube ${sR.tag}` : `Tube Réf`,
+        targetNodeId: targetNId,
+        targetLabel: nT?.name || "Organe Cible",
+      });
+      setStatusMessage("Alignement : Organe et Tube détectés. Choisissez l'échelle pour appliquer l'alignement.");
+      return;
+    }
+    setParallelWizard(null);
+    setAlignWizard({ step: 1 });
+    setStatusMessage("ALIGNEMENT [Étape 1/3] : Cliquez sur l'objet ou tronçon de RÉFÉRENCE (qui donne l'axe & l'orientation).");
+    setAutocadPrompt("ALIGN [Étape 1/3] : Cliquez sur l'objet ou tronçon de RÉFÉRENCE (ou Échap pour annuler)");
+  };
+
+  const startParallelWizard = () => {
+    if (selectedSegmentIds.length >= 2) {
+      const targetSegId = selectedSegmentIds[0];
+      const refSegId = selectedSegmentIds[selectedSegmentIds.length - 1];
+      executeObjectParallel(refSegId, targetSegId);
+      return;
+    }
+    setAlignWizard(null);
+    setParallelWizard({ step: 1 });
+    setStatusMessage("PARALLÈLE [Étape 1/2] : Cliquez sur le tronçon de RÉFÉRENCE (qui donne l'orientation exacte).");
+    setAutocadPrompt("PARALLEL [Étape 1/2] : Cliquez sur le tronçon de RÉFÉRENCE (ou Échap pour annuler)");
+  };
+
   const clearSelection=()=>{
     setSelectedNodeId(null);
     setSelectedSegmentId(null);
@@ -2614,6 +2854,40 @@ function IsometrieModule(props: { projectId?: string }) {
   };
 
   const selectNodeV44=(id:string,additive:boolean)=>{
+    if (alignWizard && alignWizard.step === 1) {
+      const n = nodes.find((item) => item.id === id);
+      const label = n?.name || id;
+      setAlignWizard({
+        step: 2,
+        refNodeId: id,
+        refLabel: `Nœud ${label}`,
+      });
+      setSelectedNodeId(id);
+      setSelectedNodeIds([id]);
+      setStatusMessage(`Référence sélectionnée : Nœud ${label}. Cliquez sur l'OBJET À ALIGNER (tronçon ou équipement).`);
+      setAutocadPrompt(`ALIGN [Étape 2/3] : Cliquez sur l'OBJET À ALIGNER`);
+      return;
+    }
+    if (alignWizard && alignWizard.step === 2) {
+      if (id === alignWizard.refNodeId) {
+        setStatusMessage("L'objet cible ne peut pas être le même que l'objet de référence.");
+        return;
+      }
+      const n = nodes.find((item) => item.id === id);
+      const label = n?.name || id;
+      setAlignWizard((prev) => ({
+        ...prev!,
+        step: 3,
+        targetNodeId: id,
+        targetLabel: n?.equipmentType ? `${FITTING_LABELS[n.equipmentType] || "Équipement"} ${label}` : `Nœud ${label}`,
+      }));
+      setSelectedNodeId(id);
+      setSelectedNodeIds([id]);
+      setStatusMessage(`Cible : ${label}. Choisissez l'échelle pour finaliser l'alignement.`);
+      setAutocadPrompt(`ALIGN [Étape 3/3] : Choisissez si vous gardez l'échelle ou prenez l'échelle de la référence.`);
+      return;
+    }
+
     if(additive){
       setSelectedNodeIds(prev=>{
         const exists=prev.includes(id);
@@ -2633,6 +2907,70 @@ function IsometrieModule(props: { projectId?: string }) {
   };
 
   const selectSegmentV44=(id:string,additive:boolean)=>{
+    if (alignWizard && alignWizard.step === 1) {
+      const s = segments.find((item) => item.id === id);
+      const a = nodes.find((n) => n.id === s?.fromNodeId);
+      const b = nodes.find((n) => n.id === s?.toNodeId);
+      const label = s?.tag ? `Tube ${s.tag}` : `Tube ${a?.name || "?"} ➔ ${b?.name || "?"}`;
+      setAlignWizard({
+        step: 2,
+        refSegmentId: id,
+        refLabel: label,
+      });
+      setSelectedSegmentId(id);
+      setSelectedSegmentIds([id]);
+      setStatusMessage(`Référence sélectionnée : ${label}. Cliquez sur l'OBJET À ALIGNER.`);
+      setAutocadPrompt(`ALIGN [Étape 2/3] : Cliquez sur l'OBJET À ALIGNER`);
+      return;
+    }
+    if (alignWizard && alignWizard.step === 2) {
+      if (id === alignWizard.refSegmentId) {
+        setStatusMessage("L'objet à aligner ne peut pas être le même que le tronçon de référence.");
+        return;
+      }
+      const s = segments.find((item) => item.id === id);
+      const a = nodes.find((n) => n.id === s?.fromNodeId);
+      const b = nodes.find((n) => n.id === s?.toNodeId);
+      const label = s?.tag ? `Tube ${s.tag}` : `Tube ${a?.name || "?"} ➔ ${b?.name || "?"}`;
+      setAlignWizard((prev) => ({
+        ...prev!,
+        step: 3,
+        targetSegmentId: id,
+        targetLabel: label,
+      }));
+      setSelectedSegmentId(id);
+      setSelectedSegmentIds([id]);
+      setStatusMessage(`Objet cible : ${label}. Choisissez l'échelle pour finaliser l'alignement.`);
+      setAutocadPrompt(`ALIGN [Étape 3/3] : Conserver l'échelle d'origine ou adopter l'échelle du tube référence ?`);
+      return;
+    }
+
+    if (parallelWizard && parallelWizard.step === 1) {
+      const s = segments.find((item) => item.id === id);
+      const a = nodes.find((n) => n.id === s?.fromNodeId);
+      const b = nodes.find((n) => n.id === s?.toNodeId);
+      const label = s?.tag ? `Tube ${s.tag}` : `Tube ${a?.name || "?"} ➔ ${b?.name || "?"}`;
+      setParallelWizard({
+        step: 2,
+        refSegmentId: id,
+        refLabel: label,
+      });
+      setSelectedSegmentId(id);
+      setSelectedSegmentIds([id]);
+      setStatusMessage(`Référence : ${label}. Cliquez sur le tronçon À RENDRE PARALLÈLE.`);
+      setAutocadPrompt(`PARALLEL [Étape 2/2] : Cliquez sur le tronçon À RENDRE PARALLÈLE`);
+      return;
+    }
+    if (parallelWizard && parallelWizard.step === 2) {
+      if (id === parallelWizard.refSegmentId) {
+        setStatusMessage("Le tronçon à orienter ne peut pas être le même que le tronçon de référence.");
+        return;
+      }
+      executeObjectParallel(parallelWizard.refSegmentId!, id);
+      setParallelWizard(null);
+      return;
+    }
+
     if(additive){
       setSelectedSegmentIds(prev=>{
         const exists=prev.includes(id);
@@ -3994,26 +4332,33 @@ function IsometrieModule(props: { projectId?: string }) {
       return;
     }
     // 017Q : Commandes AutoCAD ALIGN / AX / AY / AZ et PARALLEL
-    if (["align", "al", "ax", "ay", "az", "aligner", "alignerx", "alignery", "alignerz"].includes(rawVerb)) {
-      const axis = (rawVerb.endsWith("y") || rawArg.toLowerCase() === "y") ? "y"
-        : (rawVerb.endsWith("z") || rawArg.toLowerCase() === "z") ? "z"
+    if (["align", "al", "aligner"].includes(rawVerb)) {
+      startAlignWizard();
+      return;
+    }
+    if (["ax", "ay", "az", "alignerx", "alignery", "alignerz"].includes(rawVerb)) {
+      const axis = (rawVerb.endsWith("y") || (rawArg && rawArg.toLowerCase() === "y")) ? "y"
+        : (rawVerb.endsWith("z") || (rawArg && rawArg.toLowerCase() === "z")) ? "z"
         : "x";
       alignSelectedNodesAxis(axis);
-      setAutocadPrompt(`COMMANDE [ALIGN] : Alignement selon l'axe ${axis.toUpperCase()} exécuté.`);
+      setAutocadPrompt(`COMMANDE [ALIGN] : Alignement selon l'axe monde ${axis.toUpperCase()} exécuté.`);
       return;
     }
     if (["parallel", "par", "parallele", "//"].includes(rawVerb)) {
-      makeSelectedSegmentsParallel("from");
-      setAutocadPrompt("COMMANDE [PARALLELE] : Parallélisme appliqué sur les tubes sélectionnés.");
+      startParallelWizard();
       return;
     }
-    let cmdId = typeof cmdInput === "string" ? cmdInput.trim().toLowerCase() : cmdInput.id;
+    if (["tube", "t", "pipe", "troncon", "tronçon", "canalisation", "relier", "connect", "joint"].includes(rawVerb)) {
+      createTubeFromSelection();
+      return;
+    }
+    let cmdId = typeof cmdInput === "string" ? cmdInput.trim().toLowerCase() : (cmdInput?.id ? cmdInput.id.toLowerCase() : "");
     if (typeof cmdInput === "string") {
       const match = AUTOCAD_COMMANDS.find(
         (c) =>
-          c.id.toLowerCase() === cmdId ||
-          c.name.toLowerCase() === cmdId ||
-          c.aliases.some((a) => a.toLowerCase() === cmdId),
+          (c.id || "").toLowerCase() === cmdId ||
+          (c.name || "").toLowerCase() === cmdId ||
+          c.aliases?.some((a) => (a || "").toLowerCase() === cmdId),
       );
       if (match) cmdId = match.id;
     }
@@ -4118,10 +4463,7 @@ function IsometrieModule(props: { projectId?: string }) {
       setShowGrid((v) => !v);
       setAutocadPrompt("COMMANDE [GRILLE] : Visibilité de la grille inversée.");
     } else if (cmdId === "pipe") {
-      setIsoDrawMode("segment");
-      setInteractionMode("select");
-      setAutocadPrompt("COMMANDE [TUBE] : Cliquez pour débuter un tronçon de tuyauterie.");
-      setStatusMessage("Création de tube");
+      createTubeFromSelection();
     } else if (cmdId === "node") {
       setIsoDrawMode("node");
       setInteractionMode("select");
@@ -4194,9 +4536,9 @@ function IsometrieModule(props: { projectId?: string }) {
       setStatusMessage("PERF : cache " + st017I2.bytes + " octets, " + st017I2.ms + " ms");
     } else {
       const plant3dCommand = PDI_PLANT3D_COMMAND_TABLE?.find((item) =>
-        item.id.toLowerCase() === cmdId ||
-        item.command.toLowerCase() === cmdId ||
-        item.aliases.some((alias) => alias.toLowerCase() === cmdId),
+        (item.id || "").toLowerCase() === cmdId ||
+        (item.command || "").toLowerCase() === cmdId ||
+        item.aliases?.some((alias) => (alias || "").toLowerCase() === cmdId),
       );
       if (plant3dCommand) {
         if (plant3dCommand.id === "datamanager" || plant3dCommand.id === "bom") {
@@ -4471,6 +4813,10 @@ function IsometrieModule(props: { projectId?: string }) {
   };
 
   const beginNodeDrag=(e:React.PointerEvent<any>,id:string,additive:boolean)=>{
+    if (alignWizard) {
+      selectNodeV44(id, false);
+      return;
+    }
     const ids=additive
       ? (selectedNodeIds.includes(id)?selectedNodeIds:[...selectedNodeIds,id])
       : (selectedNodeIds.includes(id)?selectedNodeIds:[id]);
@@ -4487,6 +4833,8 @@ function IsometrieModule(props: { projectId?: string }) {
 
   useEffect(()=>{
     const onKey=(e:KeyboardEvent)=>{
+      if (!e.key) return;
+      const key = (e.key || "").toLowerCase();
       // Ignore if user is currently inside an input or textarea
       const target = e.target as HTMLElement;
       const isInput = target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT" || target.isContentEditable);
@@ -4524,6 +4872,8 @@ function IsometrieModule(props: { projectId?: string }) {
       if (e.key === "Escape") {
         e.preventDefault();
         setActiveSupportTypeToPlace(null);
+        setAlignWizard(null);
+        setParallelWizard(null);
         setPropertiesModalOpen(false);
         setRightPanelOpen(false);
         setLeftPanelOpen(false);
@@ -4582,30 +4932,37 @@ function IsometrieModule(props: { projectId?: string }) {
       }
 
       // Shortcut: Ctrl+C / Cmd+C for Copy
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "c") {
+      if ((e.ctrlKey || e.metaKey) && key === "c") {
         e.preventDefault();
         universalCopy();
         return;
       }
 
       // Shortcut: Ctrl+V / Cmd+V for Paste
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "v") {
+      if ((e.ctrlKey || e.metaKey) && key === "v") {
         e.preventDefault();
         startCadDraft("paste_target");
         return;
       }
 
       // Shortcut: Ctrl+D / Cmd+D for Duplicate
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "d") {
+      if ((e.ctrlKey || e.metaKey) && key === "d") {
         e.preventDefault();
         universalDuplicate();
         return;
       }
 
       // Rotation universelle (R / Maj+R : 2D, Equipements, Vannes, Tés, Supports, Tronçons)
-      if (e.key.toLowerCase() === "r") {
+      if (key === "r") {
         e.preventDefault();
         universalRotate(e.shiftKey ? -15 : 15);
+        return;
+      }
+
+      // Raccourci T : Création de tube (entre 2 nœuds sélectionnés ou tracé)
+      if (!e.ctrlKey && !e.metaKey && key === "t") {
+        e.preventDefault();
+        createTubeFromSelection();
         return;
       }
 
@@ -4621,7 +4978,7 @@ function IsometrieModule(props: { projectId?: string }) {
       }
 
       // Equipment flip (F)
-      if (e.key.toLowerCase() === "f" && selectedNodeIds.some(id => nodes.find(n => n.id === id)?.equipmentType)) {
+      if (key === "f" && selectedNodeIds.some(id => nodes.find(n => n.id === id)?.equipmentType)) {
         e.preventDefault();
         flipSelectedEquipment();
         return;
@@ -6277,19 +6634,7 @@ function IsometrieModule(props: { projectId?: string }) {
     return node.id;
   };
 
-  const createSegmentFromNodes=(fromId:string,toId:string,fromPortId?:string,toPortId?:string)=>{
-    if(!fromId||!toId||fromId===toId)return;
-    const a=nodes.find(n=>n.id===fromId),b=nodes.find(n=>n.id===toId);
-    if(!a||!b)return;
-    const length=Math.max(.05,Math.hypot(b.x-a.x,b.y-a.y,b.z-a.z));
-    const resolvedFromPortId=fromPortId||availablePortId(a,segments,1);
-    const resolvedToPortId=toPortId||availablePortId(b,segments,0);
-    const segment:IsoSegment={id:uid("seg"),fromNodeId:fromId,fromPortId:resolvedFromPortId,toNodeId:toId,toPortId:resolvedToPortId,lineId:DEFAULT_LINE_ID,dn:newDN,pn:newPN,material:newMaterial,length,type:Math.abs(b.z-a.z)>.05?"riser":"straight",fittings:[],color:newSegmentColor,sourceName:newSourceName.trim()||`${dia(newDN).inch} — Pipeline`};
-    setSegments(prev=>[...prev,segment]);
-    setSelectedSegmentId(segment.id);
-    setSelectedFitting(null);
-    return segment.id;
-  };
+  // createSegmentFromNodes is implemented at core module level
 
   const createSegmentFromPointer = (e: React.PointerEvent<SVGSVGElement>) => {
     const target = e.target as Element;
@@ -6369,43 +6714,15 @@ function IsometrieModule(props: { projectId?: string }) {
 
     // Étape 2 : Création du tube entre drawStartNodeId et targetNodeId
     if (drawStartNodeId === targetNodeId) {
+      setStatusMessage("Point de départ déjà sélectionné. Cliquez sur un autre nœud pour créer le tube.");
       return;
     }
 
-    const startNode = nodes.find(n => n.id === drawStartNodeId);
-    const endNode = nodes.find(n => n.id === targetNodeId) || { id: targetNodeId, x: pt.x, y: pt.y, z: pt.z };
-    if (!startNode || !endNode) return;
-
-    const length = Math.max(0.05, Math.hypot(endNode.x - startNode.x, endNode.y - startNode.y, (endNode.z || 0) - (startNode.z || 0)));
-    const seg: IsoSegment = {
-      id: uid("seg"),
-      fromNodeId: drawStartNodeId,
-      fromPortId: availablePortId(startNode, segments, 1),
-      toNodeId: targetNodeId,
-      toPortId: availablePortId(endNode as any, segments, 0),
-      lineId: DEFAULT_LINE_ID,
-      dn: newDN,
-      pn: newPN,
-      material: newMaterial,
-      length: Number(length.toFixed(3)),
-      type: Math.abs((endNode.z || 0) - (startNode.z || 0)) > 0.05 ? "riser" : "straight",
-      fittings: [],
-      color: newSegmentColor,
-      sourceName: newSourceName.trim() || `${dia(newDN).inch} — Pipeline`,
-      tag: `${newDN}-L-${segments.length + 1}`,
-      service: "PROC",
-      spec: "PMS-01",
-    };
-
-    setSegments(prev => [...prev, seg]);
-    setSelectedSegmentId(seg.id);
-    setSelectedSegmentIds([seg.id]);
-    setSelectedNodeId(targetNodeId);
-    setSelectedNodeIds([targetNodeId]);
-    setDrawStartNodeId(targetNodeId); // Chaînage immédiat
-    setStatusMessage(`Tube DN${newDN} créé (L = ${length.toFixed(2)}m) ! Cliquez pour continuer le tracé ou Échap pour terminer.`);
-    setAutocadPrompt(`Tube créé (DN${newDN}, ${length.toFixed(2)}m). Prêt pour le tronçon suivant (ou Échap).`);
-    return seg.id;
+    const createdSegId = createSegmentFromNodes(drawStartNodeId, targetNodeId);
+    if (createdSegId) {
+      setDrawStartNodeId(targetNodeId); // Chaînage immédiat pour continuité du tracé
+    }
+    return createdSegId;
   };
 
   const insertGraphicFitting=(segmentId:string,type:IsoFittingType,position:number)=>{
@@ -6413,7 +6730,15 @@ function IsometrieModule(props: { projectId?: string }) {
   };
 
   const handleNodeV4Click=(id:string)=>{
-    if(isoDrawMode==="segment"||isoDrawMode==="te"){
+    if (alignWizard) {
+      selectNodeV44(id, false);
+      return;
+    }
+    if(isoDrawMode==="segment"){
+      handleNodeClickForTube(id);
+      return;
+    }
+    if(isoDrawMode==="te"){
       if(!drawStartNodeId){setDrawStartNodeId(id);setSelectedNodeId(id);return;}
       createSegmentFromNodes(drawStartNodeId,id);
       setDrawStartNodeId(null);
@@ -6852,11 +7177,12 @@ function IsometrieModule(props: { projectId?: string }) {
     {
       title: "Alignement",
       items: [
-        { label: "Aligner X", hint: "AX", run: () => alignSelectedNodesAxis("x") },
-        { label: "Aligner Y", hint: "AY", run: () => alignSelectedNodesAxis("y") },
-        { label: "Aligner Z", hint: "AZ", run: () => alignSelectedNodesAxis("z") },
+        { label: "Aligner sur objet & orientation (AL)", hint: "ALIGN", run: startAlignWizard },
+        { label: "Rendre parallèle par référence (//)", hint: "//", run: startParallelWizard },
+        { label: "Aligner X (Monde)", hint: "AX", run: () => alignSelectedNodesAxis("x") },
+        { label: "Aligner Y (Monde)", hint: "AY", run: () => alignSelectedNodesAxis("y") },
+        { label: "Aligner Z (Monde)", hint: "AZ", run: () => alignSelectedNodesAxis("z") },
         { label: "Équipement sur tube", hint: "AT", run: alignSelectedEquipmentOnTube },
-        { label: "Rendre parallèle", hint: "//", run: makeSelectedSegmentsParallel, disabled: selectedSegmentIds.length < 2 },
         { label: "Redresser ISO", hint: "ISO", run: redressIsoSelection, disabled: selectedSegmentIds.length < 1 },
       ],
     },
@@ -7938,11 +8264,12 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
               >
                 <b>SUP</b> · Support MSS SP-58 / GC
               </button>
-              <button onClick={() => runWorkspaceCommand(() => alignSelectedNodesAxis("x"), "Alignement X")} className="p-3 text-left rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700"><b>AX</b> · Aligner X</button>
-              <button onClick={() => runWorkspaceCommand(() => alignSelectedNodesAxis("y"), "Alignement Y")} className="p-3 text-left rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700"><b>AY</b> · Aligner Y</button>
-              <button onClick={() => runWorkspaceCommand(() => alignSelectedNodesAxis("z"), "Alignement Z")} className="p-3 text-left rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700"><b>AZ</b> · Aligner Z</button>
-              <button onClick={() => runWorkspaceCommand(alignSelectedEquipmentOnTube, "Aligner sur tube")} className="p-3 text-left rounded-xl bg-amber-950 hover:bg-amber-900 text-amber-100 border border-amber-800"><b>AT</b> · Équipement sur tube</button>
-              <button onClick={() => runWorkspaceCommand(makeSelectedSegmentsParallel, "Parallèle")} className="p-3 text-left rounded-xl bg-amber-950 hover:bg-amber-900 text-amber-100 border border-amber-800"><b>//</b> · Rendre parallèle</button>
+              <button onClick={() => runWorkspaceCommand(startAlignWizard, "Aligner par objet")} className="p-3 text-left rounded-xl bg-cyan-950 hover:bg-cyan-900 text-cyan-100 border border-cyan-800"><b>AL</b> · Aligner sur objet & échelle</button>
+              <button onClick={() => runWorkspaceCommand(startParallelWizard, "Parallèle")} className="p-3 text-left rounded-xl bg-amber-950 hover:bg-amber-900 text-amber-100 border border-amber-800"><b>//</b> · Rendre parallèle</button>
+              <button onClick={() => runWorkspaceCommand(() => alignSelectedNodesAxis("x"), "Alignement X")} className="p-3 text-left rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700"><b>AX</b> · Aligner X (Monde)</button>
+              <button onClick={() => runWorkspaceCommand(() => alignSelectedNodesAxis("y"), "Alignement Y")} className="p-3 text-left rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700"><b>AY</b> · Aligner Y (Monde)</button>
+              <button onClick={() => runWorkspaceCommand(() => alignSelectedNodesAxis("z"), "Alignement Z")} className="p-3 text-left rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700"><b>AZ</b> · Aligner Z (Monde)</button>
+              <button onClick={() => runWorkspaceCommand(alignSelectedEquipmentOnTube, "Aligner sur tube")} className="p-3 text-left rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700"><b>AT</b> · Équipement sur tube</button>
               <button onClick={() => runWorkspaceCommand(redressIsoSelection, "Redresser ISO")} className="p-3 text-left rounded-xl bg-emerald-950 hover:bg-emerald-900 text-emerald-100 border border-emerald-800"><b>ISO</b> · Redresser ISO</button>
               <button onClick={() => runWorkspaceCommand(removeSelectedDimensions, "Cotation supprimée")} className="p-3 text-left rounded-xl bg-red-950 hover:bg-red-900 text-red-100 border border-red-800"><b>⌫</b> · Suppr. dernière cote</button></div></div></div>}
     {shortcutsOpen&&<div className="fixed inset-0 z-[10001] bg-slate-950/60 flex items-center justify-center p-4" onMouseDown={()=>setShortcutsOpen(false)}><div className="bg-slate-900 text-slate-100 rounded-2xl shadow-2xl border border-slate-700 w-[min(720px,95vw)] p-5" onMouseDown={e=>e.stopPropagation()}><div className="flex justify-between"><h3 className="font-black">Raccourcis V4.6</h3><button onClick={()=>setShortcutsOpen(false)} className="text-slate-300 hover:text-white">✕</button></div><div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-4 text-xs">{[["V","Sélection"],["H / Espace","Main"],["N","Nœud"],["T","Tube"],["E","Té"],["C","Coude"],["3 / Alt+3","Vue 3D Solide"],["R / Shift+R","Rotation ±15°"],["G","Grille"],["D","Afficher/Masquer cotations"],["M","Créer cotation"],["L","Labels"],["F / 0","Recentrer"],["+ / −","Zoom"],["Suppr","Supprimer"],["Ctrl+Z","Annuler"],["Ctrl+S","Exporter JSON"],["Ctrl+K","Commandes"],["P","Imprimer"],["Échap","Annuler l’outil"]].map(([k,v])=><div key={k} className="flex items-center gap-2 p-2 rounded-lg bg-slate-800 border border-slate-700"><kbd className="px-2 py-1 bg-slate-950 border border-slate-700 text-cyan-300 rounded font-mono font-black">{k}</kbd><span>{v}</span></div>)}</div></div></div>}
@@ -8707,6 +9034,154 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                     ? "● Erreur de sauvegarde"
                     : "○ Pret"}
             </div>
+            {selectedNodeIds.length === 2 && (
+              <div className="absolute top-2 left-2 z-[60] flex items-center gap-2 bg-slate-900/90 backdrop-blur border border-emerald-500/80 rounded-xl px-3 py-1.5 shadow-xl">
+                <span className="text-xs font-bold text-emerald-400">2 nœuds sélectionnés</span>
+                <button
+                  type="button"
+                  onClick={createTubeFromSelection}
+                  className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black rounded-lg flex items-center gap-1.5 shadow transition-colors"
+                >
+                  <span>🔗</span> Créer le tube (T)
+                </button>
+              </div>
+            )}
+            {isoDrawMode === "segment" && !selectedNodeIds.length && (
+              <div className="absolute top-2 left-2 z-[60] flex items-center gap-2 bg-slate-900/95 backdrop-blur border border-cyan-500/80 rounded-xl px-3 py-1.5 shadow-xl">
+                <span className="text-xs font-bold text-cyan-300">
+                  {drawStartNodeId
+                    ? `Point 1 : ${nodes.find(n => n.id === drawStartNodeId)?.name || drawStartNodeId} ➔ Cliquez le 2ème nœud`
+                    : "Mode Tube : Cliquez le 1er nœud de départ"}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsoDrawMode("select");
+                    setDrawStartNodeId(null);
+                    setStatusMessage("Mode Tube quitté");
+                  }}
+                  className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-bold rounded border border-slate-700 ml-1"
+                >
+                  Échap
+                </button>
+              </div>
+            )}
+
+            {/* Guide Info-Bulle ALIGNEMENT par rapport à un objet & orientation */}
+            {alignWizard && (
+              <div className="absolute top-2 left-2 z-[60] flex flex-col gap-2.5 bg-slate-900/95 backdrop-blur-md border-2 border-cyan-500/90 rounded-2xl p-3.5 shadow-2xl max-w-md animate-in fade-in slide-in-from-top-2 duration-150">
+                <div className="flex items-center justify-between gap-3 border-b border-slate-800 pb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded-md bg-cyan-950 border border-cyan-700 text-cyan-400 text-xs font-mono font-black tracking-wide">📐 ALIGN</span>
+                    <span className="text-xs font-black text-cyan-300">
+                      {alignWizard.step === 1 && "Étape 1/3 : Objet de Référence"}
+                      {alignWizard.step === 2 && "Étape 2/3 : Objet à Aligner"}
+                      {alignWizard.step === 3 && "Étape 3/3 : Choix de l'Échelle"}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAlignWizard(null);
+                      setStatusMessage("Alignement annulé");
+                    }}
+                    className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-bold rounded-lg border border-slate-700 transition-colors"
+                  >
+                    ✕ Annuler (Échap)
+                  </button>
+                </div>
+
+                {alignWizard.step === 1 && (
+                  <div className="text-xs text-slate-200">
+                    <p className="font-bold text-cyan-200">Cliquez sur l'objet ou tronçon de <b className="text-white underline decoration-cyan-400 decoration-2">RÉFÉRENCE</b>.</p>
+                    <p className="text-[11px] text-slate-400 mt-1">Cet objet fournira l'axe de projection et l'orientation exacte (sans être contraint aux axes X/Y/Z du monde).</p>
+                  </div>
+                )}
+
+                {alignWizard.step === 2 && (
+                  <div className="text-xs text-slate-200 space-y-1.5">
+                    <div className="text-[11px] text-emerald-400 flex items-center gap-1.5">
+                      <span>✓ Référence choisie :</span>
+                      <span className="font-bold text-white bg-emerald-950 px-2 py-0.5 rounded border border-emerald-800">{alignWizard.refLabel}</span>
+                    </div>
+                    <p className="font-bold text-cyan-200">Cliquez sur l'<b className="text-white underline decoration-cyan-400 decoration-2">OBJET À ALIGNER</b> (tronçon ou équipement).</p>
+                    <p className="text-[11px] text-slate-400">Il sera repositionné sur la droite support de la référence et orienté selon son angle.</p>
+                  </div>
+                )}
+
+                {alignWizard.step === 3 && (
+                  <div className="text-xs text-slate-200 space-y-2.5">
+                    <div className="space-y-1 text-[11px] bg-slate-950/60 p-2 rounded-lg border border-slate-800">
+                      <div className="text-emerald-400">Réf : <b className="text-white">{alignWizard.refLabel}</b></div>
+                      <div className="text-cyan-400">Cible : <b className="text-white">{alignWizard.targetLabel}</b></div>
+                    </div>
+                    <p className="font-bold text-amber-300 text-xs">
+                      Souhaitez-vous conserver la dimension/longueur de l'objet cible ou prendre l'échelle exacte de la référence ?
+                    </p>
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => executeObjectAlign("keep")}
+                        className="flex-1 py-2 px-3 bg-cyan-700 hover:bg-cyan-600 active:bg-cyan-800 text-white font-black rounded-xl shadow text-xs transition-all text-center"
+                      >
+                        Garder même échelle
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => executeObjectAlign("match")}
+                        className="flex-1 py-2 px-3 bg-emerald-700 hover:bg-emerald-600 active:bg-emerald-800 text-white font-black rounded-xl shadow text-xs transition-all text-center"
+                      >
+                        Prendre échelle référence
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Guide Info-Bulle RENDRE PARALLÈLE selon un tronçon de référence */}
+            {parallelWizard && (
+              <div className="absolute top-2 left-2 z-[60] flex flex-col gap-2.5 bg-slate-900/95 backdrop-blur-md border-2 border-amber-500/90 rounded-2xl p-3.5 shadow-2xl max-w-md animate-in fade-in slide-in-from-top-2 duration-150">
+                <div className="flex items-center justify-between gap-3 border-b border-slate-800 pb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded-md bg-amber-950 border border-amber-700 text-amber-400 text-xs font-mono font-black tracking-wide">⚡ // PARALLÈLE</span>
+                    <span className="text-xs font-black text-amber-300">
+                      {parallelWizard.step === 1 && "Étape 1/2 : Tronçon Référence"}
+                      {parallelWizard.step === 2 && "Étape 2/2 : Tronçon à Orienter"}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setParallelWizard(null);
+                      setStatusMessage("Parallélisme annulé");
+                    }}
+                    className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-bold rounded-lg border border-slate-700 transition-colors"
+                  >
+                    ✕ Annuler (Échap)
+                  </button>
+                </div>
+
+                {parallelWizard.step === 1 && (
+                  <div className="text-xs text-slate-200">
+                    <p className="font-bold text-amber-200">Cliquez sur le tronçon de <b className="text-white underline decoration-amber-400 decoration-2">RÉFÉRENCE</b>.</p>
+                    <p className="text-[11px] text-slate-400 mt-1">Son vecteur directeur exact sera copié sans aucune contrainte aux axes cartésiens globaux.</p>
+                  </div>
+                )}
+
+                {parallelWizard.step === 2 && (
+                  <div className="text-xs text-slate-200 space-y-1.5">
+                    <div className="text-[11px] text-emerald-400 flex items-center gap-1.5">
+                      <span>✓ Réf :</span>
+                      <span className="font-bold text-white bg-emerald-950 px-2 py-0.5 rounded border border-emerald-800">{parallelWizard.refLabel}</span>
+                    </div>
+                    <p className="font-bold text-amber-200">Cliquez sur le tronçon <b className="text-white underline decoration-amber-400 decoration-2">À RENDRE PARALLÈLE</b>.</p>
+                    <p className="text-[11px] text-slate-400">Le tronçon conservera rigoureusement sa longueur et s'orientera en parallèle parfait avec la référence.</p>
+                  </div>
+                )}
+              </div>
+            )}
+
             <svg ref={svgRef} viewBox="0 0 620 400" className={`${workspaceFullscreen ? "h-full w-full flex-1" : (commandPromptHidden ? "h-[clamp(600px,88vh,1400px)]" : "h-[clamp(560px,78vh,1000px)]")} w-full select-none touch-none cursor-crosshair`}
               onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerUp}
               onContextMenu={openIsoContextMenu}
@@ -8762,6 +9237,35 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                 </g>
               )}
 
+
+              {/* Visualisation Référence en cours (ALIGN / PARALLEL) */}
+              {(alignWizard?.refSegmentId || parallelWizard?.refSegmentId) && (() => {
+                const refSegId = alignWizard?.refSegmentId || parallelWizard?.refSegmentId;
+                const seg = segments.find(s => s.id === refSegId);
+                if (!seg) return null;
+                const a = nodes.find(n => n.id === seg.fromNodeId);
+                const b = nodes.find(n => n.id === seg.toNodeId);
+                if (!a || !b) return null;
+                const pa = iso(a);
+                const pb = iso(b);
+                return (
+                  <g pointerEvents="none" className="pdi-align-ref-highlight">
+                    <line x1={pa.x} y1={pa.y} x2={pb.x} y2={pb.y} stroke="#10b981" strokeWidth="12" strokeOpacity="0.45" strokeLinecap="round" />
+                    <line x1={pa.x} y1={pa.y} x2={pb.x} y2={pb.y} stroke="#34d399" strokeWidth="3" strokeLinecap="round" strokeDasharray="6 3" />
+                  </g>
+                );
+              })()}
+              {alignWizard?.refNodeId && (() => {
+                const n = nodes.find(item => item.id === alignWizard.refNodeId);
+                if (!n) return null;
+                const p = iso(n);
+                return (
+                  <g pointerEvents="none" className="pdi-align-ref-node-highlight">
+                    <circle cx={p.x} cy={p.y} r="18" fill="none" stroke="#10b981" strokeWidth="3" strokeDasharray="4 3" strokeOpacity="0.85" />
+                    <circle cx={p.x} cy={p.y} r="5" fill="#34d399" />
+                  </g>
+                );
+              })()}
 
               <g>
                 {segments.map(s=>{
@@ -8880,14 +9384,28 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                   const branchPort=nativePorts.find(port=>port.role==="branch");
                   const nodeAnnotation=editorAnnotationMap.get(`node:${n.id}`);
                   return <g key={n.id} data-iso-object="true" data-iso-node="true" data-node-id={n.id} transform={`translate(${p.x} ${p.y})`}
-                    onClick={e=>{e.stopPropagation()}}
-                    onPointerDown={e=>{e.stopPropagation();beginNodeDrag(e,n.id,e.ctrlKey||e.metaKey||e.shiftKey)}}
+                    onClick={e=>{
+                      e.stopPropagation();
+                      if (isoDrawMode === "segment") {
+                        handleNodeClickForTube(n.id);
+                      }
+                    }}
+                    onPointerDown={e=>{
+                      e.stopPropagation();
+                      if (isoDrawMode === "segment") {
+                        handleNodeClickForTube(n.id);
+                        return;
+                      }
+                      beginNodeDrag(e,n.id,e.ctrlKey||e.metaKey||e.shiftKey);
+                    }}
                     onPointerEnter={()=>setHoveredEntity({ type: "node", id: n.id })}
                     onPointerLeave={()=>setHoveredEntity(null)}
                     onContextMenu={(e)=>{
                       e.preventDefault();
                       e.stopPropagation();
-                      toggleNodeSelection(n.id, false);
+                      if (!selectedNodeIds.includes(n.id)) {
+                        toggleNodeSelection(n.id, false);
+                      }
                       setContextMenu({ x: e.clientX, y: e.clientY, type: "node", id: n.id });
                     }}>
                     {/* Zone de clic invisible pour sélection instantanée */}
@@ -9698,6 +10216,37 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                       <span>Point / Nœud</span>
                       <span className="font-mono text-slate-400">{nodes.find(n=>n.id===contextMenu.id)?.name}</span>
                     </div>
+                    {selectedNodeIds.length === 2 ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          createSegmentFromNodes(selectedNodeIds[0], selectedNodeIds[1]);
+                          setContextMenu(null);
+                        }}
+                        className="w-full text-left px-3 py-2 bg-emerald-700 hover:bg-emerald-600 text-white font-bold flex items-center gap-2 text-xs"
+                      >
+                        <span>🔗</span> Créer le tube entre les 2 nœuds (T)
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const nId = contextMenu.id || selectedNodeId || selectedNodeIds[0];
+                          if (nId) {
+                            setIsoDrawMode("segment");
+                            setInteractionMode("select");
+                            setDrawStartNodeId(nId);
+                            const nd = nodes.find(n => n.id === nId);
+                            setStatusMessage(`Point 1 fixé (${nd?.name || nId}). Cliquez sur le deuxième nœud d'arrivée pour créer le tube.`);
+                            setAutocadPrompt(`TUBE [Étape 2/2] : Cliquez sur le deuxième nœud d'arrivée (${nd?.name || nId} ➔ ?)`);
+                          }
+                          setContextMenu(null);
+                        }}
+                        className="w-full text-left px-3 py-1.5 hover:bg-emerald-600/50 text-emerald-300 hover:text-white flex items-center gap-2"
+                      >
+                        <span>🔗</span> Tracer un tube depuis ce nœud (T)
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => { rotateSelectedEquipment(15); setContextMenu(null); }}
@@ -9890,6 +10439,15 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                 {selectedNodeIds.length>1 && (
                   <div className="flex flex-col gap-2 text-xs">
                     <p className="text-[11px] text-cyan-300 font-bold">{selectedNodeIds.length} n&oelig;uds s&eacute;lectionn&eacute;s</p>
+                    {selectedNodeIds.length === 2 && (
+                      <button
+                        type="button"
+                        onClick={createTubeFromSelection}
+                        className="w-full py-2 px-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg flex items-center justify-center gap-2 shadow text-xs transition-colors"
+                      >
+                        <span>🔗</span> Créer un tube entre ces 2 nœuds (T)
+                      </button>
+                    )}
                     <p className="text-[10px] text-slate-400">D&eacute;placement group&eacute; par fl&egrave;ches clavier (Shift = x4, Alt = Z) ou boutons :</p>
                     <div className="grid grid-cols-3 gap-1 text-center">
                       <button type="button" onClick={()=>moveSelection(0,-isoSnapStep,0)} className="bg-slate-800 hover:bg-slate-700 py-1 rounded text-[11px]">&uarr; Nord</button>
@@ -10679,6 +11237,15 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                         {selectedFittingIds.length > 0 && <div className="flex justify-between"><span>Organes / Raccords :</span><span className="font-bold text-emerald-300">{selectedFittingIds.length}</span></div>}
                         {selectedCad2dIds.length > 0 && <div className="flex justify-between"><span>Dessins 2D :</span><span className="font-bold text-purple-300">{selectedCad2dIds.length}</span></div>}
                       </div>
+                      {selectedNodeIds.length === 2 && selectedSegmentIds.length === 0 && (
+                        <button
+                          type="button"
+                          onClick={createTubeFromSelection}
+                          className="w-full py-1.5 px-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg flex items-center justify-center gap-2 shadow text-xs transition-colors"
+                        >
+                          <span>🔗</span> Créer un tube entre les 2 nœuds (T)
+                        </button>
+                      )}
                       <div className="pt-2 border-t border-slate-800 flex gap-1.5">
                         <button
                           type="button"

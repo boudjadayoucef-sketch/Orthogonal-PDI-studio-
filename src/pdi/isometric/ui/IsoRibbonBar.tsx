@@ -72,8 +72,8 @@ export interface IsoRibbonBarProps {
 }
 
 const getEntryIcon = (entree: PdiEntreeRuban017M) => {
-  const id = entree.id.toLowerCase();
-  const nom = entree.nomFr.toLowerCase();
+  const id = (entree?.id || "").toLowerCase();
+  const nom = (entree?.nomFr || "").toLowerCase();
 
   if (id.includes("selection") || nom.includes("selection")) {
     return <MousePointer2 className="w-4 h-4 text-blue-400" />;
@@ -155,8 +155,8 @@ const getEntryIcon = (entree: PdiEntreeRuban017M) => {
 };
 
 const getEntrySubtitle = (entree: PdiEntreeRuban017M): string => {
-  const id = entree.id.toLowerCase();
-  const nom = entree.nomFr.toLowerCase();
+  const id = (entree?.id || "").toLowerCase();
+  const nom = (entree?.nomFr || "").toLowerCase();
 
   if (id.includes("selection") || nom.includes("selection")) return "Sélectionner, éditer et manipuler les éléments";
   if (id.includes("main") || nom.includes("main")) return "Déplacer et naviguer librement sur le canevas";

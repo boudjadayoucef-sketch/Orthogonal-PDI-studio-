@@ -430,12 +430,12 @@ export function PdiSuperAdminConsole({
       slickPayDetails: config.provider === "slickpay_baridimob" ? {
         invoiceId: `INV-SLICKPAY-${Date.now().toString(36).toUpperCase()}`,
         baridiMobRip: gatewayConfig?.slickPayAccountId || "00799999000123456789",
-        slickPayUrl: `https://pay.slick-pay.com/checkout/${txId.toLowerCase()}`,
+        slickPayUrl: `https://pay.slick-pay.com/checkout/${(txId || "").toLowerCase()}`,
         transferReference: `VIR-BMOB-${Math.random().toString(36).slice(2, 8).toUpperCase()}`
       } : undefined,
       paddleDetails: config.provider === "paddle" ? {
         checkoutId: `chk_pdl_${Date.now().toString(36)}`,
-        customerEmail: simDraft.email.trim().toLowerCase(),
+        customerEmail: simDraft.email ? simDraft.email.trim().toLowerCase() : "",
         paddleOrderId: `ord_pdl_${Math.random().toString(36).slice(2, 8)}`
       } : undefined
     };
@@ -461,7 +461,7 @@ export function PdiSuperAdminConsole({
 
     if (countrySearch.trim()) {
       const q = countrySearch.toLowerCase().trim();
-      list = list.filter(c => c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q));
+      list = list.filter(c => (c.name || "").toLowerCase().includes(q) || (c.code || "").toLowerCase().includes(q));
     }
     return list;
   }, [countries, countryTabFilter, countrySearch]);
@@ -591,7 +591,7 @@ export function PdiSuperAdminConsole({
   };
 
   const handleDeleteAccount = async (profile: PdiUserProfile) => {
-    if (profile.role === "super_admin" && profile.email.toLowerCase().includes("boudjada")) {
+    if (profile.role === "super_admin" && (profile.email || "").toLowerCase().includes("boudjada")) {
       await pdiAlert("Action interdite : Le compte Super Administrateur principal ne peut pas être supprimé.");
       return;
     }

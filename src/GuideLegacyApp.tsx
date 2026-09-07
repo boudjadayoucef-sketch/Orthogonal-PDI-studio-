@@ -734,8 +734,8 @@ export default function App() {
         f.sections
           .filter(
             (s) =>
-              s.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              s.content.toLowerCase().includes(searchQuery.toLowerCase())
+              (s.title || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+              (s.content || "").toLowerCase().includes(searchQuery.toLowerCase())
           )
           .map((s) => ({ ...s, fasciculeNumber: f.number, fasciculeTitle: f.title, fasciculeId: f.id }))
       )
@@ -6705,8 +6705,8 @@ export function ProfileTabContent({
                         // Find matching profile to check if a virtualPassword exists
                         const matchedProf = profiles.find(
                           (p) => 
-                            p.email?.toLowerCase() === req.email?.toLowerCase() || 
-                            p.email?.toLowerCase().split("@")[0] === req.username?.toLowerCase()
+                            (p.email && req.email && p.email.toLowerCase() === req.email.toLowerCase()) || 
+                            (p.email && req.username && p.email.toLowerCase().split("@")[0] === req.username.toLowerCase())
                         );
                         const isPending = req.status === "pending";
 
@@ -7625,7 +7625,7 @@ export function ProfileTabContent({
                   />
                   <div className="absolute right-3.5 text-slate-400 font-mono text-xs">@</div>
                 </div>
-                {email.toLowerCase() === "boudjada.youcef@gmail.com" && (
+                {(email || "").toLowerCase() === "boudjada.youcef@gmail.com" && (
                   <p className="text-[9px] text-amber-600 font-bold animate-pulse mt-1">✓ Compte Administrateur Détecté !</p>
                 )}
               </div>

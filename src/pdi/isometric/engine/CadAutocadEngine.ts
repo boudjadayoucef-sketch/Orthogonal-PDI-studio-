@@ -527,10 +527,10 @@ export const AUTOCAD_COMMANDS: CadCommandItem[] = [
   {
     id: "text",
     name: "TEXTE",
-    aliases: ["T", "DT", "TEXT", "TEXTE", "ANNOTATION", "LABEL"],
+    aliases: ["TXT", "DT", "TEXT", "TEXTE", "ANNOTATION", "LABEL"],
     description: "Place un texte ou une annotation 2D sur le plan",
     category: "Dessin 2D",
-    shortcut: "T",
+    shortcut: "DT",
     icon: "Type",
   },
   {
@@ -547,7 +547,7 @@ export const AUTOCAD_COMMANDS: CadCommandItem[] = [
   {
     id: "pipe",
     name: "TUBE",
-    aliases: ["TUBE", "PIPE", "TRONCON", "TUYAU"],
+    aliases: ["T", "TUBE", "PIPE", "TRONCON", "TUYAU", "RELIER", "CONNECT"],
     description: "Dessine un tronçon de tuyauterie isométrique",
     category: "Tuyauterie",
     shortcut: "T",
@@ -809,11 +809,13 @@ export const AUTOCAD_COMMANDS: CadCommandItem[] = [
  */
 // PATCH 017C : normalisation (accents, casse) et classement par pertinence.
 const pdiNormalizeCmd = (value: string): string =>
-  value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-zA-Z0-9?]/g, "")
-    .toUpperCase();
+  !value || typeof value !== "string"
+    ? ""
+    : value
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-zA-Z0-9?]/g, "")
+        .toUpperCase();
 
 export function searchCadCommands(query: string): CadCommandItem[] {
   const clean = pdiNormalizeCmd(query);

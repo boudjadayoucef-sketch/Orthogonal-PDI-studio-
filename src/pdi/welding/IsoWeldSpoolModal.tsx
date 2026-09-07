@@ -61,11 +61,11 @@ export const IsoWeldSpoolModal: React.FC<IsoWeldSpoolModalProps> = ({
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
         return (
-          w.weldNumber.toLowerCase().includes(q) ||
-          w.spoolId.toLowerCase().includes(q) ||
-          w.wpsNumber.toLowerCase().includes(q) ||
-          w.material.toLowerCase().includes(q) ||
-          w.welderId.toLowerCase().includes(q)
+          (w.weldNumber || "").toLowerCase().includes(q) ||
+          (w.spoolId || "").toLowerCase().includes(q) ||
+          (w.wpsNumber || "").toLowerCase().includes(q) ||
+          (w.material || "").toLowerCase().includes(q) ||
+          (w.welderId || "").toLowerCase().includes(q)
         );
       }
       return true;

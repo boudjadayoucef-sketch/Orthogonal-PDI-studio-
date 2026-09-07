@@ -484,3 +484,337 @@ export function performUniversalParallel(params: UniversalParallelParams): Unive
     message: `Parallèle appliqué sur ${affectedCount} tube(s) · Direction : ${uDir.label} (Pivot: ${pivotAnchor})`,
   };
 }
+
+export interface ObjectAlignParams {
+  nodes: IsoNode[];
+  segments: IsoSegment[];
+  refSegmentId?: string;
+  refNodeId?: string;
+  targetSegmentId?: string;
+  targetNodeId?: string;
+  targetNodeIds?: string[];
+  scaleMode?: "keep" | "match"; // "keep": conserver même échelle/longueur; "match": prendre l'échelle/longueur de l'objet référence
+}
+
+export interface ObjectAlignOutput {
+  success: boolean;
+  nextNodes: IsoNode[];
+  message: string;
+  refLabel: string;
+  targetLabel: string;
+  scaleApplied: "keep" | "match";
+}
+
+/**
+ * ALIGNEMENT RELATIF À UN OBJET & SON ORIENTATION (AutoCAD / CAO Tuyauterie)
+ * Aligne l'objet cible (tronçon ou équipement/nœud) par rapport à l'axe et l'orientation
+ * de l'objet de référence, avec choix interactif d'échelle (garder ou adopter l'échelle).
+ */
+export function performObjectAlign(params: ObjectAlignParams): ObjectAlignOutput {
+  const {
+    nodes,
+    segments,
+    refSegmentId,
+    refNodeId,
+    targetSegmentId,
+    targetNodeId,
+    targetNodeIds = [],
+    scaleMode = "keep",
+  } = params;
+
+  const nodeMap = new Map<string, IsoNode>(nodes.map((n) => [n.id, n]));
+
+  // 1. Extraire la géométrie de référence (droite support + vecteur unitaire + longueur)
+  let refA: IsoNode | undefined;
+  let refB: IsoNode | undefined;
+  let refLabel = "Objet de référence";
+
+  if (refSegmentId) {
+    const seg = segments.find((s) => s.id === refSegmentId);
+    if (!seg) {
+      return { success: false, nextNodes: nodes, message: "Tronçon de référence introuvable", refLabel: "", targetLabel: "", scaleApplied: scaleMode };
+    }
+    refA = nodeMap.get(seg.fromNodeId);
+    refB = nodeMap.get(seg.toNodeId);
+    refLabel = `Tube ${seg.tag || seg.id} (${refA?.name || "?"} ➔ ${refB?.name || "?"})`;
+  } else if (refNodeId) {
+    refA = nodeMap.get(refNodeId);
+    refLabel = `Nœud/Équipement ${refA?.name || refNodeId}`;
+  }
+
+  if (!refA) {
+    return { success: false, nextNodes: nodes, message: "Référence d'alignement introuvable", refLabel: "", targetLabel: "", scaleApplied: scaleMode };
+  }
+
+  // Vecteur directeur de référence
+  let uDir: { x: number; y: number; z: number };
+  let refLength = 1.0;
+  let refAngleDeg = 0;
+
+  if (refB) {
+    const vx = refB.x - refA.x;
+    const vy = refB.y - refA.y;
+    const vz = (refB.z || 0) - (refA.z || 0);
+    refLength = Math.hypot(vx, vy, vz) || 1.0;
+    uDir = { x: vx / refLength, y: vy / refLength, z: vz / refLength };
+    refAngleDeg = ((Math.atan2(vy, vx) * 180) / Math.PI + 360) % 360;
+  } else {
+    // Si la référence est un équipement avec rotation
+    const rot = refA.rotation || 0;
+    const rad = (rot * Math.PI) / 180;
+    uDir = { x: Math.cos(rad), y: Math.sin(rad), z: 0 };
+    refAngleDeg = rot;
+  }
+
+  // 2. Traitement selon la cible (tronçon cible OU équipement/nœud cible)
+  let currentNodes = nodes.map((n) => ({ ...n }));
+  let targetLabel = "Objet cible";
+
+  if (targetSegmentId) {
+    const tgtSeg = segments.find((s) => s.id === targetSegmentId);
+    if (!tgtSeg) {
+      return { success: false, nextNodes: nodes, message: "Tronçon cible introuvable", refLabel, targetLabel: "", scaleApplied: scaleMode };
+    }
+    const ta = nodeMap.get(tgtSeg.fromNodeId);
+    const tb = nodeMap.get(tgtSeg.toNodeId);
+    if (!ta || !tb) {
+      return { success: false, nextNodes: nodes, message: "Nœuds du tronçon cible introuvables", refLabel, targetLabel: "", scaleApplied: scaleMode };
+    }
+    targetLabel = `Tube ${tgtSeg.tag || tgtSeg.id} (${ta.name} ➔ ${tb.name})`;
+
+    const origTgtVec = { x: tb.x - ta.x, y: tb.y - ta.y, z: (tb.z || 0) - (ta.z || 0) };
+    const origTgtLen = Math.hypot(origTgtVec.x, origTgtVec.y, origTgtVec.z) || tgtSeg.length || 1.0;
+
+    // Choix d'échelle :
+    // - "keep" : conserve l'échelle / longueur d'origine du tronçon cible
+    // - "match" : adopte l'échelle / longueur exacte de l'objet de référence
+    const targetLength = scaleMode === "match" ? refLength : origTgtLen;
+
+    // Positionnement colinéaire / dans l'axe de la référence :
+    // Si la référence est un segment distinct, on aligne ta sur la droite de référence
+    // en projetant le point ta sur la droite de refA avec un décalage ou au bout de refB
+    let newTaX: number;
+    let newTaY: number;
+    let newTaZ: number;
+
+    if (refB && tgtSeg.id !== refSegmentId) {
+      // Projection orthogonale de ta sur la droite (refA -> refB)
+      const dot = (ta.x - refA.x) * uDir.x + (ta.y - refA.y) * uDir.y + ((ta.z || 0) - (refA.z || 0)) * uDir.z;
+      // Pour éviter de superposer exactement les nœuds s'ils sont proches, projeter sur l'axe
+      newTaX = pdiRound3(refA.x + dot * uDir.x);
+      newTaY = pdiRound3(refA.y + dot * uDir.y);
+      newTaZ = pdiRound3((refA.z || 0) + dot * uDir.z);
+
+      // Si ta est très proche de refB, on le cale en continuité directe
+      const distToRefB = Math.hypot(ta.x - refB.x, ta.y - refB.y, (ta.z || 0) - (refB.z || 0));
+      if (distToRefB < 0.25) {
+        newTaX = refB.x;
+        newTaY = refB.y;
+        newTaZ = refB.z || 0;
+      }
+    } else {
+      newTaX = ta.x;
+      newTaY = ta.y;
+      newTaZ = ta.z || 0;
+    }
+
+    const newTbX = pdiRound3(newTaX + uDir.x * targetLength);
+    const newTbY = pdiRound3(newTaY + uDir.y * targetLength);
+    const newTbZ = pdiRound3(newTaZ + uDir.z * targetLength);
+
+    const deltaTbX = pdiRound3(newTbX - tb.x);
+    const deltaTbY = pdiRound3(newTbY - tb.y);
+    const deltaTbZ = pdiRound3(newTbZ - (tb.z || 0));
+
+    const downstream = getDownstreamNodeIds(tb.id, segments, tgtSeg.id);
+
+    currentNodes = currentNodes.map((n) => {
+      if (n.id === ta.id) {
+        return { ...n, x: newTaX, y: newTaY, z: newTaZ };
+      }
+      if (n.id === tb.id) {
+        return { ...n, x: newTbX, y: newTbY, z: newTbZ };
+      }
+      if (downstream.has(n.id)) {
+        return {
+          ...n,
+          x: pdiRound3(n.x + deltaTbX),
+          y: pdiRound3(n.y + deltaTbY),
+          z: pdiRound3((n.z || 0) + deltaTbZ),
+        };
+      }
+      return n;
+    });
+
+  } else if (targetNodeId || targetNodeIds.length > 0) {
+    const tgtIds = targetNodeId ? [targetNodeId] : targetNodeIds;
+    targetLabel = tgtIds.length === 1 ? (nodeMap.get(tgtIds[0])?.name || tgtIds[0]) : `${tgtIds.length} nœuds`;
+
+    currentNodes = currentNodes.map((n) => {
+      if (!tgtIds.includes(n.id)) return n;
+      // Pour un nœud / équipement cible :
+      // 1. Projeter sa position sur la droite support de l'objet référence
+      const dot = (n.x - refA.x) * uDir.x + (n.y - refA.y) * uDir.y + ((n.z || 0) - (refA.z || 0)) * uDir.z;
+      const projX = pdiRound3(refA.x + dot * uDir.x);
+      const projY = pdiRound3(refA.y + dot * uDir.y);
+      const projZ = pdiRound3((refA.z || 0) + dot * uDir.z);
+
+      // 2. Orienter l'équipement selon l'orientation exacte de la référence
+      const nextRotation = n.equipmentType ? refAngleDeg : n.rotation;
+
+      return {
+        ...n,
+        x: projX,
+        y: projY,
+        z: projZ,
+        rotation: nextRotation,
+      };
+    });
+  } else {
+    return { success: false, nextNodes: nodes, message: "Aucun objet cible sélectionné pour l'alignement", refLabel, targetLabel: "", scaleApplied: scaleMode };
+  }
+
+  const scaleMsg = scaleMode === "match"
+    ? `Échelle ajustée sur référence (${refLength.toFixed(2)}m)`
+    : "Échelle d'origine conservée";
+
+  return {
+    success: true,
+    nextNodes: currentNodes,
+    refLabel,
+    targetLabel,
+    scaleApplied: scaleMode,
+    message: `Alignement réussi : ${targetLabel} aligné sur ${refLabel} · Angle: ${refAngleDeg.toFixed(1)}° (${scaleMsg})`,
+  };
+}
+
+/**
+ * PARALLÈLE RELATIF À UN TRONÇON DE RÉFÉRENCE (Orientation exacte, sans snap cartésien)
+ */
+export function performObjectParallel(params: {
+  nodes: IsoNode[];
+  segments: IsoSegment[];
+  refSegmentId: string;
+  targetSegmentId: string;
+  pivotAnchor?: "from" | "to" | "midpoint";
+}): {
+  success: boolean;
+  nextNodes: IsoNode[];
+  message: string;
+  refLabel: string;
+  targetLabel: string;
+  refAngleDeg: number;
+} {
+  const { nodes, segments, refSegmentId, targetSegmentId, pivotAnchor = "from" } = params;
+
+  const nodeMap = new Map<string, IsoNode>(nodes.map((n) => [n.id, n]));
+  const refSeg = segments.find((s) => s.id === refSegmentId);
+  const tgtSeg = segments.find((s) => s.id === targetSegmentId);
+
+  if (!refSeg || !tgtSeg) {
+    return {
+      success: false,
+      nextNodes: nodes,
+      message: "Tronçon de référence ou cible introuvable",
+      refLabel: "",
+      targetLabel: "",
+      refAngleDeg: 0,
+    };
+  }
+
+  const ra = nodeMap.get(refSeg.fromNodeId);
+  const rb = nodeMap.get(refSeg.toNodeId);
+  const ta = nodeMap.get(tgtSeg.fromNodeId);
+  const tb = nodeMap.get(tgtSeg.toNodeId);
+
+  if (!ra || !rb || !ta || !tb) {
+    return {
+      success: false,
+      nextNodes: nodes,
+      message: "Nœuds des tronçons introuvables",
+      refLabel: "",
+      targetLabel: "",
+      refAngleDeg: 0,
+    };
+  }
+
+  // Vecteur directeur exact du tronçon de référence (SANS AUCUN ARRONDI D'AXE OU SNAP ISO)
+  const rvx = rb.x - ra.x;
+  const rvy = rb.y - ra.y;
+  const rvz = (rb.z || 0) - (ra.z || 0);
+  const rLen = Math.hypot(rvx, rvy, rvz) || 1.0;
+  const uDir = { x: rvx / rLen, y: rvy / rLen, z: rvz / rLen };
+  const refAngleDeg = ((Math.atan2(rvy, rvx) * 180) / Math.PI + 360) % 360;
+
+  // Longueur du tronçon cible (strictement préservée)
+  const tvx = tb.x - ta.x;
+  const tvy = tb.y - ta.y;
+  const tvz = (tb.z || 0) - (ta.z || 0);
+  const tLen = Math.hypot(tvx, tvy, tvz) || tgtSeg.length || 1.0;
+
+  // Conserver le sens d'écoulement si dot product négatif
+  const dot = tvx * uDir.x + tvy * uDir.y + tvz * uDir.z;
+  const sign = dot < 0 ? -1 : 1;
+  const finalDir = { x: uDir.x * sign, y: uDir.y * sign, z: uDir.z * sign };
+
+  let currentNodes = nodes.map((n) => ({ ...n }));
+
+  if (pivotAnchor === "to") {
+    // tb reste fixe, ta bouge
+    const nax = pdiRound3(tb.x - finalDir.x * tLen);
+    const nay = pdiRound3(tb.y - finalDir.y * tLen);
+    const naz = pdiRound3((tb.z || 0) - finalDir.z * tLen);
+    currentNodes = currentNodes.map((n) => (n.id === ta.id ? { ...n, x: nax, y: nay, z: naz } : n));
+  } else if (pivotAnchor === "midpoint") {
+    // Milieu reste fixe, les deux extrémités pivotent
+    const mx = (ta.x + tb.x) / 2;
+    const my = (ta.y + tb.y) / 2;
+    const mz = ((ta.z || 0) + (tb.z || 0)) / 2;
+    const half = tLen / 2;
+    const nax = pdiRound3(mx - finalDir.x * half);
+    const nay = pdiRound3(my - finalDir.y * half);
+    const naz = pdiRound3(mz - finalDir.z * half);
+    const nbx = pdiRound3(mx + finalDir.x * half);
+    const nby = pdiRound3(my + finalDir.y * half);
+    const nbz = pdiRound3(mz + finalDir.z * half);
+    currentNodes = currentNodes.map((n) => {
+      if (n.id === ta.id) return { ...n, x: nax, y: nay, z: naz };
+      if (n.id === tb.id) return { ...n, x: nbx, y: nby, z: nbz };
+      return n;
+    });
+  } else {
+    // Pivot "from" : ta reste fixe, tb bouge et le sous-réseau aval suit
+    const nbx = pdiRound3(ta.x + finalDir.x * tLen);
+    const nby = pdiRound3(ta.y + finalDir.y * tLen);
+    const nbz = pdiRound3((ta.z || 0) + finalDir.z * tLen);
+    const pdx = pdiRound3(nbx - tb.x);
+    const pdy = pdiRound3(nby - tb.y);
+    const pdz = pdiRound3(nbz - (tb.z || 0));
+
+    const downstream = getDownstreamNodeIds(tb.id, segments, tgtSeg.id);
+
+    currentNodes = currentNodes.map((n) => {
+      if (n.id === tb.id) return { ...n, x: nbx, y: nby, z: nbz };
+      if (!downstream.has(n.id)) return n;
+      return {
+        ...n,
+        x: pdiRound3(n.x + pdx),
+        y: pdiRound3(n.y + pdy),
+        z: pdiRound3((n.z || 0) + pdz),
+      };
+    });
+  }
+
+  const refLabel = `Tube ${refSeg.tag || refSeg.id} (${ra.name} ➔ ${rb.name})`;
+  const tgtLabel = `Tube ${tgtSeg.tag || tgtSeg.id} (${ta.name} ➔ ${tb.name})`;
+
+  return {
+    success: true,
+    nextNodes: currentNodes,
+    refLabel,
+    targetLabel: tgtLabel,
+    refAngleDeg,
+    message: `Parallèle réussi : ${tgtLabel} est maintenant parfaitement parallèle à ${refLabel} (Angle: ${refAngleDeg.toFixed(1)}°, Longueur: ${tLen.toFixed(2)}m)`,
+  };
+}
+
