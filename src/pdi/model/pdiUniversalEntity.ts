@@ -83,6 +83,7 @@ export interface UniversalDn {
   reducedDn?: number;      // DN réduit pour té réduit, piquage ou réduction
   reducedInch?: string;    // NPS réduit
   unit: "mm" | "in";
+  _isDefault?: boolean;
 }
 
 export interface UniversalPn {
@@ -90,6 +91,7 @@ export interface UniversalPn {
   designPressureBar?: number; // Pression de calcul (bar)
   operatingPressureBar?: number; // Pression de service (bar)
   testPressureBar?: number;     // Pression d'épreuve hydrostatique (bar)
+  _isDefault?: boolean;
 }
 
 export interface UniversalMaterial {
@@ -99,6 +101,7 @@ export interface UniversalMaterial {
   wallThicknessMm?: number;// Épaisseur de paroi réelle (mm)
   density?: number;        // Masse volumique kg/m³
   linearWeightKgM?: number;// Masse linéique (kg/m)
+  _isDefault?: boolean;
 }
 
 export interface UniversalService {
@@ -107,6 +110,7 @@ export interface UniversalService {
   designTemperatureC?: number; // Température de calcul (°C)
   operatingTemperatureC?: number; // Température de service (°C)
   hazardous?: boolean;
+  _isDefault?: boolean;
 }
 
 export interface UniversalSpec {
@@ -114,6 +118,7 @@ export interface UniversalSpec {
   classRating?: string;
   revision?: string;
   corrosionAllowanceMm?: number; // Surépaisseur de corrosion (mm)
+  _isDefault?: boolean;
 }
 
 export interface UniversalTag {
@@ -122,6 +127,7 @@ export interface UniversalTag {
   equipmentTag?: string;   // Repère équipement parent
   kks?: string;            // Code KKS normalisé
   sheetNumber?: string;    // N° de planche ISO
+  _isDefault?: boolean;
 }
 
 export interface UniversalFabrication {

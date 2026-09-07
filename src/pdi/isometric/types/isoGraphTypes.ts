@@ -50,6 +50,7 @@ export interface IsoNode {
   equipmentType?: IsoEquipmentType;
   equipmentLabel?: string;
   dn?: number;
+  reducedDn?: number;
   reference?: string;
   manufacturer?: string;
   rotation?: number;
@@ -63,6 +64,34 @@ export interface IsoNode {
   service?: string;
   spec?: string;
   tagNumber?: number;
+  pn?: string;
+  material?: string;
+  schedule?: string;
+  wallThicknessMm?: number;
+  designPressureBar?: number;
+  operatingPressureBar?: number;
+  designTemperatureC?: number;
+  operatingTemperatureC?: number;
+  spoolNumber?: string;
+  fabricationLocation?: "shop" | "field" | "golden";
+  notes?: string;
+  flowType?: "passage_total" | "passage_reduit" | "egal";
+  actuatorType?: "manuel_volant" | "manuel_levier" | "pneumatique" | "motorise_electrique" | "hydraulique";
+  seatType?: "metal_metal" | "ptfe" | "stellite";
+  faceToFaceMm?: number;
+  flowCoefficientKv?: number;
+  fireSafe?: boolean;
+  teeType?: "egal" | "reduit" | "barre_raclable" | "croix" | "weldolet" | "sockolet" | "threadolet";
+  runDn?: number;
+  branchDn?: number;
+  runLengthMm?: number;
+  branchHeightMm?: number;
+  elbowAngle?: number;
+  elbowRadiusType?: "1.5D_LR" | "1.0D_SR" | "3D" | "5D";
+  elbowRadiusMm?: number;
+  flangeType?: "WN" | "SO" | "BL" | "SW" | "LJ" | "Threaded";
+  flangeFacing?: "RF" | "FF" | "RTJ";
+  specificProps?: any;
 }
 
 export interface IsoFitting {
@@ -76,6 +105,11 @@ export interface IsoFitting {
   manufacturer?: string;
   orientation?: number;
   length?: number;
+  pn?: string;
+  material?: string;
+  schedule?: string;
+  notes?: string;
+  specificProps?: any;
 }
 
 export interface IsoSegment {
@@ -101,6 +135,21 @@ export interface IsoSegment {
   pressureClass?: string;
   insulation?: boolean;
   lineFunction?: string;
+  reducedDn?: number;
+  schedule?: string;
+  wallThicknessMm?: number;
+  designPressureBar?: number;
+  operatingPressureBar?: number;
+  designTemperatureC?: number;
+  operatingTemperatureC?: number;
+  spoolNumber?: string;
+  fabricationLocation?: "shop" | "field" | "golden";
+  notes?: string;
+  slopePercent?: number;
+  slopeDirection?: "up" | "down";
+  insulationThicknessMm?: number;
+  insulationType?: string;
+  specificProps?: any;
 }
 
 export interface PipingLine {

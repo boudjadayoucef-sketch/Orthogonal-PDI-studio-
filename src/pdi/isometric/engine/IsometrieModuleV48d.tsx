@@ -28,6 +28,7 @@ import {
 } from "./pdiPrecision017P";
 import { pdiReorientPorts, pdiTolViewBox } from "./pdiPorts017P2";
 import { pdiIsoAxisDirs017P3, pdiNodeRadius017P3, pdiNodeHasFaceOffset017P3, PDI_METRE_CONVENTION_017P3 } from "./pdiAxes017P3";
+import { performUniversalAlign, performUniversalParallel, extractEntityAnchors, type PdiAnchorPoint } from "./pdiAlignParallel017Q";
 import { PDI_PATCH_VERSION } from "../../pdiVersion";
 import { pdiGlyphScale017P5 } from "./pdiGlyphes017P5";
 // PATCH 017P9 : source unique des anomalies (11 codes, un seul module).
@@ -1225,6 +1226,8 @@ function IsometrieModule(props: { projectId?: string }) {
     base?: { x: number; y: number; z: number };
     preview?: { x: number; y: number; z: number };
   }>(null);
+  // 017Q : Point d'ancrage actif de référence pour les opérations Align / Parallel
+  const [activeAnchor, setActiveAnchor] = useState<PdiAnchorPoint | null>(null);
 
   // PALIER 2B : session de commande géométrique interactive (TRIM, EXTEND, OFFSET, FILLET, SCALE, CHAMFER)
   const [cad2dModifySession, setCad2dModifySession] = useState<null | {
@@ -3990,6 +3993,20 @@ function IsometrieModule(props: { projectId?: string }) {
       setAutocadPrompt(`RACCOURCIS CLAVIER : ${off ? "OFF" : next ? "ON" : !keyboardShortcutsEnabled ? "ON" : "OFF"}.`);
       return;
     }
+    // 017Q : Commandes AutoCAD ALIGN / AX / AY / AZ et PARALLEL
+    if (["align", "al", "ax", "ay", "az", "aligner", "alignerx", "alignery", "alignerz"].includes(rawVerb)) {
+      const axis = (rawVerb.endsWith("y") || rawArg.toLowerCase() === "y") ? "y"
+        : (rawVerb.endsWith("z") || rawArg.toLowerCase() === "z") ? "z"
+        : "x";
+      alignSelectedNodesAxis(axis);
+      setAutocadPrompt(`COMMANDE [ALIGN] : Alignement selon l'axe ${axis.toUpperCase()} exécuté.`);
+      return;
+    }
+    if (["parallel", "par", "parallele", "//"].includes(rawVerb)) {
+      makeSelectedSegmentsParallel("from");
+      setAutocadPrompt("COMMANDE [PARALLELE] : Parallélisme appliqué sur les tubes sélectionnés.");
+      return;
+    }
     let cmdId = typeof cmdInput === "string" ? cmdInput.trim().toLowerCase() : cmdInput.id;
     if (typeof cmdInput === "string") {
       const match = AUTOCAD_COMMANDS.find(
@@ -6051,43 +6068,24 @@ function IsometrieModule(props: { projectId?: string }) {
   };
 
   const alignSelectedNodesAxis = (axis: "x" | "y" | "z") => {
-    if (selectedNodeIds.length < 2) {
-      setStatusMessage(`Aligner ${axis.toUpperCase()} : sélectionner au moins deux nœuds (astuce : sélection par rectangle pour des nœuds empilés)`);
-      return;
-    }
-    const referenceId = selectedNodeIds[selectedNodeIds.length - 1];
-    const reference = nodes.find((n) => n.id === referenceId);
-    if (!reference) return;
-
-    // PATCH 013 — alignement sans décalage visuel :
-    // on applique uniquement le delta nécessaire sur l’axe choisi et on ne re-snap jamais
-    // les autres coordonnées. Cela évite le glissement des points observé après alignement.
-    const selected = new Set(selectedNodeIds);
-    // PATCH 017P : la coordonnee de reference est ramenee sur le pas de
-    // grille. Les autres coordonnees restent intactes : aucune regression
-    // du PATCH 013 (pas de re-snap lateral), mais la ligne tombe juste.
-    const rawRef = Number(reference[axis] || 0);
-    const refValue = snapEnabled && snapGrid ? pdiSnapValue(rawRef, isoSnapStep) : pdiRound3(rawRef);
-    const nextNodes = nodes.map((node) => {
-      if (!selected.has(node.id) || node.id === referenceId) return node;
-      const delta = Number((refValue - Number(node[axis] || 0)).toFixed(6));
-      if (Math.abs(delta) < 1e-9) return node;
-      return { ...node, [axis]: Number((Number(node[axis] || 0) + delta).toFixed(3)) };
+    // 017Q : Alignement universel direct (2 objets, 3 objets, N objets)
+    // Fonctionne sur nœuds, tronçons ou mixte, avec prise en compte de l'ancrage actif.
+    const res = performUniversalAlign({
+      axis,
+      nodes,
+      segments,
+      selectedNodeIds,
+      selectedSegmentIds,
+      activeAnchor,
+      snapGrid: snapEnabled && snapGrid,
+      snapStep: isoSnapStep,
     });
-    // PATCH 017P2 : un alignement sans effet ne doit plus etre muet.
-    const pdiMoved = nextNodes.some((n, i) => n !== nodes[i]);
-    if (!pdiMoved) {
-      setStatusMessage(`Alignement ${axis.toUpperCase()} : noeuds deja alignes sur ${refValue.toFixed(3)} m - aucun changement`);
-      return;
+
+    setStatusMessage(res.message);
+    if (!res.success) return;
+    if (res.movedNodeCount > 0) {
+      commitGraph(res.nextNodes, recalcSegmentLengths(res.nextNodes, segments));
     }
-    // PATCH 017P : QA avant validation, jamais deux noeuds confondus.
-    const alignAudit = pdiFindCoincidentNodes(nextNodes, 0.001);
-    if (alignAudit) {
-      setStatusMessage(`Alignement ${axis.toUpperCase()} refusé : ${alignAudit}`);
-      return;
-    }
-    commitGraph(nextNodes, recalcSegmentLengths(nextNodes, segments));
-    setStatusMessage(`Alignement ${axis.toUpperCase()} sur ${refValue.toFixed(3)} m — référence : ${reference.name}`);
   };
 
   const alignSelectedEquipmentOnTube = () => {
@@ -6120,49 +6118,23 @@ function IsometrieModule(props: { projectId?: string }) {
     setStatusMessage("Équipement aligné graphiquement sur le tube — réseau non modifié");
   };
 
-  const makeSelectedSegmentsParallel = () => {
-    if (selectedSegmentIds.length < 2) {
-      setStatusMessage("Rendre parallèle : sélectionner le tube cible puis le tube de référence");
-      return;
-    }
-    const target = segments.find((item) => item.id === selectedSegmentIds[0]);
-    const reference = segments.find((item) => item.id === selectedSegmentIds[selectedSegmentIds.length - 1]);
-    if (!target || !reference || target.id === reference.id) return;
-    const ta = nodes.find((node) => node.id === target.fromNodeId);
-    const tb = nodes.find((node) => node.id === target.toNodeId);
-    const ra = nodes.find((node) => node.id === reference.fromNodeId);
-    const rb = nodes.find((node) => node.id === reference.toNodeId);
-    if (!ta || !tb || !ra || !rb) return;
-    // PATCH 017P : la direction de reference est ramenee sur un axe ISO,
-    // le tube pivote autour de son noeud AMONT et tout l aval suit. Avant,
-    // seul toNodeId etait deplace : le reseau se dechirait en aval.
-    const rv = { x: rb.x - ra.x, y: rb.y - ra.y, z: rb.z - ra.z };
-    const dir = pdiSnapDirectionIso(rv);
-    const tl = Math.max(0.05, target.length || Math.hypot(tb.x - ta.x, tb.y - ta.y, tb.z - ta.z));
-    const pnx = pdiRound3(ta.x + dir.x * tl);
-    const pny = pdiRound3(ta.y + dir.y * tl);
-    const pnz = pdiRound3(ta.z + dir.z * tl);
-    const pdx = pdiRound3(pnx - tb.x);
-    const pdy = pdiRound3(pny - tb.y);
-    const pdz = pdiRound3(pnz - tb.z);
-    const downstreamParallel = downstreamNodeIds(tb.id, segments, target.id);
-    const nextNodes = nodes.map((node) => {
-      if (node.id === tb.id) return { ...node, x: pnx, y: pny, z: pnz };
-      if (!downstreamParallel.has(node.id)) return node;
-      return {
-        ...node,
-        x: pdiRound3(node.x + pdx),
-        y: pdiRound3(node.y + pdy),
-        z: pdiRound3((node.z || 0) + pdz),
-      };
+  const makeSelectedSegmentsParallel = (pivotAnchor: "from" | "to" | "midpoint" = "from") => {
+    // 017Q : Parallélisme universel direct (2 tronçons, 3 tronçons, N tronçons)
+    // avec choix d'ancrage pivot et préservation rigoureuse de la longueur de tube.
+    const res = performUniversalParallel({
+      nodes,
+      segments,
+      selectedSegmentIds,
+      pivotAnchor,
+      snapToIsoAxis: true,
+      preserveDirectionSense: true,
     });
-    const parallelAudit = pdiFindCoincidentNodes(nextNodes, 0.001);
-    if (parallelAudit) {
-      setStatusMessage(`Rendre parallèle refusé : ${parallelAudit}`);
-      return;
+
+    setStatusMessage(res.message);
+    if (!res.success) return;
+    if (res.affectedSegmentCount > 0) {
+      commitGraph(res.nextNodes, recalcSegmentLengths(res.nextNodes, segments));
     }
-    commitGraph(nextNodes, recalcSegmentLengths(nextNodes, segments));
-    setStatusMessage(`Tube parallèle · axe ISO ${dir.label} · ${downstreamParallel.size} nœud(s) aval suivis`);
   };
 
   const redressIsoSelection = () => {
