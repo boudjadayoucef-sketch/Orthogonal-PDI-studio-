@@ -59,6 +59,7 @@ class PdiModuleErrorBoundary extends React.Component<
   }
 }
 import PdiBrandMark from "./PdiBrandMark";
+import { Folder, FolderOpen, Plus, X, Layers, FileText, Pin, Trash2, LayoutGrid } from "lucide-react";
 import PdiIsometricEditor from "../isometric/PdiIsometricEditor";
 // PATCH 004c : page publicitaire publique, montee AVANT la coquille applicative.
 import PdiLandingV4 from "../landing/PdiLandingV4";
@@ -723,7 +724,233 @@ export default function PdiUnifiedApp() {
   // PATCH 017B : editeur ISO protege par un filet de securite.
   if (activeModule === "isometric") return (
     <PdiModuleErrorBoundary>
-      {/* PATCH 017E / FIX ALIGNEMENT : dock d'onglets calé rigoureusement à droite du rail latéral (168px déplié / 60px replié) pour éliminer toute superposition et décalage avec la barre de commande */}
+      {/* Vertical Dropup List exactly like the first photo but in dark PDI theme */}
+      {isoTabDockOpen && (
+        <div
+          className="pdi-tab-dropup transition-all duration-200"
+          style={{
+            position: "fixed",
+            left: railCollapsed ? 60 : 168,
+            bottom: 86,
+            zIndex: 10041,
+            width: 320,
+            maxHeight: 400,
+            background: "#09090b", // PDI dark theme
+            border: "1px solid rgba(255, 255, 255, 0.14)",
+            borderRadius: 14,
+            boxShadow: "0 15px 40px rgba(0, 0, 0, 0.9)",
+            display: "flex",
+            flexDirection: "column",
+            fontFamily: "sans-serif",
+            overflow: "hidden",
+          }}
+        >
+          {/* Header section (Épinglé style) */}
+          <div style={{ padding: "12px 16px 6px", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+            <span style={{ fontSize: 10, fontWeight: 800, color: "#71717a", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+              Plans Ouverts ({workspaceTabs.length})
+            </span>
+          </div>
+
+          {/* List Area (Scrollable) */}
+          <div style={{ flex: 1, overflowY: "auto", padding: "6px 8px" }} className="pdi-custom-scroll">
+            {workspaceTabs.length === 0 ? (
+              <div style={{ padding: "16px", textAlign: "center", color: "#52525b", fontSize: 11, fontWeight: 600 }}>
+                Aucun plan ouvert
+              </div>
+            ) : (
+              workspaceTabs.map((tab) => {
+                const isActive = activeTabId === tab.id;
+                return (
+                  <div
+                    key={tab.id}
+                    title={`${tab.title} (Double-clic pour renommer)`}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "between",
+                      padding: "8px 12px",
+                      borderRadius: 8,
+                      background: isActive ? "rgba(255, 255, 255, 0.05)" : "transparent",
+                      border: isActive ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid transparent",
+                      cursor: "pointer",
+                      marginBottom: 2,
+                      transition: "all 0.15s ease",
+                    }}
+                    onClick={() => switchTab(tab.id)}
+                    onDoubleClick={() => beginRenameTab(tab)}
+                    className="group"
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
+                      {/* Interactive beautiful folder icons from the photo */}
+                      {isActive ? (
+                        <FolderOpen className="shrink-0" style={{ width: 16, height: 16, color: "#38bdf8", fill: "rgba(56, 189, 248, 0.15)" }} />
+                      ) : (
+                        <Folder className="shrink-0" style={{ width: 16, height: 16, color: "#eab308", fill: "rgba(234, 179, 8, 0.1)" }} />
+                      )}
+
+                      {renamingTabId === tab.id ? (
+                        <input
+                          autoFocus
+                          defaultValue={tab.title}
+                          onChange={(e) => setRenameDraft(e.target.value)}
+                          onBlur={() => commitRenameTab(tab.id)}
+                          onClick={(e) => e.stopPropagation()}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") commitRenameTab(tab.id);
+                            if (e.key === "Escape") setRenamingTabId(null);
+                          }}
+                          style={{
+                            flex: 1,
+                            height: 20,
+                            background: "#18181b",
+                            border: "1px solid #71717a",
+                            borderRadius: 4,
+                            color: "white",
+                            fontSize: 12,
+                            padding: "0 6px",
+                            outline: "none",
+                          }}
+                        />
+                      ) : (
+                        <span
+                          style={{
+                            fontSize: 12.5,
+                            fontWeight: isActive ? 700 : 500,
+                            color: isActive ? "#ffffff" : "#a1a1aa",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {tab.title}
+                        </span>
+                      )}
+                    </div>
+
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        marginLeft: 8,
+                      }}
+                    >
+                      {/* Close button */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          closeTab(tab.id);
+                        }}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          padding: 4,
+                          borderRadius: 4,
+                          cursor: "pointer",
+                          color: "#71717a",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          transition: "all 0.15s ease",
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.color = "#f87171")}
+                        onMouseLeave={(e) => (e.currentTarget.style.color = "#71717a")}
+                        title="Fermer ce plan"
+                      >
+                        <X style={{ width: 12, height: 12 }} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Separator line */}
+          <div style={{ height: 1, background: "rgba(255, 255, 255, 0.05)", margin: "4px 0" }} />
+
+          {/* Bottom Actions section (Fréquents & Explorateur style) */}
+          <div style={{ padding: "4px 8px 8px" }}>
+            {/* Nouveau Plan */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                padding: "8px 12px",
+                borderRadius: 8,
+                color: "#e4e4e7",
+                cursor: "pointer",
+                transition: "all 0.15s ease",
+              }}
+              onClick={() => {
+                openModuleInTab("isometric", "Nouveau plan ISO");
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.04)")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+            >
+              <Plus style={{ width: 16, height: 16, color: "#10b981" }} />
+              <span style={{ fontSize: 12, fontWeight: 600 }}>Nouveau plan ISO</span>
+            </div>
+
+            {/* Explorateur de projets */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                padding: "8px 12px",
+                borderRadius: 8,
+                color: "#e4e4e7",
+                cursor: "pointer",
+                transition: "all 0.15s ease",
+              }}
+              onClick={() => {
+                setActiveModule("projects");
+                setIsoTabDockOpen(false);
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.04)")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+            >
+              <LayoutGrid style={{ width: 16, height: 16, color: "#67e8f9" }} />
+              <span style={{ fontSize: 12, fontWeight: 600 }}>Explorateur de projets</span>
+            </div>
+
+            {/* Fermer tous les plans */}
+            {workspaceTabs.length > 0 && (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  padding: "8px 12px",
+                  borderRadius: 8,
+                  color: "#f87171",
+                  cursor: "pointer",
+                  transition: "all 0.15s ease",
+                }}
+                onClick={() => {
+                  if (window.confirm("Fermer tous les plans ouverts ?")) {
+                    setWorkspaceTabs([]);
+                    setActiveTabId(null);
+                    setActiveModule("home");
+                    persistTabs([], null);
+                  }
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(248,113,113,0.08)")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+              >
+                <Trash2 style={{ width: 16, height: 16, color: "#ef4444" }} />
+                <span style={{ fontSize: 12, fontWeight: 600 }}>Fermer tous les plans</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Compact bottom Trigger Bar */}
       <div
         className="pdi-tab-dock-iso transition-all duration-200"
         style={{
@@ -733,30 +960,91 @@ export default function PdiUnifiedApp() {
           zIndex: 10040,
           display: "flex",
           alignItems: "center",
-          gap: 6,
-          padding: "4px 6px",
+          gap: 8,
+          padding: "5px 10px",
           borderRadius: 12,
           border: "1px solid rgba(255,255,255,.14)",
-          background: "rgba(9,9,11,.95)",
-          boxShadow: "0 10px 30px rgba(0,0,0,.65)",
-          maxWidth: "min(70vw,760px)",
-          overflowX: "auto",
+          background: "rgba(9,9,11,.96)",
+          boxShadow: "0 10px 35px rgba(0,0,0,.7)",
         }}
       >
-        <button type="button" onClick={() => setIsoTabDockOpen(v => !v)} title="Onglets PD&I" style={{ border: "1px solid rgba(255,255,255,.2)", background: "#18181B", color: "white", borderRadius: 8, height: 24, padding: "0 8px", fontSize: 10, fontWeight: 900, cursor: "pointer" }}>
-          {isoTabDockOpen ? "▾" : "▸"} ONGLETS ({workspaceTabs.length})
+        <button
+          type="button"
+          onClick={() => setIsoTabDockOpen((v) => !v)}
+          title="Afficher la liste des plans ouverts"
+          style={{
+            border: "1px solid rgba(255,255,255,.18)",
+            background: "#18181B",
+            color: "white",
+            borderRadius: 8,
+            height: 24,
+            padding: "0 10px",
+            fontSize: 10,
+            fontWeight: 900,
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+          }}
+        >
+          <span>{isoTabDockOpen ? "▾" : "▲"} PLANS</span>
+          <span
+            style={{
+              background: "rgba(255,255,255,.15)",
+              padding: "1px 5px",
+              borderRadius: 6,
+              fontSize: 9,
+              fontWeight: 1000,
+            }}
+          >
+            {workspaceTabs.length}
+          </span>
         </button>
-        {isoTabDockOpen && workspaceTabs.map(tab => renamingTabId === tab.id ? (
-          /* PATCH 017F1 : saisie directe du nom de l onglet. */
-          <input key={tab.id} autoFocus defaultValue={tab.title} onChange={(e) => setRenameDraft(e.target.value)} onBlur={() => commitRenameTab(tab.id)} onKeyDown={(e) => { if (e.key === "Enter") commitRenameTab(tab.id); if (e.key === "Escape") setRenamingTabId(null); }} style={{ height: 24, minWidth: 150, borderRadius: 8, border: "1px solid #71717A", background: "#09090B", color: "#F4F4F5", fontSize: 10, fontWeight: 900, padding: "0 8px", outline: "none" }} />
-        ) : (
-          <button key={tab.id} type="button" onClick={() => switchTab(tab.id)} onDoubleClick={() => beginRenameTab(tab)} title={tab.title + " - double-clic pour renommer"} style={{ border: activeTabId === tab.id ? "1px solid #71717A" : "1px solid #27272A", background: activeTabId === tab.id ? "#27272A" : "#121215", color: activeTabId === tab.id ? "white" : "#A1A1AA", borderRadius: 8, height: 24, padding: "0 8px", fontSize: 10, fontWeight: 900, whiteSpace: "nowrap", cursor: "pointer" }}>
-            {tab.title}
-            <span onClick={(e) => { e.stopPropagation(); closeTab(tab.id); }} style={{ marginLeft: 6, opacity: .7 }}>×</span>
-          </button>
-        ))}
-        {isoTabDockOpen && <button type="button" onClick={() => openModuleInTab("isometric", "Nouveau plan ISO")} title="Nouvel onglet ISO" style={{ border: "1px solid #27272A", background: "#18181B", color: "#FFFFFF", borderRadius: 8, height: 24, minWidth: 26, fontSize: 12, fontWeight: 900, cursor: "pointer" }}>+</button>}
-        {isoTabDockOpen && <button type="button" onClick={() => setActiveModule("projects")} title="Mes projets PD&I" style={{ border: "1px solid #27272A", background: "#18181B", color: "#E4E4E7", borderRadius: 8, height: 24, padding: "0 8px", fontSize: 10, fontWeight: 900, cursor: "pointer" }}>PROJETS</button>}
+
+        {activeWorkspaceTab && (
+          <div
+            style={{
+              border: "1px solid rgba(255,255,255,.08)",
+              background: "rgba(255,255,255,.02)",
+              color: "#a1a1aa",
+              borderRadius: 8,
+              height: 24,
+              padding: "0 10px",
+              fontSize: 10.5,
+              fontWeight: 700,
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              cursor: "pointer",
+            }}
+            onClick={() => setIsoTabDockOpen((v) => !v)}
+          >
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#10b981" }} />
+            <span>Plan : <strong style={{ color: "white" }}>{activeWorkspaceTab.title}</strong></span>
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={() => openModuleInTab("isometric", "Nouveau plan ISO")}
+          title="Nouveau plan"
+          style={{
+            border: "1px solid rgba(255,255,255,.1)",
+            background: "#18181B",
+            color: "#FFFFFF",
+            borderRadius: 8,
+            height: 24,
+            width: 24,
+            fontSize: 12,
+            fontWeight: 900,
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          +
+        </button>
       </div>
       {/* PATCH 017F1 : remontage propre du moteur a chaque changement de projet. */}
       <div key={activeProjectId} style={{ width: "100%", height: "100%" }}>
@@ -924,17 +1212,8 @@ export default function PdiUnifiedApp() {
         <strong style={{ color: "#FFFFFF", fontSize: 11, fontWeight: 900 }}>{moduleTitle}</strong>
       </div>}
       <nav className="pdi-main-nav" aria-label="Navigation PD&I">{navItems.map((item) => <button key={item.id} className={activeModule === item.id ? "active" : ""} onClick={() => item.id === "home" ? setActiveModule("home") : openModuleInTab(item.id, item.title)} title={item.title}><span>{item.icon}</span><small>{item.label}</small></button>)}</nav>
-      {/* PATCH 017E : barre d onglets toujours visible et directement accessible. */}
-      {/* PATCH 017K : les onglets projet ne s affichent que dans un contexte projet. */}
-      {PDI_PROJECT_CONTEXT_017K.includes(activeModule) && <div className="pdi-tabsbar">
-        <span style={{ color: "#71717A", fontSize: 10, fontWeight: 900, letterSpacing: ".08em", marginRight: 4 }}>ONGLETS</span>
-        {workspaceTabs.map(tab => renamingTabId === tab.id
-          ? <input key={tab.id} autoFocus defaultValue={tab.title} onChange={(e) => setRenameDraft(e.target.value)} onBlur={() => commitRenameTab(tab.id)} onKeyDown={(e) => { if (e.key === "Enter") commitRenameTab(tab.id); if (e.key === "Escape") setRenamingTabId(null); }} style={{ height: 24, minWidth: 140, borderRadius: 8, border: "1px solid #71717A", background: "#0E0E12", color: "#FFFFFF", fontSize: 11, fontWeight: 800, padding: "0 8px", outline: "none" }} />
-          : <button key={tab.id} className={activeTabId===tab.id?"active":""} onClick={()=>switchTab(tab.id)} onDoubleClick={() => beginRenameTab(tab)} title={tab.title + " - double-clic pour renommer"}>{tab.title}<span onClick={(e)=>{e.stopPropagation(); closeTab(tab.id)}}>×</span></button>)}
-        {workspaceTabs.length===0 && <span style={{ color: "#71717A", fontSize: 11, fontWeight: 800 }}>Aucun onglet ouvert - cliquez sur + pour un nouveau plan ISO</span>}
-        <button className="plus" onClick={()=>openModuleInTab("isometric","Nouveau plan ISO")} title="Nouvel onglet ISO">+</button>
-        <button className="plus" style={{ minWidth: 70 }} onClick={()=>setActiveModule("projects")} title="Mes projets PD&I">Projets</button>
-      </div>}
+      {/* PATCH 017E : barre d onglets top désactivée au profit du dock vertical de la liste de plans en bas */}
+      {/* Le dock vertical de plans en bas offre une ergonomie parfaite et évite l encombrement */}
       <main className="pdi-content">
         {activeModule === "home" && (authMode === "guest" || authMode === "pending_email") && <div className="pdi-auth-gateway">
           <section className="pdi-auth-card"><div className="pdi-panel-kicker">Accès PD&I sécurisé</div><h1>Connexion requise</h1><p>Pour ouvrir ISO, Vision, CAD ou créer un nouveau plan, passez par Connexion, Création compte ou Mode démo. L'accès direct par bouton Commencer est désactivé.</p><div className="pdi-auth-tabs"><button className={authPanelMode==="login"?"active":""} onClick={()=>setAuthPanelMode("login")}>Connexion</button><button className={authPanelMode==="register"?"active":""} onClick={()=>setAuthPanelMode("register")}>Créer compte</button><button className={authPanelMode==="activation"?"active":""} onClick={()=>setAuthPanelMode("activation")}>Activation</button></div>

@@ -811,6 +811,205 @@ export const PdiUniversalPropertyInspector: React.FC<PdiUniversalPropertyInspect
                     </label>
                   </div>
                 )}
+
+                {/* Pour Dessin CAD 2D */}
+                {entity.identity.category === "cad2d" && (
+                  <div className="space-y-3 pt-1">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[10px] text-slate-400 block mb-0.5">Calque (Layer)</label>
+                        <select
+                          value={entity.specific.cad2d?.layerId || "0"}
+                          onChange={(e) =>
+                            updateEntity((prev) => ({
+                              ...prev,
+                              specific: {
+                                ...prev.specific,
+                                cad2d: { ...prev.specific.cad2d, layerId: e.target.value },
+                              },
+                            }))
+                          }
+                          className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-100 text-[11px]"
+                        >
+                          <option value="0">Calque 0 (Défaut)</option>
+                          <option value="axes">Axes & Lignes de centre</option>
+                          <option value="structures">Structures & Génie Civil</option>
+                          <option value="cotations">Cotations & Repères</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-slate-400 block mb-0.5">Style de Ligne</label>
+                        <select
+                          value={entity.specific.cad2d?.strokeDash || "continuous"}
+                          onChange={(e) =>
+                            updateEntity((prev) => ({
+                              ...prev,
+                              specific: {
+                                ...prev.specific,
+                                cad2d: { ...prev.specific.cad2d, strokeDash: e.target.value as any },
+                              },
+                            }))
+                          }
+                          className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-100 text-[11px]"
+                        >
+                          <option value="continuous">Continue (Plein)</option>
+                          <option value="dashed">Tirets</option>
+                          <option value="center">Ligne d'Axe (_._._)</option>
+                          <option value="hidden">Ligne Cachée (...)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[10px] text-slate-400 block mb-0.5">Couleur Trait</label>
+                        <div className="flex gap-1.5 items-center">
+                          <input
+                            type="color"
+                            value={entity.specific.cad2d?.strokeColor || "#38bdf8"}
+                            onChange={(e) =>
+                              updateEntity((prev) => ({
+                                ...prev,
+                                specific: {
+                                  ...prev.specific,
+                                  cad2d: { ...prev.specific.cad2d, strokeColor: e.target.value },
+                                },
+                              }))
+                            }
+                            className="w-8 h-6 bg-slate-900 border border-slate-700 rounded cursor-pointer"
+                          />
+                          <span className="text-[10px] text-slate-300 font-mono">{entity.specific.cad2d?.strokeColor || "#38bdf8"}</span>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-slate-400 block mb-0.5 font-mono">Épaisseur (px)</label>
+                        <input
+                          type="number"
+                          step="0.5"
+                          min="0.5"
+                          max="10"
+                          value={entity.specific.cad2d?.strokeWidth || 1.5}
+                          onChange={(e) =>
+                            updateEntity((prev) => ({
+                              ...prev,
+                              specific: {
+                                ...prev.specific,
+                                cad2d: { ...prev.specific.cad2d, strokeWidth: Number(e.target.value) },
+                              },
+                            }))
+                          }
+                          className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-100 font-mono text-[11px]"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[10px] text-slate-400 block mb-0.5">Remplissage</label>
+                        <select
+                          value={entity.specific.cad2d?.hatchPattern || "none"}
+                          onChange={(e) =>
+                            updateEntity((prev) => ({
+                              ...prev,
+                              specific: {
+                                ...prev.specific,
+                                cad2d: { ...prev.specific.cad2d, hatchPattern: e.target.value as any },
+                              },
+                            }))
+                          }
+                          className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-100 text-[11px]"
+                        >
+                          <option value="none">Aucun (Transparent)</option>
+                          <option value="solid">Couleur Solide</option>
+                          <option value="ansi31">Hachures ANSI 31 (45°)</option>
+                          <option value="ansi32">Hachures ANSI 32 (Croisées)</option>
+                          <option value="dots">Points serrés</option>
+                        </select>
+                      </div>
+                      {entity.specific.cad2d?.hatchPattern !== "none" && (
+                        <div>
+                          <label className="text-[10px] text-slate-400 block mb-0.5">Couleur Remplissage</label>
+                          <div className="flex gap-1.5 items-center">
+                            <input
+                              type="color"
+                              value={entity.specific.cad2d?.fillColor || "#38bdf833"}
+                              onChange={(e) =>
+                                updateEntity((prev) => ({
+                                  ...prev,
+                                  specific: {
+                                    ...prev.specific,
+                                    cad2d: { ...prev.specific.cad2d, fillColor: e.target.value },
+                                  },
+                                }))
+                              }
+                              className="w-8 h-6 bg-slate-900 border border-slate-700 rounded cursor-pointer"
+                            />
+                            <span className="text-[10px] text-slate-300 font-mono">{entity.specific.cad2d?.fillColor || "none"}</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Geometrical properties input / calculated indicators */}
+                    <div className="border-t border-slate-800/80 pt-2.5 mt-2.5 space-y-2">
+                      <div className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">Géométrie de l'Élément</div>
+                      {(entity.identity.type === "circle" || entity.identity.type === "arc") && (
+                        <div>
+                          <label className="text-[10px] text-slate-400 block mb-0.5">Rayon (m)</label>
+                          <input
+                            type="number"
+                            step="0.05"
+                            min="0.05"
+                            value={entity.geometry.radius || 1}
+                            onChange={(e) =>
+                              updateEntity((prev) => ({
+                                ...prev,
+                                geometry: { ...prev.geometry, radius: Number(e.target.value) },
+                              }))
+                            }
+                            className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-100 font-mono text-[11px]"
+                          />
+                        </div>
+                      )}
+
+                      {entity.identity.type === "line" && entity.geometry.points && entity.geometry.points.length >= 2 && (() => {
+                        const p1 = entity.geometry.points[0];
+                        const p2 = entity.geometry.points[1];
+                        const calculatedLength = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+                        const calculatedAngle = Math.atan2(p2.y - p1.y, p2.x - p1.x) * (180 / Math.PI);
+                        return (
+                          <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-300 bg-slate-900/40 p-2 rounded border border-slate-800 font-mono">
+                            <div>
+                              <span className="text-slate-400 block">Longueur :</span>
+                              <span className="text-amber-300 text-xs font-bold">{calculatedLength.toFixed(3)} m</span>
+                            </div>
+                            <div>
+                              <span className="text-slate-400 block">Angle :</span>
+                              <span className="text-amber-300 text-xs font-bold">{calculatedAngle.toFixed(1)}°</span>
+                            </div>
+                          </div>
+                        );
+                      })()}
+
+                      {entity.identity.type === "text" && (
+                        <div>
+                          <label className="text-[10px] text-slate-400 block mb-0.5">Contenu du Texte</label>
+                          <input
+                            type="text"
+                            value={entity.identity.name || ""}
+                            onChange={(e) =>
+                              updateEntity((prev) => ({
+                                ...prev,
+                                identity: { ...prev.identity, name: e.target.value },
+                              }))
+                            }
+                            className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-100 text-[11px]"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

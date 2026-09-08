@@ -16,6 +16,10 @@ export interface PdiScreenInfo {
   pixelRatio: number;
   isPrimary: boolean;
   isInternal?: boolean;
+  left: number;
+  top: number;
+  availLeft?: number;
+  availTop?: number;
 }
 
 export interface PdiScreenDetectionResult {
@@ -44,6 +48,10 @@ export async function detectPdiScreens(): Promise<PdiScreenDetectionResult> {
     colorDepth: typeof window !== "undefined" ? window.screen.colorDepth : 24,
     pixelRatio: typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1,
     isPrimary: true,
+    left: 0,
+    top: 0,
+    availLeft: 0,
+    availTop: 0,
   };
 
   if (typeof window === "undefined") {
@@ -90,6 +98,10 @@ export async function detectPdiScreens(): Promise<PdiScreenDetectionResult> {
           pixelRatio: s.devicePixelRatio || window.devicePixelRatio || 1,
           isPrimary: Boolean(s.isPrimary),
           isInternal: s.isInternal,
+          left: s.left ?? 0,
+          top: s.top ?? 0,
+          availLeft: s.availLeft ?? 0,
+          availTop: s.availTop ?? 0,
         }));
 
         const primary = screens.find((s) => s.isPrimary) || screens[0] || defaultPrimary;
@@ -124,11 +136,15 @@ export async function detectPdiScreens(): Promise<PdiScreenDetectionResult> {
       colorDepth: window.screen.colorDepth,
       pixelRatio: window.devicePixelRatio || 1,
       isPrimary: false,
+      left: window.screen.width, // placement par défaut à droite
+      top: 0,
+      availLeft: window.screen.width,
+      availTop: 0,
     });
   }
 
   return {
-    supported: isExtended || true,
+    supported: isExtended,
     isExtended: isExtended,
     screenCount: isExtended ? 2 : 1,
     primaryScreen: defaultPrimary,
@@ -157,9 +173,17 @@ export function calculateSecondaryWindowBounds(screenDetails?: PdiScreenDetectio
   // Si un deuxième écran est répertorié via l'API Window Management
   if (screenDetails?.allScreens && screenDetails.allScreens.length > 1) {
     const screen2 = screenDetails.allScreens.find((s) => !s.isPrimary) || screenDetails.allScreens[1];
+    
+    // On utilise les coordonnées physiques et disponibles réelles de l'écran secondaire
+    // fournies par l'API Window Management, gérant toutes les configurations physiques :
+    // - Écran secondaire à gauche (coordonnées négatives)
+    // - Écran secondaire au-dessus ou au-dessous (disposition verticale)
+    const left = screen2.availLeft !== undefined ? screen2.availLeft : (screen2.left !== undefined ? screen2.left : primaryWidth + 20);
+    const top = screen2.availTop !== undefined ? screen2.availTop : (screen2.top !== undefined ? screen2.top : 0);
+
     return {
-      left: primaryWidth + 20, // Positionnement à droite du moniteur principal
-      top: 0,
+      left: left,
+      top: top,
       width: Math.max(900, screen2.availWidth || 1200),
       height: Math.max(650, screen2.availHeight || 800),
     };

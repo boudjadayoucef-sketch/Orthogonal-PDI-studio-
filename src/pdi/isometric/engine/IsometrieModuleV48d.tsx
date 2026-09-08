@@ -370,9 +370,12 @@ export interface GraphIssue {
 
 // V4.8d — cotations persistantes et outils d’alignement.
 export type IsoDimensionAnchor = {
-  kind: "node" | "port";
-  nodeId: string;
+  kind: "node" | "port" | "cad2d";
+  nodeId?: string;
   portId?: string;
+  entityId?: string;
+  pointType?: string;
+  pointIndex?: number;
 };
 
 export interface IsoDimension {
@@ -6154,16 +6157,35 @@ function IsometrieModule(props: { projectId?: string }) {
       setStatusMessage("Sélectionnez un équipement ou un nœud pour le pivoter (R)");
       return;
     }
+
+    // Calcul du barycentre (centroid) des nœuds de la sélection
+    const selectedNodesObj = nodes.filter(n => targetNodeIds.includes(n.id));
+    const cx = selectedNodesObj.reduce((sum, n) => sum + n.x, 0) / selectedNodesObj.length;
+    const cy = selectedNodesObj.reduce((sum, n) => sum + n.y, 0) / selectedNodesObj.length;
+    const pivot = { x: cx, y: cy, z: 0 };
+
     const nextNodes = nodes.map(n => {
       if (!targetNodeIds.includes(n.id)) return n;
-      if (n.equipmentType) {
-        return { ...n, rotation: ((((n.rotation || 0) + delta) % 360) + 360) % 360 };
-      }
+
+      // Rotation physique de la position 3D (x, y) du nœud autour du pivot commun de la sélection
+      const rotatedPt = rotateWorldPoint(n, pivot, delta);
+
+      let rotation = ((((n.rotation || 0) + delta) % 360) + 360) % 360;
+      let branchAngle = n.branchAngle;
+
       if (n.branchAngle !== undefined || n.type === "tee" || n.type === "piquage") {
-        return { ...n, branchAngle: ((((n.branchAngle || 0) + delta) % 360) + 360) % 360, rotation: ((((n.rotation || 0) + delta) % 360) + 360) % 360 };
+        branchAngle = ((((n.branchAngle || 0) + delta) % 360) + 360) % 360;
       }
-      return { ...n, rotation: ((((n.rotation || 0) + delta) % 360) + 360) % 360 };
+
+      return {
+        ...n,
+        x: Number(rotatedPt.x.toFixed(4)),
+        y: Number(rotatedPt.y.toFixed(4)),
+        rotation,
+        branchAngle
+      };
     });
+
     // PATCH 017P : rotation transactionnelle. La commande refuse de valider
     // si elle a fait varier le nombre de noeuds (cause des noeuds et tubes
     // fantomes observes) et signale toute anomalie geometrique residuelle.
@@ -6405,6 +6427,15 @@ function IsometrieModule(props: { projectId?: string }) {
   
   // === V4.8d COTATIONS & ALIGNEMENT ===
   const anchorFromTarget = (target: Element): IsoDimensionAnchor | null => {
+    const cadGripEl = target.closest("[data-cad2d-grip='true']");
+    if (cadGripEl) {
+      const entityId = cadGripEl.getAttribute("data-entity-id") || "";
+      const gripType = cadGripEl.getAttribute("data-grip-type") || "";
+      const pointIdxStr = cadGripEl.getAttribute("data-point-idx");
+      const pointIndex = pointIdxStr !== null ? Number(pointIdxStr) : undefined;
+      return { kind: "cad2d", entityId, pointType: gripType, pointIndex };
+    }
+
     const portEl = target.closest("[data-iso-port='true']");
     if (portEl) {
       const nodeId = portEl.getAttribute("data-port-node-id") || "";
@@ -6419,6 +6450,21 @@ function IsometrieModule(props: { projectId?: string }) {
   };
 
   const resolveDimensionAnchor = (anchor: IsoDimensionAnchor) => {
+    if (anchor.kind === "cad2d") {
+      const entity = cad2dEntities.find((e) => e.id === anchor.entityId);
+      if (!entity) return null;
+      const elevationZ = entity.metadata?.elevationZ || 0;
+      if (anchor.pointType === "center" && entity.center) {
+        return { x: entity.center.x, y: entity.center.y, z: elevationZ };
+      }
+      if (anchor.pointIndex !== undefined && entity.points && entity.points[anchor.pointIndex]) {
+        const pt = entity.points[anchor.pointIndex];
+        return { x: pt.x, y: pt.y, z: elevationZ };
+      }
+      if (entity.center) return { x: entity.center.x, y: entity.center.y, z: elevationZ };
+      if (entity.points && entity.points[0]) return { x: entity.points[0].x, y: entity.points[0].y, z: elevationZ };
+      return null;
+    }
     const node = nodes.find((n) => n.id === anchor.nodeId);
     if (!node) return null;
     if (anchor.kind === "port" && anchor.portId) return portWorldPosition(node, anchor.portId);
@@ -6478,15 +6524,27 @@ function IsometrieModule(props: { projectId?: string }) {
   const handleDimensionAnchorPick = (anchor: IsoDimensionAnchor) => {
     if (!dimensionPick) {
       setDimensionPick(anchor);
-      setSelectedNodeIds([anchor.nodeId]);
-      setSelectedNodeId(anchor.nodeId);
+      if (anchor.kind !== "cad2d" && anchor.nodeId) {
+        setSelectedNodeIds([anchor.nodeId]);
+        setSelectedNodeId(anchor.nodeId);
+      }
       setStatusMessage("Cotation : choisir le second ancrage");
       return;
     }
-    if (dimensionPick.nodeId === anchor.nodeId && dimensionPick.portId === anchor.portId) {
+
+    const isSame =
+      dimensionPick.kind === anchor.kind &&
+      (anchor.kind === "cad2d"
+        ? dimensionPick.entityId === anchor.entityId &&
+          dimensionPick.pointType === anchor.pointType &&
+          dimensionPick.pointIndex === anchor.pointIndex
+        : dimensionPick.nodeId === anchor.nodeId && dimensionPick.portId === anchor.portId);
+
+    if (isSame) {
       setStatusMessage("Cotation : choisir deux ancrages différents");
       return;
     }
+
     const dimension: IsoDimension = {
       id: uid("dim"),
       type: "distance",
@@ -6497,8 +6555,10 @@ function IsometrieModule(props: { projectId?: string }) {
     };
     setDimensions((prev) => [...prev, dimension]);
     setDimensionPick(null);
-    setSelectedNodeIds([dimensionPick.nodeId, anchor.nodeId]);
-    setSelectedNodeId(anchor.nodeId);
+    if (dimensionPick.kind !== "cad2d" && dimensionPick.nodeId && anchor.kind !== "cad2d" && anchor.nodeId) {
+      setSelectedNodeIds([dimensionPick.nodeId, anchor.nodeId]);
+      setSelectedNodeId(anchor.nodeId);
+    }
     setShowDimensions(true);
     setStatusMessage("Cotation ajoutée");
   };
@@ -9877,7 +9937,14 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                   const width=clamp((s.dn/25)*pipeStrokeScale,2,24),mx=(p1.x+p2.x)/2,my=(p1.y+p2.y)/2;
                   const dimensionAnnotation=editorAnnotationMap.get(`segment:${s.id}`);
                   return <g key={s.id} data-iso-object="true" data-iso-segment="true" data-segment-id={s.id} style={{isolation:"isolate"}}
-                    onPointerDown={e=>{e.stopPropagation();selectSegmentV44(s.id,e.ctrlKey||e.metaKey||e.shiftKey)}}
+                    onPointerDown={e=>{
+                      if (isoDrawMode !== "select" || activeSupportTypeToPlace) {
+                        // Let the event propagate to the SVG pointerDown for insertion / dimension tools
+                        return;
+                      }
+                      e.stopPropagation();
+                      selectSegmentV44(s.id,e.ctrlKey||e.metaKey||e.shiftKey);
+                    }}
                     onContextMenu={(e)=>{
                       e.preventDefault();
                       e.stopPropagation();
@@ -9985,17 +10052,22 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                   const nodeAnnotation=editorAnnotationMap.get(`node:${n.id}`);
                   return <g key={n.id} data-iso-object="true" data-iso-node="true" data-node-id={n.id} transform={`translate(${p.x} ${p.y})`}
                     onClick={e=>{
-                      e.stopPropagation();
                       if (isoDrawMode === "segment") {
+                        e.stopPropagation();
                         handleNodeClickForTube(n.id);
                       }
                     }}
                     onPointerDown={e=>{
-                      e.stopPropagation();
                       if (isoDrawMode === "segment") {
+                        e.stopPropagation();
                         handleNodeClickForTube(n.id);
                         return;
                       }
+                      if (isoDrawMode !== "select") {
+                        // Let the event propagate for dimension, tee, or branch drawings
+                        return;
+                      }
+                      e.stopPropagation();
                       beginNodeDrag(e,n.id,e.ctrlKey||e.metaKey||e.shiftKey);
                     }}
                     onPointerEnter={()=>setHoveredEntity({ type: "node", id: n.id })}
@@ -10054,7 +10126,9 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                       <circle r={pdiNodeRadius017P3(viewport.zoom,isSel,isHov)} fill={fill} stroke={isSel?"#facc15":"#e0f2fe"} strokeWidth={isSel?2:1.5}/>
                     )}
                     {showLabels&&(viewport.zoom>=0.5||isEquip||isSel)&&(()=>{
-                          const fullLabel=`${isEquip?equipmentLabel(n):n.name}${n.z?` (Z=${n.z}m)`:""}`;
+                          const bend = n.equipmentType ? elbowAngle(n.equipmentType) : 0;
+                          const angleSuffix = bend ? ` (${bend}°)` : n.branchAngle !== undefined ? ` (${n.branchAngle}°)` : n.rotation ? ` (R=${n.rotation}°)` : "";
+                          const fullLabel=`${isEquip?equipmentLabel(n):n.name}${angleSuffix}${n.z?` (Z=${n.z}m)`:""}`;
                           const displayLabel=compactIsoLabel(fullLabel,30);
                           const lx=(nodeAnnotation?.x??p.x+42)-p.x,ly=(nodeAnnotation?.y??p.y-18)-p.y;
                           const lw=Math.min(172,Math.max(38,displayLabel.length*5.3+14));
@@ -10316,21 +10390,34 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                   })}
                 </g>
                 <g data-cad2d-grips="true">
-                  {cad2dEntities.filter((entity) => selectedCad2dIds.includes(entity.id) && !entity.locked).flatMap((entity) => {
+                  {cad2dEntities.filter((entity) => (selectedCad2dIds.includes(entity.id) || isoDrawMode === "dimension") && !entity.locked).flatMap((entity) => {
                     const mkGrip = (p: Cad2dPoint, grip: string, i: number) => {
                       const pp = isoProjectV4(p.x, p.y, entity.metadata?.elevationZ || 0, viewport.zoom, viewport.panX, viewport.panY);
+                      const isDimMode = isoDrawMode === "dimension";
+                      const fill = isDimMode ? "#22c55e" : "#fbbf24";
                       return (
                         <rect
                           key={`${entity.id}-${grip}-${i}`}
-                          x={pp.x - 4}
-                          y={pp.y - 4}
-                          width="8"
-                          height="8"
-                          fill="#fbbf24"
+                          data-cad2d-grip="true"
+                          data-entity-id={entity.id}
+                          data-grip-type={grip}
+                          data-point-idx={i}
+                          x={pp.x - 5}
+                          y={pp.y - 5}
+                          width="10"
+                          height="10"
+                          fill={fill}
                           stroke="#020617"
                           strokeWidth="1.5"
-                          style={{ cursor: grip === "radius" ? "ew-resize" : "crosshair" }}
-                          onPointerDown={(event) => startCad2dPointer(event, entity.id, grip)}
+                          pointerEvents="all"
+                          style={{ cursor: isDimMode ? "crosshair" : grip === "radius" ? "ew-resize" : "crosshair" }}
+                          onPointerDown={(event) => {
+                            if (isDimMode) {
+                              // Dimension picker handled via anchorFromTarget
+                              return;
+                            }
+                            startCad2dPointer(event, entity.id, grip);
+                          }}
                         />
                       );
                     };
@@ -10354,39 +10441,26 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                 </g>
 
                 {/* User Dimensions (Interactive CAD Cotations) */}
-                {showDimensions && dimensions.map((dimension) => {
-                  const aNode = nodes.find((node) => node.id === dimension.a.nodeId);
-                  const bNode = nodes.find((node) => node.id === dimension.b.nodeId);
-                  if (!aNode || !bNode) return null;
-                  const aw = dimension.a.kind === "port" && dimension.a.portId ? portWorldPosition(aNode, dimension.a.portId) : aNode;
-                  const bw = dimension.b.kind === "port" && dimension.b.portId ? portWorldPosition(bNode, dimension.b.portId) : bNode;
-                  const p1 = isoProjectV4(aw.x, aw.y, aw.z, viewport.zoom, viewport.panX, viewport.panY);
-                  const p2 = isoProjectV4(bw.x, bw.y, bw.z, viewport.zoom, viewport.panX, viewport.panY);
-                  const offset = dimension.offset || { x: 0, y: -24 };
-                  const q1 = { x: p1.x + offset.x, y: p1.y + offset.y };
-                  const q2 = { x: p2.x + offset.x, y: p2.y + offset.y };
-                  const mx = (q1.x + q2.x) / 2, my = (q1.y + q2.y) / 2;
-                  const distValue = Math.hypot(bw.x - aw.x, bw.y - aw.y, bw.z - aw.z);
-                  const label =
-                    dimension.label ||
-                    (dimension.unit === "mm"
-                      ? `${Math.round(distValue * 1000)} mm`
-                      : dimension.unit === "in" || dimension.unit === "ft-in"
-                        ? formatLength(distValue, "imperial")
-                        : formatLength(distValue, unitSystem));
-                  const isDimSel = selectedDimensionId === dimension.id || selectedDimensionIds.includes(dimension.id);
+                {showDimensions && dimensionRenderItems.map((dimItem) => {
+                  const p1 = dimItem.p1;
+                  const p2 = dimItem.p2;
+                  const q1 = dimItem.q1;
+                  const q2 = dimItem.q2;
+                  const mx = dimItem.mid.x;
+                  const my = dimItem.mid.y;
+                  const label = dimItem.displayValue;
+                  const isDimSel = selectedDimensionId === dimItem.id || selectedDimensionIds.includes(dimItem.id);
 
                   return (
                     <g
-                      key={dimension.id}
+                      key={dimItem.id}
                       data-iso-object="true"
                       data-iso-dimension="true"
-                      data-dimension-id={dimension.id}
+                      data-dimension-id={dimItem.id}
                       className="cursor-pointer select-none"
                       onClick={(e) => {
                         e.stopPropagation();
-                        // PATCH 004b : passe par la fonction metier de selection.
-                        selectDimensionV44(dimension.id, e.shiftKey || e.ctrlKey || e.metaKey);
+                        selectDimensionV44(dimItem.id, e.shiftKey || e.ctrlKey || e.metaKey);
                         setRightPanelOpen(true);
                         setRightPanelTab("dimensions");
                         setStatusMessage(`Cotation sélectionnée : ${label}`);
@@ -12357,8 +12431,14 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                             layerId: updated.specific.cad2d?.layerId || c.layerId,
                             color: updated.specific.cad2d?.strokeColor || c.color,
                             lineWeight: updated.specific.cad2d?.strokeWidth || c.lineWeight,
+                            lineType: (updated.specific.cad2d?.strokeDash as any) || c.lineType,
                             fill: updated.specific.cad2d?.fillColor || c.fill,
+                            fillOpacity: updated.specific.cad2d?.fillOpacity ?? c.fillOpacity,
+                            hatchPattern: updated.specific.cad2d?.hatchPattern || c.hatchPattern,
                             rotation: updated.geometry.rotation != null ? updated.geometry.rotation : c.rotation,
+                            length: updated.geometry.length != null ? updated.geometry.length : c.length,
+                            width: updated.geometry.width != null ? updated.geometry.width : c.width,
+                            radius: updated.geometry.radius != null ? updated.geometry.radius : c.radius,
                           } : c));
                         } else if (updated.identity.category === "support") {
                           setSupports(prev => prev.map(s => s.id === updated.identity.id ? {

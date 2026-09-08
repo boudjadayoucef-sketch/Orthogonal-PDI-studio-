@@ -263,9 +263,12 @@ export interface GraphIssue {
 }
 
 export type IsoDimensionAnchor = {
-  kind: "node" | "port";
-  nodeId: string;
+  kind: "node" | "port" | "cad2d";
+  nodeId?: string;
   portId?: string;
+  entityId?: string;
+  pointType?: string;
+  pointIndex?: number;
 };
 
 export interface IsoDimension {
