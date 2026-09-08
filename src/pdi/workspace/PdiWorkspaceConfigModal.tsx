@@ -219,7 +219,7 @@ export const PdiWorkspaceConfigModal: React.FC<PdiWorkspaceConfigModalProps> = (
   };
 
   return (
-    <div className="fixed inset-0 z-[100200] flex items-center justify-center bg-black/85 backdrop-blur-md p-2 sm:p-4 animate-in fade-in duration-150">
+    <div className="pdi-modal-backdrop fixed inset-0 z-[100200] flex items-center justify-center bg-black/85 backdrop-blur-md p-2 sm:p-4 animate-in fade-in duration-150">
       <div className="relative w-full max-w-4xl bg-[#0D1117] border border-[#30363D] rounded-2xl shadow-2xl shadow-black overflow-hidden flex flex-col max-h-[92vh] my-auto">
         
         {/* Header (Fixé en haut) */}

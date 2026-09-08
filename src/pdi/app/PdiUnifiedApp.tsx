@@ -689,6 +689,7 @@ export default function PdiUnifiedApp() {
   return (
     <div className="pdi-unified-root">
       <style>{`
+        body:has(.pdi-modal-backdrop) .pdi-tab-dock-iso { display: none !important; }
         .pdi-unified-root{height:100vh;width:100vw;overflow:hidden;background:#000000;color:#F4F4F5;font-family:Inter,ui-sans-serif,system-ui,sans-serif;display:grid;grid-template-columns:96px 1fr;grid-template-rows:72px 40px 1fr}
         .pdi-unified-topbar{grid-column:1/3;display:flex;align-items:center;gap:18px;padding:8px 16px;background:#08080A;border-bottom:1px solid rgba(255,255,255,.08);box-shadow:0 8px 24px rgba(0,0,0,.45);min-width:0}
         .pdi-unified-brand{display:flex;align-items:center;gap:14px;min-width:260px}

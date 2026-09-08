@@ -11306,7 +11306,7 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
 
           {/* PROPERTIES & LIST TABLE MODAL */}
           {propertiesModalOpen && (
-            <div className="fixed inset-0 z-[10020] bg-black/75 backdrop-blur-sm flex items-center justify-center p-3 animate-fade-in">
+            <div className="pdi-modal-backdrop fixed inset-0 z-[10020] bg-black/75 backdrop-blur-sm flex items-center justify-center p-3 animate-fade-in">
               <div className="w-full max-w-5xl bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] text-slate-200">
                 {/* Header */}
                 <div className="flex items-center justify-between px-5 py-3.5 bg-slate-950 border-b border-slate-800">

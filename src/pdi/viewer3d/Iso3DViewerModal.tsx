@@ -692,7 +692,7 @@ export const Iso3DViewerModal: React.FC<Iso3DViewerModalProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 z-[100050] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 animate-in fade-in duration-200">
+    <div className="pdi-modal-backdrop fixed inset-0 z-[100050] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 animate-in fade-in duration-200">
       {content}
     </div>
   );
