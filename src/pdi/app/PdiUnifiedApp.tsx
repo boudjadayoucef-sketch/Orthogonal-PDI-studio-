@@ -618,6 +618,43 @@ export default function PdiUnifiedApp() {
   }, [handleLogoutToHome]);
 
   useEffect(() => { try { window.localStorage.setItem(PDI_AUTH_KEY, authMode); } catch {} }, [authMode]);
+
+  // -------------------------------------------------------------
+  // PD&I 018S : Inactivity Session Timeout and Verification Logic
+  // -------------------------------------------------------------
+  useEffect(() => {
+    if (stage !== "app") return;
+
+    // We define an inactivity limit of 30 minutes (1800000 ms)
+    const INACTIVITY_LIMIT_MS = 30 * 60 * 1000;
+    let lastActivityTime = Date.now();
+
+    const updateActivity = () => {
+      lastActivityTime = Date.now();
+    };
+
+    window.addEventListener("mousemove", updateActivity);
+    window.addEventListener("keydown", updateActivity);
+    window.addEventListener("click", updateActivity);
+    window.addEventListener("scroll", updateActivity);
+
+    const intervalId = setInterval(() => {
+      const timeSinceLastActivity = Date.now() - lastActivityTime;
+      if (timeSinceLastActivity >= INACTIVITY_LIMIT_MS) {
+        console.warn("Session inactivity timeout reached.");
+        handleLogoutToHome();
+        void pdiAlert("Votre session a expiré en raison de votre inactivité (30 minutes). Veuillez vous reconnecter pour sécuriser vos données.");
+      }
+    }, 15000); // Check every 15 seconds
+
+    return () => {
+      window.removeEventListener("mousemove", updateActivity);
+      window.removeEventListener("keydown", updateActivity);
+      window.removeEventListener("click", updateActivity);
+      window.removeEventListener("scroll", updateActivity);
+      clearInterval(intervalId);
+    };
+  }, [stage, handleLogoutToHome]);
   useEffect(() => { 
     try { 
       window.localStorage.setItem("pdi.activeModule.v1", activeModule);

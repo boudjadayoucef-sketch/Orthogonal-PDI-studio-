@@ -999,9 +999,11 @@ export function generateIsoDrawingSvg(
     </text>`;
   }
 
-  const svgMarkup = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="100%" height="100%" style="display:block; width:100%; height:100%; background:#ffffff;">
+  const rawSvgMarkup = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="100%" height="100%" style="display:block; width:100%; height:100%; background:#ffffff;">
     ${svgContent}
   </svg>`;
+
+  const svgMarkup = rawSvgMarkup.replace(/&(?!(amp|lt|gt|quot|apos|#\d+);)/g, "&amp;");
 
   return {
     svgMarkup,

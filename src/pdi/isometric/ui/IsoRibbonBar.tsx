@@ -36,6 +36,7 @@ import {
   FolderOpen,
   Save,
   Printer,
+  Download,
   Sparkles,
   Command,
   HelpCircle,
@@ -400,6 +401,7 @@ export const IsoRibbonBar: React.FC<IsoRibbonBarProps> = ({
         const entreesExemples = pdiEntreesGroupe017M("fichier", "Exemples");
         const entreesEnreg = pdiEntreesGroupe017M("fichier", "Enregistrement");
         const entreesImpression = pdiEntreesGroupe017M("fichier", "Impression et export");
+        const entreesExport = pdiEntreesGroupe017M("fichier", "Export");
         const entreesSession = pdiEntreesGroupe017M("fichier", "Session");
         const entreesProjet = pdiEntreesGroupe017M("fichier", "Projet");
 
@@ -429,18 +431,32 @@ export const IsoRibbonBar: React.FC<IsoRibbonBarProps> = ({
               {entreesExemples.map(renderSingleEntry)}
             </DropdownSubmenu>
 
-            {/* Flyout Submenu 2: Impression & Export */}
+            {/* Flyout Submenu 2: Impression */}
             <DropdownSubmenu
               icon={<Printer className="w-4 h-4 text-zinc-300" />}
-              label="Impression & Export..."
+              label="Impression..."
+              isOpen={openSubmenuId === "fichier.imprimer_menu"}
+              onHover={() => handleSubmenuHover("fichier.imprimer_menu")}
+              onLeave={handleSubmenuLeave}
+            >
+              <div className="px-2.5 py-1 text-[10px] font-black tracking-wider uppercase text-zinc-400 border-b border-[#30363D] mb-1">
+                Impression & Planches
+              </div>
+              {entreesImpression.map(renderSingleEntry)}
+            </DropdownSubmenu>
+
+            {/* Flyout Submenu 2b: Export */}
+            <DropdownSubmenu
+              icon={<Download className="w-4 h-4 text-zinc-300" />}
+              label="Export..."
               isOpen={openSubmenuId === "fichier.export"}
               onHover={() => handleSubmenuHover("fichier.export")}
               onLeave={handleSubmenuLeave}
             >
               <div className="px-2.5 py-1 text-[10px] font-black tracking-wider uppercase text-zinc-400 border-b border-[#30363D] mb-1">
-                Documents & Formats
+                Formats d'exportation
               </div>
-              {entreesImpression.map(renderSingleEntry)}
+              {entreesExport.map(renderSingleEntry)}
             </DropdownSubmenu>
 
             {/* Flyout Submenu 3: Gestion de projet */}

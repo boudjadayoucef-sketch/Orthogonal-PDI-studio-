@@ -109,8 +109,11 @@ export const PDI_REGISTRE_RUBAN_017M: PdiEntreeRuban017M[] = [
   { id:"fichier.sauver", nomFr:"Sauver JSON", nomEn:"Save JSON", aliases:["SAUVER","SAVE","EXPORT"], icone:"\u{1F4BE}", raccourci:"Ctrl+S", onglet:"fichier", groupe:"Enregistrement", ordre:1, portee:"projet", etat:"actif", source:{menu:"Fichier",index:7} },
   { id:"fichier.planche", nomFr:"Planche ISO A3", nomEn:"ISO sheet A3", aliases:["PLANCHE","A3","PLANTISOVIEW","PLANTISOQUICK","ISOVIEW"], icone:"\u25a4", raccourci:"A3", onglet:"fichier", groupe:"Impression et export", ordre:1, portee:"document", etat:"actif", source:{menu:"Impression",index:0} },
   { id:"fichier.imprimer", nomFr:"Imprimer", nomEn:"Print", aliases:["IMPRIMER","PRINT","PLOT"], icone:"\u2399", raccourci:"P", onglet:"fichier", groupe:"Impression et export", ordre:2, portee:"document", etat:"actif", source:{menu:"Impression",index:1} },
-  { id:"fichier.export.pdf", nomFr:"Export PDF A5 a A0", nomEn:"Export PDF A5-A0", aliases:["PDF","EXPORTPDF"], icone:"\u{1F5CE}", onglet:"fichier", groupe:"Impression et export", ordre:3, portee:"document", etat:"grise", jalon:"020F - impression et export" },
-  { id:"fichier.export.dxf", nomFr:"Export DXF", nomEn:"Export DXF", aliases:["DXF","EXPORTDXF"], icone:"\u25f1", onglet:"fichier", groupe:"Impression et export", ordre:4, portee:"document", etat:"grise", jalon:"020F - impression et export" },
+  { id:"fichier.export.pdf", nomFr:"Export PDF", nomEn:"Export PDF", aliases:["PDF","EXPORTPDF"], icone:"\u{1F5CE}", onglet:"fichier", groupe:"Export", ordre:1, portee:"document", etat:"actif" },
+  { id:"fichier.export.dxf", nomFr:"Export DXF", nomEn:"Export DXF", aliases:["DXF","EXPORTDXF"], icone:"\u25f1", onglet:"fichier", groupe:"Export", ordre:2, portee:"document", etat:"actif" },
+  { id:"fichier.export.png", nomFr:"Export PNG", nomEn:"Export PNG", aliases:["PNG","EXPORTPNG"], icone:"🖼️", onglet:"fichier", groupe:"Export", ordre:3, portee:"document", etat:"actif" },
+  { id:"fichier.export.jpeg", nomFr:"Export JPEG", nomEn:"Export JPEG", aliases:["JPEG","EXPORTJPEG","JPG"], icone:"🖼️", onglet:"fichier", groupe:"Export", ordre:4, portee:"document", etat:"actif" },
+  { id:"fichier.export.svg", nomFr:"Export SVG", nomEn:"Export SVG", aliases:["SVG","EXPORTSVG"], icone:"⚡", onglet:"fichier", groupe:"Export", ordre:5, portee:"document", etat:"actif" },
   { id:"fichier.deconnexion", nomFr:"Deconnexion", nomEn:"Sign out", aliases:["DECONNEXION","LOGOUT"], icone:"\u238b", onglet:"fichier", groupe:"Session", ordre:1, portee:"session", etat:"actif", source:{menu:"Fichier",index:8} },
 
   // ================= 2. EDITION =================
