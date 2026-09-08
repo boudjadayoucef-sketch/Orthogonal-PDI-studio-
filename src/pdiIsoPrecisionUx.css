@@ -272,8 +272,8 @@ html.pdi-no-tailwind textarea {
 
 html.pdi-no-tailwind .pdi-cmd-dock-017d {
   position: fixed !important;
-  left: 10px;
-  right: 10px;
+  left: 168px;
+  right: 12px;
   bottom: 8px;
   z-index: 10030;
   display: flex;
@@ -293,7 +293,7 @@ html.pdi-no-tailwind .pdi-cmd-dock-017d input[type="text"] {
 
 html.pdi-no-tailwind .pdi-cmd-restore-017d {
   position: fixed !important;
-  left: 10px;
+  left: 168px;
   bottom: 8px;
   z-index: 10030;
 }

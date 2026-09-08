@@ -13,83 +13,10 @@ service cloud.firestore {
       );
     }
 
-    // Profiles collection rules
-    match /profiles/{userId} {
-      allow read, write: if true;
-    }
-
-    // Connection logs collection rules
-    match /connection_logs/{logId} {
-      allow read, write: if true;
-    }
-
-    // Commercial visits collection rules
-    match /commercial_visits/{visitId} {
-      allow read, write: if true;
-    }
-
-    // User feedbacks collection rules
-    match /user_feedbacks/{feedbackId} {
-      allow read, write: if true;
-    }
-
-    // Subscriber usage tracking collection rules
-    match /subscriber_usage/{usageId} {
-      allow read, write: if true;
-    }
-
-    // Projects collection rules
-    match /projects/{projectId} {
-      allow read, write: if true;
-    }
-
-    // Plans collection rules
-    match /plans/{planId} {
-      allow read, write: if true;
-    }
-
-    // Settings collection rules
-    match /settings/{docId} {
-      allow read, write: if true;
-    }
-
-    // Admins collection rules
-    match /admins/{userId} {
-      allow read, write: if true;
-    }
-
-    // Notifications collection rules
-    match /notifications/{notificationId} {
-      allow read, write: if true;
-    }
-
-    // Password requests collection rules
-    match /password_requests/{requestId} {
-      allow read, write: if true;
-    }
-
-    // License keys collection rules
-    match /license_keys/{keyId} {
-      allow read, write: if true;
-    }
-
-    // Auth credentials and system config collection rules
-    match /auth_credentials/{credId} {
-      allow read, write: if true;
-    }
-
-    match /system_config/{configId} {
-      allow read, write: if true;
-    }
-
-    // Payment transactions collection rules
-    match /payment_transactions/{txId} {
-      allow read, write: if true;
-    }
-
-    // Slides collection rules
-    match /slides/{slideId} {
+    // Allow read/write for all application collections and documents
+    match /{document=**} {
       allow read, write: if true;
     }
   }
 }
+

@@ -48,6 +48,7 @@ import {
   deriveSpoolsAndWelds,
   WeldSpoolResult,
   PdiWeldEntry,
+  PdiSpoolEntry,
 } from "../../welding/isoWeldSpoolEngine";
 import {
   TROUVAY_CAUVIN_CATALOG,
@@ -101,9 +102,19 @@ import {
   ChevronLeft, ChevronRight, SlidersHorizontal, Disc, CornerDownRight, GitFork, ArrowRightLeft,
   Eye, EyeOff, Crosshair, Check, Copy, Scissors, RotateCw, RotateCcw, PanelRightClose, PanelRightOpen,
   Circle, Spline, FolderOpen, Download, LayoutGrid, Magnet, Type, Square, Hexagon, Slash, Disc3,
-  Minimize2, Triangle, Clipboard, CopyPlus, Terminal, CornerDownLeft, ChevronDown, Anchor, Sparkles, Box
+  Minimize2, Triangle, Clipboard, CopyPlus, Terminal, CornerDownLeft, ChevronDown, Anchor, Sparkles, Box,
+  SplitSquareVertical, Tv2, Monitor
 } from "lucide-react";
 import { generateComplexIndustrialIsoDemo } from "../demo/pdiComplexIsoDemo";
+import { PdiWorkspaceConfigModal } from "../../workspace/PdiWorkspaceConfigModal";
+import { pdiWorkspaceBus } from "../../workspace/pdiWorkspaceChannel";
+import type {
+  PdiWorkspaceConfig,
+  PdiWorkspaceState,
+  PdiWorkspaceSelectionState,
+  PdiWorkspaceModelSnapshot,
+  PdiWorkspaceViewId,
+} from "../../workspace/types";
 
 import {
   TriangleType,
@@ -382,7 +393,7 @@ export interface IsoProjectFileV474 {
     createdAt: string; updatedAt: string;
     unitSystem?: UnitSystem;
   };
-  model: { lines: PipingLine[]; nodes: IsoNode[]; segments: IsoSegment[]; dimensions?: IsoDimension[]; supports?: IsoPipingSupport[]; cad2d?: { layers: Cad2dLayer[]; entities: Cad2dEntity[]; }; };
+  model: { lines: PipingLine[]; nodes: IsoNode[]; segments: IsoSegment[]; dimensions?: IsoDimension[]; supports?: IsoPipingSupport[]; spools?: PdiSpoolEntry[]; welds?: PdiWeldEntry[]; cad2d?: { layers: Cad2dLayer[]; entities: Cad2dEntity[]; }; };
   workspace: {
     showGrid:boolean; showDimensions:boolean; showPipeLabels:boolean;
     showLabels:boolean; showWelds:boolean; isoSnapStep:number;
@@ -2000,6 +2011,22 @@ function IsometrieModule(props: { projectId?: string }) {
   const [printModalOpen,setPrintModalOpen]=useState(false);
   const [weldSpoolModalOpen, setWeldSpoolModalOpen] = useState(false);
   const [solid3dViewerOpen, setSolid3dViewerOpen] = useState(false);
+  const [workspaceConfigModalOpen, setWorkspaceConfigModalOpen] = useState(false);
+  const [workspaceConfig, setWorkspaceConfig] = useState<PdiWorkspaceConfig>(() => {
+    return (
+      pdiWorkspaceBus.readConfig() || {
+        mode: "single_screen",
+        profile: "conception_3d",
+        screen1View: "iso",
+        screen2View: "3d",
+        syncSelection: true,
+        syncModel: true,
+        syncCamera: true,
+        autoOpenSecondaryWindow: false,
+      }
+    );
+  });
+  const [isSecondaryConnected, setIsSecondaryConnected] = useState<boolean>(() => pdiWorkspaceBus.isSecondaryWindowConnected());
   const [colorBySpool, setColorBySpool] = useState(false);
   const [activeSpoolFilter, setActiveSpoolFilter] = useState<string | null>(null);
   const [weldOverrides, setWeldOverrides] = useState<Record<string, Partial<PdiWeldEntry>>>({});
@@ -4148,6 +4175,32 @@ function IsometrieModule(props: { projectId?: string }) {
       setAutocadPrompt("COMMANDE [COULEUR] : indiquez cyan, rouge, vert, jaune, blanc, gris ou #RRGGBB.");
       return;
     }
+    const normalizedCmdString = rawCommandText.toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (
+      ["workspace", "work", "wor", "ws", "wspace", "espacetravail", "espace", "esp", "multiscreen", "multiecran", "multi_ecran", "doubleecran", "double_ecran", "double", "ecran", "ecrans", "ecran2", "deuxiemeecran", "2emeecran", "moniteur", "moniteurs", "dualscreen", "displays", "screen2", "secondscreen", "secondecran"].includes(rawVerb) ||
+      normalizedCmdString.includes("workspace") ||
+      normalizedCmdString.includes("doubleecran") ||
+      normalizedCmdString.includes("multiecran") ||
+      normalizedCmdString.includes("ecran2") ||
+      normalizedCmdString.includes("deuxiemeecran")
+    ) {
+      setWorkspaceConfigModalOpen(true);
+      setAutocadPrompt("COMMANDE [WORKSPACE] : Configuration de l'espace de travail et multi-écran.");
+      setStatusMessage("Espace de travail & Multi-écran");
+      return;
+    }
+    if (
+      ["casttv", "cast", "caster", "tv", "smarttv", "projeter", "projection", "chromecast", "airplay", "miracast", "screencast", "androidtv", "tele", "television"].includes(rawVerb) ||
+      normalizedCmdString.includes("cast") ||
+      normalizedCmdString.includes("chromecast") ||
+      normalizedCmdString.includes("smarttv") ||
+      normalizedCmdString.includes("projeter")
+    ) {
+      setWorkspaceConfigModalOpen(true);
+      setAutocadPrompt("COMMANDE [CASTTV] : Projection sans fil et Cast vers Smart TV Android / Chromecast.");
+      setStatusMessage("Caster / Projeter sur Smart TV");
+      return;
+    }
     if (["deplacer", "deplace", "move", "m", "translation"].includes(rawVerb)) {
       startGuidedCommand("move");
       return;
@@ -4385,6 +4438,16 @@ function IsometrieModule(props: { projectId?: string }) {
 
     if (cmdId === "demo") {
       loadPresetDemoComplexe();
+      return;
+    } else if (cmdId === "workspace") {
+      setWorkspaceConfigModalOpen(true);
+      setAutocadPrompt("COMMANDE [WORKSPACE] : Configuration de l'espace de travail et multi-écran.");
+      setStatusMessage("Espace de travail & Multi-écran");
+      return;
+    } else if (cmdId === "casttv") {
+      setWorkspaceConfigModalOpen(true);
+      setAutocadPrompt("COMMANDE [CASTTV] : Projection sans fil et Cast vers Smart TV Android / Chromecast.");
+      setStatusMessage("Caster / Projeter sur Smart TV");
       return;
     } else if (cmdId === "copy") {
       const hasCad = copyCad2dSelection();
@@ -6905,10 +6968,210 @@ function IsometrieModule(props: { projectId?: string }) {
     setPrintModalOpen(true);
   };
 
+  // -------------------------------------------------------------
+  // PD&I 017Q3 : Multi-Screen Foundation Synchronization Logic
+  // -------------------------------------------------------------
+  const activeUniversalEntity = useMemo<PdiUniversalEntity | null>(() => {
+    if (selectedCad2dIds.length === 1) {
+      const cad = cad2dEntities.find((c) => c.id === selectedCad2dIds[0]);
+      if (cad) return cad2dToUniversalEntity(cad);
+    }
+    if (selectedSupportId) {
+      const sup = supports.find((s) => s.id === selectedSupportId);
+      if (sup) {
+        const parentSeg = segments.find((seg) => seg.id === sup.segmentId);
+        return supportToUniversalEntity(sup, parentSeg);
+      }
+    }
+    if (selectedFitting) {
+      const seg = segments.find((s) => s.id === selectedFitting.segmentId);
+      const fit = seg?.fittings.find((f) => f.id === selectedFitting.fittingId);
+      if (fit && seg) return fittingToUniversalEntity(fit, seg);
+    }
+    if (selectedSegmentIds.length === 1) {
+      const seg = segments.find((s) => s.id === selectedSegmentIds[0]);
+      if (seg) {
+        const fromN = nodes.find((n) => n.id === seg.fromNodeId);
+        const toN = nodes.find((n) => n.id === seg.toNodeId);
+        return segmentToUniversalEntity(seg, fromN, toN);
+      }
+    }
+    const targetNodeId = selectedNodeIds[0] || selectedFittingIds[0];
+    if (targetNodeId) {
+      const node = nodes.find((n) => n.id === targetNodeId);
+      if (node) return nodeToUniversalEntity(node, segments);
+    }
+    return null;
+  }, [selectedCad2dIds, cad2dEntities, selectedSupportId, supports, selectedFitting, selectedSegmentIds, segments, selectedNodeIds, selectedFittingIds, nodes]);
+
+  // Initialisation du bus et gestion des réceptions multi-écrans
+  useEffect(() => {
+    pdiWorkspaceBus.setRole(true);
+    const unbindConn = pdiWorkspaceBus.onConnectionChange((connected) => {
+      setIsSecondaryConnected(connected);
+    });
+
+    const unbindMsg = pdiWorkspaceBus.subscribe((msg) => {
+      if (msg.type === "PDI_WS_HELLO_SECONDARY") {
+        setIsSecondaryConnected(true);
+        const fullState: PdiWorkspaceState = {
+          mode: workspaceConfig.mode,
+          profile: workspaceConfig.profile,
+          screen1View: workspaceConfig.screen1View,
+          screen2View: workspaceConfig.screen2View,
+          selection: {
+            selectedNodeId: selectedNodeIds[0] || null,
+            selectedSegmentId: selectedSegmentIds[0] || null,
+            selectedSupportId: selectedSupportId || null,
+            selectedComponentId: selectedFittingIds[0] || null,
+            selectedWeldId: null,
+            selectedSpoolId: activeSpoolFilter || null,
+            selectedType: selectedSegmentIds.length ? "segment" : selectedNodeIds.length ? "node" : selectedSupportId ? "support" : null,
+            timestamp: Date.now(),
+          },
+          activeEntity: activeUniversalEntity || null,
+          modelSnapshot: {
+            projectName,
+            projectId: projectId || projectIdRef.current,
+            unitSystem: unitSystem === "imperial" ? "imperial" : "metric",
+            nodes,
+            segments,
+            supports,
+            welds: weldSpoolData.welds,
+            spools: weldSpoolData.spools,
+            bomRows: printBomRows,
+            updatedAt: new Date().toISOString(),
+          },
+          displayPreferences: {
+            theme: "dark",
+            showGrid: showGrid,
+            showDimensions: showDimensions,
+            showWelds: showWelds,
+            showSupports: true,
+            showTags: tagDisplay,
+          },
+          secondaryConnected: true,
+          lastUpdateTimestamp: Date.now(),
+        };
+        pdiWorkspaceBus.broadcastFullState(fullState, "primary");
+        pdiWorkspaceBus.broadcastModelUpdate(fullState.modelSnapshot, "primary");
+      } else if (msg.type === "PDI_WS_SELECTION_CHANGE" && msg.sender === "secondary") {
+        if (msg.selection) {
+          if (msg.selection.selectedNodeId) {
+            setSelectedNodeIds([msg.selection.selectedNodeId]);
+            setSelectedSegmentIds([]);
+            setSelectedSupportId(null);
+            setSelectedFitting(null);
+          } else if (msg.selection.selectedSegmentId) {
+            setSelectedSegmentIds([msg.selection.selectedSegmentId]);
+            setSelectedNodeIds([]);
+            setSelectedSupportId(null);
+            setSelectedFitting(null);
+          } else if (msg.selection.selectedSupportId) {
+            setSelectedSupportId(msg.selection.selectedSupportId);
+            setSelectedNodeIds([]);
+            setSelectedSegmentIds([]);
+            setSelectedFitting(null);
+          } else if (msg.selection.selectedSpoolId) {
+            setActiveSpoolFilter(msg.selection.selectedSpoolId);
+          }
+        }
+      } else if (msg.type === "PDI_WS_ENTITY_MODIFY" && msg.sender === "secondary" && msg.entity) {
+        const ent = msg.entity;
+        if (ent.identity?.id) {
+          setSegmentsRaw((prev) =>
+            prev.map((s) => (s.id === ent.identity.id ? { ...s, dn: ent.dn?.dn || s.dn, material: ent.material?.grade || s.material } : s))
+          );
+          setNodesRaw((prev) =>
+            prev.map((n) => (n.id === ent.identity.id ? { ...n, type: (ent.identity.type as any) || n.type } : n))
+          );
+        }
+      } else if (msg.type === "PDI_WS_CHANGE_VIEW") {
+        if (msg.screen2View) {
+          setWorkspaceConfig((prev) => ({ ...prev, screen2View: msg.screen2View }));
+          if (msg.screen2View === "spool") setRubanOnglet017M("donnees");
+          else if (msg.screen2View === "bom") setRubanOnglet017M("donnees");
+          else if (msg.screen2View === "properties") setRubanOnglet017M("edition");
+          else if (msg.screen2View === "library") setRubanOnglet017M("insertion");
+          else if (msg.screen2View === "3d") setRubanOnglet017M("trois_d");
+        }
+      }
+    });
+
+    return () => {
+      unbindConn();
+      unbindMsg();
+    };
+  }, [nodes, segments, supports, weldSpoolData, selectedNodeIds, selectedSegmentIds, selectedSupportId, activeSpoolFilter, projectName, projectId, unitSystem, printBomRows, showGrid, showDimensions, showWelds, tagDisplay, workspaceConfig, activeUniversalEntity]);
+
+  // Diffusion de la sélection dès qu'elle change dans l'ISO
+  useEffect(() => {
+    const selState: PdiWorkspaceSelectionState = {
+      selectedNodeId: selectedNodeIds[0] || null,
+      selectedSegmentId: selectedSegmentIds[0] || null,
+      selectedSupportId: selectedSupportId || null,
+      selectedComponentId: selectedFittingIds[0] || null,
+      selectedWeldId: null,
+      selectedSpoolId: activeSpoolFilter || null,
+      selectedType: selectedSegmentIds.length ? "segment" : selectedNodeIds.length ? "node" : selectedSupportId ? "support" : null,
+      timestamp: Date.now(),
+    };
+    pdiWorkspaceBus.broadcastSelection(selState, activeUniversalEntity || null, "primary");
+  }, [selectedNodeIds, selectedSegmentIds, selectedSupportId, selectedFittingIds, activeSpoolFilter, activeUniversalEntity]);
+
+  // Diffusion automatique de l'instantané du modèle (uniquement lors de modifications réelles du modèle)
+  useEffect(() => {
+    if (nodes.length === 0 && !recoveryChecked) {
+      return;
+    }
+    const snapshot: PdiWorkspaceModelSnapshot = {
+      projectName,
+      projectId: projectId || projectIdRef.current,
+      unitSystem: unitSystem === "imperial" ? "imperial" : "metric",
+      nodes,
+      segments,
+      supports,
+      welds: weldSpoolData.welds,
+      spools: weldSpoolData.spools,
+      bomRows: printBomRows,
+      updatedAt: new Date().toISOString(),
+    };
+    pdiWorkspaceBus.saveStateSnapshot({
+      mode: workspaceConfig.mode,
+      profile: workspaceConfig.profile,
+      screen1View: workspaceConfig.screen1View,
+      screen2View: workspaceConfig.screen2View,
+      selection: {
+        selectedNodeId: selectedNodeIds[0] || null,
+        selectedSegmentId: selectedSegmentIds[0] || null,
+        selectedSupportId: selectedSupportId || null,
+        selectedComponentId: selectedFittingIds[0] || null,
+        selectedWeldId: null,
+        selectedSpoolId: activeSpoolFilter || null,
+        selectedType: null,
+        timestamp: Date.now(),
+      },
+      activeEntity: activeUniversalEntity || null,
+      modelSnapshot: snapshot,
+      displayPreferences: {
+        theme: "dark",
+        showGrid: showGrid,
+        showDimensions: showDimensions,
+        showWelds: showWelds,
+        showSupports: true,
+        showTags: tagDisplay,
+      },
+      secondaryConnected: isSecondaryConnected,
+      lastUpdateTimestamp: Date.now(),
+    });
+
+    pdiWorkspaceBus.broadcastModelUpdate(snapshot, "primary");
+  }, [nodes, segments, supports, weldSpoolData, printBomRows, projectName, projectId, unitSystem, recoveryChecked]);
+
 
   const buildProjectFileV474=():IsoProjectFileV474=>{
     const now=new Date().toISOString();
-    return {schemaVersion:"4.7.4",exportedAt:now,project:{id:projectIdRef.current,ownerUid:userUid||"",name:projectName,wilaya,pressDesign,createdAt:projectCreatedAtRef.current,updatedAt:now,unitSystem},model:{lines,nodes,segments,dimensions,supports,cad2d:{layers:cad2dLayers,entities:cad2dEntities}},workspace:{showGrid,showDimensions,showPipeLabels,showLabels,showWelds,isoSnapStep,viewport}};
+    return {schemaVersion:"4.7.4",exportedAt:now,project:{id:projectIdRef.current,ownerUid:userUid||"",name:projectName,wilaya,pressDesign,createdAt:projectCreatedAtRef.current,updatedAt:now,unitSystem},model:{lines,nodes,segments,dimensions,supports,spools:weldSpoolData.spools,welds:weldSpoolData.welds,cad2d:{layers:cad2dLayers,entities:cad2dEntities}},workspace:{showGrid,showDimensions,showPipeLabels,showLabels,showWelds,isoSnapStep,viewport}};
   };
 
   const applyProjectSnapshot=(snapshot:IsoProjectFileV474,label:string)=>{
@@ -7168,6 +7431,92 @@ function IsometrieModule(props: { projectId?: string }) {
         { label: showGrid ? "Masquer grille" : "Afficher grille", hint: "G", run: () => setShowGrid((v) => !v) },
         { label: showPipeLabels ? "Masquer pipelines" : "Afficher pipelines", run: () => setShowPipeLabels((v) => !v) },
         { label: showWelds ? "Masquer soudures" : "Afficher soudures", run: () => setShowWelds((v) => !v) },
+        {
+          label: "📺 Double Écran & Projection Smart TV...",
+          hint: "WORKSPACE",
+          run: () => {
+            setWorkspaceConfigModalOpen(true);
+            setStatusMessage("Espace de travail & Multi-écran / Smart TV");
+          },
+        },
+        {
+          label: "🚀 Lancer Écran 2 Dédié (3D Solide / Spools / BOM)",
+          hint: "SCREEN2",
+          run: () => {
+            pdiWorkspaceBus.openSecondaryWindow("3d");
+            setStatusMessage("Écran 2 ouvert dans une fenêtre dédiée synchrone");
+          },
+        },
+      ],
+    },
+    {
+      title: "Précision",
+      items: [
+        {
+          label: unitSystem === "metric"
+            ? "✓ Système Métrique SI (m, mm, bar, kg, °C)"
+            : "Activer Système Métrique SI (m, mm, bar, kg, °C)",
+          hint: "SI (m/bar)",
+          run: () => {
+            setUnitSystem("metric");
+            setStatusMessage("SYSTÈME MÉTRIQUE ACTIVÉ (ISO 80000 / SI : m, mm, bar, kg, °C)");
+          },
+        },
+        {
+          label: unitSystem === "imperial"
+            ? "✓ Système Impérial US (ft-in, psi, lbs, °F)"
+            : "Activer Système Impérial US (ft-in, psi, lbs, °F)",
+          hint: "US (ft/psi)",
+          run: () => {
+            setUnitSystem("imperial");
+            setStatusMessage("SYSTÈME IMPÉRIAL ACTIVÉ (ASME / US Customary : ft-in, psi, lbs, °F)");
+          },
+        },
+        {
+          label: `Basculer Unités : ${unitSystem === "metric" ? "Métrique (m) → Impérial (ft)" : "Impérial (ft) → Métrique (m)"}`,
+          hint: "UNITS",
+          run: () => {
+            const next = unitSystem === "metric" ? "imperial" : "metric";
+            setUnitSystem(next);
+            setStatusMessage(
+              next === "imperial"
+                ? "SYSTÈME IMPÉRIAL ACTIVÉ (ASME / US Customary : ft-in, psi, lbs, °F)"
+                : "SYSTÈME MÉTRIQUE ACTIVÉ (ISO 80000 / SI : m, mm, bar, kg, °C)"
+            );
+          },
+        },
+        {
+          label: snapEnabled ? "✓ Désactiver Accrochage / Magnétisme (SNAP)" : "Activer Accrochage / Magnétisme (SNAP)",
+          hint: "F9",
+          run: () => {
+            setSnapEnabled((v) => {
+              const next = !v;
+              setStatusMessage(next ? "Accrochage SNAP ACTIVÉ" : "Accrochage SNAP DÉSACTIVÉ");
+              return next;
+            });
+          },
+        },
+        {
+          label: "Accrochage Grille : 10 mm",
+          hint: "10mm",
+          run: () => { setIsoSnapStep(0.01); setStatusMessage("Pas d'accrochage fixé à 10 mm"); },
+        },
+        {
+          label: "Accrochage Grille : 50 mm",
+          hint: "50mm",
+          run: () => { setIsoSnapStep(0.05); setStatusMessage("Pas d'accrochage fixé à 50 mm"); },
+        },
+        {
+          label: "Accrochage Grille : 100 mm",
+          hint: "100mm",
+          run: () => { setIsoSnapStep(0.1); setStatusMessage("Pas d'accrochage fixé à 100 mm"); },
+        },
+        {
+          label: "Redresser sélection ISO orthogonale",
+          hint: "ISO",
+          run: redressIsoSelection,
+          disabled: selectedSegmentIds.length < 1,
+        },
       ],
     },
     {
@@ -7248,6 +7597,7 @@ function IsometrieModule(props: { projectId?: string }) {
 
   // PATCH 017M : etat du ruban (Mega-Menu style GitHub). Replié par défaut pour maximiser l'espace de dessin.
   const [rubanOnglet017M, setRubanOnglet017M] = useState<string>("dessin");
+  const [rubanAnchorLeft, setRubanAnchorLeft] = useState<number | undefined>(undefined);
   const [rubanReplie017M, setRubanReplie017M] = useState<boolean>(() => {
     try {
       const saved = localStorage.getItem("pdi.ribbon.collapsed.v1");
@@ -7264,7 +7614,10 @@ function IsometrieModule(props: { projectId?: string }) {
     catch { /* stockage indisponible : le ruban reste utilisable */ }
   }, [rubanReplie017M]);
   useEffect(() => {
-    try { localStorage.setItem("pdi.rail.collapsed.v1", railCollapsed ? "1" : "0"); }
+    try {
+      localStorage.setItem("pdi.rail.collapsed.v1", railCollapsed ? "1" : "0");
+      window.dispatchEvent(new CustomEvent("pdi:rail-toggle", { detail: { collapsed: railCollapsed } }));
+    }
     catch { /* ignore */ }
   }, [railCollapsed]);
   useEffect(() => {
@@ -7454,23 +7807,44 @@ function IsometrieModule(props: { projectId?: string }) {
               <PdiBrandMark variant="horizontal" size="sm" maxHeight={36} />
             </button>
           </div>
-            {/* PATCH 017M : bande d onglets aeree avec chevrons GitHub style Mega-Menu */}
+            {/* Menubar avec menu déroulant vertical GitHub / VS Code style (Photo 2) */}
             <nav className="pdi-cad-menubar hidden md:flex flex-1 justify-center items-center min-w-0 max-w-2xl mx-auto px-1 overflow-x-auto no-scrollbar gap-1" aria-label="Onglets du ruban PD & I">
               {PDI_ONGLETS_RUBAN_017M.map((onglet) => {
                 const isOpen = rubanOnglet017M === onglet.id && !rubanReplie017M;
                 return (
                   <button
                     key={onglet.id}
+                    id={`pdi-tab-${onglet.id}`}
                     type="button"
-                    onClick={() => {
+                    onClick={(e) => {
                       if (isOpen) {
                         setRubanReplie017M(true);
                       } else {
+                        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                        setRubanAnchorLeft(rect.left);
                         setRubanOnglet017M(onglet.id);
                         setRubanReplie017M(false);
+
+                        // Diffusion automatique du changement de vue vers l'écran secondaire
+                        let vReq: PdiWorkspaceViewId = "3d";
+                        const tabKey = onglet.id as string;
+                        if (tabKey === "donnees") vReq = "bom";
+                        else if (tabKey === "edition") vReq = "properties";
+                        else if (tabKey === "insertion") vReq = "library";
+                        else if (tabKey === "trois_d" || tabKey === "affichage") vReq = "3d";
+
+                        pdiWorkspaceBus.broadcastChangeView(vReq, "primary");
+                        setWorkspaceConfig((prev) => ({ ...prev, screen2View: vReq }));
                       }
                     }}
-                    className={`h-7 px-2.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 shrink-0 ${
+                    onMouseEnter={(e) => {
+                      if (!rubanReplie017M && rubanOnglet017M !== onglet.id) {
+                        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                        setRubanAnchorLeft(rect.left);
+                        setRubanOnglet017M(onglet.id);
+                      }
+                    }}
+                    className={`h-7 px-2.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 shrink-0 select-none ${
                       isOpen
                         ? "bg-[#161B22] text-white border border-[#30363D] shadow-sm shadow-black"
                         : "text-zinc-400 hover:text-white hover:bg-zinc-800/60 border border-transparent"
@@ -7507,29 +7881,6 @@ function IsometrieModule(props: { projectId?: string }) {
                 <span>{graphErrorCount ? `${graphErrorCount} err` : graphWarningCount ? `${graphWarningCount} alerte(s)` : "OK"}</span>
               </button>
             </div>
-            {/* Commutateur Universel d'Unités Bi-Système (019U) */}
-            <button
-              type="button"
-              onClick={() => {
-                const next = unitSystem === "metric" ? "imperial" : "metric";
-                setUnitSystem(next);
-                setStatusMessage(
-                  next === "imperial"
-                    ? "SYSTÈME IMPÉRIAL ACTIVÉ (ASME / US Customary : ft-in, psi, lbs, °F)"
-                    : "SYSTÈME MÉTRIQUE ACTIVÉ (ISO 80000 / SI : m, mm, bar, kg, °C)"
-                );
-              }}
-              className={`h-8 px-2.5 rounded-md border text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm shrink-0 ${
-                unitSystem === "imperial"
-                  ? "bg-amber-950/80 border-amber-500 text-amber-300 hover:bg-amber-900"
-                  : "bg-cyan-950/80 border-cyan-500 text-cyan-300 hover:bg-cyan-900"
-              }`}
-              title="Basculer le système d'unités (Métrique SI ↔ Impérial US Customary - ISO 80000 / IEEE SI 10)"
-            >
-              <span className="text-[10px] font-mono font-black">
-                {unitSystem === "imperial" ? "US (ft/psi)" : "SI (m/bar)"}
-              </span>
-            </button>
             <button onClick={()=>setCommandPaletteOpen(true)} className="h-8 px-2.5 rounded-md border border-zinc-800 bg-zinc-900 text-zinc-300 hover:text-white hover:border-zinc-700 text-[10px] font-black shrink-0" title="Palette commandes">⌘K</button>
             <div className="relative shrink-0">
               <button
@@ -7615,10 +7966,21 @@ function IsometrieModule(props: { projectId?: string }) {
             </div>
           </div>
         </header>
-        {/* Méga-Menu GitHub flottant sous la barre de navigation */}
+        {/* Menu déroulant vertical GitHub / VS Code style (Photo 2) */}
         <IsoRibbonBar
-          collapsed={rubanReplie017M}
+          collapsed={
+            rubanReplie017M ||
+            workspaceConfigModalOpen ||
+            solid3dViewerOpen ||
+            weldSpoolModalOpen ||
+            propertiesModalOpen ||
+            dataManagerOpen ||
+            projectSetupOpen ||
+            commandPaletteOpen ||
+            shortcutsOpen
+          }
           activeTab={rubanOnglet017M}
+          anchorLeft={rubanAnchorLeft}
           resolveTarget={pdiCibleRuban017M}
           resolveTooltip={pdiInfobulleRuban017M}
           onExecute={(name) => setStatusMessage(`Outil activé : ${name}`)}
@@ -7695,7 +8057,7 @@ function IsometrieModule(props: { projectId?: string }) {
             className={`w-full py-1.5 ${railCollapsed ? "px-1" : "px-2"} rounded-lg bg-gradient-to-r from-purple-700 via-indigo-700 to-pink-700 hover:from-purple-600 hover:to-pink-600 text-white flex items-center justify-center gap-1.5 shadow-md border border-purple-400/50 text-[10px] font-black transition-all active:scale-95 shrink-0 mb-0.5`}
           >
             <Sparkles className="w-3.5 h-3.5 text-yellow-300 animate-pulse shrink-0" />
-            {!railCollapsed && <span>DÉMO 3D</span>}
+            {!railCollapsed && <span>CHARGER DÉMO</span>}
           </button>
 
           {/* GROUPE 1 : OUTILS DE POINTAGE */}
@@ -7965,6 +8327,15 @@ function IsometrieModule(props: { projectId?: string }) {
             >
               <Redo2 className="w-3.5 h-3.5 text-blue-400 shrink-0" />
               {!railCollapsed && <span className="truncate">Rétab.</span>}
+            </button>
+            <button
+              type="button"
+              title="Espace de travail Multi-Écran (WORKSPACE)"
+              onClick={() => setWorkspaceConfigModalOpen(true)}
+              className={`pdi-rail-tool-btn ${railCollapsed ? "justify-center p-1" : ""} ${isSecondaryConnected ? "bg-cyan-950/60 border-cyan-500/60 text-cyan-300" : ""}`}
+            >
+              <SplitSquareVertical className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+              {!railCollapsed && <span className="truncate">Multi-Écran</span>}
             </button>
             <button
               type="button"
@@ -8353,6 +8724,23 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
       onSwitchToWeldMap={() => {
         setSolid3dViewerOpen(false);
         setWeldSpoolModalOpen(true);
+      }}
+    />
+
+    <PdiWorkspaceConfigModal
+      isOpen={workspaceConfigModalOpen}
+      onClose={() => setWorkspaceConfigModalOpen(false)}
+      config={workspaceConfig}
+      onSaveConfig={(newCfg) => {
+        setWorkspaceConfig(newCfg);
+        pdiWorkspaceBus.saveConfig(newCfg);
+      }}
+      isSecondaryConnected={isSecondaryConnected}
+      onOpenSecondaryWindow={(view) => {
+        pdiWorkspaceBus.openSecondaryWindow(view);
+      }}
+      onCloseSecondaryWindow={() => {
+        pdiWorkspaceBus.closeSecondaryWindow();
       }}
     />
 
@@ -8997,7 +9385,20 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
             </div>
             <div className="w-full xl:w-auto min-w-0 flex flex-wrap justify-start xl:justify-end items-center gap-1">
 
-            <div className="flex shrink-0 gap-1"><button type="button" onClick={()=>setIsoMode("editor")} className={`px-2 py-1 rounded text-[9px] font-black ${isoMode==="editor"?"bg-blue-600":"bg-slate-700"}`}>ÉDITEUR</button><button type="button" onClick={()=>setIsoMode("planche")} className={`px-2 py-1 rounded text-[9px] font-black ${isoMode==="planche"?"bg-blue-600":"bg-slate-700"}`}>PLANCHE ISO</button></div>
+            <div className="flex shrink-0 gap-1">
+              <button type="button" onClick={()=>setIsoMode("editor")} className={`px-2 py-1 rounded text-[9px] font-black ${isoMode==="editor"?"bg-blue-600":"bg-slate-700"}`}>ÉDITEUR</button>
+              <button type="button" onClick={()=>setIsoMode("planche")} className={`px-2 py-1 rounded text-[9px] font-black ${isoMode==="planche"?"bg-blue-600":"bg-slate-700"}`}>PLANCHE ISO</button>
+              <button
+                type="button"
+                onClick={() => setSolid3dViewerOpen(true)}
+                className="px-2.5 py-1 rounded text-[9px] font-black tracking-wide flex items-center gap-1 bg-cyan-600 hover:bg-cyan-500 text-white border border-cyan-400/50 shadow-md shadow-cyan-900/30 active:scale-95 cursor-pointer"
+                title="Ouvrir la Vue 3D Solide Extrudée (Raccourci: touche 3 ou V, ou commande 3D)"
+              >
+                <Box className="w-3 h-3 text-cyan-200" />
+                <span>VUE 3D</span>
+                <span className="text-[8px] px-1 py-0.2 rounded bg-cyan-500/20 text-cyan-200 border border-cyan-400/30 font-mono">3</span>
+              </button>
+            </div>
 
               <select value={isoSnapStep} onChange={e=>setIsoSnapStep(Number(e.target.value))} className="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-[10px] text-zinc-300 font-mono" title="Pas d'accrochage">
                 <option value=".25">Snap 0,25 m</option><option value=".5">Snap 0,50 m</option><option value="1">Snap 1,00 m</option>
@@ -12071,11 +12472,10 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
       cadDraftSession={cadDraftSession}
       onCancelDraft={cancelCadDraft}
       onApplyNumericInput={applyNumericDraftInput}
-      pipeStrokeScale={pipeStrokeScale}
-      setPipeStrokeScale={setPipeStrokeScale}
+      panelOffset={railCollapsed ? "60px" : "168px"}
     />
     {/* PATCH 017D : bouton de restauration de la ligne de commande */}
-    {!propertiesModalOpen && commandPromptHidden && <button type="button" onClick={() => setCommandPromptHidden(false)} className="pdi-cmd-restore-017d fixed left-[166px] bottom-2 z-[10030] rounded-lg border border-cyan-500/40 bg-slate-950/95 px-3 py-1.5 text-[11px] font-black text-cyan-200 shadow-xl" title="Afficher la ligne de commande (HIDE)">⌨ Commande</button>}
+    {!propertiesModalOpen && commandPromptHidden && <button type="button" onClick={() => setCommandPromptHidden(false)} className={`pdi-cmd-restore-017d fixed bottom-2 z-[10030] rounded-lg border border-cyan-500/40 bg-slate-950/95 px-3 py-1.5 text-[11px] font-black text-cyan-200 shadow-xl transition-all duration-200 ${railCollapsed ? "left-[60px]" : "left-[168px]"}`} title="Afficher la ligne de commande (HIDE)">⌨ Commande</button>}
 
     <div className={`hidden pdi-status-docked ${workspaceFullscreen?"fixed bottom-0 left-[166px] right-0 z-[10008] rounded-none":"sticky bottom-2 z-40 rounded-xl"} bg-slate-950 text-slate-200 border border-slate-800 px-3 py-2 flex flex-wrap items-center justify-between gap-2 text-[10px] shadow-lg`}><div className="flex gap-4"><b className="text-emerald-400">● {statusMessage}</b><span className={saveState==="error"?"text-red-400":saveState==="modified"?"text-amber-300":"text-cyan-300"}>{saveState==="modified"?"Modifications non sauvegardées":saveState==="autosaved"?`Autosauvegardé${lastSavedAt?` à ${lastSavedAt}`:""}`:saveState==="error"?"Erreur de sauvegarde":""}</span><span>{nodes.length} nœuds</span><span>{segments.length} tronçons</span><span>{selectedCount} sélectionné(s)</span><span>{selectedCad2dIds.length} objet(s) 2D</span><span className={graphErrorCount?"text-red-400":"text-emerald-400"}>{graphErrorCount?`${graphErrorCount} erreur(s) réseau`:"Graphe valide"}</span><span>{projectJoints.length} joints</span></div><div className="flex gap-3"><span>Outil: <b>{interactionMode==="main"?"MAIN":isoDrawMode.toUpperCase()}</b></span><span>Snap {isoSnapStep} m</span><span>Zoom {Math.round(viewport.zoom*100)}%</span><span>Ctrl+K commandes · ? aide</span></div></div>
   </div>;

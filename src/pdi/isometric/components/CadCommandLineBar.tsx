@@ -23,6 +23,8 @@ import {
   Undo2,
   Redo2,
   LayoutGrid,
+  SplitSquareVertical,
+  Monitor,
 } from "lucide-react";
 import { AUTOCAD_COMMANDS, searchCadCommands, CadCommandItem } from "../engine/CadAutocadEngine";
 
@@ -60,16 +62,16 @@ export const CadCommandLineBar: React.FC<CadCommandLineBarProps> = ({
   // PATCH 017C : la liste ne doit jamais etre vide quand l utilisateur tape.
   // Si aucune commande du catalogue ne correspond, on propose l execution
   // directe de la saisie, comme dans AutoCAD.
-  const catalogMatches = input.trim().length > 0 ? searchCadCommands(input) : [];
+  const catalogMatches = input.trim().length > 0 ? searchCadCommands(input) : searchCadCommands("");
   const rawFallback: CadCommandItem[] =
     input.trim().length > 0 && catalogMatches.length === 0
       ? [{
           id: "__pdi_raw__",
           name: input.trim().toUpperCase(),
           aliases: [],
-          description: "Executer cette saisie comme commande PD&I",
+          description: "Exécuter cette saisie comme commande PD&I",
           category: "Direct",
-          shortcut: "Entree",
+          shortcut: "Entrée",
           icon: "Terminal",
         } as CadCommandItem]
       : [];
@@ -187,17 +189,19 @@ export const CadCommandLineBar: React.FC<CadCommandLineBarProps> = ({
       case "Undo2": return <Undo2 className="w-3.5 h-3.5 text-rose-400" />;
       case "Redo2": return <Redo2 className="w-3.5 h-3.5 text-cyan-400" />;
       case "LayoutGrid": return <LayoutGrid className="w-3.5 h-3.5 text-cyan-300" />;
+      case "SplitSquareVertical": return <SplitSquareVertical className="w-3.5 h-3.5 text-cyan-400" />;
+      case "Monitor": return <Monitor className="w-3.5 h-3.5 text-cyan-400" />;
       default: return <Terminal className="w-3.5 h-3.5 text-slate-400" />;
     }
   };
 
   return (
     <div className={`pdi-cad-command-wrapper relative select-none ${className}`}>
-      {/* Suggestions Dropdown */}
+      {/* Suggestions Dropdown - Positionné à droite au-dessus du champ de saisie pour ne pas chevaucher les onglets projet */}
       {showSuggestions && suggestions.length > 0 && (
         <div
           ref={suggestionsRef}
-          className="absolute bottom-full left-0 mb-1.5 w-full max-w-xl bg-slate-900/98 backdrop-blur-md border border-cyan-500/40 rounded-xl shadow-2xl overflow-hidden z-[10060] animate-in fade-in slide-in-from-bottom-2 duration-150"
+          className="absolute bottom-full right-0 mb-2 w-[480px] max-w-[calc(100vw-380px)] min-w-[320px] bg-slate-900/98 backdrop-blur-md border border-cyan-500/50 rounded-xl shadow-2xl overflow-hidden z-[10090] animate-in fade-in slide-in-from-bottom-2 duration-150"
         >
           <div className="bg-slate-950 px-3 py-1.5 border-b border-slate-800 flex items-center justify-between text-[10px] text-slate-400 font-mono">
             <span className="flex items-center gap-1.5 text-cyan-400 font-bold">
@@ -304,17 +308,16 @@ export const CadCommandLineBar: React.FC<CadCommandLineBarProps> = ({
           <div className="flex-1 min-w-[140px] relative">
             <input
               ref={inputRef}
+              id="cad-command-input"
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onFocus={() => {
-                if (input.trim()) setShowSuggestions(true);
-              }}
+              onFocus={() => setShowSuggestions(true)}
               onKeyDown={handleKeyDown}
               placeholder={
                 cadDraftSession
                   ? "Saisir une valeur ou cliquer sur le dessin..."
-                  : "Tapez une commande (ex: TUBE, COPIER, RECT, DEPLACER, TAGS...)"
+                  : "Tapez une commande (ex: WORKSPACE, CAST, TUBE, DEPLACER...)"
               }
               className="w-full bg-slate-900/90 border border-slate-800 focus:border-cyan-400 rounded-lg px-2.5 py-1 text-xs text-slate-100 placeholder-slate-500 font-mono outline-none transition-colors h-7"
             />

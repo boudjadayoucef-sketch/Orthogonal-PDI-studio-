@@ -38,19 +38,23 @@ import type {
 } from "./types3d";
 
 interface Iso3DViewerModalProps {
-  isOpen: boolean;
-  onClose: () => void;
+  isOpen?: boolean;
+  onClose?: () => void;
   data: Viewer3dDataPayload;
   onSwitchToIso?: () => void;
   onSwitchToWeldMap?: () => void;
+  onEntitySelected?: (entity: Selected3dEntity | null) => void;
+  embedded?: boolean;
 }
 
 export const Iso3DViewerModal: React.FC<Iso3DViewerModalProps> = ({
-  isOpen,
+  isOpen = true,
   onClose,
   data,
   onSwitchToIso,
   onSwitchToWeldMap,
+  onEntitySelected,
+  embedded = false,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const sceneManagerRef = useRef<Pdi3dSceneManager | null>(null);
@@ -80,12 +84,15 @@ export const Iso3DViewerModal: React.FC<Iso3DViewerModalProps> = ({
 
   // Initialisation et gestion du canvas 3D WebGL
   useEffect(() => {
-    if (!isOpen || !containerRef.current) return;
+    if ((!isOpen && !embedded) || !containerRef.current) return;
 
     const manager = new Pdi3dSceneManager(
       containerRef.current,
       options,
-      (entity) => setSelectedEntity(entity),
+      (entity) => {
+        setSelectedEntity(entity);
+        onEntitySelected?.(entity);
+      },
       (entity) => setHoveredEntity(entity)
     );
     sceneManagerRef.current = manager;
@@ -93,9 +100,11 @@ export const Iso3DViewerModal: React.FC<Iso3DViewerModalProps> = ({
     manager.buildModel(data, options);
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      e.stopPropagation();
+      const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
+      if (tag === "input" || tag === "textarea" || tag === "select") return;
+
       manager.onKeyDown(e);
-      if (e.key === "Escape") {
+      if (e.key === "Escape" && onClose) {
         onClose();
       } else if (e.key === "0" || e.key === "Home") {
         manager.fitToExtents();
@@ -125,7 +134,8 @@ export const Iso3DViewerModal: React.FC<Iso3DViewerModalProps> = ({
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      e.stopPropagation();
+      const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
+      if (tag === "input" || tag === "textarea" || tag === "select") return;
       manager.onKeyUp(e);
     };
 
@@ -138,16 +148,16 @@ export const Iso3DViewerModal: React.FC<Iso3DViewerModalProps> = ({
       manager.dispose();
       sceneManagerRef.current = null;
     };
-  }, [isOpen]);
+  }, [isOpen, embedded]);
 
   // Répercuter les changements de données
   useEffect(() => {
-    if (sceneManagerRef.current && isOpen) {
+    if (sceneManagerRef.current && (isOpen || embedded)) {
       sceneManagerRef.current.buildModel(data, options);
     }
   }, [data, options.selectedSpoolId, options.shadingMode, options.showWelds, options.showSupports]);
 
-  if (!isOpen) return null;
+  if (!isOpen && !embedded) return null;
 
   const handleShadingChange = (mode: RenderShadingMode) => {
     setOptions((prev) => ({ ...prev, shadingMode: mode }));
@@ -184,13 +194,12 @@ export const Iso3DViewerModal: React.FC<Iso3DViewerModalProps> = ({
     setTimeout(() => setSnapshotSuccess(false), 2500);
   };
 
-  return (
-    <div className="fixed inset-0 z-[100050] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 animate-in fade-in duration-200">
-      <div
-        className={`bg-[#0A0F18] border border-cyan-500/40 rounded-2xl shadow-2xl flex flex-col overflow-hidden text-slate-100 transition-all duration-300 ${
-          fullscreen ? "w-full h-full rounded-none" : "w-[96vw] h-[92vh] max-w-7xl"
-        }`}
-      >
+  const content = (
+    <div
+      className={`bg-[#0A0F18] border border-cyan-500/40 flex flex-col overflow-hidden text-slate-100 transition-all duration-300 w-full h-full ${
+        embedded ? "rounded-none border-none" : fullscreen ? "rounded-none" : "rounded-2xl shadow-2xl max-w-7xl h-[92vh]"
+      }`}
+    >
         {/* Barre d'outils supérieure 3D */}
         <header className="px-4 py-2.5 bg-[#0e1626] border-b border-slate-800 flex items-center justify-between gap-3 shrink-0 flex-wrap">
           {/* Titre, Statut & Bascule des 3 Rendus */}
@@ -212,40 +221,42 @@ export const Iso3DViewerModal: React.FC<Iso3DViewerModalProps> = ({
               </div>
             </div>
 
-            {/* Sélecteur rapide des 3 Rendus de Tuyauterie */}
-            <div className="flex items-center bg-slate-900/90 border border-slate-700/80 rounded-xl p-1 gap-1">
-              {onSwitchToIso && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    onClose();
-                    onSwitchToIso();
-                  }}
-                  className="px-2.5 py-1 rounded-lg text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition-all flex items-center gap-1.5"
-                  title="Basculer vers le Schéma Isométrique 2D (ISO 30°)"
-                >
-                  <span>📐 1. Vue ISO 2D</span>
-                </button>
-              )}
-              {onSwitchToWeldMap && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    onClose();
-                    onSwitchToWeldMap();
-                  }}
-                  className="px-2.5 py-1 rounded-lg text-xs font-bold text-amber-300 hover:text-white hover:bg-amber-950/60 transition-all flex items-center gap-1.5"
-                  title="Basculer vers le Plan de Soudage & Carnet de Spools (Weld Map)"
-                >
-                  <Flame className="w-3.5 h-3.5 text-amber-400" />
-                  <span>2. Soudures & Spools</span>
-                </button>
-              )}
-              <div className="px-2.5 py-1 rounded-lg text-xs font-black bg-cyan-600 text-white shadow-sm flex items-center gap-1.5 border border-cyan-400/40">
-                <Box className="w-3.5 h-3.5 text-cyan-200" />
-                <span>3. 3D Solide Extrudée</span>
+            {/* Sélecteur rapide des 3 Rendus de Tuyauterie (uniquement en mode modal) */}
+            {!embedded && (
+              <div className="flex items-center bg-slate-900/90 border border-slate-700/80 rounded-xl p-1 gap-1">
+                {onSwitchToIso && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onSwitchToIso();
+                    }}
+                    className="px-2.5 py-1 rounded-lg text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition-all flex items-center gap-1.5"
+                    title="Basculer vers le Schéma Isométrique 2D (ISO 30°)"
+                  >
+                    <span>📐 1. Vue ISO 2D</span>
+                  </button>
+                )}
+                {onSwitchToWeldMap && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onSwitchToWeldMap();
+                    }}
+                    className="px-2.5 py-1 rounded-lg text-xs font-bold text-amber-300 hover:text-white hover:bg-amber-950/60 transition-all flex items-center gap-1.5"
+                    title="Basculer vers le Plan de Soudage & Carnet de Spools (Weld Map)"
+                  >
+                    <Flame className="w-3.5 h-3.5 text-amber-400" />
+                    <span>2. Soudures & Spools</span>
+                  </button>
+                )}
+                <div className="px-2.5 py-1 rounded-lg text-xs font-black bg-cyan-600 text-white shadow-sm flex items-center gap-1.5 border border-cyan-400/40">
+                  <Box className="w-3.5 h-3.5 text-cyan-200" />
+                  <span>3. 3D Solide Extrudée</span>
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Contrôles centraux : Rendu, Vues et Spools */}
@@ -401,14 +412,16 @@ export const Iso3DViewerModal: React.FC<Iso3DViewerModalProps> = ({
             >
               {fullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
             </button>
-            <button
-              type="button"
-              onClick={onClose}
-              title="Fermer (Échap)"
-              className="p-1.5 rounded-lg bg-red-600/80 hover:bg-red-500 text-white ml-1"
-            >
-              <X className="w-4 h-4" />
-            </button>
+            {!embedded && (
+              <button
+                type="button"
+                onClick={onClose}
+                title="Fermer (Échap)"
+                className="p-1.5 rounded-lg bg-red-600/80 hover:bg-red-500 text-white ml-1"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </header>
 
@@ -672,6 +685,15 @@ export const Iso3DViewerModal: React.FC<Iso3DViewerModalProps> = ({
           </div>
         </footer>
       </div>
+  );
+
+  if (embedded) {
+    return content;
+  }
+
+  return (
+    <div className="fixed inset-0 z-[100050] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 animate-in fade-in duration-200">
+      {content}
     </div>
   );
 };

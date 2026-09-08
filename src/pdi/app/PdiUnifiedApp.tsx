@@ -392,6 +392,27 @@ export default function PdiUnifiedApp() {
   const [activeTabId, setActiveTabId] = useState<string | null>(() => { try { return window.localStorage.getItem(PDI_ACTIVE_TAB_KEY); } catch { return null; } });
   // PATCH 017E : dock d onglets de l editeur ISO.
   const [isoTabDockOpen, setIsoTabDockOpen] = useState(true);
+  // Synchronisation de l'état du rail latéral gauche avec l'éditeur ISO
+  const [railCollapsed, setRailCollapsed] = useState<boolean>(() => {
+    try { return window.localStorage.getItem("pdi.rail.collapsed.v1") === "1"; }
+    catch { return false; }
+  });
+  useEffect(() => {
+    const handleRailToggle = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail && typeof detail.collapsed === "boolean") {
+        setRailCollapsed(detail.collapsed);
+      } else {
+        try { setRailCollapsed(window.localStorage.getItem("pdi.rail.collapsed.v1") === "1"); } catch {}
+      }
+    };
+    window.addEventListener("pdi:rail-toggle", handleRailToggle);
+    window.addEventListener("storage", handleRailToggle);
+    return () => {
+      window.removeEventListener("pdi:rail-toggle", handleRailToggle);
+      window.removeEventListener("storage", handleRailToggle);
+    };
+  }, []);
   // PATCH 017F1 : projet actif de l onglet, renommage en ligne, rafraichissement
   // de l ecran Mes projets.
   const [renamingTabId, setRenamingTabId] = useState<string | null>(null);
@@ -623,8 +644,26 @@ export default function PdiUnifiedApp() {
   // PATCH 017B : editeur ISO protege par un filet de securite.
   if (activeModule === "isometric") return (
     <PdiModuleErrorBoundary>
-      {/* PATCH 017E : acces direct aux onglets depuis l editeur ISO. */}
-      <div style={{ position: "fixed", left: 100, bottom: 56, zIndex: 10040, display: "flex", alignItems: "center", gap: 6, padding: "4px 6px", borderRadius: 12, border: "1px solid rgba(255,255,255,.14)", background: "rgba(9,9,11,.95)", boxShadow: "0 10px 30px rgba(0,0,0,.65)", maxWidth: "min(70vw,760px)", overflowX: "auto" }}>
+      {/* PATCH 017E / FIX ALIGNEMENT : dock d'onglets calé rigoureusement à droite du rail latéral (168px déplié / 60px replié) pour éliminer toute superposition et décalage avec la barre de commande */}
+      <div
+        className="pdi-tab-dock-iso transition-all duration-200"
+        style={{
+          position: "fixed",
+          left: railCollapsed ? 60 : 168,
+          bottom: 54,
+          zIndex: 10040,
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          padding: "4px 6px",
+          borderRadius: 12,
+          border: "1px solid rgba(255,255,255,.14)",
+          background: "rgba(9,9,11,.95)",
+          boxShadow: "0 10px 30px rgba(0,0,0,.65)",
+          maxWidth: "min(70vw,760px)",
+          overflowX: "auto",
+        }}
+      >
         <button type="button" onClick={() => setIsoTabDockOpen(v => !v)} title="Onglets PD&I" style={{ border: "1px solid rgba(255,255,255,.2)", background: "#18181B", color: "white", borderRadius: 8, height: 24, padding: "0 8px", fontSize: 10, fontWeight: 900, cursor: "pointer" }}>
           {isoTabDockOpen ? "▾" : "▸"} ONGLETS ({workspaceTabs.length})
         </button>

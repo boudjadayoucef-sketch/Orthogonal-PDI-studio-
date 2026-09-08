@@ -461,6 +461,44 @@ export class Pdi3dSceneManager {
               spoolId,
             });
             this.modelRoot.add(cap);
+          } else if (fit.type.includes("reduction") || fit.type.includes("reduc")) {
+            const red = this.factory.createReducerMesh(fitPos, normDir, fitDn, Math.max(15, Math.round(fitDn * 0.7)), false, mat, {
+              id: fit.id,
+              label: fit.label || `Réduction DN${fitDn}`,
+              spoolId,
+            });
+            this.modelRoot.add(red);
+          } else if (fit.type.includes("te")) {
+            const teeGroup = new THREE.Group();
+            const mainGeom = new THREE.CylinderGeometry(0.08, 0.08, 0.35, 24);
+            const mainMesh = new THREE.Mesh(mainGeom, mat);
+            mainMesh.rotation.z = Math.PI / 2;
+            const branchGeom = new THREE.CylinderGeometry(0.07, 0.07, 0.22, 24);
+            const branchMesh = new THREE.Mesh(branchGeom, mat);
+            branchMesh.position.y = 0.11;
+            teeGroup.add(mainMesh);
+            teeGroup.add(branchMesh);
+            teeGroup.position.copy(fitPos);
+            teeGroup.quaternion.setFromUnitVectors(new THREE.Vector3(1, 0, 0), normDir);
+            teeGroup.userData = { isPdiEntity: true, entityType: "fitting", label: fit.label || `Té DN${fitDn}`, id: fit.id, dn: fitDn, spoolId };
+            this.modelRoot.add(teeGroup);
+          } else if (fit.type.includes("coude")) {
+            const elbow = this.factory.createElbowMesh(fitPos, normDir, new THREE.Vector3(0, 1, 0), fitDn, mat, {
+              id: fit.id,
+              label: fit.label || `Coude DN${fitDn}`,
+              dn: fitDn,
+              spoolId,
+            });
+            this.modelRoot.add(elbow);
+          } else {
+            // Fallback universel pour tout composant ou raccord en ligne
+            const genFlange = this.factory.createFlangeMesh(fitPos, normDir, fitDn, mat, {
+              id: fit.id,
+              label: fit.label || `Composant DN${fitDn}`,
+              dn: fitDn,
+              spoolId,
+            });
+            this.modelRoot.add(genFlange);
           }
         }
       }

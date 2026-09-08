@@ -7,6 +7,7 @@
 
 import { TriangleType, ArcCreationMode } from "./../engine/CadAutocadEngine";
 import type { IsoPipingSupport } from "../supports/pdiMssSupportEngine";
+import type { PdiSpoolEntry, PdiWeldEntry } from "../../welding/isoWeldSpoolEngine";
 
 export type IsoNodeType =
   | "normal" | "entree_poste" | "sortie_poste"
@@ -297,6 +298,8 @@ export interface IsoProjectFileV474 {
     segments: IsoSegment[];
     dimensions?: IsoDimension[];
     supports?: IsoPipingSupport[];
+    spools?: PdiSpoolEntry[];
+    welds?: PdiWeldEntry[];
     cad2d?: {
       layers: Cad2dLayer[];
       entities: Cad2dEntity[];
