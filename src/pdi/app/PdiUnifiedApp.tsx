@@ -76,7 +76,7 @@ import { pdiAlert } from "../ui/PdiNotice";
 import { PdiCompanyPanel } from "../ui/PdiCompanyPanel";
 import { PdiSuperAdminConsole } from "../superadmin/PdiSuperAdminConsole";
 import { PdiFeedbackModal } from "../feedback/PdiFeedbackModal";
-import { recordSubscriberUsage } from "../../lib/firebase";
+import { recordSubscriberUsage, changeUserProfilePassword } from "../../lib/firebase";
 
 type PdiModule = "home" | "isometric" | "drive" | "vision" | "sketch" | "cad" | "json" | "pdf" | "projects" | "assistant" | "profile" | "subscription" | "super_admin_console" | "license_keys";
 type PdiWorkspaceTab = { id: string; title: string; module: PdiModule; projectId: string; dirty?: boolean; createdAt: string };
@@ -362,6 +362,48 @@ export default function PdiUnifiedApp() {
       createdAt: "2026-08-20"
     };
   });
+
+  const [oldPassword, setOldPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordChangeError, setPasswordChangeError] = useState("");
+  const [passwordChangeSuccess, setPasswordChangeSuccess] = useState("");
+  const [isSubmittingPasswordChange, setIsSubmittingPasswordChange] = useState(false);
+
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordChangeError("");
+    setPasswordChangeSuccess("");
+
+    if (!oldPassword || !newPassword || !confirmPassword) {
+      setPasswordChangeError("Veuillez remplir tous les champs de mot de passe.");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordChangeError("Les nouveaux mots de passe ne correspondent pas.");
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setPasswordChangeError("Le nouveau mot de passe doit contenir au moins 6 caractères.");
+      return;
+    }
+
+    try {
+      setIsSubmittingPasswordChange(true);
+      await changeUserProfilePassword(pdiUserProfile.email, oldPassword, newPassword);
+      setPasswordChangeSuccess("Votre mot de passe a été modifié avec succès !");
+      setOldPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err: any) {
+      console.error(err);
+      setPasswordChangeError(err.message || "Impossible de changer le mot de passe.");
+    } finally {
+      setIsSubmittingPasswordChange(false);
+    }
+  };
 
   const pdiUserProfile = {
     name: savedUserProfile?.name || "Youcef Seif Eddine Boudjada",
@@ -920,7 +962,7 @@ export default function PdiUnifiedApp() {
         {activeModule === "pdf" && <ComingSoonPanel title="Impression / Exports"><p>Préparation V4.8e : A4/A3/A2/A1, portrait/paysage, PDF, DXF/CAD, cartouche, nomenclature.</p></ComingSoonPanel>}
 
         {activeModule === "profile" && <ComingSoonPanel title="Profil utilisateur">
-          <div className="pdi-profile-grid">
+          <div className="pdi-profile-grid text-slate-200">
             <section className="pdi-profile-card"><h3>Identité</h3><p><b>Nom</b><span>{pdiUserProfile.name}</span></p><p><b>Email</b><span>{pdiUserProfile.email}</span></p><p><b>Entreprise</b><span>{pdiUserProfile.company}</span></p><p><b>Pays</b><span>{pdiUserProfile.country}</span></p></section>
             <section className="pdi-profile-card">
               <h3>Compte &amp; Version</h3>
@@ -937,6 +979,72 @@ export default function PdiUnifiedApp() {
               <p><b>Email</b><span>{pdiUserProfile.emailStatus}</span></p>
               <p><b>Créé le</b><span>{pdiUserProfile.createdAt}</span></p>
             </section>
+
+            {/* MODIFICATION DE MOT DE PASSE SECURISEE */}
+            <section className="pdi-profile-card wide">
+              <h3>Sécurité &amp; Changement de mot de passe</h3>
+              <p className="text-xs text-slate-400 mb-4 border-b-0 pb-0">
+                Pour modifier votre mot de passe d'accès au portail industriel, veuillez confirmer l'ancien mot de passe de votre profil.
+              </p>
+              <form onSubmit={handleUpdatePassword} className="space-y-4 max-w-md">
+                {passwordChangeError && (
+                  <div className="p-3 text-xs font-semibold bg-red-950/80 border border-red-700 text-red-300 rounded-lg">
+                    ⚠️ {passwordChangeError}
+                  </div>
+                )}
+                {passwordChangeSuccess && (
+                  <div className="p-3 text-xs font-semibold bg-emerald-950/80 border border-emerald-700 text-emerald-300 rounded-lg">
+                    ✓ {passwordChangeSuccess}
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Ancien mot de passe</label>
+                  <input
+                    type="password"
+                    value={oldPassword}
+                    onChange={(e) => setOldPassword(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-cyan-500 text-white"
+                    placeholder="Saisissez votre mot de passe actuel"
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Nouveau mot de passe</label>
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-cyan-500 text-white"
+                      placeholder="Min. 6 caractères"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Confirmer le mot de passe</label>
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-cyan-500 text-white"
+                      placeholder="Ressaisissez le mot de passe"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSubmittingPasswordChange}
+                  className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:bg-cyan-800 text-slate-950 font-extrabold text-xs rounded-lg transition-all cursor-pointer"
+                >
+                  {isSubmittingPasswordChange ? "Mise à jour en cours..." : "Enregistrer le nouveau mot de passe"}
+                </button>
+              </form>
+            </section>
+
             <section className="pdi-profile-card wide"><h3>Actions</h3><div className="pdi-profile-actions"><button onClick={()=>setActiveModule("projects")}>Mes projets</button><button onClick={()=>setActiveModule("subscription")}>Mon abonnement</button><button onClick={handleLogoutToHome} style={{ color: "#f87171", borderColor: "rgba(248,113,113,0.4)" }}>⎋ Déconnexion</button></div></section>
           </div>
           {/* PATCH 017K2 : identite societe editable, remplace toute marque codee en dur. */}

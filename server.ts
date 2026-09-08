@@ -29,14 +29,74 @@ const PORT = 3000;
 
 // Hardening & Security Middleware ORTHOGONAL - ENG
 app.disable("x-powered-by");
-app.use((_req, res, next) => {
+
+// Whitelist CORS et prévention wildcard en prod
+const ALLOWED_ORIGINS = [
+  "https://ais-dev-6etwlfzn4irzgw5ljyhzsh-76486687314.europe-west2.run.app",
+  "https://ais-pre-6etwlfzn4irzgw5ljyhzsh-76486687314.europe-west2.run.app",
+  "http://localhost:3000"
+];
+
+// In-Memory IP Rate Limiter pour protéger les endpoints sensibles
+interface RateLimitRecord {
+  count: number;
+  resetTime: number;
+}
+const ipRequestLimits = new Map<string, RateLimitRecord>();
+const RATE_LIMIT_WINDOW_MS = 60000; // 1 minute
+const MAX_REQUESTS_PER_MINUTE = 100; // Max 100 requêtes/min par IP
+
+const rateLimiter = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  const ip = req.ip || req.socket.remoteAddress || "unknown_ip";
+  const now = Date.now();
+  const record = ipRequestLimits.get(ip);
+
+  if (!record || now > record.resetTime) {
+    ipRequestLimits.set(ip, {
+      count: 1,
+      resetTime: now + RATE_LIMIT_WINDOW_MS
+    });
+    return next();
+  }
+
+  record.count++;
+  if (record.count > MAX_REQUESTS_PER_MINUTE) {
+    return res.status(429).json({
+      error: "Trop de requêtes. Veuillez patienter une minute avant de réessayer."
+    });
+  }
+
+  next();
+};
+
+// Middleware Global de Sécurité (Headers, CORS, CSP, HSTS)
+app.use((req, res, next) => {
+  // CORS sécurisé dynamique
+  const origin = req.headers.origin;
+  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+  }
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type,Authorization");
+
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+
+  // Headers de sécurité
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "SAMEORIGIN");
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
+  res.setHeader("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; connect-src 'self' https: wss:; frame-src 'self' https://ais-dev-6etwlfzn4irzgw5ljyhzsh-76486687314.europe-west2.run.app https://ais-pre-6etwlfzn4irzgw5ljyhzsh-76486687314.europe-west2.run.app; object-src 'none'");
   res.setHeader("X-Engine-Vendor", "ORTHOGONAL - ENG");
   res.setHeader("X-Engine-Product", "Piping Design & Isometrics");
   next();
 });
+
+// Appliquer le rate limiter sur toutes les requêtes API
+app.use("/api", rateLimiter);
 
 app.use(express.json());
 

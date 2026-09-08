@@ -289,6 +289,43 @@ export function isSuperAdminEmail(email?: string): boolean {
   return clean === "boudjada.youcef@gmail.com" || clean === "superadmin@pdi-vision.dz";
 }
 
+export async function changeUserProfilePassword(
+  emailInput: string,
+  oldPasswordInput: string,
+  newPasswordInput: string
+): Promise<void> {
+  const email = emailInput.trim().toLowerCase();
+  const isSuper = isSuperAdminEmail(email);
+
+  const credDocId = isSuper ? "super_admin_boudjada" : `cred_${email.replace(/[^a-zA-Z0-9]/g, "_")}`;
+  const credRef = doc(db, "auth_credentials", credDocId);
+  const credSnap = await getDoc(credRef);
+
+  if (!credSnap.exists()) {
+    throw new Error("Compte d'authentification introuvable.");
+  }
+
+  const cred = credSnap.data() as PdiAuthCredential;
+  const oldHash = await hashPassword(oldPasswordInput, cred.salt);
+
+  if (oldHash !== cred.passwordHash) {
+    throw new Error("L'ancien mot de passe saisi est incorrect.");
+  }
+
+  if (newPasswordInput.length < 6) {
+    throw new Error("Le nouveau mot de passe doit faire au moins 6 caractères.");
+  }
+
+  const newSalt = generateCryptoSalt();
+  const newHash = await hashPassword(newPasswordInput, newSalt);
+
+  await updateDoc(credRef, {
+    passwordHash: newHash,
+    salt: newSalt,
+    updatedAt: new Date().toISOString()
+  });
+}
+
 // ------------------------------------------
 // LICENSE KEYS API
 // ------------------------------------------
