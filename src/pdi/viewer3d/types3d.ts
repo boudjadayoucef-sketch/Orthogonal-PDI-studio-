@@ -41,6 +41,7 @@ export interface Viewer3dOptions {
   clippingPlaneEnabled: boolean;
   clippingZPercent: number; // 0 à 100%
   selectedSpoolId?: string | null;
+  selectedEntityId?: string | null;
   ambientOcclusion: boolean;
   bloomHighlights: boolean;
   wallThicknessVisible: boolean;

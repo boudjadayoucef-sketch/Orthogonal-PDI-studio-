@@ -404,13 +404,14 @@ export function performUniversalAlign(params: UniversalAlignParams): UniversalAl
   let refValue: number = 0;
   let refLabel: string = "";
   let refNodeId: string | null = null;
+  const refNodeIds = new Set<string>();
   let refCad2dId: string | null = null;
   let refSupportId: string | null = null;
 
   if (activeAnchor) {
     refValue = activeAnchor[axis];
     refLabel = `Ancrage ${activeAnchor.label}`;
-    if (activeAnchor.entityKind === "node") refNodeId = activeAnchor.entityId;
+    if (activeAnchor.entityKind === "node") { refNodeId = activeAnchor.entityId; refNodeIds.add(activeAnchor.entityId); }
     if (activeAnchor.entityKind === "cad2d") refCad2dId = activeAnchor.entityId;
     if (activeAnchor.entityKind === "support") refSupportId = activeAnchor.entityId;
   } else if (explicitReferenceId && nodeMap.has(explicitReferenceId)) {
@@ -418,6 +419,7 @@ export function performUniversalAlign(params: UniversalAlignParams): UniversalAl
     refValue = Number(refNode[axis] || 0);
     refLabel = refNode.name || refNode.id;
     refNodeId = refNode.id;
+    refNodeIds.add(refNode.id);
   } else if (explicitReferenceId && cad2dEntities.some((c) => c.id === explicitReferenceId)) {
     const refCad = cad2dEntities.find((c) => c.id === explicitReferenceId)!;
     refCad2dId = refCad.id;
@@ -445,19 +447,36 @@ export function performUniversalAlign(params: UniversalAlignParams): UniversalAl
       }
     }
   } else if (selectedSegmentIds.length > 0 && selectedNodeIds.length === 0) {
-    // Si uniquement des segments sont sélectionnés, le dernier segment est la référence
-    const refSegId = selectedSegmentIds[selectedSegmentIds.length - 1];
-    const refSeg = segments.find((s) => s.id === refSegId);
-    if (refSeg) {
-      const a = nodeMap.get(refSeg.fromNodeId);
-      const b = nodeMap.get(refSeg.toNodeId);
-      if (a && b) {
-        refValue = (Number(a[axis] || 0) + Number(b[axis] || 0)) / 2;
-        refLabel = `Tube ${refSeg.id} (milieu)`;
+    if (selectedSegmentIds.length === 1) {
+      // Un seul segment sélectionné : aligner l'extrémité toNode sur fromNode pour redresser le tube
+      const segId = selectedSegmentIds[0];
+      const seg = segments.find((s) => s.id === segId);
+      if (seg) {
+        const a = nodeMap.get(seg.fromNodeId);
+        if (a) {
+          refValue = Number(a[axis] || 0);
+          refLabel = `Nœud ${a.name} (départ tube)`;
+          refNodeId = a.id;
+          refNodeIds.add(a.id);
+        }
+      }
+    } else {
+      // Plusieurs segments sélectionnés : le dernier segment est la référence fixe
+      const refSegId = selectedSegmentIds[selectedSegmentIds.length - 1];
+      const refSeg = segments.find((s) => s.id === refSegId);
+      if (refSeg) {
+        const a = nodeMap.get(refSeg.fromNodeId);
+        const b = nodeMap.get(refSeg.toNodeId);
+        if (a && b) {
+          refValue = (Number(a[axis] || 0) + Number(b[axis] || 0)) / 2;
+          refLabel = `Tube Réf ${refSeg.tag || refSeg.id}`;
+          refNodeIds.add(a.id);
+          refNodeIds.add(b.id);
+        }
       }
     }
   } else {
-    // Dernier nœud sélectionné comme référence par défaut
+    // Dernier nœud sélectionné comme référence par défaut (ou nœud pivot)
     const lastId = selectedNodeIds.length
       ? selectedNodeIds[selectedNodeIds.length - 1]
       : Array.from(targetNodeIdSet)[targetNodeIdSet.size - 1];
@@ -466,16 +485,17 @@ export function performUniversalAlign(params: UniversalAlignParams): UniversalAl
       refValue = Number(refNode[axis] || 0);
       refLabel = refNode.name || refNode.id;
       refNodeId = refNode.id;
+      refNodeIds.add(refNode.id);
     }
   }
 
   // Application du pas de grille si actif
   const finalRefValue = snapGrid && snapStep > 0 ? pdiSnapValue(refValue, snapStep) : pdiRound3(refValue);
 
-  // 1. Déplacement des nœuds cibles
+  // 1. Déplacement des nœuds cibles (en préservant les nœuds de référence)
   let movedCount = 0;
   const nextNodes = nodes.map((node) => {
-    if (refNodeId && node.id === refNodeId) return node;
+    if (refNodeIds.has(node.id)) return node;
     if (!targetNodeIdSet.has(node.id)) return node;
 
     const currentVal = Number(node[axis] || 0);

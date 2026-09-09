@@ -201,15 +201,27 @@ export function deriveSpoolsAndWelds(
       const node = nodeMap.get(nodeId);
       if (!node || !portId) continue;
 
-      // Calcul position spatiale du port
+      // Calcul position spatiale exacte du port
       const port = node.ports?.find((p) => p.id === portId);
       let px = node.x;
       let py = node.y;
       let pz = node.z;
-      if (port) {
-        px += (port.dx || 0) * 0.001;
-        py += (port.dy || 0) * 0.001;
-        pz += (port.dz || 0) * 0.001;
+      const hasFaceOffset = Boolean(node.equipmentType || node.type === "tee");
+      if (port && hasFaceOffset) {
+        const otherNodeId = ep === "from" ? seg.toNodeId : seg.fromNodeId;
+        const otherNode = nodeMap.get(otherNodeId);
+        if (otherNode) {
+          const dx = otherNode.x - node.x;
+          const dy = otherNode.y - node.y;
+          const dz = otherNode.z - node.z;
+          const len = Math.hypot(dx, dy, dz);
+          if (len > 1e-4) {
+            const half = Math.min(Math.max(0.08, (node.length || 0.4) / 2), len * 0.45);
+            px = node.x + (dx / len) * half;
+            py = node.y + (dy / len) * half;
+            pz = node.z + (dz / len) * half;
+          }
+        }
       }
 
       const connType: JointConnectionType = port?.connectionType || "butt_weld";
@@ -349,8 +361,11 @@ export function deriveSpoolsAndWelds(
           : null;
 
       if (commonNodeId) {
-        // Coupure de Spool si le nœud est une soudure chantier ou une bride
-        const isBoundary = fieldWeldNodeIds.has(commonNodeId) || flangedNodeIds.has(commonNodeId);
+        // Coupure de Spool si le nœud est une soudure chantier ou une bride,
+        // ou si les tronçons ont des affectations de spool explicites différentes ou dissociées ("NONE")
+        const hasSpoolConflict = (Boolean(s1.spoolNumber || s2.spoolNumber) && s1.spoolNumber !== s2.spoolNumber) ||
+                                 s1.spoolNumber === "NONE" || s2.spoolNumber === "NONE";
+        const isBoundary = fieldWeldNodeIds.has(commonNodeId) || flangedNodeIds.has(commonNodeId) || hasSpoolConflict;
         if (!isBoundary) {
           segAdj.get(s1.id)?.add(s2.id);
           segAdj.get(s2.id)?.add(s1.id);
@@ -394,11 +409,12 @@ export function deriveSpoolsAndWelds(
   let spoolIdx = 1;
 
   for (const groupSegIds of spoolGroups) {
-    const spoolId = `SP-${String(spoolIdx).padStart(2, "0")}`;
+    const spoolSegs = groupSegIds.map((id) => segMap.get(id)!).filter(Boolean);
+    const explicitSpoolId = spoolSegs.find((s) => s.spoolNumber && s.spoolNumber !== "NONE")?.spoolNumber;
+    const spoolId = explicitSpoolId || `SP-${String(spoolIdx).padStart(2, "0")}`;
     const color = PDI_SPOOL_PALETTE[(spoolIdx - 1) % PDI_SPOOL_PALETTE.length];
     spoolIdx++;
 
-    const spoolSegs = groupSegIds.map((id) => segMap.get(id)!).filter(Boolean);
     const spoolNodeIdSet = new Set<string>();
     for (const s of spoolSegs) {
       spoolNodeIdSet.add(s.fromNodeId);

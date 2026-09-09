@@ -22,6 +22,7 @@ import {
   Wrench,
   Download,
   Eye,
+  EyeOff,
   Info,
   Sliders,
   CheckCircle2,
@@ -81,6 +82,7 @@ export const Iso3DViewerModal: React.FC<Iso3DViewerModalProps> = ({
   const [hoveredEntity, setHoveredEntity] = useState<Selected3dEntity | null>(null);
   const [fullscreen, setFullscreen] = useState(false);
   const [snapshotSuccess, setSnapshotSuccess] = useState(false);
+  const [showUiPanels, setShowUiPanels] = useState(true);
 
   // Initialisation et gestion du canvas 3D WebGL
   useEffect(() => {
@@ -156,6 +158,12 @@ export const Iso3DViewerModal: React.FC<Iso3DViewerModalProps> = ({
       sceneManagerRef.current.buildModel(data, options);
     }
   }, [data, options.selectedSpoolId, options.shadingMode, options.showWelds, options.showSupports]);
+
+  useEffect(() => {
+    if (sceneManagerRef.current && (isOpen || embedded)) {
+      sceneManagerRef.current.setSelectedEntityId(selectedEntity?.id || null);
+    }
+  }, [selectedEntity, isOpen, embedded]);
 
   if (!isOpen && !embedded) return null;
 
@@ -430,32 +438,11 @@ export const Iso3DViewerModal: React.FC<Iso3DViewerModalProps> = ({
           {/* Conteneur WebGL Three.js */}
           <div ref={containerRef} className="w-full h-full cursor-grab active:cursor-grabbing" />
 
-          {/* Badge d'aide aux commandes au survol / bas gauche */}
-          <div className="absolute bottom-3 left-3 pointer-events-none bg-slate-900/90 backdrop-blur-md border border-slate-800 rounded-xl px-3.5 py-2.5 text-[11px] text-slate-300 flex flex-col gap-1.5 shadow-xl max-w-md">
-            <div className="flex items-center gap-3 text-slate-200">
-              <span className="flex items-center gap-1 font-semibold text-cyan-300">
-                ⌨️ Flèches <kbd className="px-1 py-0.2 bg-slate-800 border border-slate-700 rounded text-[10px]">⬅️</kbd><kbd className="px-1 py-0.2 bg-slate-800 border border-slate-700 rounded text-[10px]">➡️</kbd><kbd className="px-1 py-0.2 bg-slate-800 border border-slate-700 rounded text-[10px]">⬆️</kbd><kbd className="px-1 py-0.2 bg-slate-800 border border-slate-700 rounded text-[10px]">⬇️</kbd>
-              </span>
-              <span>: <b>Nav. Horizontale & Latérale</b></span>
-            </div>
-            <div className="flex items-center gap-2.5 text-[10px] text-slate-400">
-              <span><b>Shift + Flèches</b> : Rotation 360°</span>
-              <span>·</span>
-              <span><b>Ctrl + ⬆️/⬇️</b> : Zoom</span>
-              <span>·</span>
-              <span><b>0</b> : Cadrer</span>
-            </div>
-            <div className="flex items-center gap-2.5 text-[10px] text-slate-400">
-              <span>🖱️ Clic gauche : <b>Orbite</b></span>
-              <span>·</span>
-              <span>Clic droit : <b>Panoramique</b></span>
-              <span>·</span>
-              <span>Double-clic : <b>Centrer</b></span>
-            </div>
-          </div>
+
 
           {/* Pavé de navigation D-Pad interactif (bas droit) */}
-          <div className="absolute bottom-3 right-3 bg-slate-900/90 backdrop-blur-md border border-slate-800 rounded-2xl p-2 shadow-2xl flex flex-col items-center gap-1 z-10 select-none">
+          {showUiPanels && (
+            <div className="absolute bottom-3 right-3 bg-slate-900/90 backdrop-blur-md border border-slate-800 rounded-2xl p-2 shadow-2xl flex flex-col items-center gap-1 z-10 select-none">
             <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">Navigation</span>
             <div className="grid grid-cols-3 gap-1">
               <div />
@@ -566,9 +553,10 @@ export const Iso3DViewerModal: React.FC<Iso3DViewerModalProps> = ({
               </button>
             </div>
           </div>
+          )}
 
           {/* Encart technique inspecteur d'élément sélectionné ou survolé (haut droit) */}
-          {(selectedEntity || hoveredEntity) && (
+          {showUiPanels && (selectedEntity || hoveredEntity) && (
             <div className="absolute top-3 right-3 w-80 bg-slate-900/90 backdrop-blur-md border border-cyan-500/40 rounded-2xl p-4 shadow-2xl animate-in fade-in slide-in-from-top-2 duration-150">
               {(() => {
                 const item = selectedEntity || hoveredEntity!;
@@ -682,6 +670,14 @@ export const Iso3DViewerModal: React.FC<Iso3DViewerModalProps> = ({
               />
               Grille
             </label>
+            <button 
+              onClick={() => setShowUiPanels(!showUiPanels)}
+              className="ml-2 px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors flex items-center gap-1.5"
+              title="Afficher/Masquer les panneaux"
+            >
+              {showUiPanels ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+              {showUiPanels ? "Masquer UI" : "Afficher UI"}
+            </button>
           </div>
         </footer>
       </div>

@@ -104,7 +104,7 @@ import {
   Eye, EyeOff, Crosshair, Check, Copy, Scissors, RotateCw, RotateCcw, PanelRightClose, PanelRightOpen,
   Circle, Spline, FolderOpen, Download, LayoutGrid, Magnet, Type, Square, Hexagon, Slash, Disc3,
   Minimize2, Triangle, Clipboard, CopyPlus, Terminal, CornerDownLeft, ChevronDown, Anchor, Sparkles, Box,
-  SplitSquareVertical, Tv2, Monitor
+  SplitSquareVertical, Tv2, Monitor, FileSpreadsheet, HelpCircle
 } from "lucide-react";
 import { generateComplexIndustrialIsoDemo } from "../demo/pdiComplexIsoDemo";
 import { PdiWorkspaceConfigModal } from "../../workspace/PdiWorkspaceConfigModal";
@@ -190,6 +190,13 @@ export interface IsoNode {
   service?: string;
   spec?: string;
   tagNumber?: number;
+  pn?: string;
+  material?: string;
+  schedule?: string;
+  reducedDn?: number;
+  spoolNumber?: string;
+  fabricationLocation?: "shop" | "field" | "golden";
+  notes?: string;
 }
 
 export type IsoFittingType =
@@ -253,6 +260,11 @@ export interface IsoSegment {
   pressureClass?: string;
   insulation?: boolean;
   lineFunction?: string;
+  reducedDn?: number;
+  schedule?: string;
+  spoolNumber?: string;
+  fabricationLocation?: "shop" | "field" | "golden";
+  notes?: string;
 }
 
 export interface PipingLine {
@@ -641,56 +653,199 @@ function availablePortId(node:IsoNode|undefined,segments:IsoSegment[],preferred:
   return node.ports.find(p=>p.index===preferred&&!used.has(p.id))?.id||node.ports.find(p=>!used.has(p.id))?.id||node.ports.find(p=>p.index===preferred)?.id||node.ports[0]?.id;
 }
 
-function portWorldPosition(node: IsoNode, portId?: string) {
-  const port=node.ports?.find(p=>p.id===portId);
-  if(!port) return {x:node.x,y:node.y,z:node.z};
-  if(!pdiNodeHasFaceOffset017P3(node)) return {x:node.x,y:node.y,z:node.z};
-  let portDx=port.dx,portDy=port.dy;
-  const bend=node.equipmentType?elbowAngle(node.equipmentType):0;
-  if(bend&&port.index===0){portDx=-1;portDy=0;}
-  if(bend&&port.index===1){
-    const portAngle=(bend*(node.bendDirection||1)*Math.PI)/180;
-    portDx=Math.cos(portAngle);portDy=Math.sin(portAngle);
+function portWorldPosition(node: IsoNode, portId?: string, nodes: IsoNode[] = [], segments: IsoSegment[] = []) {
+  const port = node.ports?.find(p => p.id === portId);
+  if (!port) return { x: node.x, y: node.y, z: node.z };
+  if (!pdiNodeHasFaceOffset017P3(node)) return { x: node.x, y: node.y, z: node.z };
+
+  const half = Math.max(0.08, (node.length || 0.4) / 2);
+
+  // 1. Raccordement direct : si ce port est explicitement raccordé à un tronçon du réseau
+  if (segments && segments.length > 0 && nodes && nodes.length > 0) {
+    const connSeg = segments.find(s =>
+      (s.fromNodeId === node.id && (s.fromPortId === port.id || (!s.fromPortId && (port.index === 1 || port.role === "inline-out")))) ||
+      (s.toNodeId === node.id && (s.toPortId === port.id || (!s.toPortId && (port.index === 0 || port.role === "inline-in"))))
+    );
+    if (connSeg) {
+      const otherId = connSeg.fromNodeId === node.id ? connSeg.toNodeId : connSeg.fromNodeId;
+      const otherNode = nodes.find(n => n.id === otherId);
+      if (otherNode) {
+        const dx = otherNode.x - node.x;
+        const dy = otherNode.y - node.y;
+        const dz = otherNode.z - node.z;
+        const len = Math.hypot(dx, dy, dz);
+        if (len > 1e-4) {
+          const effHalf = Math.min(half, len * 0.45);
+          return {
+            x: node.x + (dx / len) * effHalf,
+            y: node.y + (dy / len) * effHalf,
+            z: node.z + (dz / len) * effHalf,
+          };
+        }
+      }
+    }
+
+    // 2. Raccordement indirect : déduction géométrique basée sur les tronçons adjacents
+    const connSegs = segments.filter(s => s.fromNodeId === node.id || s.toNodeId === node.id);
+    if (connSegs.length > 0) {
+      const isInline = port.index === 0 || port.index === 1 || port.role === "inline-in" || port.role === "inline-out";
+      if (isInline) {
+        const otherPortIndex = port.index === 0 ? 1 : 0;
+        const otherPort = node.ports?.find(p => p.index === otherPortIndex);
+        const otherSeg = otherPort ? segments.find(s =>
+          (s.fromNodeId === node.id && s.fromPortId === otherPort.id) ||
+          (s.toNodeId === node.id && s.toPortId === otherPort.id)
+        ) : null;
+
+        if (otherSeg) {
+          const otherNodeId = otherSeg.fromNodeId === node.id ? otherSeg.toNodeId : otherSeg.fromNodeId;
+          const otherNode = nodes.find(n => n.id === otherNodeId);
+          if (otherNode) {
+            const dx = otherNode.x - node.x;
+            const dy = otherNode.y - node.y;
+            const dz = otherNode.z - node.z;
+            const len = Math.hypot(dx, dy, dz);
+            if (len > 1e-4) {
+              const effHalf = Math.min(half, len * 0.45);
+              return {
+                x: node.x - (dx / len) * effHalf,
+                y: node.y - (dy / len) * effHalf,
+                z: node.z - (dz / len) * effHalf,
+              };
+            }
+          }
+        } else {
+          const s0 = connSegs[0];
+          const otherId = s0.fromNodeId === node.id ? s0.toNodeId : s0.fromNodeId;
+          const otherNode = nodes.find(n => n.id === otherId);
+          if (otherNode) {
+            const dx = otherNode.x - node.x;
+            const dy = otherNode.y - node.y;
+            const dz = otherNode.z - node.z;
+            const len = Math.hypot(dx, dy, dz);
+            if (len > 1e-4) {
+              const effHalf = Math.min(half, len * 0.45);
+              const isToMe = s0.toNodeId === node.id;
+              const sign = isToMe ? (port.index === 0 ? 1 : -1) : (port.index === 1 ? 1 : -1);
+              return {
+                x: node.x + sign * (dx / len) * effHalf,
+                y: node.y + sign * (dy / len) * effHalf,
+                z: node.z + sign * (dz / len) * effHalf,
+              };
+            }
+          }
+        }
+      }
+    }
   }
-  const angle=((node.rotation||0)*Math.PI)/180;
-  const c=Math.cos(angle),sin=Math.sin(angle);
-  const half=Math.max(0.08,(node.length||0.4)/2);
+
+  // 3. Fallback géométrique par orientation du composant (ports autonomes ou non raccordés)
+  let portDx = port.dx, portDy = port.dy, portDz = port.dz || 0;
+  const bend = node.equipmentType ? elbowAngle(node.equipmentType) : 0;
+  if (bend && port.index === 0) { portDx = -1; portDy = 0; }
+  if (bend && port.index === 1) {
+    const portAngle = (bend * (node.bendDirection || 1) * Math.PI) / 180;
+    portDx = Math.cos(portAngle); portDy = Math.sin(portAngle);
+  }
+
+  // Dérivation pour tout composant avec piquage ou branche (Tés, croix, soupapes, purges, instruments)
+  const isTee = node.type === "tee" || (node.equipmentType && (node.equipmentType.startsWith("te_") || node.equipmentType === "piquage"));
+  const hasBranch = isTee || port.role === "branch" || port.role === "aux" || port.index >= 2;
+  if (hasBranch && (port.index === 2 || port.index === 3 || port.role === "branch" || port.role === "aux")) {
+    const defaultBranchAngle = port.index === 2 ? -90 : 90;
+    const branchAngle = node.branchAngle !== undefined ? node.branchAngle : defaultBranchAngle;
+    const rad = (branchAngle * Math.PI) / 180;
+    portDx = Math.cos(rad);
+    portDy = Math.sin(rad);
+  }
+
+  // Si le composant est inséré sur un tronçon, l'orientation de base dérive du tronçon réel
+  let nodeAngleDeg = node.rotation || 0;
+  if (segments && segments.length > 0 && nodes && nodes.length > 0) {
+    const connSegs = segments.filter(s => s.fromNodeId === node.id || s.toNodeId === node.id);
+    if (connSegs.length > 0) {
+      const sIn = connSegs.find(s => s.toNodeId === node.id);
+      const sOut = connSegs.find(s => s.fromNodeId === node.id);
+      if (sIn && sOut) {
+        const nIn = nodes.find(item => item.id === sIn.fromNodeId);
+        const nOut = nodes.find(item => item.id === sOut.toNodeId);
+        if (nIn && nOut) {
+          nodeAngleDeg = Math.atan2(nOut.y - nIn.y, nOut.x - nIn.x) * 180 / Math.PI;
+        }
+      } else {
+        const s0 = connSegs[0];
+        const otherId = s0.fromNodeId === node.id ? s0.toNodeId : s0.fromNodeId;
+        const other = nodes.find(item => item.id === otherId);
+        if (other) {
+          if (s0.toNodeId === node.id) {
+            nodeAngleDeg = Math.atan2(node.y - other.y, node.x - other.x) * 180 / Math.PI;
+          } else {
+            nodeAngleDeg = Math.atan2(other.y - node.y, other.x - node.x) * 180 / Math.PI;
+          }
+        }
+      }
+    }
+  }
+
+  const angle = (nodeAngleDeg * Math.PI) / 180;
+  const c = Math.cos(angle), sin = Math.sin(angle);
   return {
-    x:node.x+(portDx*c-portDy*sin)*half,
-    y:node.y+(portDx*sin+portDy*c)*half,
-    z:node.z+port.dz*half
+    x: node.x + (portDx * c - portDy * sin) * half,
+    y: node.y + (portDx * sin + portDy * c) * half,
+    z: node.z + portDz * half,
   };
 }
 
-function segmentEndpoints(segment: IsoSegment, nodes: IsoNode[]) {
-  const fromNode=nodes.find(n=>n.id===segment.fromNodeId);
-  const toNode=nodes.find(n=>n.id===segment.toNodeId);
-  if(!fromNode||!toNode) return null;
+function segmentEndpoints(segment: IsoSegment, nodes: IsoNode[], segments: IsoSegment[] = []) {
+  const fromNode = nodes.find(n => n.id === segment.fromNodeId);
+  const toNode = nodes.find(n => n.id === segment.toNodeId);
+  if (!fromNode || !toNode) return null;
 
-  const dx = toNode.x - fromNode.x;
-  const dy = toNode.y - fromNode.y;
-  const dz = toNode.z - fromNode.z;
-  const len = Math.hypot(dx, dy, dz) || 1;
-  const dir = { x: dx / len, y: dy / len, z: dz / len };
+  // Contexte de raccordement : si segments est vide, le segment en cours EST le contexte
+  const activeSegments = (segments && segments.length > 0) ? segments : [segment];
 
   let fromPos = { x: fromNode.x, y: fromNode.y, z: fromNode.z };
-  if (pdiNodeHasFaceOffset017P3(fromNode)) {
-    const halfFrom = Math.min(Math.max(0.08, (fromNode.length || 0.4) / 2), len * 0.35);
-    fromPos = {
-      x: fromNode.x + dir.x * halfFrom,
-      y: fromNode.y + dir.y * halfFrom,
-      z: fromNode.z + dir.z * halfFrom,
-    };
+  if (segment.fromPortId && fromNode.ports?.some(p => p.id === segment.fromPortId)) {
+    fromPos = portWorldPosition(fromNode, segment.fromPortId, nodes, activeSegments);
+  } else if (pdiNodeHasFaceOffset017P3(fromNode)) {
+    const pOut = fromNode.ports?.find(p => p.index === 1 || p.role === "inline-out") || fromNode.ports?.[0];
+    if (pOut) {
+      fromPos = portWorldPosition(fromNode, pOut.id, nodes, activeSegments);
+    } else {
+      const dx = toNode.x - fromNode.x;
+      const dy = toNode.y - fromNode.y;
+      const dz = toNode.z - fromNode.z;
+      const len = Math.hypot(dx, dy, dz) || 1;
+      const dir = { x: dx / len, y: dy / len, z: dz / len };
+      const halfFrom = Math.min(Math.max(0.08, (fromNode.length || 0.4) / 2), len * 0.45);
+      fromPos = {
+        x: fromNode.x + dir.x * halfFrom,
+        y: fromNode.y + dir.y * halfFrom,
+        z: fromNode.z + dir.z * halfFrom,
+      };
+    }
   }
 
   let toPos = { x: toNode.x, y: toNode.y, z: toNode.z };
-  if (pdiNodeHasFaceOffset017P3(toNode)) {
-    const halfTo = Math.min(Math.max(0.08, (toNode.length || 0.4) / 2), len * 0.35);
-    toPos = {
-      x: toNode.x - dir.x * halfTo,
-      y: toNode.y - dir.y * halfTo,
-      z: toNode.z - dir.z * halfTo,
-    };
+  if (segment.toPortId && toNode.ports?.some(p => p.id === segment.toPortId)) {
+    toPos = portWorldPosition(toNode, segment.toPortId, nodes, activeSegments);
+  } else if (pdiNodeHasFaceOffset017P3(toNode)) {
+    const pIn = toNode.ports?.find(p => p.index === 0 || p.role === "inline-in") || toNode.ports?.[0];
+    if (pIn) {
+      toPos = portWorldPosition(toNode, pIn.id, nodes, activeSegments);
+    } else {
+      const dx = toNode.x - fromNode.x;
+      const dy = toNode.y - fromNode.y;
+      const dz = toNode.z - fromNode.z;
+      const len = Math.hypot(dx, dy, dz) || 1;
+      const dir = { x: dx / len, y: dy / len, z: dz / len };
+      const halfTo = Math.min(Math.max(0.08, (toNode.length || 0.4) / 2), len * 0.45);
+      toPos = {
+        x: toNode.x - dir.x * halfTo,
+        y: toNode.y - dir.y * halfTo,
+        z: toNode.z - dir.z * halfTo,
+      };
+    }
   }
 
   return {
@@ -773,6 +928,7 @@ function normalizedGraphPorts(nodes:IsoNode[],segments:IsoSegment[]){
     if(n.ports?.length)return n;
     changed=true;return {...n,ports:defaultFreeNodePorts()};
   });
+  const nodeMap = new Map(nextNodes.map(n => [n.id, n]));
   const used=new Set<string>();
   const choose=(node:IsoNode|undefined,preferred:number)=>{
     if(!node?.ports?.length)return undefined;
@@ -781,8 +937,19 @@ function normalizedGraphPorts(nodes:IsoNode[],segments:IsoSegment[]){
   };
   const nextSegments=segments.map(seg=>{
     let fromPortId=seg.fromPortId,toPortId=seg.toPortId;
-    if(!fromPortId){fromPortId=choose(nextNodes.find(n=>n.id===seg.fromNodeId),1);changed=true;}else used.add(fromPortId);
-    if(!toPortId){toPortId=choose(nextNodes.find(n=>n.id===seg.toNodeId),0);changed=true;}else used.add(toPortId);
+    const fromNode = nodeMap.get(seg.fromNodeId);
+    if (fromPortId && fromNode && !fromNode.ports?.some(p => p.id === fromPortId)) {
+      fromPortId = undefined;
+      changed = true;
+    }
+    const toNode = nodeMap.get(seg.toNodeId);
+    if (toPortId && toNode && !toNode.ports?.some(p => p.id === toPortId)) {
+      toPortId = undefined;
+      changed = true;
+    }
+
+    if(!fromPortId){fromPortId=choose(fromNode,1);changed=true;}else used.add(fromPortId);
+    if(!toPortId){toPortId=choose(toNode,0);changed=true;}else used.add(toPortId);
     const lineId=seg.lineId||DEFAULT_LINE_ID;
     if(!seg.lineId)changed=true;
     return fromPortId===seg.fromPortId&&toPortId===seg.toPortId&&lineId===seg.lineId?seg:{...seg,fromPortId,toPortId,lineId};
@@ -990,7 +1157,7 @@ const bendOffsetV4=(t:IsoFittingType,dn:number)=>{
 
 const isoPolylineV4=(s:IsoSegment,a:IsoNode,b:IsoNode,zoom:number,panX:number,panY:number)=>{
   // V4.6.1_NATIVE_POLYLINE : tube droit entre les faces des ports.
-  const endpoints=segmentEndpoints(s,[a,b]);
+  const endpoints=segmentEndpoints(s,[a,b],[s]);
   const from=endpoints?.from||a,to=endpoints?.to||b;
   return [
     isoProjectV4(from.x,from.y,from.z,zoom,panX,panY),
@@ -1071,7 +1238,7 @@ function buildIsoAnnotationLayout(nodes:IsoNode[],segments:IsoSegment[],joints:P
   });
   joints.filter(joint=>joint.weldNumber).sort((a,b)=>(a.weldNumber||"").localeCompare(b.weldNumber||"")).forEach((joint,index)=>{
     const node=nodes.find(item=>item.id===joint.nodeId);if(!node)return;
-    const anchor=project(portWorldPosition(node,joint.portId)),center=project(node);
+    const anchor=project(portWorldPosition(node,joint.portId, nodes, segments)),center=project(node);
     const dx=anchor.x-center.x,dy=anchor.y-center.y,len=Math.hypot(dx,dy)||1,ux=dx/len,uy=dy/len,px=-uy,py=ux;
     add(`weld:${joint.id}`,anchor.x,anchor.y,34,11,[
       {x:anchor.x+ux*18+px*8,y:anchor.y+uy*18+py*8},
@@ -1095,7 +1262,7 @@ function buildIsoAnnotationLayout(nodes:IsoNode[],segments:IsoSegment[],joints:P
     add(`node:${node.id}`,anchor.x,anchor.y,labelWidth,18,candidates);
   });
   segments.forEach((segment,index)=>{
-    const endpoints=segmentEndpoints(segment,nodes);if(!endpoints)return;
+    const endpoints=segmentEndpoints(segment,nodes,segments);if(!endpoints)return;
     const a=project(endpoints.from),b=project(endpoints.to),mx=(a.x+b.x)/2,my=(a.y+b.y)/2,dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy)||1,px=-dy/len,py=dx/len;
     const width=138;
     const ux=dx/len,uy=dy/len;
@@ -2057,9 +2224,17 @@ function IsometrieModule(props: { projectId?: string }) {
     }
   },[segments.length]);
   const dragSelectionRef=useRef<{
-    start:{x:number;y:number;z:number};
-    nodes:Map<string,{x:number;y:number;z:number}>;
-  }|null>(null);
+    startScreen: { x: number; y: number };
+    start: { x: number; y: number; z: number };
+    nodes: Map<string, { x: number; y: number; z: number }>;
+    isDragging: boolean;
+    clickedEntity?: {
+      type: "node" | "segment";
+      id: string;
+      wasAlreadySelected: boolean;
+      additive: boolean;
+    };
+  } | null>(null);
   const dragChangedRef=useRef(false);
   const lastEquipmentDropRef=useRef<{key:string;at:number}|null>(null);
 
@@ -2180,6 +2355,7 @@ function IsometrieModule(props: { projectId?: string }) {
     refLabel?: string;
     targetSegmentId?: string;
     targetNodeId?: string;
+    targetNodeIds?: string[];
     targetLabel?: string;
   } | null>(null);
 
@@ -2437,29 +2613,8 @@ function IsometrieModule(props: { projectId?: string }) {
         }
         return;
       }
-      if(selectedCad2dIds.length && !isInput){
-        if(e.key.startsWith("Arrow")){
-          e.preventDefault();
-          const step = isoSnapStep * (e.shiftKey ? 4 : 1);
-          moveSelectedCad2d(e.key === "ArrowRight" ? step : e.key === "ArrowLeft" ? -step : 0, e.key === "ArrowDown" ? step : e.key === "ArrowUp" ? -step : 0);
-          return;
-        }
-      }
-
-      if(e.key.startsWith("Arrow") && selectedNodeIds.length && !isInput){
-        e.preventDefault();
-        const step=e.shiftKey?Math.max(isoSnapStep,.25)*4:Math.max(isoSnapStep,.25);
-        if(e.altKey){
-          if(e.key==="ArrowUp")moveSelection(0,0,step);
-          if(e.key==="ArrowDown")moveSelection(0,0,-step);
-        }else{
-          if(e.key==="ArrowLeft")moveSelection(-step,0,0);
-          if(e.key==="ArrowRight")moveSelection(step,0,0);
-          if(e.key==="ArrowUp")moveSelection(0,-step,0);
-          if(e.key==="ArrowDown")moveSelection(0,step,0);
-        }
-        return;
-      }
+      // Note : Le traitement unifié des touches directionnelles (Arrow) et du panoramique
+      // est délégué au gestionnaire central onKey (PATCH 017Q3-UNIFY-CORE).
       if((e.ctrlKey||e.metaKey)&&key==="a" && !isInput){
         e.preventDefault();
         setSelectedNodeIds(nodes.map(n=>n.id));
@@ -2477,18 +2632,6 @@ function IsometrieModule(props: { projectId?: string }) {
       if(isInput) return;
       if(key==="v"){setInteractionMode("select");setIsoDrawMode("select");setStatusMessage("Outil Sélection");return;}
       if(key==="h"||e.code==="Space"){e.preventDefault();setInteractionMode("main");setStatusMessage("Outil Main");return;}
-      if (e.key === "ArrowLeft" || e.key === "ArrowRight" || e.key === "ArrowUp" || e.key === "ArrowDown") {
-        e.preventDefault();
-        const panStep = e.shiftKey ? 80 : 35;
-        let dx = 0;
-        let dy = 0;
-        if (e.key === "ArrowLeft") dx = panStep;
-        if (e.key === "ArrowRight") dx = -panStep;
-        if (e.key === "ArrowUp") dy = panStep;
-        if (e.key === "ArrowDown") dy = -panStep;
-        setViewport(vp => ({ ...vp, panX: vp.panX + dx, panY: vp.panY + dy }));
-        return;
-      }
       if(key==="n"){setIsoDrawMode("node");setInteractionMode("select");setStatusMessage("Création de nœud");return;}
       if(key==="t"){e.preventDefault();createTubeFromSelection();return;}
       if(key==="e"){setIsoDrawMode("te");setInteractionMode("select");setStatusMessage("Création de Té");return;}
@@ -2619,7 +2762,7 @@ function IsometrieModule(props: { projectId?: string }) {
 
     // 2) Segments endpoints
     for (const s of segments) {
-      const ep = segmentEndpoints(s, nodes);
+      const ep = segmentEndpoints(s, nodes, segments);
       if (ep) {
         basePoints.push({
           x: (ep.from.x - ep.from.y) * cosA,
@@ -2792,14 +2935,14 @@ function IsometrieModule(props: { projectId?: string }) {
   const snapBranchWorld=(w:{x:number;y:number;z:number})=>pdiCreatePoint(w);
 
 
-  const segmentGeomLength=(s:IsoSegment,ns:IsoNode[])=>{
-    const endpoints=segmentEndpoints(s,ns);
+  const segmentGeomLength=(s:IsoSegment,ns:IsoNode[],ss:IsoSegment[]=[])=>{
+    const endpoints=segmentEndpoints(s,ns,ss);
     if(!endpoints)return s.length||0;
     return Math.max(.05,Math.hypot(endpoints.to.x-endpoints.from.x,endpoints.to.y-endpoints.from.y,endpoints.to.z-endpoints.from.z));
   };
 
   const recalcSegmentLengths=(ns:IsoNode[],ss:IsoSegment[])=>
-    ss.map(s=>({...s,length:Number(segmentGeomLength(s,ns).toFixed(3))}));
+    ss.map(s=>({...s,length:Number(segmentGeomLength(s,ns,ss).toFixed(3))}));
 
   const selectedCount=selectedNodeIds.length+selectedSegmentIds.length+selectedFittingIds.length;
 
@@ -2864,9 +3007,27 @@ function IsometrieModule(props: { projectId?: string }) {
         refSegmentId: refSegId,
         refLabel: sR?.tag ? `Tube ${sR.tag}` : `Tube Réf`,
         targetNodeId: targetNId,
-        targetLabel: nT?.name || "Organe Cible",
+        targetNodeIds: selectedNodeIds,
+        targetLabel: selectedNodeIds.length > 1 ? `${selectedNodeIds.length} nœuds` : (nT?.name || "Organe Cible"),
       });
       setStatusMessage("Alignement : Organe et Tube détectés. Choisissez l'échelle pour appliquer l'alignement.");
+      return;
+    }
+    if (selectedNodeIds.length >= 2) {
+      const targetNId = selectedNodeIds[0];
+      const refNId = selectedNodeIds[1];
+      const nT = nodes.find((n) => n.id === targetNId);
+      const nR = nodes.find((n) => n.id === refNId);
+      setParallelWizard(null);
+      setAlignWizard({
+        step: 3,
+        refNodeId: refNId,
+        refLabel: nR?.name || `Nœud ${refNId}`,
+        targetNodeId: targetNId,
+        targetNodeIds: selectedNodeIds.slice(0, 1),
+        targetLabel: nT?.name || `Nœud ${targetNId}`,
+      });
+      setStatusMessage("Alignement : 2 nœuds/organes détectés. Choisissez si vous gardez l'échelle ou prenez celle de la référence.");
       return;
     }
     setParallelWizard(null);
@@ -3361,6 +3522,122 @@ function IsometrieModule(props: { projectId?: string }) {
       setStatusMessage("Presse-papiers vide. Rien à coller.");
       setAutocadPrompt("Presse-papiers vide. Sélectionnez des éléments et tapez COPIER.");
     }
+  };
+
+  // ----- PATCH 017Q : FONCTIONS D'ÉDITION INDUSTRIELLE ASSOCIER (SPOOL) ET DISSOCIER -----
+  const associateSelectionToSpool = (targetSpoolName?: string) => {
+    const affectedSegIds = new Set<string>(selectedSegmentIds);
+    if (selectedNodeIds.length > 0) {
+      segments.forEach((s) => {
+        if (selectedNodeIds.includes(s.fromNodeId) && selectedNodeIds.includes(s.toNodeId)) {
+          affectedSegIds.add(s.id);
+        }
+      });
+    }
+
+    const totalCount = affectedSegIds.size + selectedNodeIds.length;
+    if (totalCount === 0) {
+      setStatusMessage("Sélectionnez au moins un tronçon ou nœud pour créer ou associer un spool (Ctrl+G)");
+      setAutocadPrompt("ASSOCIER : Aucun élément sélectionné. Sélectionnez des tronçons et relancez (Ctrl+G).");
+      return;
+    }
+
+    let spoolId = targetSpoolName?.trim();
+    if (!spoolId) {
+      const existing = segments.find((s) => affectedSegIds.has(s.id) && s.spoolNumber && s.spoolNumber !== "NONE")?.spoolNumber ||
+                       nodes.find((n) => selectedNodeIds.includes(n.id) && n.spoolNumber && n.spoolNumber !== "NONE")?.spoolNumber;
+      if (existing) {
+        spoolId = existing;
+      } else {
+        const usedSpools = new Set<string>();
+        segments.forEach((s) => { if (s.spoolNumber && s.spoolNumber !== "NONE") usedSpools.add(s.spoolNumber); });
+        nodes.forEach((n) => { if (n.spoolNumber && n.spoolNumber !== "NONE") usedSpools.add(n.spoolNumber); });
+        let idx = 1;
+        while (usedSpools.has(`SP-${String(idx).padStart(2, "0")}`)) {
+          idx++;
+        }
+        spoolId = `SP-${String(idx).padStart(2, "0")}`;
+      }
+    }
+
+    const nextSegs = segments.map((seg) => {
+      if (affectedSegIds.has(seg.id)) {
+        return {
+          ...seg,
+          spoolNumber: spoolId,
+          fabricationLocation: "shop" as const,
+        };
+      }
+      return seg;
+    });
+
+    const nextNodes = nodes.map((node) => {
+      if (selectedNodeIds.includes(node.id)) {
+        return {
+          ...node,
+          spoolNumber: spoolId,
+          fabricationLocation: "shop" as const,
+        };
+      }
+      return node;
+    });
+
+    commitGraph(nextNodes, recalcSegmentLengths(nextNodes, nextSegs));
+    setColorBySpool(true);
+
+    const msg = `Sous-ensemble associé au Spool ${spoolId} (${affectedSegIds.size} tronçon(s), ${selectedNodeIds.length} nœud(s))`;
+    setStatusMessage(msg);
+    setAutocadPrompt(`COMMANDE [ASSOCIER] : ${msg}. Affichage couleur par spool activé.`);
+  };
+
+  const dissociateSelectionFromSpool = () => {
+    const affectedSegIds = new Set<string>(selectedSegmentIds);
+    const totalCount = affectedSegIds.size + selectedNodeIds.length;
+    if (totalCount === 0) {
+      setStatusMessage("Sélectionnez les éléments à dissocier du Spool (Ctrl+Shift+G)");
+      setAutocadPrompt("DISSOCIER : Aucun élément sélectionné. Sélectionnez des tronçons ou nœuds et relancez (Ctrl+Shift+G).");
+      return;
+    }
+
+    const nextSegs = segments.map((seg) => {
+      if (affectedSegIds.has(seg.id)) {
+        return {
+          ...seg,
+          spoolNumber: "NONE",
+          fabricationLocation: undefined,
+        };
+      }
+      return seg;
+    });
+
+    const nextNodes = nodes.map((node) => {
+      if (selectedNodeIds.includes(node.id)) {
+        return {
+          ...node,
+          spoolNumber: "NONE",
+          fabricationLocation: undefined,
+        };
+      }
+      return node;
+    });
+
+    commitGraph(nextNodes, recalcSegmentLengths(nextNodes, nextSegs));
+
+    const msg = `${affectedSegIds.size + selectedNodeIds.length} élément(s) dissocié(s) du spool (tronçon(s) indépendant(s))`;
+    setStatusMessage(msg);
+    setAutocadPrompt(`COMMANDE [DISSOCIER] : ${msg}.`);
+  };
+
+  const selectWholeSpool = (spoolId?: string) => {
+    if (!spoolId || spoolId === "NONE") return;
+    const segs = segments.filter((s) => s.spoolNumber === spoolId).map((s) => s.id);
+    const nids = nodes.filter((n) => n.spoolNumber === spoolId).map((n) => n.id);
+    setSelectedSegmentIds(segs);
+    setSelectedSegmentId(segs[0] || null);
+    setSelectedNodeIds(nids);
+    setSelectedNodeId(nids[0] || null);
+    setStatusMessage(`Spool ${spoolId} sélectionné (${segs.length} tronçon(s), ${nids.length} nœud(s))`);
+    setAutocadPrompt(`SÉLECTION : Tous les éléments du Spool ${spoolId} sélectionnés.`);
   };
 
   // ----- PATCH 017A : moteur de tagging industriel -----
@@ -4222,6 +4499,16 @@ function IsometrieModule(props: { projectId?: string }) {
       return;
     }
 
+    // PATCH 017Q : Commandes d'association (Spool / Groupe) et dissociation
+    if (["associer", "assoc", "grouper", "group", "g", "spool", "ass"].includes(rawVerb)) {
+      associateSelectionToSpool(rawArg);
+      return;
+    }
+    if (["dissocier", "dissoc", "degrouper", "ungroup", "ung", "unspool", "diss"].includes(rawVerb)) {
+      dissociateSelectionFromSpool();
+      return;
+    }
+
     // PALIER 2B : Commandes de modification géométrique transactionnelle (TRIM, EXTEND, OFFSET, FILLET, SCALE, CHAMFER, HATCH)
     if (["echelle", "scale", "sc"].includes(rawVerb)) {
       startCad2dScaleCommand(rawArg);
@@ -4403,12 +4690,12 @@ function IsometrieModule(props: { projectId?: string }) {
       setAutocadPrompt(`RACCOURCIS CLAVIER : ${off ? "OFF" : next ? "ON" : !keyboardShortcutsEnabled ? "ON" : "OFF"}.`);
       return;
     }
-    // 017Q : Commandes AutoCAD ALIGN / AX / AY / AZ et PARALLEL
-    if (["align", "al", "aligner"].includes(rawVerb)) {
+    // 017Q : Commandes AutoCAD ALIGN / AX / AY / AZ / AT et PARALLEL / REDRESSER
+    if (["align", "al", "aligner", "alignement", "aligne"].includes(rawVerb)) {
       startAlignWizard();
       return;
     }
-    if (["ax", "ay", "az", "alignerx", "alignery", "alignerz"].includes(rawVerb)) {
+    if (["ax", "ay", "az", "alignerx", "alignery", "alignerz", "alignx", "aligny", "alignz"].includes(rawVerb)) {
       const axis = (rawVerb.endsWith("y") || (rawArg && rawArg.toLowerCase() === "y")) ? "y"
         : (rawVerb.endsWith("z") || (rawArg && rawArg.toLowerCase() === "z")) ? "z"
         : "x";
@@ -4416,8 +4703,16 @@ function IsometrieModule(props: { projectId?: string }) {
       setAutocadPrompt(`COMMANDE [ALIGN] : Alignement selon l'axe monde ${axis.toUpperCase()} exécuté.`);
       return;
     }
-    if (["parallel", "par", "parallele", "//"].includes(rawVerb)) {
+    if (["at", "eqsurtube", "alignertube", "alignonsurface"].includes(rawVerb)) {
+      alignSelectedEquipmentOnTube();
+      return;
+    }
+    if (["parallel", "par", "parallele", "//", "rendreparallele"].includes(rawVerb)) {
       startParallelWizard();
+      return;
+    }
+    if (["iso", "redresser", "redresseriso", "straighten"].includes(rawVerb)) {
+      redressIsoSelection();
       return;
     }
     if (["tube", "t", "pipe", "troncon", "tronçon", "canalisation", "relier", "connect", "joint"].includes(rawVerb)) {
@@ -4814,16 +5109,66 @@ function IsometrieModule(props: { projectId?: string }) {
     return nodes.filter(n => ids.includes(n.id)).map(n => ({ ...n, x: n.x + dx, y: n.y + dy }));
   })();
 
-  const moveSelection=(dx:number,dy:number,dz:number)=>{
-    if(!selectedNodeIds.length)return;
-    const ids=new Set(selectedNodeIds);
-    // snapIsoV4 : le deplacement clavier reste sur la grille metier active.
-    const nextNodes=nodes.map(n=>ids.has(n.id)
-      ?{...n,x:snapIsoV4(n.x+dx,isoSnapStep),y:snapIsoV4(n.y+dy,isoSnapStep),z:Number((n.z+dz).toFixed(3))}
-      :n);
-    commitGraph(nextNodes,recalcSegmentLengths(nextNodes,segments));
-    setStatusMessage(`Déplacement ${dz?"Z":"XY"} de ${selectedNodeIds.length} élément(s)`);
+  // PATCH 017Q3-UNIFY-CORE : Fonction centrale unifiée de déplacement géométrique transactionnel.
+  // Déplace de manière cohérente les entités CAD 2D, les supports MSS SP-58,
+  // et les sous-ensembles de tuyauterie (nœuds sélectionnés + extrémités des tronçons sélectionnés).
+  const executeUniversalMove = (dx: number, dy: number, dz: number = 0) => {
+    let movedAnything = false;
+
+    // 1. Déplacement des entités CAD 2D si sélectionnées
+    if (selectedCad2dIds.length > 0) {
+      moveSelectedCad2d(dx, dy);
+      movedAnything = true;
+    }
+
+    // 2. Déplacement des supports MSS SP-58 si sélectionnés
+    if (selectedSupportId) {
+      setSupports(prev => prev.map(s => {
+        if (s.id !== selectedSupportId) return s;
+        const currentPos = s.worldPos || { x: 0, y: 0, z: 0 };
+        return {
+          ...s,
+          worldPos: {
+            x: snapIsoV4(currentPos.x + dx, isoSnapStep),
+            y: snapIsoV4(currentPos.y + dy, isoSnapStep),
+            z: Number(((currentPos.z || 0) + dz).toFixed(3)),
+          },
+        };
+      }));
+      movedAnything = true;
+    }
+
+    // 3. Déplacement des nœuds et tronçons sélectionnés (avec recalcul géométrique et commitGraph)
+    const nodeIdsToMove = new Set<string>(selectedNodeIds);
+    selectedSegmentIds.forEach(sid => {
+      const seg = segments.find(s => s.id === sid);
+      if (seg) {
+        nodeIdsToMove.add(seg.fromNodeId);
+        nodeIdsToMove.add(seg.toNodeId);
+      }
+    });
+
+    if (nodeIdsToMove.size > 0) {
+      const nextNodes = nodes.map(n => {
+        if (!nodeIdsToMove.has(n.id)) return n;
+        return {
+          ...n,
+          x: snapIsoV4(n.x + dx, isoSnapStep),
+          y: snapIsoV4(n.y + dy, isoSnapStep),
+          z: Number(((n.z || 0) + dz).toFixed(3)),
+        };
+      });
+      const nextSegments = recalcSegmentLengths(nextNodes, segments);
+      commitGraph(nextNodes, nextSegments);
+      setStatusMessage(`Déplacement ${dz ? "Z" : "XY"} de ${nodeIdsToMove.size} élément(s)`);
+      movedAnything = true;
+    }
+
+    return movedAnything;
   };
+
+  const moveSelection = (dx: number, dy: number, dz: number = 0) => executeUniversalMove(dx, dy, dz);
+  const universalMove = (dx: number, dy: number, dz: number = 0) => executeUniversalMove(dx, dy, dz);
 
   // Ecriture protegee d'une coordonnee : jamais NaN, jamais de perte de topologie.
   const setNodeCoordinate=(id:string,axis:"x"|"y"|"z",raw:string)=>{
@@ -4899,17 +5244,83 @@ function IsometrieModule(props: { projectId?: string }) {
       selectNodeV44(id, false);
       return;
     }
-    const ids=additive
-      ? (selectedNodeIds.includes(id)?selectedNodeIds:[...selectedNodeIds,id])
-      : (selectedNodeIds.includes(id)?selectedNodeIds:[id]);
-    if(additive)selectNodeV44(id,true); else selectNodeV44(id,false);
-    const start=screenToIsoWorld(e);
+    if (parallelWizard) {
+      selectNodeV44(id, false);
+      return;
+    }
+    const alreadySelected = selectedNodeIds.includes(id);
+    const ids = additive
+      ? (alreadySelected ? selectedNodeIds : [...selectedNodeIds, id])
+      : (alreadySelected ? selectedNodeIds : [id]);
+    if(additive) selectNodeV44(id,true); else if(!alreadySelected) selectNodeV44(id,false);
+
+    const nodeIdsToMove = new Set<string>(ids);
+    // Déplacer également les nœuds des tronçons sélectionnés
+    selectedSegmentIds.forEach(sid => {
+      const s = segments.find(x => x.id === sid);
+      if (s) {
+        nodeIdsToMove.add(s.fromNodeId);
+        nodeIdsToMove.add(s.toNodeId);
+      }
+    });
+
+    const start=screenToIsoWorld(e, nodeZ || 0);
     const positions=new Map<string,{x:number;y:number;z:number}>();
-    nodes.forEach(n=>{if(ids.includes(n.id))positions.set(n.id,{x:n.x,y:n.y,z:n.z});});
-    dragSelectionRef.current={start,nodes:positions};
+    nodes.forEach(n=>{if(nodeIdsToMove.has(n.id))positions.set(n.id,{x:n.x,y:n.y,z:n.z});});
+    dragSelectionRef.current={
+      startScreen: { x: e.clientX, y: e.clientY },
+      start,
+      nodes: positions,
+      isDragging: false,
+      clickedEntity: { type: "node", id, wasAlreadySelected: alreadySelected, additive },
+    };
     dragChangedRef.current=false;
     setDragNodeId(id);
-    e.currentTarget.setPointerCapture(e.pointerId);
+    try {
+      (svgRef.current || e.currentTarget).setPointerCapture(e.pointerId);
+    } catch {}
+  };
+
+  const beginSegmentDrag=(e:React.PointerEvent<any>,id:string,additive:boolean)=>{
+    if (alignWizard) {
+      selectSegmentV44(id, false);
+      return;
+    }
+    if (parallelWizard) {
+      selectSegmentV44(id, false);
+      return;
+    }
+    const alreadySelected = selectedSegmentIds.includes(id);
+    const segIds = additive
+      ? (alreadySelected ? selectedSegmentIds : [...selectedSegmentIds, id])
+      : (alreadySelected ? selectedSegmentIds : [id]);
+    if(additive) selectSegmentV44(id,true); else if(!alreadySelected) selectSegmentV44(id,false);
+
+    const nodeIdsToMove = new Set<string>();
+    segIds.forEach(sid => {
+      const s = segments.find(x => x.id === sid);
+      if (s) {
+        nodeIdsToMove.add(s.fromNodeId);
+        nodeIdsToMove.add(s.toNodeId);
+      }
+    });
+    selectedNodeIds.forEach(nid => nodeIdsToMove.add(nid));
+
+    const start=screenToIsoWorld(e, nodeZ || 0);
+    const positions=new Map<string,{x:number;y:number;z:number}>();
+    nodes.forEach(n=>{if(nodeIdsToMove.has(n.id))positions.set(n.id,{x:n.x,y:n.y,z:n.z});});
+    dragSelectionRef.current={
+      startScreen: { x: e.clientX, y: e.clientY },
+      start,
+      nodes: positions,
+      isDragging: false,
+      clickedEntity: { type: "segment", id, wasAlreadySelected: alreadySelected, additive },
+    };
+    dragChangedRef.current=false;
+    setDragNodeId(id);
+    try {
+      (svgRef.current || e.currentTarget).setPointerCapture(e.pointerId);
+    } catch {}
   };
 
 
@@ -5034,6 +5445,22 @@ function IsometrieModule(props: { projectId?: string }) {
         return;
       }
 
+      // Shortcut: Ctrl+G (Associer en Spool) & Ctrl+Shift+G / Ctrl+U (Dissocier du Spool)
+      if ((e.ctrlKey || e.metaKey) && key === "g") {
+        e.preventDefault();
+        if (e.shiftKey) {
+          dissociateSelectionFromSpool();
+        } else {
+          associateSelectionToSpool();
+        }
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && key === "u") {
+        e.preventDefault();
+        dissociateSelectionFromSpool();
+        return;
+      }
+
       // Rotation universelle (R / Maj+R : 2D, Equipements, Vannes, Tés, Supports, Tronçons)
       if (key === "r") {
         e.preventDefault();
@@ -5048,14 +5475,31 @@ function IsometrieModule(props: { projectId?: string }) {
         return;
       }
 
-      // Déplacement au clavier (Flèches directionnelles)
+      // Déplacement au clavier unifié (Flèches directionnelles - PATCH 017Q3-UNIFY-CORE)
       if (e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "ArrowLeft" || e.key === "ArrowRight") {
         e.preventDefault();
-        const step = (e.shiftKey ? isoSnapStep * 5 : isoSnapStep) || 0.25;
-        if (e.key === "ArrowUp") universalMove(0, step);
-        if (e.key === "ArrowDown") universalMove(0, -step);
-        if (e.key === "ArrowLeft") universalMove(-step, 0);
-        if (e.key === "ArrowRight") universalMove(step, 0);
+        const hasSelection = selectedNodeIds.length > 0 || selectedSegmentIds.length > 0 || selectedCad2dIds.length > 0 || Boolean(selectedSupportId);
+        if (hasSelection) {
+          const step = (e.shiftKey ? isoSnapStep * 4 : isoSnapStep) || 0.25;
+          if (e.altKey) {
+            if (e.key === "ArrowUp") executeUniversalMove(0, 0, step);
+            if (e.key === "ArrowDown") executeUniversalMove(0, 0, -step);
+          } else {
+            if (e.key === "ArrowLeft") executeUniversalMove(-step, 0, 0);
+            if (e.key === "ArrowRight") executeUniversalMove(step, 0, 0);
+            if (e.key === "ArrowUp") executeUniversalMove(0, -step, 0);
+            if (e.key === "ArrowDown") executeUniversalMove(0, step, 0);
+          }
+        } else {
+          const panStep = e.shiftKey ? 80 : 35;
+          let dx = 0;
+          let dy = 0;
+          if (e.key === "ArrowLeft") dx = panStep;
+          if (e.key === "ArrowRight") dx = -panStep;
+          if (e.key === "ArrowUp") dy = panStep;
+          if (e.key === "ArrowDown") dy = -panStep;
+          setViewport(vp => ({ ...vp, panX: vp.panX + dx, panY: vp.panY + dy }));
+        }
         return;
       }
 
@@ -5327,7 +5771,7 @@ function IsometrieModule(props: { projectId?: string }) {
         if(isoDrawMode==="segment"){
           createSegmentFromPointer(e);e.stopPropagation();return;
         }
-        selectSegmentV44(id,additive);
+        beginSegmentDrag(e,id,additive);
         e.stopPropagation();
         return;
       }
@@ -5844,7 +6288,7 @@ function IsometrieModule(props: { projectId?: string }) {
         const a = nodeById017I2.get(s.fromNodeId);
         const b = nodeById017I2.get(s.toNodeId);
         if (!a || !b) return false;
-        const ep = segmentEndpoints(s, nodes);
+        const ep = segmentEndpoints(s, nodes, segments);
         const pa = ep ? isoProjectV4(ep.from.x, ep.from.y, ep.from.z, viewport.zoom, viewport.panX, viewport.panY) : isoProjectV4(a.x, a.y, a.z || 0, viewport.zoom, viewport.panX, viewport.panY);
         const pb = ep ? isoProjectV4(ep.to.x, ep.to.y, ep.to.z, viewport.zoom, viewport.panX, viewport.panY) : isoProjectV4(b.x, b.y, b.z || 0, viewport.zoom, viewport.panX, viewport.panY);
         if (isCrossing) {
@@ -5944,7 +6388,7 @@ function IsometrieModule(props: { projectId?: string }) {
         for (const node of nodes) {
           if (node.ports) {
             for (const port of node.ports) {
-              const wp = portWorldPosition(node, port.id);
+              const wp = portWorldPosition(node, port.id, nodes, segments);
               const sp = isoProjectV4(wp.x, wp.y, wp.z, viewport.zoom, viewport.panX, viewport.panY);
               if (Math.hypot(sp.x - sx, sp.y - sy) < pdiTolScale(PDI_SNAP_TOL_PX.PORT)) {
                 detectedSnap = { kind: "PORT", label: `PORT ${node.name} [${port.role || port.index}]`, worldPos: wp, screenPos: sp };
@@ -5966,7 +6410,7 @@ function IsometrieModule(props: { projectId?: string }) {
       }
       if (!detectedSnap && snapMidpoints) {
         for (const seg of segments) {
-          const ep = segmentEndpoints(seg, nodes);
+          const ep = segmentEndpoints(seg, nodes, segments);
           if (ep) {
             const mx = (ep.from.x + ep.to.x) / 2, my = (ep.from.y + ep.to.y) / 2, mz = (ep.from.z + ep.to.z) / 2;
             const sp = isoProjectV4(mx, my, mz, viewport.zoom, viewport.panX, viewport.panY);
@@ -6001,15 +6445,31 @@ function IsometrieModule(props: { projectId?: string }) {
       setBranchDrawing(prev=>prev?{...prev,currentWorldPos:targetPos}:null);
       return;
     }
-    if(dragNodeId && interactionMode==="select"){
+    if(dragNodeId){
       const ds=dragSelectionRef.current;
       if(ds){
-        const now=screenToIsoWorld(e);
+        const screenDist = Math.hypot(e.clientX - ds.startScreen.x, e.clientY - ds.startScreen.y);
+        // Seuil d'initiation du déplacement (deadzone 4px) pour ne pas confondre un clic avec un déplacement
+        if (!ds.isDragging && screenDist < 4) {
+          return;
+        }
+        ds.isDragging = true;
+
+        const now=screenToIsoWorld(e, nodeZ || 0);
         const dx=now.x-ds.start.x,dy=now.y-ds.start.y,dz=now.z-ds.start.z;
+        const snapStep = snapEnabled ? isoSnapStep : 0;
         const nextNodes=nodes.map(n=>{
           const p=ds.nodes.get(n.id);
           if(!p)return n;
-          return {...n,x:snapIsoV4(p.x+dx,isoSnapStep),y:snapIsoV4(p.y+dy,isoSnapStep),z:p.z+dz};
+          const targetX = p.x + dx;
+          const targetY = p.y + dy;
+          const targetZ = p.z + dz;
+          return {
+            ...n,
+            x: snapStep > 0 ? snapIsoV4(targetX, snapStep) : pdiRound3(targetX),
+            y: snapStep > 0 ? snapIsoV4(targetY, snapStep) : pdiRound3(targetY),
+            z: pdiRound3(targetZ)
+          };
         });
         if(JSON.stringify(nextNodes)!==JSON.stringify(nodes)){
           // PATCH 004 : l'instantane est pris UNE fois au debut du geste,
@@ -6108,8 +6568,20 @@ function IsometrieModule(props: { projectId?: string }) {
         }
       }
     }
-    if(dragNodeId && dragChangedRef.current){
-      setSegments(prev=>recalcSegmentLengths(nodes,prev));
+    const ds = dragSelectionRef.current;
+    if (ds) {
+      if (!ds.isDragging && ds.clickedEntity) {
+        // Clic simple sans glissement : si l'élément était déjà dans une multi-sélection et sans touche additive, on isole la sélection sur cet élément
+        if (ds.clickedEntity.wasAlreadySelected && !ds.clickedEntity.additive) {
+          if (ds.clickedEntity.type === "node") {
+            selectNodeV44(ds.clickedEntity.id, false);
+          } else if (ds.clickedEntity.type === "segment") {
+            selectSegmentV44(ds.clickedEntity.id, false);
+          }
+        }
+      } else if (ds.isDragging && dragChangedRef.current) {
+        setSegments(prev=>recalcSegmentLengths(nodes,prev));
+      }
     }
     drag.current=null;
     dragSelectionRef.current=null;
@@ -6173,8 +6645,9 @@ function IsometrieModule(props: { projectId?: string }) {
       let rotation = ((((n.rotation || 0) + delta) % 360) + 360) % 360;
       let branchAngle = n.branchAngle;
 
-      if (n.branchAngle !== undefined || n.type === "tee" || n.type === "piquage") {
-        branchAngle = ((((n.branchAngle || 0) + delta) % 360) + 360) % 360;
+      const hasBranch = n.type === "tee" || n.type === "piquage" || (n.ports && n.ports.some(p => p.role === "branch" || p.role === "aux" || p.index >= 2));
+      if (hasBranch || n.branchAngle !== undefined) {
+        branchAngle = ((((n.branchAngle !== undefined ? n.branchAngle : -90) + delta) % 360) + 360) % 360;
       }
 
       return {
@@ -6292,31 +6765,6 @@ function IsometrieModule(props: { projectId?: string }) {
     }
     if (selectedNodeIds.length > 0 || selectedSegmentIds.length > 0) {
       duplicateSelection();
-    }
-  };
-
-  const universalMove = (dx: number, dy: number, dz: number = 0) => {
-    if (selectedCad2dIds.length > 0) {
-      moveSelectedCad2d(dx, dy);
-    }
-    if (selectedNodeIds.length > 0) {
-      moveSelection(dx, dy, dz);
-    } else if (selectedSegmentIds.length > 0) {
-      const seg = segments.find(s => selectedSegmentIds.includes(s.id));
-      if (seg) {
-        setNodes(prev => prev.map(n => {
-          if (n.id === seg.fromNodeId || n.id === seg.toNodeId) {
-            return {
-              ...n,
-              x: snapIsoV4(n.x + dx, isoSnapStep),
-              y: snapIsoV4(n.y + dy, isoSnapStep),
-              z: Number(((n.z || 0) + dz).toFixed(3)),
-            };
-          }
-          return n;
-        }));
-        setSegments(prev => recalcSegmentLengths(nodes, prev));
-      }
     }
   };
 
@@ -6467,7 +6915,7 @@ function IsometrieModule(props: { projectId?: string }) {
     }
     const node = nodes.find((n) => n.id === anchor.nodeId);
     if (!node) return null;
-    if (anchor.kind === "port" && anchor.portId) return portWorldPosition(node, anchor.portId);
+    if (anchor.kind === "port" && anchor.portId) return portWorldPosition(node, anchor.portId, nodes, segments);
     return { x: node.x, y: node.y, z: node.z };
   };
 
@@ -7637,6 +8085,8 @@ function IsometrieModule(props: { projectId?: string }) {
         { label: "Tout sélectionner", hint: "Ctrl+A", run: () => { setSelectedNodeIds(nodes.map(n=>n.id)); setSelectedSegmentIds(segments.map(s=>s.id)); } },
         { label: "Supprimer sélection", hint: "Suppr", run: deleteSelection, disabled: !selectedCount },
         { label: "Désélectionner", hint: "Esc", run: clearSelection },
+        { label: "Associer en Spool", hint: "Ctrl+G", run: () => associateSelectionToSpool(), disabled: !selectedCount },
+        { label: "Dissocier du Spool", hint: "Ctrl+Shift+G", run: () => dissociateSelectionFromSpool(), disabled: !selectedCount },
       ],
     },
     {
@@ -7892,6 +8342,74 @@ function IsometrieModule(props: { projectId?: string }) {
         label: "Export SVG",
         hint: "Exporter le plan vectoriel ISO au format SVG standard",
         run: exportProjectAsSvg
+      };
+    }
+    if (entree.id === "edition.associer" || entree.id === "edition.grouper") {
+      return {
+        label: "Associer en Spool",
+        hint: "Associer la sélection en sous-ensemble Spool (Ctrl+G)",
+        run: () => associateSelectionToSpool(),
+        disabled: !selectedCount,
+      };
+    }
+    if (entree.id === "edition.dissocier") {
+      return {
+        label: "Dissocier du Spool",
+        hint: "Dissocier les éléments sélectionnés du Spool (Ctrl+Shift+G)",
+        run: () => dissociateSelectionFromSpool(),
+        disabled: !selectedCount,
+      };
+    }
+
+    // Commandes d'alignement & précision (Résolution directe 100% fiable)
+    if (entree.id === "precision.aligner" || entree.id === "edition.aligner") {
+      return {
+        label: "Aligner",
+        hint: "Aligner sur un objet & son orientation de référence (AL)",
+        run: startAlignWizard,
+      };
+    }
+    if (entree.id === "precision.parallele") {
+      return {
+        label: "Rendre parallèle",
+        hint: "Rendre les tronçons sélectionnés parallèles par référence (//)",
+        run: startParallelWizard,
+      };
+    }
+    if (entree.id === "precision.alignerx") {
+      return {
+        label: "Aligner X",
+        hint: "Aligner les éléments sélectionnés sur l'axe monde X (AX)",
+        run: () => alignSelectedNodesAxis("x"),
+      };
+    }
+    if (entree.id === "precision.alignery") {
+      return {
+        label: "Aligner Y",
+        hint: "Aligner les éléments sélectionnés sur l'axe monde Y (AY)",
+        run: () => alignSelectedNodesAxis("y"),
+      };
+    }
+    if (entree.id === "precision.alignerz") {
+      return {
+        label: "Aligner Z",
+        hint: "Aligner les éléments sélectionnés sur l'axe monde Z (AZ)",
+        run: () => alignSelectedNodesAxis("z"),
+      };
+    }
+    if (entree.id === "precision.eqsurtube") {
+      return {
+        label: "Équipement sur tube",
+        hint: "Aligner l'équipement sélectionné sur l'axe du tube support (AT)",
+        run: alignSelectedEquipmentOnTube,
+      };
+    }
+    if (entree.id === "precision.redresser") {
+      return {
+        label: "Redresser ISO",
+        hint: "Redresser les tronçons sur les axes isométriques stricts (ISO)",
+        run: redressIsoSelection,
+        disabled: selectedSegmentIds.length < 1,
       };
     }
 
@@ -8596,9 +9114,18 @@ function IsometrieModule(props: { projectId?: string }) {
             </button>
             <button
               type="button"
-              title="Bibliothèque composants"
+              title="Inspecteur Technique (Panneau gauche)"
               onClick={() => setLeftPanelOpen(v => !v)}
               className={`pdi-rail-tool-btn ${railCollapsed ? "justify-center p-1" : ""} ${leftPanelOpen ? "active" : ""}`}
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+              {!railCollapsed && <span className="truncate">Inspecteur</span>}
+            </button>
+            <button
+              type="button"
+              title="Bibliothèque composants (Catalogue droit)"
+              onClick={() => setLibraryRightOpen(v => !v)}
+              className={`pdi-rail-tool-btn ${railCollapsed ? "justify-center p-1" : ""} ${libraryRightOpen ? "active" : ""}`}
             >
               <Layers className="w-3.5 h-3.5 text-amber-400 shrink-0" />
               {!railCollapsed && <span className="truncate">Biblio</span>}
@@ -8609,7 +9136,7 @@ function IsometrieModule(props: { projectId?: string }) {
               onClick={() => { setRightPanelOpen(true); setRightPanelTab("properties"); }}
               className={`pdi-rail-tool-btn ${railCollapsed ? "justify-center p-1" : ""} ${rightPanelOpen && rightPanelTab === "properties" ? "active" : ""}`}
             >
-              <SlidersHorizontal className="w-3.5 h-3.5 text-teal-400 shrink-0" />
+              <FileSpreadsheet className="w-3.5 h-3.5 text-teal-400 shrink-0" />
               {!railCollapsed && <span className="truncate">Propri.</span>}
             </button>
             <button
@@ -8915,7 +9442,76 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
               <button onClick={() => runWorkspaceCommand(alignSelectedEquipmentOnTube, "Aligner sur tube")} className="p-3 text-left rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700"><b>AT</b> · Équipement sur tube</button>
               <button onClick={() => runWorkspaceCommand(redressIsoSelection, "Redresser ISO")} className="p-3 text-left rounded-xl bg-emerald-950 hover:bg-emerald-900 text-emerald-100 border border-emerald-800"><b>ISO</b> · Redresser ISO</button>
               <button onClick={() => runWorkspaceCommand(removeSelectedDimensions, "Cotation supprimée")} className="p-3 text-left rounded-xl bg-red-950 hover:bg-red-900 text-red-100 border border-red-800"><b>⌫</b> · Suppr. dernière cote</button></div></div></div>}
-    {shortcutsOpen&&<div className="fixed inset-0 z-[10001] bg-slate-950/60 flex items-center justify-center p-4" onMouseDown={()=>setShortcutsOpen(false)}><div className="bg-slate-900 text-slate-100 rounded-2xl shadow-2xl border border-slate-700 w-[min(720px,95vw)] p-5" onMouseDown={e=>e.stopPropagation()}><div className="flex justify-between"><h3 className="font-black">Raccourcis V4.6</h3><button onClick={()=>setShortcutsOpen(false)} className="text-slate-300 hover:text-white">✕</button></div><div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-4 text-xs">{[["V","Sélection"],["H / Espace","Main"],["N","Nœud"],["T","Tube"],["E","Té"],["C","Coude"],["3 / Alt+3","Vue 3D Solide"],["R / Shift+R","Rotation ±15°"],["G","Grille"],["D","Afficher/Masquer cotations"],["M","Créer cotation"],["L","Labels"],["F / 0","Recentrer"],["+ / −","Zoom"],["Suppr","Supprimer"],["Ctrl+Z","Annuler"],["Ctrl+S","Exporter JSON"],["Ctrl+K","Commandes"],["P","Imprimer"],["Échap","Annuler l’outil"]].map(([k,v])=><div key={k} className="flex items-center gap-2 p-2 rounded-lg bg-slate-800 border border-slate-700"><kbd className="px-2 py-1 bg-slate-950 border border-slate-700 text-cyan-300 rounded font-mono font-black">{k}</kbd><span>{v}</span></div>)}</div></div></div>}
+    {shortcutsOpen && (
+      <div className="fixed inset-0 z-[10001] bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150" onMouseDown={() => setShortcutsOpen(false)}>
+        <div className="bg-slate-900 text-slate-100 rounded-3xl shadow-2xl border border-slate-700 w-[min(780px,95vw)] p-6 max-h-[90vh] flex flex-col gap-4 overflow-hidden" onMouseDown={e => e.stopPropagation()}>
+          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-emerald-950 border border-emerald-500/50 flex items-center justify-center">
+                <HelpCircle className="w-4 h-4 text-emerald-400" />
+              </div>
+              <div>
+                <h3 className="font-black text-sm text-slate-100 tracking-wide uppercase">Tableau de Guide &amp; Raccourcis PDI CAO</h3>
+                <p className="text-[11px] text-slate-400">Normes ASME B31.3 · ISO 14692 · MSS SP-58 · Vue 3D &amp; Soudures</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShortcutsOpen(false)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl text-xs font-bold border border-slate-700 transition-colors"
+              title="Masquer le tableau de guide (Hide)"
+            >
+              <X className="w-3.5 h-3.5" />
+              <span>Masquer (Hide)</span>
+            </button>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 overflow-y-auto pr-1 text-xs max-h-[60vh]">
+            {[
+              ["V", "Sélection"],
+              ["H / Espace", "Outil Main (Pan)"],
+              ["N", "Nouveau Nœud"],
+              ["T", "Nouveau Tube"],
+              ["E", "Nouveau Té"],
+              ["C", "Nouveau Coude"],
+              ["3 / Alt+3", "Vue 3D Solide Extrudée"],
+              ["W", "Afficher/Masquer Soudures (Wxxx)"],
+              ["SP", "Coloration Spools Préfab"],
+              ["MSS", "Supports MSS SP-58"],
+              ["R / Shift+R", "Rotation Organe (±15°)"],
+              ["G / #", "Grille Isométrique"],
+              ["D / ⇔", "Afficher/Masquer Cotes"],
+              ["M", "Cotation 2 Ancrages"],
+              ["Aa / L", "Labels & Annotations"],
+              ["F / 0", "Recentrer la Vue (Fit)"],
+              ["+ / −", "Zoom Avant / Arrière"],
+              ["Suppr", "Supprimer Sélection"],
+              ["Ctrl+Z", "Annuler la Dernière Action"],
+              ["Ctrl+S", "Exporter Projet JSON"],
+              ["Ctrl+K", "Palette de Commandes"],
+              ["P", "Impression Planche A3"],
+              ["Échap", "Annuler l’outil en cours"],
+            ].map(([k, v]) => (
+              <div key={k} className="flex items-center gap-2.5 p-2 rounded-xl bg-slate-800/80 border border-slate-700/80 hover:border-slate-600 transition-colors">
+                <kbd className="px-2 py-1 bg-slate-950 border border-slate-700 text-cyan-300 rounded-lg font-mono font-black text-[11px] shadow-sm shrink-0">
+                  {k}
+                </kbd>
+                <span className="text-slate-200 font-medium truncate">{v}</span>
+              </div>
+            ))}
+          </div>
+          <div className="pt-3 border-t border-slate-800 flex items-center justify-between">
+            <span className="text-[11px] text-slate-400">Raccourci rapide pour ce guide : Touche <b className="text-emerald-400 font-mono">?</b></span>
+            <button
+              type="button"
+              onClick={() => setShortcutsOpen(false)}
+              className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black shadow-md transition-colors"
+            >
+              Fermer le guide
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
 
     <IsoPrintModal
       isOpen={printModalOpen}
@@ -9141,7 +9737,24 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
 
     <div className={`${workspaceFullscreen?"hidden":"sticky"} top-2 z-40 bg-white/95 backdrop-blur border border-slate-200 rounded-xl shadow-sm px-2 py-2 flex-wrap items-center justify-between gap-2 ${workspaceFullscreen?"":"flex"}`}>
       <div className="flex items-center gap-1">
-        <button onClick={()=>setLeftPanelOpen(v=>!v)} className="h-9 px-3 rounded-lg bg-slate-100 text-xs font-black">☰ Bibliothèque</button>
+        <button
+          type="button"
+          onClick={() => setLeftPanelOpen(v => !v)}
+          className={`h-9 px-3 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all ${leftPanelOpen ? "bg-cyan-600 text-white shadow-sm" : "bg-slate-100 hover:bg-slate-200 text-slate-800"}`}
+          title="Panneau d'Inspection (Géométrie, nœuds, tronçons à gauche)"
+        >
+          <SlidersHorizontal className="w-3.5 h-3.5" />
+          <span>Inspecteur</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setLibraryRightOpen(v => !v)}
+          className={`h-9 px-3 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all ${libraryRightOpen ? "bg-amber-600 text-white shadow-sm" : "bg-slate-100 hover:bg-slate-200 text-slate-800"}`}
+          title="Bibliothèque de Tuyauterie & Catalogue CAO (à droite)"
+        >
+          <Layers className="w-3.5 h-3.5" />
+          <span>Bibliothèque</span>
+        </button>
         <button onClick={()=>{setInteractionMode("select");setIsoDrawMode("select")}} className={`h-9 px-3 rounded-lg text-xs font-black ${interactionMode==="select"&&isoDrawMode==="select"?"bg-blue-600 text-white":"bg-slate-100"}`}>V Sélection</button>
         <button onClick={()=>setInteractionMode("main")} className={`h-9 px-3 rounded-lg text-xs font-black ${interactionMode==="main"?"bg-cyan-600 text-white":"bg-slate-100"}`}>H Main</button>
         <button onClick={()=>setIsoDrawMode("segment")} className="h-9 px-3 rounded-lg bg-slate-100 text-xs font-black">T Tube</button>
@@ -9171,6 +9784,31 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
     <div className={`${workspaceFullscreen ? "h-[calc(100vh-104px)] overflow-hidden" : ""} grid grid-cols-1 lg:grid-cols-12 gap-2.5 items-stretch`}>
 
       <div className={`${leftPanelOpen?"lg:col-span-3":"hidden"} ${workspaceFullscreen ? "h-full min-h-0 overflow-y-auto pr-1" : "space-y-3 lg:sticky lg:top-16 lg:max-h-[calc(100vh-5rem)] lg:overflow-y-auto lg:pr-1"} space-y-3`}>
+        {/* En-tête de la barre latérale gauche : Inspecteur Technique */}
+        <div className="bg-gradient-to-r from-slate-900 via-slate-900 to-slate-950 rounded-2xl border border-slate-700/80 p-3 shadow-lg flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-7 h-7 rounded-lg bg-cyan-950/90 border border-cyan-500/40 flex items-center justify-center shrink-0">
+              <SlidersHorizontal className="w-3.5 h-3.5 text-cyan-400" />
+            </div>
+            <div className="truncate">
+              <h3 className="text-xs font-black uppercase text-slate-100 tracking-wide">
+                Inspecteur Technique
+              </h3>
+              <p className="text-[9px] text-slate-400 truncate">
+                Géométrie, nœuds & tronçons
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setLeftPanelOpen(false)}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-red-950/50 border border-slate-700 hover:border-red-500/60 text-slate-300 hover:text-red-300 text-[10px] font-black transition-all cursor-pointer shrink-0"
+            title="Masquer / Fermer le panneau d'inspection (Hide)"
+          >
+            <X className="w-3.5 h-3.5" />
+            <span>Fermer</span>
+          </button>
+        </div>
 
         {/* PATCH 007d — Propriétés 2D compactes style CAD */}
         {selectedCad2dEntity && (
@@ -9453,74 +10091,47 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
           return null;
         })()}
 
-        <div className="bg-slate-900 rounded-2xl border border-slate-700/80 p-3 shadow-lg">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-xs font-black uppercase text-slate-200 flex items-center gap-1.5">
-              <Layers className="w-3.5 h-3.5 text-cyan-400" />
-              Bibliothèque & Catalogue
-            </h3>
-            <span className="text-[9px] text-cyan-300 font-bold bg-cyan-950/80 border border-cyan-800/60 px-1.5 py-0.5 rounded">
-              Barre droite
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={() => setLibraryRightOpen(prev => !prev)}
-            className={`w-full py-2 px-3 rounded-xl border flex items-center justify-between text-xs font-bold transition-all shadow-sm ${
-              libraryRightOpen
-                ? "bg-cyan-950/80 border-cyan-500/80 text-cyan-300 shadow-cyan-950/50"
-                : "bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700"
-            }`}
-          >
-            <span className="flex items-center gap-2">
-              <span className="text-base">📦</span>
-              <span>{libraryRightOpen ? "Masquer Bibliothèque" : "Ouvrir Bibliothèque (Droite)"}</span>
-            </span>
-            <span className="text-[10px] bg-slate-950/80 border border-slate-700 px-1.5 py-0.5 rounded font-mono">
-              {FITTING_TYPES.length + 12} items
-            </span>
-          </button>
-          <div className="mt-2 grid grid-cols-2 gap-1 text-[10px]">
-            <button
-              type="button"
-              onClick={() => { setLibraryRightOpen(true); setLibraryCategoryTab("vannes"); }}
-              className="px-2 py-1 rounded-lg bg-slate-950/60 border border-slate-800 text-cyan-400 hover:bg-slate-800 text-left font-semibold truncate"
-            >
-              🚰 Vannes & Robinets
-            </button>
-            <button
-              type="button"
-              onClick={() => { setLibraryRightOpen(true); setLibraryCategoryTab("raccords"); }}
-              className="px-2 py-1 rounded-lg bg-slate-950/60 border border-slate-800 text-amber-400 hover:bg-slate-800 text-left font-semibold truncate"
-            >
-              🔄 Coudes & Tés
-            </button>
-            <button
-              type="button"
-              onClick={() => { setLibraryRightOpen(true); setLibraryCategoryTab("equipements"); }}
-              className="px-2 py-1 rounded-lg bg-slate-950/60 border border-slate-800 text-purple-400 hover:bg-slate-800 text-left font-semibold truncate"
-            >
-              🏭 Équipements 3D
-            </button>
-            <button
-              type="button"
-              onClick={() => { setLibraryRightOpen(true); setLibraryCategoryTab("gc"); }}
-              className="px-2 py-1 rounded-lg bg-slate-950/60 border border-slate-800 text-emerald-400 hover:bg-slate-800 text-left font-semibold truncate"
-            >
-              🏗️ Génie Civil & SP-58
-            </button>
-            <button
-              type="button"
-              onClick={() => { setLibraryRightOpen(true); setLibraryCategoryTab("trouvay"); }}
-              className="px-2 py-1 rounded-lg bg-slate-950/60 border border-slate-800 text-blue-400 hover:bg-slate-800 text-left font-semibold truncate col-span-2"
-            >
-              📦 Trouvay & Cauvin (Catalogue ASTM/ASME)
-            </button>
-          </div>
-        </div>
+
 
         {selectedEquipmentNodes.length>0&&<div className="bg-white rounded-2xl border border-slate-200 p-3 shadow-sm space-y-2"><div className="flex items-center justify-between"><h3 className="text-xs font-black uppercase">Orientation équipement</h3><span className="text-[9px] text-cyan-300">{selectedEquipmentNodes.length} sélectionné(s)</span></div><div className="text-[10px] text-slate-400 truncate">{selectedEquipmentNodes.map(e=>equipmentLabel(e)).join(", ")}</div><div className="grid grid-cols-3 gap-1"><button onClick={()=>rotateSelectedEquipment(-15)} className="rounded border border-slate-600 bg-slate-800 py-2 text-[10px] font-black">−15°</button><button onClick={()=>rotateSelectedEquipment(15)} className="rounded border border-slate-600 bg-slate-800 py-2 text-[10px] font-black">+15°</button><button onClick={flipSelectedEquipment} className="rounded border border-amber-600 bg-amber-950/40 py-2 text-[10px] font-black text-amber-300">Inverser</button></div><div className="text-[9px] text-slate-500">R / Maj+R : rotation · F : inverser</div></div>}
-        <div className="bg-white rounded-2xl border border-slate-200 p-3 shadow-sm"><div className="flex items-center justify-between"><h3 className="text-xs font-black uppercase">Contrôle du réseau</h3><span className={`text-[10px] font-black ${graphErrorCount?"text-red-600":graphWarningCount?"text-amber-600":"text-emerald-600"}`}>{graphErrorCount} erreur(s) · {graphWarningCount} avert.</span></div><div className="mt-2 max-h-40 overflow-y-auto space-y-1">{!graphIssues.length?<div className="p-2 rounded-lg bg-emerald-50 text-emerald-700 text-[10px] font-bold">✓ Graphe cohérent</div>:graphIssues.slice(0,12).map(issue=><div key={issue.id} className={`p-2 rounded-lg text-[10px] ${issue.severity==="error"?"bg-red-50 text-red-700":"bg-amber-50 text-amber-700"}`}><b>{issue.code}</b> · {issue.message}</div>)}</div><div className="mt-2 text-[9px] text-slate-500">{projectJoints.length} joint(s) détecté(s), dont {projectJoints.filter(j=>j.weldNumber).length} soudure(s) potentielle(s).</div></div>
+        <div className="bg-white rounded-2xl border border-slate-200 p-3 shadow-sm">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-black uppercase">Contrôle du réseau</h3>
+            <span className={`text-[10px] font-black ${graphErrorCount?"text-red-600":graphWarningCount?"text-amber-600":"text-emerald-600"}`}>
+              {graphErrorCount} erreur(s) · {graphWarningCount} avert.
+            </span>
+          </div>
+          <div className="mt-2 max-h-40 overflow-y-auto space-y-1">
+            {!graphIssues.length ? (
+              <div className="p-2 rounded-lg bg-emerald-50 text-emerald-700 text-[10px] font-bold">✓ Graphe cohérent</div>
+            ) : (
+              graphIssues.slice(0, 12).map(issue => {
+                const targetId = issue.entityId || issue.id;
+                const kind = pdiAnomalieKind017P9(issue, nodes);
+                return (
+                  <div
+                    key={issue.id}
+                    onClick={() => {
+                      if (kind === "segment") {
+                        selectSegmentV44(targetId, false);
+                      } else {
+                        selectNodeV44(targetId, false);
+                      }
+                      setRightPanelOpen(true);
+                      setRightPanelTab("properties");
+                    }}
+                    className={`p-2 rounded-lg text-[10px] cursor-pointer hover:ring-1 hover:ring-amber-500 transition-all ${issue.severity === "error" ? "bg-red-50 text-red-700 hover:bg-red-100" : "bg-amber-50 text-amber-700 hover:bg-amber-100"}`}
+                  >
+                    <b>{issue.code}</b> · {issue.message}
+                  </div>
+                );
+              })
+            )}
+          </div>
+          <div className="mt-2 text-[9px] text-slate-500">
+            {projectJoints.length} joint(s) détecté(s), dont {projectJoints.filter(j=>j.weldNumber).length} soudure(s) potentielle(s).
+          </div>
+        </div>
 
         <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3 shadow-sm">
           <h3 className="text-xs font-black uppercase border-b pb-2 flex gap-2"><FileText className="w-4 h-4 text-blue-600"/>Informations cartouche</h3>
@@ -9670,6 +10281,29 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                 <button type="button" onClick={()=>setColorBySpool(v=>!v)} className={`px-2 py-1 rounded text-[10px] font-bold transition-all ${colorBySpool?"bg-purple-600 text-white":"bg-slate-800 text-slate-400"}`} title="Coloration par Spool (SP)">SP</button>
                 <button type="button" onClick={()=>setWeldSpoolModalOpen(true)} className="px-2 py-1 rounded text-[10px] font-bold bg-slate-800 hover:bg-slate-700 text-amber-400 hover:text-amber-300" title="Carnet de Spools & Soudures (Weld Map)"><Flame className="w-3 h-3 inline"/></button>
                 <button type="button" onClick={()=>setShowLabels(v=>!v)} className={`px-2 py-1 rounded text-[10px] font-bold transition-all ${showLabels ? "bg-indigo-600 text-white" : "bg-slate-800 text-slate-400"}`} title="Afficher les annotations (Aa)">Aa</button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRightPanelOpen(v => {
+                      if (!v) { setRightPanelTab("supports"); return true; }
+                      if (rightPanelTab === "supports") return false;
+                      setRightPanelTab("supports");
+                      return true;
+                    });
+                  }}
+                  className={`px-2 py-1 rounded text-[10px] font-bold transition-all ${rightPanelOpen && rightPanelTab === "supports" ? "bg-purple-600 text-white shadow-sm" : "bg-slate-800 text-purple-300 hover:bg-slate-700"}`}
+                  title="Supports de tuyauterie MSS SP-58 (MSS / Hide)"
+                >
+                  MSS
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShortcutsOpen(v => !v)}
+                  className={`px-2 py-1 rounded text-[10px] font-bold transition-all ${shortcutsOpen ? "bg-emerald-600 text-white shadow-sm" : "bg-slate-800 text-slate-300 hover:text-emerald-300 hover:bg-slate-700"}`}
+                  title="Tableau de Guide & Raccourcis (Guide / Hide)"
+                >
+                  GUIDE
+                </button>
               </div>
 
               <div className="flex shrink-0 items-center gap-0.5 border border-slate-800 rounded-lg p-0.5 bg-slate-950">
@@ -9727,27 +10361,28 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
               </div>
             )}
 
-            {/* Guide Info-Bulle ALIGNEMENT par rapport à un objet & orientation */}
+            {/* Guide Info-Bulle ALIGNEMENT par rapport à un objet & orientation (Positionné à droite) */}
             {alignWizard && (
-              <div className="absolute top-2 left-2 z-[60] flex flex-col gap-2.5 bg-slate-900/95 backdrop-blur-md border-2 border-cyan-500/90 rounded-2xl p-3.5 shadow-2xl max-w-md animate-in fade-in slide-in-from-top-2 duration-150">
+              <div className="absolute top-12 right-4 z-[60] flex flex-col gap-2.5 bg-slate-900/95 backdrop-blur-md border-2 border-cyan-500/90 rounded-2xl p-3.5 shadow-2xl max-w-sm sm:max-w-md animate-in fade-in slide-in-from-top-2 duration-150">
                 <div className="flex items-center justify-between gap-3 border-b border-slate-800 pb-2">
                   <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded-md bg-cyan-950 border border-cyan-700 text-cyan-400 text-xs font-mono font-black tracking-wide">📐 ALIGN</span>
+                    <span className="px-2 py-0.5 rounded-md bg-cyan-950 border border-cyan-700 text-cyan-400 text-xs font-mono font-black tracking-wide">📐 GUIDE ALIGN</span>
                     <span className="text-xs font-black text-cyan-300">
-                      {alignWizard.step === 1 && "Étape 1/3 : Objet de Référence"}
-                      {alignWizard.step === 2 && "Étape 2/3 : Objet à Aligner"}
-                      {alignWizard.step === 3 && "Étape 3/3 : Choix de l'Échelle"}
+                      {alignWizard.step === 1 && "1/3 : Objet Référence"}
+                      {alignWizard.step === 2 && "2/3 : Objet à Aligner"}
+                      {alignWizard.step === 3 && "3/3 : Choix Échelle"}
                     </span>
                   </div>
                   <button
                     type="button"
                     onClick={() => {
                       setAlignWizard(null);
-                      setStatusMessage("Alignement annulé");
+                      setStatusMessage("Alignement masqué / annulé");
                     }}
-                    className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-bold rounded-lg border border-slate-700 transition-colors"
+                    className="px-2.5 py-1 bg-slate-800 hover:bg-red-950 text-slate-300 hover:text-red-300 text-[11px] font-bold rounded-lg border border-slate-700 hover:border-red-600 transition-colors"
+                    title="Masquer le guide d'alignement (Hide)"
                   >
-                    ✕ Annuler (Échap)
+                    ✕ Masquer (Hide)
                   </button>
                 </div>
 
@@ -9799,26 +10434,27 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
               </div>
             )}
 
-            {/* Guide Info-Bulle RENDRE PARALLÈLE selon un tronçon de référence */}
+            {/* Guide Info-Bulle RENDRE PARALLÈLE selon un tronçon de référence (Positionné à droite) */}
             {parallelWizard && (
-              <div className="absolute top-2 left-2 z-[60] flex flex-col gap-2.5 bg-slate-900/95 backdrop-blur-md border-2 border-amber-500/90 rounded-2xl p-3.5 shadow-2xl max-w-md animate-in fade-in slide-in-from-top-2 duration-150">
+              <div className="absolute top-12 right-4 z-[60] flex flex-col gap-2.5 bg-slate-900/95 backdrop-blur-md border-2 border-amber-500/90 rounded-2xl p-3.5 shadow-2xl max-w-sm sm:max-w-md animate-in fade-in slide-in-from-top-2 duration-150">
                 <div className="flex items-center justify-between gap-3 border-b border-slate-800 pb-2">
                   <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded-md bg-amber-950 border border-amber-700 text-amber-400 text-xs font-mono font-black tracking-wide">⚡ // PARALLÈLE</span>
+                    <span className="px-2 py-0.5 rounded-md bg-amber-950 border border-amber-700 text-amber-400 text-xs font-mono font-black tracking-wide">⚡ GUIDE //</span>
                     <span className="text-xs font-black text-amber-300">
-                      {parallelWizard.step === 1 && "Étape 1/2 : Tronçon Référence"}
-                      {parallelWizard.step === 2 && "Étape 2/2 : Tronçon à Orienter"}
+                      {parallelWizard.step === 1 && "1/2 : Réf."}
+                      {parallelWizard.step === 2 && "2/2 : À Orienter"}
                     </span>
                   </div>
                   <button
                     type="button"
                     onClick={() => {
                       setParallelWizard(null);
-                      setStatusMessage("Parallélisme annulé");
+                      setStatusMessage("Parallélisme masqué / annulé");
                     }}
-                    className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-bold rounded-lg border border-slate-700 transition-colors"
+                    className="px-2.5 py-1 bg-slate-800 hover:bg-red-950 text-slate-300 hover:text-red-300 text-[11px] font-bold rounded-lg border border-slate-700 hover:border-red-600 transition-colors"
+                    title="Masquer le guide de parallélisme (Hide)"
                   >
-                    ✕ Annuler (Échap)
+                    ✕ Masquer (Hide)
                   </button>
                 </div>
 
@@ -9931,7 +10567,7 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                 {segments.map(s=>{
                   const a=nodes.find(n=>n.id===s.fromNodeId),b=nodes.find(n=>n.id===s.toNodeId);
                   if(!a||!b)return null;
-                  const endpoints=segmentEndpoints(s,nodes);
+                  const endpoints=segmentEndpoints(s,nodes,segments);
                   const p1=endpoints?isoProjectV4(endpoints.from.x,endpoints.from.y,endpoints.from.z,viewport.zoom,viewport.panX,viewport.panY):iso(a);
                   const p2=endpoints?isoProjectV4(endpoints.to.x,endpoints.to.y,endpoints.to.z,viewport.zoom,viewport.panX,viewport.panY):iso(b),sel=s.id===selectedSegmentId||selectedSegmentIds.includes(s.id);
                   const width=clamp((s.dn/25)*pipeStrokeScale,2,24),mx=(p1.x+p2.x)/2,my=(p1.y+p2.y)/2;
@@ -9943,7 +10579,7 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                         return;
                       }
                       e.stopPropagation();
-                      selectSegmentV44(s.id,e.ctrlKey||e.metaKey||e.shiftKey);
+                      beginSegmentDrag(e,s.id,e.ctrlKey||e.metaKey||e.shiftKey);
                     }}
                     onContextMenu={(e)=>{
                       e.preventDefault();
@@ -9990,7 +10626,7 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                   const isSel = selectedNodeIds.includes(n.id) || n.id === selectedNodeId;
                   const isHov = hoveredEntity?.type === "node" && hoveredEntity.id === n.id;
                   const fill = n.type==="entree_poste"?"#22c55e":n.type==="sortie_poste"?"#ef4444":isTee?"#8b5cf6":"#0284c7";
-                  const nativePorts=(n.ports||[]).map(port=>{const w=portWorldPosition(n,port.id),sp=isoProjectV4(w.x,w.y,w.z,viewport.zoom,viewport.panX,viewport.panY);return {...port,sx:sp.x-p.x,sy:sp.y-p.y};});
+                  const nativePorts=(n.ports||[]).map(port=>{const w=portWorldPosition(n,port.id,nodes,segments),sp=isoProjectV4(w.x,w.y,w.z,viewport.zoom,viewport.panX,viewport.panY);return {...port,sx:sp.x-p.x,sy:sp.y-p.y};});
                   const p0=nativePorts.find(port=>port.index===0),p1=nativePorts.find(port=>port.index===1);
 
                   // Calcul topologique rigoureux de l'alignement axial et de l'orientation des coudes
@@ -10022,7 +10658,9 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                   }
 
                   let equipAngle = n.rotation || 0;
-                  if (pAdjA && pAdjB) {
+                  if (p0 && p1 && (Math.abs(p1.sx - p0.sx) > 0.5 || Math.abs(p1.sy - p0.sy) > 0.5)) {
+                    equipAngle = (Math.atan2(p1.sy - p0.sy, p1.sx - p0.sx) * 180) / Math.PI;
+                  } else if (pAdjA && pAdjB) {
                     const sIn = connSegs.find(s => s.toNodeId === n.id);
                     const sOut = connSegs.find(s => s.fromNodeId === n.id);
                     if (sIn && sOut) {
@@ -10154,7 +10792,8 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                       const strokeCol = isGolden ? "#f59e0b" : isField ? "#ef4444" : "#38bdf8";
                       const fillCol = isGolden ? "#78350f" : isField ? "#450a0a" : "#082f49";
                       const isHov = hoveredEntity?.type === ("node" as any) && hoveredEntity.id === weld.id;
-                      const badgeW = Math.max(22, weld.id.length * 6 + 6);
+                      const weldLabel = weld.weldNumber || weld.id;
+                      const badgeW = Math.max(20, weldLabel.length * 5.8 + 8);
 
                       return (
                         <g
@@ -10217,7 +10856,7 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                                 fontFamily="monospace"
                                 fontWeight="bold"
                               >
-                                {weld.id}
+                                {weldLabel}
                               </text>
                             </g>
                           )}
@@ -10233,7 +10872,7 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                 {branchDrawing && (() => {
                   const fromN = nodes.find(n => n.id === branchDrawing.fromNodeId);
                   if (!fromN) return null;
-                  const start=portWorldPosition(fromN,branchDrawing.fromPortId);
+                  const start=portWorldPosition(fromN,branchDrawing.fromPortId,nodes,segments);
                   const p1 = isoProjectV4(start.x,start.y,start.z,viewport.zoom,viewport.panX,viewport.panY);
                   const p2 = isoProjectV4(branchDrawing.currentWorldPos.x, branchDrawing.currentWorldPos.y, branchDrawing.currentWorldPos.z, viewport.zoom, viewport.panX, viewport.panY);
                   return (
@@ -10753,6 +11392,125 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
             )}
             {selectedCad2dEntity && !cadPropsOpen && <button className="pdi-cad-props-tab" onClick={()=>setCadPropsOpen(true)} style={{ left: cadPropsPos.x, top: cadPropsPos.y }}>PROPS</button>}
 
+            {/* Barre d'action rapide flottante Tuyauterie, Spools & Alignement */}
+            {!contextMenu && (selectedSegmentIds.length > 0 || selectedNodeIds.length > 0) && (
+              <div
+                className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[100] bg-slate-950/90 backdrop-blur-md border border-cyan-500/40 shadow-2xl rounded-full px-4 py-1.5 flex items-center gap-2 text-xs text-white pointer-events-auto animate-fade-in max-w-[95vw] overflow-x-auto"
+                onMouseDown={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center gap-1.5 pr-2 border-r border-slate-700/80 shrink-0">
+                  <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                  <span className="font-bold text-[11px] text-cyan-200">
+                    {selectedSegmentIds.length + selectedNodeIds.length} sélectionné(s)
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => associateSelectionToSpool()}
+                  className="px-3 py-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-full font-bold flex items-center gap-1.5 shadow transition-all hover:scale-105 active:scale-95 shrink-0"
+                  title="Associer les éléments sélectionnés dans un Spool / Tronçon d'atelier (Ctrl+G)"
+                >
+                  <span>⚭</span>
+                  <span>Associer Spool</span>
+                  <span className="text-[10px] text-blue-200 font-mono opacity-80">Ctrl+G</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => dissociateSelectionFromSpool()}
+                  className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-full font-medium flex items-center gap-1.5 transition-all shrink-0"
+                  title="Dissocier du Spool (Ctrl+Shift+G)"
+                >
+                  <span>⚮</span>
+                  <span>Dissocier</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setColorBySpool((v) => !v)}
+                  className={`px-2.5 py-1 rounded-full font-medium flex items-center gap-1.5 transition-all shrink-0 ${
+                    colorBySpool
+                      ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+                      : "bg-slate-800 text-slate-400 hover:text-slate-200"
+                  }`}
+                  title="Activer / Désactiver la coloration automatique par Spool"
+                >
+                  <span>🎨</span>
+                  <span>Couleur</span>
+                </button>
+
+                <div className="w-px h-4 bg-slate-700 mx-0.5 shrink-0" />
+
+                {/* Actions rapides d'alignement */}
+                <button
+                  type="button"
+                  onClick={startAlignWizard}
+                  className="px-2.5 py-1 bg-emerald-700/80 hover:bg-emerald-600 text-emerald-100 rounded-full font-bold flex items-center gap-1 shadow transition-all hover:scale-105 active:scale-95 shrink-0"
+                  title="Aligner sur un objet & orientation de référence (AL)"
+                >
+                  <span>📐</span>
+                  <span>Aligner (AL)</span>
+                </button>
+                <div className="flex items-center gap-1 bg-slate-900 border border-slate-700/80 rounded-full px-1.5 py-0.5 shrink-0">
+                  <span className="text-[10px] text-slate-400 font-bold mr-0.5">Axe:</span>
+                  <button
+                    type="button"
+                    onClick={() => alignSelectedNodesAxis("x")}
+                    className="px-1.5 py-0.5 bg-red-900/60 hover:bg-red-600 text-red-200 hover:text-white rounded text-[10px] font-mono font-bold transition-all"
+                    title="Aligner sur l'axe monde X (AX)"
+                  >
+                    X
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => alignSelectedNodesAxis("y")}
+                    className="px-1.5 py-0.5 bg-emerald-900/60 hover:bg-emerald-600 text-emerald-200 hover:text-white rounded text-[10px] font-mono font-bold transition-all"
+                    title="Aligner sur l'axe monde Y (AY)"
+                  >
+                    Y
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => alignSelectedNodesAxis("z")}
+                    className="px-1.5 py-0.5 bg-blue-900/60 hover:bg-blue-600 text-blue-200 hover:text-white rounded text-[10px] font-mono font-bold transition-all"
+                    title="Aligner sur l'axe monde Z (AZ)"
+                  >
+                    Z
+                  </button>
+                </div>
+                {selectedSegmentIds.length >= 2 && (
+                  <button
+                    type="button"
+                    onClick={startParallelWizard}
+                    className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-cyan-300 hover:text-white rounded-full font-bold flex items-center gap-1 transition-all shrink-0"
+                    title="Rendre les tronçons parallèles par référence (//)"
+                  >
+                    <span>∥</span>
+                    <span>Parallèle</span>
+                  </button>
+                )}
+                {selectedSegmentIds.length >= 1 && (
+                  <button
+                    type="button"
+                    onClick={redressIsoSelection}
+                    className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-purple-300 hover:text-white rounded-full font-medium flex items-center gap-1 transition-all shrink-0"
+                    title="Redresser les tronçons sur les axes isométriques stricts (ISO)"
+                  >
+                    <span>⬡</span>
+                    <span>Redresser</span>
+                  </button>
+                )}
+
+                <div className="w-px h-4 bg-slate-700 mx-0.5 shrink-0" />
+                <button
+                  type="button"
+                  onClick={() => clearSelection()}
+                  className="p-1 hover:bg-slate-800 text-slate-400 hover:text-white rounded-full transition-colors shrink-0"
+                  title="Désélectionner (Échap)"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
             {contextMenu && (
               <div
                 className="fixed z-[10005] bg-slate-900/95 backdrop-blur border border-slate-700 shadow-2xl rounded-xl py-1 min-w-[210px] text-xs text-slate-200"
@@ -10873,6 +11631,57 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                     >
                       <span>📑</span> Dupliquer (Ctrl+D)
                     </button>
+                    {(() => {
+                      const currentSeg = segments.find(s => s.id === contextMenu.id);
+                      if (currentSeg?.spoolNumber && currentSeg.spoolNumber !== "NONE") {
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => { selectWholeSpool(currentSeg.spoolNumber); setContextMenu(null); }}
+                            className="w-full text-left px-3 py-1.5 hover:bg-cyan-700 hover:text-white flex items-center gap-2 text-cyan-300 font-semibold"
+                          >
+                            <span>🔍</span> Sélectionner tout le Spool {currentSeg.spoolNumber}
+                          </button>
+                        );
+                      }
+                      return null;
+                    })()}
+                    <button
+                      type="button"
+                      onClick={() => { associateSelectionToSpool(); setContextMenu(null); }}
+                      className="w-full text-left px-3 py-1.5 hover:bg-blue-600 hover:text-white flex items-center gap-2 text-blue-300 font-bold"
+                    >
+                      <span>⚭</span> Associer en Spool (Ctrl+G)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { dissociateSelectionFromSpool(); setContextMenu(null); }}
+                      className="w-full text-left px-3 py-1.5 hover:bg-slate-800 flex items-center gap-2 text-slate-300"
+                    >
+                      <span>⚮</span> Dissocier du Spool (Ctrl+Shift+G)
+                    </button>
+                    <div className="h-px bg-slate-800 my-1" />
+                    <button
+                      type="button"
+                      onClick={() => { startAlignWizard(); setContextMenu(null); }}
+                      className="w-full text-left px-3 py-1.5 hover:bg-emerald-600 hover:text-white flex items-center gap-2 text-emerald-300"
+                    >
+                      <span>📐</span> Aligner sur objet (AL)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { startParallelWizard(); setContextMenu(null); }}
+                      className="w-full text-left px-3 py-1.5 hover:bg-slate-800 flex items-center gap-2 text-cyan-300"
+                    >
+                      <span>∥</span> Rendre parallèle (//)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { redressIsoSelection(); setContextMenu(null); }}
+                      className="w-full text-left px-3 py-1.5 hover:bg-slate-800 flex items-center gap-2 text-purple-300"
+                    >
+                      <span>⬡</span> Redresser ISO (ISO)
+                    </button>
                     <div className="h-px bg-slate-800 my-1" />
                     <button
                       type="button"
@@ -10964,6 +11773,67 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                     >
                       <span>📑</span> Dupliquer (Ctrl+D)
                     </button>
+                    {(() => {
+                      const currentNode = nodes.find(n => n.id === contextMenu.id);
+                      if (currentNode?.spoolNumber && currentNode.spoolNumber !== "NONE") {
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => { selectWholeSpool(currentNode.spoolNumber); setContextMenu(null); }}
+                            className="w-full text-left px-3 py-1.5 hover:bg-cyan-700 hover:text-white flex items-center gap-2 text-cyan-300 font-semibold"
+                          >
+                            <span>🔍</span> Sélectionner tout le Spool {currentNode.spoolNumber}
+                          </button>
+                        );
+                      }
+                      return null;
+                    })()}
+                    <button
+                      type="button"
+                      onClick={() => { associateSelectionToSpool(); setContextMenu(null); }}
+                      className="w-full text-left px-3 py-1.5 hover:bg-blue-600 hover:text-white flex items-center gap-2 text-blue-300 font-bold"
+                    >
+                      <span>⚭</span> Associer en Spool (Ctrl+G)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { dissociateSelectionFromSpool(); setContextMenu(null); }}
+                      className="w-full text-left px-3 py-1.5 hover:bg-slate-800 flex items-center gap-2 text-slate-300"
+                    >
+                      <span>⚮</span> Dissocier du Spool (Ctrl+Shift+G)
+                    </button>
+                    <div className="h-px bg-slate-800 my-1" />
+                    <button
+                      type="button"
+                      onClick={() => { startAlignWizard(); setContextMenu(null); }}
+                      className="w-full text-left px-3 py-1.5 hover:bg-emerald-600 hover:text-white flex items-center gap-2 text-emerald-300"
+                    >
+                      <span>📐</span> Aligner sur objet (AL)
+                    </button>
+                    <div className="px-3 py-1 flex items-center gap-1">
+                      <span className="text-[10px] text-slate-400">Aligner axe:</span>
+                      <button
+                        type="button"
+                        onClick={() => { alignSelectedNodesAxis("x"); setContextMenu(null); }}
+                        className="px-2 py-0.5 bg-red-950 hover:bg-red-800 text-red-200 rounded text-[10px] font-bold"
+                      >
+                        X
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { alignSelectedNodesAxis("y"); setContextMenu(null); }}
+                        className="px-2 py-0.5 bg-emerald-950 hover:bg-emerald-800 text-emerald-200 rounded text-[10px] font-bold"
+                      >
+                        Y
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { alignSelectedNodesAxis("z"); setContextMenu(null); }}
+                        className="px-2 py-0.5 bg-blue-950 hover:bg-blue-800 text-blue-200 rounded text-[10px] font-bold"
+                      >
+                        Z
+                      </button>
+                    </div>
                     <div className="h-px bg-slate-800 my-1" />
                     <button
                       type="button"
@@ -11069,7 +11939,15 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
               <div className="absolute top-3 right-3 z-30 w-80 bg-slate-900/95 backdrop-blur border border-slate-700 text-slate-100 rounded-2xl shadow-2xl p-3 flex flex-col gap-2 max-h-[85vh] overflow-y-auto">
                 <div className="flex items-center justify-between border-b border-slate-800 pb-2">
                   <strong className="text-xs font-black uppercase text-amber-300">Propri&eacute;t&eacute;s &middot; S&eacute;lection</strong>
-                  <button type="button" onClick={()=>setPropsOpen(false)} className="text-slate-400 hover:text-white px-1.5 py-0.5 rounded bg-slate-800 text-xs">&times;</button>
+                  <button
+                    type="button"
+                    onClick={() => setPropsOpen(false)}
+                    className="flex items-center gap-1 text-slate-300 hover:text-white px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold border border-slate-700 transition-colors"
+                    title="Masquer les propriétés (Hide)"
+                  >
+                    <X className="w-3 h-3" />
+                    <span>Masquer</span>
+                  </button>
                 </div>
                 {selectedNodeIds.length===0 && (
                   <p className="text-[11px] text-slate-400">S&eacute;lectionnez au moins un n&oelig;ud pour modifier ses coordonn&eacute;es et propri&eacute;t&eacute;s.</p>
@@ -11156,9 +12034,11 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                     <button
                       type="button"
                       onClick={() => setLibraryRightOpen(false)}
-                      className="text-slate-400 hover:text-white px-1.5 py-0.5 rounded bg-slate-800 text-xs font-bold"
+                      className="flex items-center gap-1 text-slate-300 hover:text-white px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold border border-slate-700 transition-colors"
+                      title="Masquer la bibliothèque (Hide)"
                     >
-                      &times;
+                      <X className="w-3 h-3" />
+                      <span>Masquer</span>
                     </button>
                   </div>
                 </div>
@@ -12354,6 +13234,60 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                           <span>🔗</span> Créer un tube entre les 2 nœuds (T)
                         </button>
                       )}
+                      <div className="pt-1.5 space-y-1.5">
+                        <button
+                          type="button"
+                          onClick={() => associateSelectionToSpool()}
+                          className="w-full py-1.5 px-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-lg flex items-center justify-center gap-2 shadow text-xs transition-colors"
+                          title="Associer les éléments en un sous-ensemble Spool (Ctrl+G)"
+                        >
+                          <span>⚭</span> Associer en Spool (Ctrl+G)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => dissociateSelectionFromSpool()}
+                          className="w-full py-1.5 px-3 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white font-bold rounded-lg flex items-center justify-center gap-2 border border-slate-700 text-xs transition-colors"
+                          title="Dissocier les éléments du Spool (Ctrl+Shift+G)"
+                        >
+                          <span>⚮</span> Dissocier du Spool (Ctrl+Shift+G)
+                        </button>
+
+                        {/* Outils d'alignement */}
+                        <button
+                          type="button"
+                          onClick={startAlignWizard}
+                          className="w-full py-1.5 px-3 bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 hover:text-white font-bold rounded-lg flex items-center justify-center gap-2 border border-emerald-700/60 text-xs transition-colors"
+                          title="Aligner sur un objet & orientation de référence (AL)"
+                        >
+                          <span>📐</span> Aligner sur objet (AL)
+                        </button>
+                        <div className="grid grid-cols-3 gap-1">
+                          <button
+                            type="button"
+                            onClick={() => alignSelectedNodesAxis("x")}
+                            className="py-1 bg-red-950/80 hover:bg-red-900 border border-red-800/80 text-red-200 rounded text-[10px] font-bold"
+                            title="Aligner sur l'axe monde X (AX)"
+                          >
+                            Axe X (AX)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => alignSelectedNodesAxis("y")}
+                            className="py-1 bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-800/80 text-emerald-200 rounded text-[10px] font-bold"
+                            title="Aligner sur l'axe monde Y (AY)"
+                          >
+                            Axe Y (AY)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => alignSelectedNodesAxis("z")}
+                            className="py-1 bg-blue-950/80 hover:bg-blue-900 border border-blue-800/80 text-blue-200 rounded text-[10px] font-bold"
+                            title="Aligner sur l'axe monde Z (AZ)"
+                          >
+                            Axe Z (AZ)
+                          </button>
+                        </div>
+                      </div>
                       <div className="pt-2 border-t border-slate-800 flex gap-1.5">
                         <button
                           type="button"
@@ -12448,7 +13382,7 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                             orientationAngleDeg: updated.geometry.rotation != null ? updated.geometry.rotation : s.orientationAngleDeg,
                           } : s));
                         } else if (updated.identity.category === "fitting" && selectedFitting) {
-                          setSegments(prev => prev.map(s => s.id === selectedFitting.segmentId ? {
+                          const nextSegments = segments.map(s => s.id === selectedFitting.segmentId ? {
                             ...s,
                             fittings: s.fittings.map(f => f.id === updated.identity.id ? {
                               ...f,
@@ -12457,9 +13391,10 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                               reference: updated.documentation.catalogRef,
                               manufacturer: updated.documentation.manufacturer,
                             } : f),
-                          } : s));
+                          } : s);
+                          commitGraph(nodes, nextSegments);
                         } else if (updated.identity.category === "pipe") {
-                          setSegments(prev => prev.map(s => s.id === updated.identity.id ? {
+                          const nextSegments = segments.map(s => s.id === updated.identity.id ? {
                             ...s,
                             sourceName: updated.identity.name,
                             tag: updated.tag.fullTag,
@@ -12471,10 +13406,13 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                             spec: updated.spec.pmsCode,
                             length: updated.geometry.length != null ? updated.geometry.length : s.length,
                             insulation: updated.specific.pipe?.insulation || s.insulation,
-                          } : s));
+                            spoolNumber: updated.fabrication?.spoolNumber || s.spoolNumber,
+                            fabricationLocation: (updated.fabrication?.location as any) || s.fabricationLocation,
+                          } : s);
+                          commitGraph(nodes, nextSegments);
                         } else {
-                          // Nœud / Équipement / Vanne / Té / Coude
-                          setNodes(prev => prev.map(n => n.id === updated.identity.id ? {
+                          // Nœud / Équipement / Vanne / Té / Coude (PATCH 017Q3-UNIFY-CORE : mutation transactionnelle avec recalcul des segments)
+                          const nextNodes = nodes.map(n => n.id === updated.identity.id ? {
                             ...n,
                             name: updated.identity.name,
                             dn: updated.dn.dn,
@@ -12492,8 +13430,11 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                             z: updated.geometry.z,
                             rotation: updated.geometry.rotation,
                             branchAngle: updated.geometry.branchAngle,
-                          } : n));
-                          setSegments(prev => recalcSegmentLengths(nodes, prev));
+                            spoolNumber: updated.fabrication?.spoolNumber || n.spoolNumber,
+                            fabricationLocation: (updated.fabrication?.location as any) || n.fabricationLocation,
+                          } : n);
+                          const nextSegments = recalcSegmentLengths(nextNodes, segments);
+                          commitGraph(nextNodes, nextSegments);
                         }
                       }}
                       onClose={() => clearSelection()}

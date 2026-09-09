@@ -117,7 +117,7 @@ export function nodeToUniversalEntity(
     },
     fabrication: {
       location: (node as any).fabricationLocation || "shop",
-      spoolNumber: (node as any).spoolNumber || "SP-01",
+      spoolNumber: (node as any).spoolNumber || "",
       weldType: "butt_weld",
       ndtRequirement: "VT",
     },
@@ -217,7 +217,7 @@ export function segmentToUniversalEntity(
     },
     fabrication: {
       location: (seg as any).fabricationLocation || "shop",
-      spoolNumber: (seg as any).spoolNumber || "SP-01",
+      spoolNumber: (seg as any).spoolNumber || "",
       weldType: "butt_weld",
       ndtRequirement: "VT",
     },
@@ -300,8 +300,8 @@ export function fittingToUniversalEntity(
       lineId: parentSegment.lineId,
     },
     fabrication: {
-      location: "shop",
-      spoolNumber: "SP-01",
+      location: (parentSegment as any).fabricationLocation || "shop",
+      spoolNumber: (parentSegment as any).spoolNumber || "",
       weldType: "butt_weld",
     },
     documentation: {

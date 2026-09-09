@@ -192,10 +192,11 @@ export const IsoWeldSpoolModal: React.FC<IsoWeldSpoolModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-all"
-              aria-label="Fermer"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold transition-all cursor-pointer"
+              title="Masquer / Fermer le carnet de soudures (Hide)"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
+              <span>Masquer (Hide)</span>
             </button>
           </div>
         </div>

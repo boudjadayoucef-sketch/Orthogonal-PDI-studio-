@@ -297,7 +297,9 @@ export class Pdi3dSceneManager {
       }
 
       let mat: THREE.Material;
-      if (this.currentOptions.shadingMode === "color_by_spool") {
+      if (this.currentOptions.selectedEntityId === seg.id) {
+        mat = this.materials.highlightSelected;
+      } else if (this.currentOptions.shadingMode === "color_by_spool") {
         mat = this.materials.getSpoolMaterial(spoolId, spoolColor, "color_by_spool");
       } else if (this.currentOptions.shadingMode === "color_by_service") {
         mat = this.materials.getServiceMaterial(seg.service || seg.lineFunction, "color_by_service");
@@ -525,7 +527,10 @@ export class Pdi3dSceneManager {
     for (const node of nodes) {
       const pos = toThree(node.x, node.y, node.z);
       const dn = node.dn || 100;
-      const mat = this.materials.carbonSteel;
+      let mat = this.materials.carbonSteel;
+      if (this.currentOptions.selectedEntityId === node.id) {
+        mat = this.materials.highlightSelected;
+      }
       const conns = nodeConnMap.get(node.id) || [];
       const eqType = (node.equipmentType || "").toLowerCase();
       const nodeType = (node.type || "").toLowerCase();
@@ -1168,6 +1173,13 @@ export class Pdi3dSceneManager {
 
   public setSelectedSpoolId(spoolId: string | null): void {
     this.currentOptions.selectedSpoolId = spoolId;
+    if (this.currentData) {
+      this.buildModel(this.currentData);
+    }
+  }
+
+  public setSelectedEntityId(entityId: string | null): void {
+    this.currentOptions.selectedEntityId = entityId;
     if (this.currentData) {
       this.buildModel(this.currentData);
     }

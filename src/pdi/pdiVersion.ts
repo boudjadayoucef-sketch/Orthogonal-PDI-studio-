@@ -2,7 +2,7 @@
 // Point de verite unique : chaque patch met a jour cette valeur,
 // ce qui permet de verifier de visu quel patch est reellement charge.
 
-export const PDI_PATCH_VERSION = "017Q2-UNIVERSAL-ALIGN-PARALLEL-PROPS";
+export const PDI_PATCH_VERSION = "017Q3-UNIFY-CORE";
 
 // Date de reference du patch courant, au format ISO court.
-export const PDI_PATCH_DATE = "2026-09-07";
+export const PDI_PATCH_DATE = "2026-09-09";
