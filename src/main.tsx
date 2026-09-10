@@ -7,9 +7,13 @@ import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import { ErrorBoundary } from './components/ErrorBoundary.tsx';
 import { testConnection } from './lib/firebase.ts';
+import { initClarity } from './lib/clarity.ts';
 
 // Test connection to Firestore on boot
 void testConnection();
+
+// Initialiser Microsoft Clarity si configuré
+initClarity();
 // PATCH 017H : index.css est injecte par ./pdiInlineStyles (bundle JS).
 
 // Global error listener for non-React uncaught runtime and resource-loading crashes

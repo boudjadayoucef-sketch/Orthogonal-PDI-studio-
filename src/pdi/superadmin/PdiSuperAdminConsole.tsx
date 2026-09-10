@@ -40,6 +40,8 @@ import {
 import { PDI_PATCH_VERSION } from "../pdiVersion";
 import { pdiAlert } from "../ui/PdiNotice";
 import { pdiConfirm } from "../ui/PdiConfirm";
+import { getSanityAnnouncements, SanityAnnouncement, SANITY_PROJECT_ID, SANITY_DATASET } from "../../lib/sanity";
+import { CLARITY_PROJECT_ID, initClarity } from "../../lib/clarity";
 
 type SuperAdminTab =
   | "overview"
@@ -50,7 +52,9 @@ type SuperAdminTab =
   | "connections"
   | "commercial_visits"
   | "subscriber_usage"
-  | "feedbacks";
+  | "feedbacks"
+  | "clarity_ux"
+  | "sanity_cms";
 
 export function PdiSuperAdminConsole({
   currentUserEmail,
@@ -88,6 +92,18 @@ export function PdiSuperAdminConsole({
   const [paymentTransactions, setPaymentTransactions] = useState<PdiPaymentTransaction[]>([]);
   const [gatewayConfig, setGatewayConfig] = useState<PdiPaymentGatewayConfig | null>(null);
   const [showSimulateModal, setShowSimulateModal] = useState(false);
+
+  // Sanity CMS & Microsoft Clarity state
+  const [sanityAnnouncements, setSanityAnnouncements] = useState<SanityAnnouncement[]>([]);
+  const [isSanityConfigured, setIsSanityConfigured] = useState(false);
+  const [sanityLoading, setSanityLoading] = useState(false);
+  const [clarityId, setClarityId] = useState<string>(
+    localStorage.getItem("pdi_clarity_id") || CLARITY_PROJECT_ID || ""
+  );
+  const [clarityEmbedUrl, setClarityEmbedUrl] = useState<string>(
+    localStorage.getItem("pdi_clarity_embed") || (CLARITY_PROJECT_ID ? `https://clarity.microsoft.com/embed/${CLARITY_PROJECT_ID}` : "")
+  );
+  const [isEditingClarity, setIsEditingClarity] = useState(false);
   const [simDraft, setSimDraft] = useState<{
     email: string;
     name: string;
@@ -281,6 +297,17 @@ export function PdiSuperAdminConsole({
       setCommercialVisits(cVisits);
       setSubscriberUsages(sUsages);
       setFeedbacks(fBacks);
+
+      // Load Sanity announcements
+      setSanityLoading(true);
+      getSanityAnnouncements().then((res) => {
+        setSanityAnnouncements(res.announcements);
+        setIsSanityConfigured(res.isConfigured);
+      }).catch((e) => {
+        console.warn("Sanity fetch error:", e);
+      }).finally(() => {
+        setSanityLoading(false);
+      });
     } catch (err) {
       console.error("Failed to load super admin data from Firebase:", err);
     } finally {
@@ -763,7 +790,9 @@ export function PdiSuperAdminConsole({
           { id: "connections", label: `Analyse des connexions (${totalConnections})`, icon: "🔑" },
           { id: "commercial_visits", label: `Visites site commercial (${totalVisits})`, icon: "🌐" },
           { id: "subscriber_usage", label: `Utilisation abonnés (${totalUsageEvents})`, icon: "⚡" },
-          { id: "feedbacks", label: `Retours d'expérience (${totalFeedbacks})`, icon: "💬" }
+          { id: "feedbacks", label: `Retours d'expérience (${totalFeedbacks})`, icon: "💬" },
+          { id: "clarity_ux", label: "Analytics UX (Clarity)", icon: "📊" },
+          { id: "sanity_cms", label: `Contenus CMS (${sanityAnnouncements.length})`, icon: "📝" }
         ].map(tab => (
           <button
             key={tab.id}
@@ -2668,6 +2697,357 @@ export function PdiSuperAdminConsole({
               </div>
             )}
           </div>
+        </div>
+      )}
+      {/* TAB: CLARITY UX ANALYTICS */}
+      {activeTab === "clarity_ux" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
+            <div>
+              <h3 style={{ margin: 0, color: "#F8FAFC", fontSize: 18, display: "flex", alignItems: "center", gap: 8 }}>
+                <span>📊 Microsoft Clarity UX &amp; Session Replays</span>
+                <span style={{ fontSize: 11, background: "#059669", color: "#ECFDF5", padding: "2px 8px", borderRadius: 6, fontWeight: 800 }}>
+                  100% Gratuit / Illimité
+                </span>
+              </h3>
+              <p style={{ margin: "4px 0 0", color: "#94A3B8", fontSize: 12 }}>
+                Suivi comportemental UX, cartes de chaleur (heatmaps), rage clicks et replays de sessions sans aucun coût d'API.
+              </p>
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                type="button"
+                onClick={() => setIsEditingClarity(!isEditingClarity)}
+                style={{
+                  background: "#1E293B",
+                  border: "1px solid #334155",
+                  color: "#E2E8F0",
+                  padding: "6px 12px",
+                  borderRadius: 8,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: "pointer"
+                }}
+              >
+                ⚙️ {isEditingClarity ? "Masquer configuration" : "Configurer ID / iFrame"}
+              </button>
+              <a
+                href="https://clarity.microsoft.com"
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  background: "linear-gradient(135deg, #0284C7, #22D3EE)",
+                  color: "white",
+                  padding: "6px 14px",
+                  borderRadius: 8,
+                  fontSize: 12,
+                  fontWeight: 800,
+                  textDecoration: "none"
+                }}
+              >
+                Ouvrir Clarity Console ↗
+              </a>
+            </div>
+          </div>
+
+          {/* CONFIGURATION PANEL */}
+          {isEditingClarity && (
+            <div style={{
+              background: "#0F172A",
+              border: "1px solid #38BDF8",
+              borderRadius: 14,
+              padding: 18,
+              display: "flex",
+              flexDirection: "column",
+              gap: 12
+            }}>
+              <h4 style={{ margin: 0, color: "#38BDF8", fontSize: 14, fontWeight: 800 }}>
+                Configuration Microsoft Clarity (Dashboard Embed)
+              </h4>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 12 }}>
+                <div>
+                  <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#94A3B8", marginBottom: 4 }}>
+                    Project ID Clarity
+                  </label>
+                  <input
+                    type="text"
+                    value={clarityId}
+                    onChange={(e) => {
+                      setClarityId(e.target.value);
+                      localStorage.setItem("pdi_clarity_id", e.target.value);
+                      if (e.target.value) {
+                        initClarity(e.target.value);
+                      }
+                    }}
+                    placeholder="ex: u9abcd1234"
+                    style={{
+                      width: "100%",
+                      padding: "8px 12px",
+                      borderRadius: 8,
+                      background: "#020617",
+                      border: "1px solid #334155",
+                      color: "white",
+                      fontFamily: "monospace",
+                      fontSize: 12
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#94A3B8", marginBottom: 4 }}>
+                    URL Partage iFrame Dashboard (Settings &gt; Sharing)
+                  </label>
+                  <input
+                    type="text"
+                    value={clarityEmbedUrl}
+                    onChange={(e) => {
+                      setClarityEmbedUrl(e.target.value);
+                      localStorage.setItem("pdi_clarity_embed", e.target.value);
+                    }}
+                    placeholder="https://clarity.microsoft.com/embed/..."
+                    style={{
+                      width: "100%",
+                      padding: "8px 12px",
+                      borderRadius: 8,
+                      background: "#020617",
+                      border: "1px solid #334155",
+                      color: "white",
+                      fontFamily: "monospace",
+                      fontSize: 12
+                    }}
+                  />
+                </div>
+              </div>
+              <p style={{ margin: 0, fontSize: 11, color: "#64748B" }}>
+                💡 <i>Pour obtenir le lien iFrame : Connectez-vous sur clarity.microsoft.com &gt; Settings &gt; Sharing &gt; Activez "Dashboard Sharing" et copiez le lien généré.</i>
+              </p>
+            </div>
+          )}
+
+          {/* IFRAME EMBED VIEW */}
+          {clarityEmbedUrl ? (
+            <div style={{
+              background: "#0B1120",
+              border: "1px solid rgba(148,163,184,0.15)",
+              borderRadius: 16,
+              overflow: "hidden",
+              height: "75vh",
+              boxShadow: "0 10px 30px rgba(0,0,0,0.5)"
+            }}>
+              <iframe
+                src={clarityEmbedUrl}
+                title="Microsoft Clarity Dashboard"
+                width="100%"
+                height="100%"
+                style={{ border: "none" }}
+                allow="fullscreen"
+              />
+            </div>
+          ) : (
+            <div style={{
+              background: "linear-gradient(180deg, #111C2B, #0B121C)",
+              border: "1px dashed rgba(56,189,248,0.3)",
+              borderRadius: 16,
+              padding: 40,
+              textAlign: "center",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 16
+            }}>
+              <span style={{ fontSize: 42 }}>📊</span>
+              <div style={{ maxWidth: 520 }}>
+                <h4 style={{ margin: "0 0 6px", color: "#F8FAFC", fontSize: 16, fontWeight: 800 }}>
+                  Intégration Microsoft Clarity prête à être connectée
+                </h4>
+                <p style={{ margin: 0, color: "#94A3B8", fontSize: 13, lineHeight: 1.6 }}>
+                  Renseignez votre <b>Project ID Clarity</b> ou l'URL de partage d'iFrame pour intégrer en temps réel vos heatmaps, enregistrements de clics et métriques UX au sein de ce panneau.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsEditingClarity(true)}
+                style={{
+                  background: "linear-gradient(135deg, #0284C7, #22D3EE)",
+                  color: "white",
+                  border: 0,
+                  padding: "10px 20px",
+                  borderRadius: 10,
+                  fontWeight: 900,
+                  fontSize: 13,
+                  cursor: "pointer"
+                }}
+              >
+                ⚙️ Renseigner le lien Clarity
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB: SANITY CMS CONTENT */}
+      {activeTab === "sanity_cms" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
+            <div>
+              <h3 style={{ margin: 0, color: "#F8FAFC", fontSize: 18, display: "flex", alignItems: "center", gap: 8 }}>
+                <span>📝 Gestionnaire de Contenus &amp; Annonces CMS (Sanity)</span>
+                <span style={{
+                  fontSize: 11,
+                  background: isSanityConfigured ? "#059669" : "#D97706",
+                  color: "#FFFFFF",
+                  padding: "2px 8px",
+                  borderRadius: 6,
+                  fontWeight: 800
+                }}>
+                  {isSanityConfigured ? "Connecté Sanity Studio" : "Mode Démo Locale"}
+                </span>
+              </h3>
+              <p style={{ margin: "4px 0 0", color: "#94A3B8", fontSize: 12 }}>
+                Visualisation en lecture seule des annonces, nouveautés et communications SaaS gérées via Sanity CMS (Offre Developer 0€).
+              </p>
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setSanityLoading(true);
+                  getSanityAnnouncements().then((res) => {
+                    setSanityAnnouncements(res.announcements);
+                    setIsSanityConfigured(res.isConfigured);
+                  }).finally(() => setSanityLoading(false));
+                }}
+                style={{
+                  background: "#1E293B",
+                  border: "1px solid #334155",
+                  color: "#E2E8F0",
+                  padding: "6px 12px",
+                  borderRadius: 8,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: "pointer"
+                }}
+              >
+                🔄 Actualiser
+              </button>
+              <a
+                href="https://www.sanity.io/manage"
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  background: "linear-gradient(135deg, #F97316, #FB923C)",
+                  color: "white",
+                  padding: "6px 14px",
+                  borderRadius: 8,
+                  fontSize: 12,
+                  fontWeight: 800,
+                  textDecoration: "none"
+                }}
+              >
+                Ouvrir Sanity Studio ↗
+              </a>
+            </div>
+          </div>
+
+          {/* PROJECT INFO CARD */}
+          <div style={{
+            background: "#0F172A",
+            border: "1px solid rgba(148,163,184,0.2)",
+            borderRadius: 14,
+            padding: 16,
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+            gap: 12
+          }}>
+            <div>
+              <span style={{ fontSize: 11, color: "#94A3B8" }}>Project ID Sanity :</span>
+              <div style={{ fontWeight: 800, color: SANITY_PROJECT_ID ? "#38BDF8" : "#94A3B8", fontFamily: "monospace", fontSize: 12 }}>
+                {SANITY_PROJECT_ID || "(Non configuré - Démo active)"}
+              </div>
+            </div>
+            <div>
+              <span style={{ fontSize: 11, color: "#94A3B8" }}>Dataset :</span>
+              <div style={{ fontWeight: 800, color: "#F8FAFC", fontFamily: "monospace", fontSize: 12 }}>
+                {SANITY_DATASET}
+              </div>
+            </div>
+            <div>
+              <span style={{ fontSize: 11, color: "#94A3B8" }}>Nombre d'annonces :</span>
+              <div style={{ fontWeight: 800, color: "#34D399", fontSize: 14 }}>
+                {sanityAnnouncements.length} enregistrements
+              </div>
+            </div>
+          </div>
+
+          {/* ANNOUNCEMENTS TABLE / CARDS */}
+          {sanityLoading ? (
+            <div style={{ padding: 40, textAlign: "center", color: "#94A3B8" }}>
+              Chargement des contenus Sanity...
+            </div>
+          ) : (
+            <div style={{
+              background: "#080F18",
+              border: "1px solid rgba(148,163,184,0.15)",
+              borderRadius: 14,
+              overflow: "hidden"
+            }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+                <thead>
+                  <tr style={{ background: "#0F172A", borderBottom: "1px solid #1E293B" }}>
+                    <th style={{ padding: "12px 16px", color: "#94A3B8", fontSize: 11, textTransform: "uppercase" }}>Titre de l'annonce</th>
+                    <th style={{ padding: "12px 16px", color: "#94A3B8", fontSize: 11, textTransform: "uppercase" }}>Catégorie</th>
+                    <th style={{ padding: "12px 16px", color: "#94A3B8", fontSize: 11, textTransform: "uppercase" }}>Auteur / Source</th>
+                    <th style={{ padding: "12px 16px", color: "#94A3B8", fontSize: 11, textTransform: "uppercase" }}>Date Publication</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sanityAnnouncements.map((item) => (
+                    <tr key={item._id} style={{ borderBottom: "1px solid rgba(148,163,184,0.08)" }}>
+                      <td style={{ padding: "14px 16px" }}>
+                        <div style={{ color: "#F8FAFC", fontWeight: 700, fontSize: 13 }}>{item.title}</div>
+                        {item.content && (
+                          <div style={{ color: "#94A3B8", fontSize: 11, marginTop: 4, maxWidth: 600 }}>{item.content}</div>
+                        )}
+                      </td>
+                      <td style={{ padding: "14px 16px" }}>
+                        <span style={{
+                          display: "inline-block",
+                          padding: "3px 8px",
+                          borderRadius: 6,
+                          fontSize: 11,
+                          fontWeight: 800,
+                          textTransform: "uppercase",
+                          background: item.tag === "feature" ? "rgba(56,189,248,0.15)" : item.tag === "maintenance" ? "rgba(239,68,68,0.15)" : "rgba(148,163,184,0.15)",
+                          color: item.tag === "feature" ? "#38BDF8" : item.tag === "maintenance" ? "#EF4444" : "#94A3B8",
+                          border: `1px solid ${item.tag === "feature" ? "#0284C7" : item.tag === "maintenance" ? "#DC2626" : "#475569"}`
+                        }}>
+                          {item.tag || "Général"}
+                        </span>
+                      </td>
+                      <td style={{ padding: "14px 16px", color: "#CBD5E1", fontSize: 12 }}>
+                        {item.author || "PD&I Admin"}
+                      </td>
+                      <td style={{ padding: "14px 16px", color: "#94A3B8", fontSize: 12, fontFamily: "monospace" }}>
+                        {item.publishedAt ? new Date(item.publishedAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "N/A"}
+                      </td>
+                    </tr>
+                  ))}
+                  {sanityAnnouncements.length === 0 && (
+                    <tr>
+                      <td colSpan={4} style={{ padding: 32, textAlign: "center", color: "#64748B" }}>
+                        Aucune annonce publiée dans le CMS Sanity pour le moment.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
     </div>

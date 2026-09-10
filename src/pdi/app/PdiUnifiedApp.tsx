@@ -61,6 +61,7 @@ class PdiModuleErrorBoundary extends React.Component<
 import PdiBrandMark from "./PdiBrandMark";
 import { Folder, FolderOpen, Plus, X, Layers, FileText, Pin, Trash2, LayoutGrid } from "lucide-react";
 import PdiIsometricEditor from "../isometric/PdiIsometricEditor";
+import { SketchToIsoModule } from "../sketch/SketchToIsoModule";
 // PATCH 004c : page publicitaire publique, montee AVANT la coquille applicative.
 import PdiLandingV4 from "../landing/PdiLandingV4";
 import PdiAuthPage from "../auth/PdiAuthPage";
@@ -77,6 +78,7 @@ import { pdiAlert } from "../ui/PdiNotice";
 import { PdiCompanyPanel } from "../ui/PdiCompanyPanel";
 import { PdiSuperAdminConsole } from "../superadmin/PdiSuperAdminConsole";
 import { PdiFeedbackModal } from "../feedback/PdiFeedbackModal";
+import { PdiNewProjectModal } from "../modals/PdiNewProjectModal";
 import { recordSubscriberUsage, changeUserProfilePassword } from "../../lib/firebase";
 
 type PdiModule = "home" | "isometric" | "drive" | "vision" | "sketch" | "cad" | "json" | "pdf" | "projects" | "assistant" | "profile" | "subscription" | "super_admin_console" | "license_keys";
@@ -509,6 +511,37 @@ export default function PdiUnifiedApp() {
   const switchTab = (id: string) => { const tab = workspaceTabs.find(t=>t.id===id); if(!tab) return; setActiveTabId(id); setActiveModule(tab.module); persistTabs(workspaceTabs,id); };
   const closeTab = (id: string) => { const tabs = workspaceTabs.filter(t=>t.id!==id); const next = tabs[tabs.length-1] || null; setWorkspaceTabs(tabs); setActiveTabId(next?.id || null); setActiveModule(next?.module || "home"); persistTabs(tabs,next?.id || null); };
 
+  // ÉTAPE 5 : Modal Nouveau Projet & Raccordement ISO
+  const [newProjectModalOpen, setNewProjectModalOpen] = useState(false);
+  const handleOpenNewProject = (params: {
+    name: string;
+    service: string;
+    dn: number;
+    pressureClass: string;
+    material: string;
+    mode: "sketch" | "blank" | "vision" | "cad" | "assistant";
+  }) => {
+    const projId = `project-${Date.now().toString(36)}`;
+    if (params.mode === "sketch") {
+      try {
+        window.localStorage.setItem("pdi.sketch.projectName", params.name);
+        window.localStorage.setItem("pdi.sketch.service", params.service);
+        window.localStorage.setItem("pdi.sketch.dn", String(params.dn));
+        window.localStorage.setItem("pdi.sketch.pressureClass", params.pressureClass);
+        window.localStorage.setItem("pdi.sketch.material", params.material);
+      } catch {}
+      openModuleInTab("sketch", `Croquis · ${params.name}`, projId);
+    } else if (params.mode === "blank") {
+      openModuleInTab("isometric", params.name, projId);
+    } else if (params.mode === "vision") {
+      openModuleInTab("vision", `Vision · ${params.name}`, projId);
+    } else if (params.mode === "cad") {
+      openModuleInTab("cad", `CAD · ${params.name}`, projId);
+    } else if (params.mode === "assistant") {
+      openModuleInTab("assistant", `Assistant · ${params.name}`, projId);
+    }
+  };
+
   // Rechargement : conserve dans le module ISO quand connecté
   const [stage, setStage] = useState<"landing" | "auth" | "app">(() => {
     try {
@@ -886,7 +919,8 @@ export default function PdiUnifiedApp() {
                 transition: "all 0.15s ease",
               }}
               onClick={() => {
-                openModuleInTab("isometric", "Nouveau plan ISO");
+                setNewProjectModalOpen(true);
+                setIsoTabDockOpen(false);
               }}
               onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.04)")}
               onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
@@ -1026,8 +1060,8 @@ export default function PdiUnifiedApp() {
 
         <button
           type="button"
-          onClick={() => openModuleInTab("isometric", "Nouveau plan ISO")}
-          title="Nouveau plan"
+          onClick={() => setNewProjectModalOpen(true)}
+          title="Nouveau plan / Projet"
           style={{
             border: "1px solid rgba(255,255,255,.1)",
             background: "#18181B",
@@ -1232,7 +1266,7 @@ export default function PdiUnifiedApp() {
             </div>
             <h1>Construire vos plans isométriques depuis toutes vos sources.</h1>
             <p>PD&I devient le logiciel principal : dessin manuel, Vision PD&I photo/croquis, import CAO/DXF/PDF, JSON central, exports et validation engineering.</p>
-            <button className="pdi-start-primary" onClick={() => openModuleInTab("isometric", "Nouveau plan ISO")}>{canOpenWorkspaceModule ? "Nouveau projet isométrique" : "Connexion requise"}</button>
+            <button className="pdi-start-primary" onClick={() => setNewProjectModalOpen(true)}>{canOpenWorkspaceModule ? "Nouveau projet isométrique" : "Connexion requise"}</button>
             <div className="pdi-launch-grid">
               {launchCards.map((card) => (
                 <button key={card.id} className="pdi-launch-card" onClick={() => openModuleInTab(card.id, card.title)} title={card.title}>
@@ -1272,7 +1306,28 @@ export default function PdiUnifiedApp() {
         </div>}
         {activeModule === "drive" && <GoogleDriveWorkspace onLoadProjectToEditor={(data, name) => { openModuleInTab("isometric", name); }} />}
         {activeModule === "vision" && <ComingSoonPanel title="Vision PD&I"><p><b>Vision PD&I</b> préparera le flux <code>photo réelle → analyse agent → scripts Python → JSON PD&I → validation → ISO</code>. Les images restent en cache local temporaire navigateur.</p></ComingSoonPanel>}
-        {activeModule === "sketch" && <ComingSoonPanel title="Croquis → JSON / ISO"><p>Import croquis main, reconnaissance lignes/symboles, conversion vers JSON central, validation humaine, puis génération ISO.</p></ComingSoonPanel>}
+        {activeModule === "sketch" && (
+          <SketchToIsoModule
+            onLoadProjectToEditor={(data, name) => {
+              const targetProjId = `project-${Date.now().toString(36)}`;
+              const resolvedName = name || "Plan Isométrique";
+              openModuleInTab("isometric", resolvedName, targetProjId);
+              // Passerelle d'injection instantanée vers l'éditeur ISO (Étape 5)
+              setTimeout(() => {
+                window.dispatchEvent(
+                  new CustomEvent("pdi:inject-iso-graph", {
+                    detail: {
+                      data,
+                      name: resolvedName,
+                      projectId: targetProjId,
+                      open3d: true,
+                    },
+                  })
+                );
+              }, 60);
+            }}
+          />
+        )}
         {activeModule === "cad" && <ComingSoonPanel title="Import CAO / DXF / PDF"><p>Import DXF/PDF, lecture des calques et entités, conversion déterministe Python vers JSON PD&I.</p></ComingSoonPanel>}
         {activeModule === "json" && <ComingSoonPanel title="Modèle JSON PD&I"><p>Le JSON devient la source de vérité : lignes, nœuds, équipements, ports, soudures, cotations, niveaux Z, massifs, dalle, exports.</p></ComingSoonPanel>}
         {activeModule === "pdf" && <ComingSoonPanel title="Impression / Exports"><p>Préparation V4.8e : A4/A3/A2/A1, portrait/paysage, PDF, DXF/CAD, cartouche, nomenclature.</p></ComingSoonPanel>}
@@ -1411,7 +1466,7 @@ export default function PdiUnifiedApp() {
             ))}
           </div>
           <div style={{ marginTop: 16, display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button type="button" className="pdi-start-primary" onClick={() => openModuleInTab("isometric", "Nouveau plan ISO")}>Nouveau plan ISO</button>
+            <button type="button" className="pdi-start-primary" onClick={() => setNewProjectModalOpen(true)}>Nouveau plan ISO</button>
             {/* PATCH 017F2 : recuperation des sauvegardes orphelines. */}
             <button type="button" className="pdi-start-primary" onClick={() => { const added = pdiAdoptOrphanSessions(); setProjectsRefresh((v) => v + 1); void pdiAlert(added > 0 ? added + " projet(s) recupere(s) depuis les sauvegardes locales." : "Aucune sauvegarde orpheline a recuperer."); }}>Recuperer les sauvegardes orphelines</button>
           </div>
@@ -1434,6 +1489,13 @@ export default function PdiUnifiedApp() {
         onClose={() => setFeedbackModalOpen(false)}
         userEmail={pdiUserProfile.email}
         userName={pdiUserProfile.name}
+      />
+
+      {/* Modal Nouveau Projet & Raccordement ISO Étape 5 */}
+      <PdiNewProjectModal
+        isOpen={newProjectModalOpen}
+        onClose={() => setNewProjectModalOpen(false)}
+        onCreateProject={handleOpenNewProject}
       />
     </div>
   );
