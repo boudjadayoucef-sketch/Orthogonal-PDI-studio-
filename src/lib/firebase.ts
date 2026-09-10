@@ -7,13 +7,16 @@ import {
   doc, 
   getDocs, 
   getDoc,
+  getDocFromServer,
   setDoc, 
   updateDoc, 
   deleteDoc, 
   addDoc,
   query,
+  where,
   orderBy,
   limit,
+  startAfter,
   onSnapshot
 } from "firebase/firestore";
 import { 
@@ -22,6 +25,66 @@ import {
   signInWithPopup,
   signOut as fbSignOut
 } from "firebase/auth";
+
+// ==========================================
+// FIRESTORE ERROR HANDLING & CONNECTION TEST
+// ==========================================
+export enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+export interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+    tenantId?: string | null;
+    providerInfo?: {
+      providerId?: string | null;
+      email?: string | null;
+    }[];
+  };
+}
+
+export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+      tenantId: auth.currentUser?.tenantId,
+      providerInfo: auth.currentUser?.providerData?.map(provider => ({
+        providerId: provider.providerId,
+        email: provider.email,
+      })) || []
+    },
+    operationType,
+    path
+  };
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
+
+export async function testConnection() {
+  try {
+    await getDocFromServer(doc(db, 'test', 'connection'));
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('the client is offline')) {
+      console.error("Please check your Firebase configuration.");
+    }
+  }
+}
 // Allow the user to override Firebase configuration via client-side environment variables
 const metaEnv = (typeof import.meta !== "undefined" && (import.meta as any)?.env) || {};
 
@@ -1133,4 +1196,143 @@ export async function savePaymentGatewayConfigToFirebase(config: Partial<PdiPaym
     throw err;
   }
 }
+
+// ------------------------------------------
+// SAAS PROJECTS & ISOMETRICS FIRESTORE API
+// ------------------------------------------
+export interface PdiSaasProject {
+  id: string;
+  name: string;
+  code: string;
+  tenantId: string;
+  ownerId: string;
+  description?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface PdiSaasIsometric {
+  id: string;
+  title: string;
+  projectId: string;
+  tenantId: string;
+  ownerId: string;
+  drawingNumber?: string;
+  linePid?: string;
+  fluidCode?: string;
+  status?: "draft" | "approved" | "as_built";
+  dataJson?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export async function saveSaasProjectToFirestore(project: PdiSaasProject): Promise<void> {
+  const path = `projects/${project.id}`;
+  try {
+    await setDoc(doc(db, "projects", project.id), {
+      ...project,
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, path);
+  }
+}
+
+export async function getSaasProjectsFromFirestore(tenantId: string): Promise<PdiSaasProject[]> {
+  const path = "projects";
+  try {
+    const q = query(collection(db, "projects"), where("tenantId", "==", tenantId));
+    const snap = await getDocs(q);
+    const list: PdiSaasProject[] = [];
+    snap.forEach((d) => list.push({ id: d.id, ...d.data() } as PdiSaasProject));
+    return list;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.LIST, path);
+    return [];
+  }
+}
+
+export async function saveSaasIsometricToFirestore(iso: PdiSaasIsometric): Promise<void> {
+  const path = `projects/${iso.projectId}/isometrics/${iso.id}`;
+  try {
+    await setDoc(doc(db, "projects", iso.projectId, "isometrics", iso.id), {
+      ...iso,
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, path);
+  }
+}
+
+export async function getSaasIsometricsFromFirestore(projectId: string): Promise<PdiSaasIsometric[]> {
+  const path = `projects/${projectId}/isometrics`;
+  try {
+    const snap = await getDocs(collection(db, "projects", projectId, "isometrics"));
+    const list: PdiSaasIsometric[] = [];
+    snap.forEach((d) => list.push({ id: d.id, ...d.data() } as PdiSaasIsometric));
+    return list;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.LIST, path);
+    return [];
+  }
+}
+
+export async function deleteSaasIsometricFromFirestore(projectId: string, isoId: string): Promise<void> {
+  const path = `projects/${projectId}/isometrics/${isoId}`;
+  try {
+    await deleteDoc(doc(db, "projects", projectId, "isometrics", isoId));
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, path);
+  }
+}
+
+export async function getPaginatedProjectsFromFirestore(
+  pageSize = 50,
+  lastDoc: any = null,
+  tenantId?: string
+): Promise<{ items: PdiSaasProject[]; lastDoc: any }> {
+  const path = "projects";
+  try {
+    let constraints: any[] = [orderBy("updatedAt", "desc"), limit(pageSize)];
+    if (tenantId) {
+      constraints.unshift(where("tenantId", "==", tenantId));
+    }
+    if (lastDoc) {
+      constraints.push(startAfter(lastDoc));
+    }
+    const q = query(collection(db, "projects"), ...constraints);
+    const snap = await getDocs(q);
+    const items: PdiSaasProject[] = [];
+    snap.forEach((d) => items.push({ id: d.id, ...d.data() } as PdiSaasProject));
+    const newLastDoc = snap.docs.length > 0 ? snap.docs[snap.docs.length - 1] : null;
+    return { items, lastDoc: newLastDoc };
+  } catch (error) {
+    handleFirestoreError(error, OperationType.LIST, path);
+    return { items: [], lastDoc: null };
+  }
+}
+
+export async function getPaginatedProfilesFromFirebase(
+  pageSize = 50,
+  lastDoc: any = null
+): Promise<{ items: PdiUserProfile[]; lastDoc: any }> {
+  const path = "profiles";
+  try {
+    let constraints: any[] = [orderBy("lastLoginAt", "desc"), limit(pageSize)];
+    if (lastDoc) {
+      constraints.push(startAfter(lastDoc));
+    }
+    const q = query(collection(db, "profiles"), ...constraints);
+    const snap = await getDocs(q);
+    const items: PdiUserProfile[] = [];
+    snap.forEach((d) => items.push({ id: d.id, ...d.data() } as unknown as PdiUserProfile));
+    const newLastDoc = snap.docs.length > 0 ? snap.docs[snap.docs.length - 1] : null;
+    return { items, lastDoc: newLastDoc };
+  } catch (error) {
+    handleFirestoreError(error, OperationType.LIST, path);
+    return { items: [], lastDoc: null };
+  }
+}
+
+
 

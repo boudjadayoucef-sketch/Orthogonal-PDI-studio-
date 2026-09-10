@@ -2,7 +2,7 @@ import { pdiFeuilleImpression017L, PDI_STYLE_IMPRESSION_017L } from "../pdi/impr
 import defaultLogo from "../assets/images/sonelgaz_logo_1783415417090.jpg";
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { db, createNotification } from "../lib/firebase";
+import { db, createNotification, getPaginatedProfilesFromFirebase, getPaginatedProjectsFromFirestore } from "../lib/firebase";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
 import { 
@@ -1403,16 +1403,15 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
   const [profilesList, setProfilesList] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
-  // Sync user profiles from Firestore
+  // Sync user profiles from Firestore (Paginated for 10K+ scale)
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, "profiles"), (snapshot) => {
-      const list: any[] = [];
-      snapshot.forEach((doc) => {
-        list.push({ id: doc.id, ...doc.data() });
-      });
-      setProfilesList(list);
-    });
-    return () => unsubscribe();
+    let isMounted = true;
+    getPaginatedProfilesFromFirebase(100).then((res) => {
+      if (isMounted && res.items) {
+        setProfilesList(res.items);
+      }
+    }).catch(err => console.warn("Paginated profiles fetch error:", err));
+    return () => { isMounted = false; };
   }, []);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   

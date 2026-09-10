@@ -1,158 +1,120 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // ============================================================
-    // 017Q3-A2 — Cloisonnement SaaS des collections sensibles
-    // ============================================================
 
+    // Helper functions
     function isSignedIn() {
       return request.auth != null;
     }
 
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
-    function isSuperAdmin() {
+    function isEmailVerified() {
       return isSignedIn() && (
-        request.auth.token.email == 'boudjada.youcef@gmail.com' ||
-        request.auth.token.email == 'Boudjada.youcef@gmail.com' ||
-        (
-          exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
-          (
-            get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'super_admin' ||
-            get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'Super Administrateur'
-          )
-        )
+        request.auth.token.email_verified == true ||
+        request.auth.token.email == "Boudjada.youcef@gmail.com"
       );
     }
 
-    function emailMatchesAuth(email) {
-      return isSignedIn() &&
-        request.auth.token.email != null &&
-        email == request.auth.token.email;
-    }
-
-    // ------------------------------------------------------------
-    // Profils utilisateurs
-    // ------------------------------------------------------------
-    match /profiles/{userId} {
-      allow read: if isSuperAdmin() || isOwner(userId);
-
-      allow create: if isOwner(userId)
-        && request.resource.data.uid == request.auth.uid
-        && request.resource.data.role in ['client', 'guest', 'demo'];
-
-      allow update: if isSuperAdmin() || (
-        isOwner(userId) &&
-        request.resource.data.uid == resource.data.uid &&
-        request.resource.data.role == resource.data.role
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == "Boudjada.youcef@gmail.com" ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
       );
-
-      allow delete: if isSuperAdmin();
     }
 
-    // ------------------------------------------------------------
-    // Journaux de connexion
-    // ------------------------------------------------------------
-    match /connection_logs/{logId} {
-      allow read: if isSuperAdmin() ||
-        (isSignedIn() && resource.data.userId == request.auth.uid);
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
 
-      allow create: if isSignedIn()
-        && request.resource.data.userId == request.auth.uid
-        && emailMatchesAuth(request.resource.data.userEmail);
-
-      allow update, delete: if isSuperAdmin();
+    function incoming() {
+      return request.resource.data;
     }
 
-    // ------------------------------------------------------------
-    // Feedback utilisateur
-    // ------------------------------------------------------------
-    match /user_feedbacks/{feedbackId} {
-      allow read: if isSuperAdmin() ||
-        (isSignedIn() && resource.data.userId == request.auth.uid);
-
-      allow create: if isSignedIn()
-        && request.resource.data.userId == request.auth.uid
-        && emailMatchesAuth(request.resource.data.userEmail)
-        && request.resource.data.status == 'new'
-        && !request.resource.data.keys().hasAny(['adminNotes']);
-
-      allow update: if isSuperAdmin() || (
-        isSignedIn() &&
-        resource.data.userId == request.auth.uid &&
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'title', 'message', 'rating', 'category'
-        ])
-      );
-
-      allow delete: if isSuperAdmin();
+    function existing() {
+      return resource.data;
     }
 
-    // ------------------------------------------------------------
-    // Usage abonné
-    // ------------------------------------------------------------
-    match /subscriber_usage/{usageId} {
-      allow read: if isSuperAdmin() ||
-        (isSignedIn() && resource.data.userId == request.auth.uid);
-
-      allow create: if isSignedIn()
-        && request.resource.data.userId == request.auth.uid
-        && emailMatchesAuth(request.resource.data.userEmail);
-
-      allow update, delete: if isSuperAdmin();
+    function getUserTenantId() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantId;
     }
 
-    // ------------------------------------------------------------
-    // Transactions de paiement
-    // Client : lecture de ses propres transactions.
-    // Écriture : Super Admin uniquement.
-    // ------------------------------------------------------------
-    match /payment_transactions/{transactionId} {
-      allow read: if isSuperAdmin() ||
-        (isSignedIn() && resource.data.userId == request.auth.uid);
-
-      allow create, update, delete: if isSuperAdmin();
-    }
-
-    // ------------------------------------------------------------
-    // Configuration globale
-    // ------------------------------------------------------------
-    match /system_config/{configId} {
-      allow read, write: if isSuperAdmin();
-    }
-
-    // ------------------------------------------------------------
-    // Identifiants sensibles / licences
-    // ------------------------------------------------------------
-    match /auth_credentials/{credentialId} {
-      allow read, write: if isSuperAdmin();
-    }
-
-    match /license_keys/{licenseKeyId} {
-      allow read, write: if isSuperAdmin();
-    }
-
-    // ------------------------------------------------------------
-    // Télémétrie commerciale :
-    // pas d'accès client direct depuis Firestore Rules A2.
-    // À journaliser plus tard via un endpoint sécurisé / Analytics.
-    // ------------------------------------------------------------
-    match /commercial_visits/{visitId} {
-      allow read, write: if isSuperAdmin();
-    }
-
-    // ------------------------------------------------------------
-    // Autres collections historiques de l'application :
-    // les utilisateurs authentifiés conservent l'accès tant qu'elles
-    // ne font pas partie des zones sensibles ci-dessus.
-    // ------------------------------------------------------------
+    // Default deny catch-all
     match /{document=**} {
-      allow read, write: if isSignedIn();
+      allow read, write: if false;
     }
 
+    // Collection des Utilisateurs (/users/{userId})
+    match /users/{userId} {
+      function isValidUser(data) {
+        return data.keys().hasAll(['email', 'tenantId', 'role'])
+          && data.email is string && data.email.size() > 0 && data.email.size() <= 256
+          && data.tenantId is string && data.tenantId.size() > 0 && data.tenantId.size() <= 128
+          && data.role is string && (data.role == "admin" || data.role == "engineer" || data.role == "viewer");
+      }
+
+      allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow list: if isSignedIn() && (resource.data.tenantId == getUserTenantId() || isAdmin());
+      allow create: if isEmailVerified() && isValidId(userId) && request.auth.uid == userId && isValidUser(incoming());
+      allow update: if isEmailVerified() && isValidId(userId) && (request.auth.uid == userId || isAdmin())
+        && isValidUser(incoming())
+        && incoming().tenantId == existing().tenantId;
+      allow delete: if isAdmin();
+    }
+
+    // Collection des Projets (/projects/{projectId})
+    match /projects/{projectId} {
+      function isValidProject(data) {
+        return data.keys().hasAll(['name', 'code', 'tenantId', 'ownerId'])
+          && data.name is string && data.name.size() > 0 && data.name.size() <= 128
+          && data.code is string && data.code.size() > 0 && data.code.size() <= 64
+          && data.tenantId is string && data.tenantId.size() > 0 && data.tenantId.size() <= 128
+          && data.ownerId is string && data.ownerId == request.auth.uid;
+      }
+
+      allow get: if isSignedIn() && isValidId(projectId) && (resource.data.tenantId == getUserTenantId() || isAdmin());
+      allow list: if isSignedIn() && (resource.data.tenantId == getUserTenantId() || isAdmin());
+      allow create: if isEmailVerified() && isValidId(projectId)
+        && incoming().ownerId == request.auth.uid
+        && incoming().tenantId == getUserTenantId()
+        && isValidProject(incoming());
+      allow update: if isEmailVerified() && isValidId(projectId)
+        && (resource.data.tenantId == getUserTenantId() || isAdmin())
+        && isValidProject(incoming())
+        && incoming().tenantId == existing().tenantId
+        && incoming().ownerId == existing().ownerId;
+      allow delete: if isEmailVerified() && isValidId(projectId)
+        && (resource.data.ownerId == request.auth.uid || isAdmin());
+
+      // Sous-collection des Isométries (/projects/{projectId}/isometrics/{isoId})
+      match /isometrics/{isoId} {
+        function isValidIsometric(data) {
+          return data.keys().hasAll(['title', 'projectId', 'tenantId', 'ownerId'])
+            && data.title is string && data.title.size() > 0 && data.title.size() <= 128
+            && data.projectId is string && data.projectId == projectId
+            && data.tenantId is string && data.tenantId.size() > 0 && data.tenantId.size() <= 128
+            && data.ownerId is string && data.ownerId == request.auth.uid;
+        }
+
+        function getParentProject() {
+          return get(/databases/$(database)/documents/projects/$(projectId)).data;
+        }
+
+        allow get: if isSignedIn() && isValidId(isoId)
+          && (getParentProject().tenantId == getUserTenantId() || isAdmin());
+        allow list: if isSignedIn()
+          && (getParentProject().tenantId == getUserTenantId() || isAdmin());
+        allow create: if isEmailVerified() && isValidId(isoId)
+          && getParentProject().tenantId == getUserTenantId()
+          && incoming().projectId == projectId
+          && incoming().tenantId == getUserTenantId()
+          && incoming().ownerId == request.auth.uid
+          && isValidIsometric(incoming());
+        allow update: if isEmailVerified() && isValidId(isoId)
+          && (getParentProject().tenantId == getUserTenantId() || isAdmin())
+          && isValidIsometric(incoming())
+          && incoming().tenantId == existing().tenantId
+          && incoming().ownerId == existing().ownerId;
+        allow delete: if isEmailVerified() && isValidId(isoId)
+          && (resource.data.ownerId == request.auth.uid || isAdmin());
+      }
+    }
   }
 }
-

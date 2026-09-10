@@ -1,149 +1,66 @@
 {
   "entities": {
-    "userProfile": {
-      "title": "UserProfile",
-      "description": "Profil utilisateur avec rôles, abonnements, localisation et état du compte.",
+    "UserProfile": {
+      "title": "Profil Utilisateur",
+      "description": "Données utilisateur et appartenance au tenant SaaS",
       "type": "object",
       "properties": {
-        "uid": { "type": "string" },
-        "email": { "type": "string" },
-        "name": { "type": "string" },
-        "company": { "type": "string" },
-        "country": { "type": "string" },
-        "countryCode": { "type": "string" },
-        "city": { "type": "string" },
-        "paymentGateway": { "type": "string" },
-        "currency": { "type": "string" },
-        "role": { "type": "string", "enum": ["super_admin", "admin", "client", "guest", "demo"] },
-        "accountType": { "type": "string", "enum": ["basic", "pro", "enterprise", "team"] },
-        "subscriptionPlan": { "type": "string", "enum": ["monthly", "yearly", "trial", "lifetime"] },
-        "status": { "type": "string", "enum": ["active", "suspended", "pending_activation"] },
+        "email": { "type": "string", "description": "Email de l'utilisateur" },
+        "displayName": { "type": "string", "description": "Nom complet" },
+        "photoURL": { "type": "string", "description": "Avatar URL" },
+        "tenantId": { "type": "string", "description": "ID de l'organisation/tenant" },
+        "role": { "type": "string", "enum": ["admin", "engineer", "viewer"], "description": "Rôle dans le tenant" },
         "createdAt": { "type": "string", "format": "date-time" },
-        "lastLoginAt": { "type": "string", "format": "date-time" },
-        "loginCount": { "type": "number" },
-        "projectsCount": { "type": "number" },
-        "storageUsedKb": { "type": "number" }
+        "updatedAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["uid", "email", "role", "accountType", "subscriptionPlan", "status"]
+      "required": ["email", "tenantId", "role"]
     },
-    "paymentTransaction": {
-      "title": "PaymentTransaction",
-      "description": "Transactions de souscription SaaS, routées selon le pays (Slick-Pay BaridiMob pour Algérie, Paddle pour international).",
+    "Project": {
+      "title": "Projet de Tuyauterie / Isométrie",
+      "description": "Projet Isométrique sous un Tenant SaaS",
       "type": "object",
       "properties": {
-        "id": { "type": "string" },
-        "userId": { "type": "string" },
-        "userEmail": { "type": "string" },
-        "userName": { "type": "string" },
-        "country": { "type": "string" },
-        "countryCode": { "type": "string" },
-        "city": { "type": "string" },
-        "plan": { "type": "string" },
-        "billingCycle": { "type": "string" },
-        "amount": { "type": "number" },
-        "currency": { "type": "string" },
-        "provider": { "type": "string", "enum": ["slickpay_baridimob", "paddle"] },
-        "status": { "type": "string", "enum": ["pending", "completed", "failed", "refunded"] },
-        "createdAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["id", "userEmail", "plan", "amount", "currency", "provider", "status", "createdAt"]
-    },
-    "connectionLog": {
-      "title": "ConnectionLog",
-      "description": "Journal d'authentification et d'accès des abonnés.",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "userId": { "type": "string" },
-        "userEmail": { "type": "string" },
-        "userName": { "type": "string" },
-        "userRole": { "type": "string" },
-        "accountType": { "type": "string" },
-        "ip": { "type": "string" },
-        "userAgent": { "type": "string" },
-        "device": { "type": "string" },
-        "timestamp": { "type": "string", "format": "date-time" },
-        "status": { "type": "string", "enum": ["success", "failed"] }
-      },
-      "required": ["id", "userId", "userEmail", "timestamp"]
-    },
-    "commercialVisit": {
-      "title": "CommercialVisit",
-      "description": "Suivi des visites du site vitrine commercial et intérêt des visiteurs.",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "path": { "type": "string" },
-        "referrer": { "type": "string" },
-        "section": { "type": "string" },
-        "action": { "type": "string" },
-        "device": { "type": "string" },
-        "timestamp": { "type": "string", "format": "date-time" }
-      },
-      "required": ["id", "path", "timestamp"]
-    },
-    "userFeedback": {
-      "title": "UserFeedback",
-      "description": "Retours d'expérience utilisateurs, avis, notations et suggestions techniques.",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "userId": { "type": "string" },
-        "userEmail": { "type": "string" },
-        "userName": { "type": "string" },
-        "category": { "type": "string", "enum": ["feature_request", "bug_report", "general_feedback", "satisfaction"] },
-        "rating": { "type": "number" },
-        "title": { "type": "string" },
-        "message": { "type": "string" },
-        "status": { "type": "string", "enum": ["new", "reviewed", "in_progress", "resolved"] },
+        "name": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "code": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "tenantId": { "type": "string", "description": "ID du Tenant SaaS" },
+        "ownerId": { "type": "string", "description": "UID de l'auteur" },
+        "description": { "type": "string", "maxLength": 512 },
         "createdAt": { "type": "string", "format": "date-time" },
-        "adminNotes": { "type": "string" }
+        "updatedAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["id", "userEmail", "category", "rating", "message", "createdAt"]
+      "required": ["name", "code", "tenantId", "ownerId"]
     },
-    "subscriberUsage": {
-      "title": "SubscriberUsage",
-      "description": "Suivi de l'activité réelle et de l'usage fonctionnel par les abonnés.",
+    "Isometric": {
+      "title": "Plan Isométrique",
+      "description": "Document Isométrique de tuyauterie industrielle",
       "type": "object",
       "properties": {
-        "id": { "type": "string" },
-        "userId": { "type": "string" },
-        "userEmail": { "type": "string" },
-        "action": { "type": "string" },
-        "module": { "type": "string" },
-        "details": { "type": "string" },
-        "timestamp": { "type": "string", "format": "date-time" }
+        "title": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "projectId": { "type": "string" },
+        "tenantId": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "drawingNumber": { "type": "string", "maxLength": 64 },
+        "linePid": { "type": "string", "maxLength": 64 },
+        "fluidCode": { "type": "string", "maxLength": 32 },
+        "status": { "type": "string", "enum": ["draft", "approved", "as_built"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["id", "userId", "userEmail", "action", "module", "timestamp"]
+      "required": ["title", "projectId", "tenantId", "ownerId"]
     }
   },
   "firestore": {
-    "/profiles/{userId}": {
-      "schema": "userProfile",
-      "description": "Collection des profils utilisateurs et abonnements."
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Collection des utilisateurs"
     },
-    "/connection_logs/{logId}": {
-      "schema": "connectionLog",
-      "description": "Historique des connexions et tentatives d'accès."
+    "/projects/{projectId}": {
+      "schema": { "$ref": "#/entities/Project" },
+      "description": "Collection des projets isolés par Tenant SaaS"
     },
-    "/commercial_visits/{visitId}": {
-      "schema": "commercialVisit",
-      "description": "Trafic et télémétrie du site commercial."
-    },
-    "/user_feedbacks/{feedbackId}": {
-      "schema": "userFeedback",
-      "description": "Retours d'expérience et avis clients."
-    },
-    "/subscriber_usage/{usageId}": {
-      "schema": "subscriberUsage",
-      "description": "Journal d'utilisation par les abonnés."
-    },
-    "/payment_transactions/{transactionId}": {
-      "schema": "paymentTransaction",
-      "description": "Transactions de paiements et souscriptions des abonnés."
-    },
-    "/system_config/{configId}": {
-      "description": "Configuration globale du système (restrictions pays, clés passerelles de paiement)."
+    "/projects/{projectId}/isometrics/{isoId}": {
+      "schema": { "$ref": "#/entities/Isometric" },
+      "description": "Sous-collection des isométries d'un projet"
     }
   }
 }

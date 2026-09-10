@@ -455,6 +455,31 @@ export class Pdi3dSceneManager {
               spoolId,
             });
             this.modelRoot.add(vent);
+          } else if ((fit.type as string) === "massif_beton_gc") {
+            const pad = this.factory.createCivilPadMesh(new THREE.Vector3(fitPos.x, 0, fitPos.z), 1.0, 1.0, 0.3, {
+              id: fit.id,
+              label: fit.label || "Massif Béton GC",
+            });
+            this.modelRoot.add(pad);
+          } else if ((fit.type as string) === "traversee_murale_gc") {
+            const wallGroup = new THREE.Group();
+            const wallGeom = new THREE.BoxGeometry(0.3, 1.2, 1.2);
+            const wallMesh = new THREE.Mesh(wallGeom, (this.materials as any).concretePad || this.materials.carbonSteel);
+            wallGroup.add(wallMesh);
+
+            const sleeveGeom = new THREE.CylinderGeometry(0.18, 0.18, 0.4, 24);
+            const sleeveMesh = new THREE.Mesh(sleeveGeom, this.materials.supportSteel);
+            sleeveMesh.rotation.z = Math.PI / 2;
+            wallGroup.add(sleeveMesh);
+
+            wallGroup.position.copy(fitPos);
+            wallGroup.userData = {
+              isPdiEntity: true,
+              entityType: "genie_civil",
+              label: fit.label || "Traversée Murale GC",
+              id: fit.id,
+            };
+            this.modelRoot.add(wallGroup);
           } else if (fit.type === "fond_bombe") {
             const cap = this.factory.createPipeCapMesh(fitPos, normDir, fitDn, mat, {
               id: fit.id,
@@ -743,6 +768,33 @@ export class Pdi3dSceneManager {
           label: `Massif GC ${node.name || "Entrée/Sortie"}`,
         });
         this.modelRoot.add(pad);
+      } else if (eqType === "massif_beton_gc" || eqType.includes("massif") || eqType.includes("beton")) {
+        const pad = this.factory.createCivilPadMesh(new THREE.Vector3(pos.x, 0, pos.z), 1.0, 1.0, 0.3, {
+          id: node.id,
+          label: node.name || "Massif Béton GC",
+        });
+        if (rot) pad.rotation.y = (rot * Math.PI) / 180;
+        this.modelRoot.add(pad);
+      } else if (eqType === "traversee_murale_gc" || eqType.includes("traversee") || eqType.includes("murale")) {
+        const wallGroup = new THREE.Group();
+        const wallGeom = new THREE.BoxGeometry(0.3, 1.2, 1.2);
+        const wallMesh = new THREE.Mesh(wallGeom, (this.materials as any).concretePad || this.materials.carbonSteel);
+        wallGroup.add(wallMesh);
+
+        const sleeveGeom = new THREE.CylinderGeometry(0.18, 0.18, 0.4, 24);
+        const sleeveMesh = new THREE.Mesh(sleeveGeom, this.materials.supportSteel);
+        sleeveMesh.rotation.z = Math.PI / 2;
+        wallGroup.add(sleeveMesh);
+
+        wallGroup.position.copy(pos);
+        if (rot) wallGroup.rotation.y = (rot * Math.PI) / 180;
+        wallGroup.userData = {
+          isPdiEntity: true,
+          entityType: "genie_civil",
+          label: node.name || "Traversée Murale GC",
+          id: node.id,
+        };
+        this.modelRoot.add(wallGroup);
       } else if (node.equipmentType) {
         const norm = conns[0] ? conns[0].dir : new THREE.Vector3(1, 0, 0);
         const valve = this.factory.createValveMesh(pos, norm, dn, mat, {

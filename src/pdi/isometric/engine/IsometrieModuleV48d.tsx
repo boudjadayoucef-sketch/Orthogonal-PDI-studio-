@@ -1323,6 +1323,155 @@ function migrateProjectFileV474(value:unknown, fallbackOwnerUid = ""):IsoProject
   };
 }
 
+// Composant de bouton de rotation +/- 15° avec appui prolongé / menu de choix
+function PdiRotationButton15({
+  onRotate,
+  onFlip,
+}: {
+  onRotate: (angle: number) => void;
+  onFlip?: () => void;
+}) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [defaultAngle, setDefaultAngle] = useState(15);
+  const longPressTimerRef = useRef<any>(null);
+  const isLongPressRef = useRef(false);
+
+  const handlePointerDown = () => {
+    isLongPressRef.current = false;
+    longPressTimerRef.current = setTimeout(() => {
+      isLongPressRef.current = true;
+      setMenuOpen(true);
+    }, 350);
+  };
+
+  const handlePointerUp = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+    if (!isLongPressRef.current && !menuOpen) {
+      onRotate(defaultAngle);
+    }
+  };
+
+  const handlePointerCancel = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
+
+  return (
+    <div className="relative inline-block w-full">
+      <div className="flex items-center gap-1 bg-slate-800/90 hover:bg-slate-800 border border-slate-700/80 rounded-xl p-1 shadow-md">
+        <button
+          type="button"
+          onPointerDown={handlePointerDown}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerCancel}
+          onPointerLeave={handlePointerCancel}
+          className="flex-1 flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xs transition-all cursor-pointer shadow active:scale-95"
+          title="Clic court = Rotation 15° | Appui prolongé = Choix +15° ou -15°"
+        >
+          <RotateCw className={`w-3.5 h-3.5 ${defaultAngle < 0 ? "scale-x-[-1]" : ""}`} />
+          <span>Rotation {defaultAngle > 0 ? `+${defaultAngle}°` : `${defaultAngle}°`}</span>
+          <span className="text-[8px] bg-white/20 px-1 py-0.5 rounded font-mono font-normal">Appui prolongé</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setMenuOpen((v) => !v)}
+          className="p-2 rounded-lg bg-slate-700/60 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer shrink-0"
+          title="Menu de choix de rotation"
+        >
+          <ChevronDown className="w-3.5 h-3.5" />
+        </button>
+      </div>
+
+      {menuOpen && (
+        <div className="absolute left-0 top-full mt-1.5 z-50 w-full bg-slate-900 border-2 border-cyan-500/80 rounded-xl p-2 shadow-2xl space-y-1 backdrop-blur-md">
+          <div className="text-[10px] font-black text-cyan-300 uppercase tracking-wider px-2 py-1 border-b border-slate-800 flex justify-between items-center">
+            <span>Choix de la rotation</span>
+            <button type="button" onClick={() => setMenuOpen(false)} className="text-slate-400 hover:text-white text-xs">✕</button>
+          </div>
+          <div className="grid grid-cols-2 gap-1 pt-1">
+            <button
+              type="button"
+              onClick={() => {
+                setDefaultAngle(15);
+                onRotate(15);
+                setMenuOpen(false);
+              }}
+              className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg border text-xs font-black transition-all cursor-pointer ${
+                defaultAngle === 15
+                  ? "bg-emerald-600/90 text-white border-emerald-400"
+                  : "bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700"
+              }`}
+            >
+              <RotateCw className="w-3.5 h-3.5 text-emerald-300" />
+              <span>+15° Horaire</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setDefaultAngle(-15);
+                onRotate(-15);
+                setMenuOpen(false);
+              }}
+              className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg border text-xs font-black transition-all cursor-pointer ${
+                defaultAngle === -15
+                  ? "bg-amber-600/90 text-white border-amber-400"
+                  : "bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700"
+              }`}
+            >
+              <RotateCcw className="w-3.5 h-3.5 text-amber-300" />
+              <span>−15° Anti-horaire</span>
+            </button>
+          </div>
+          <div className="grid grid-cols-4 gap-1 text-[10px] pt-1 border-t border-slate-800">
+            <button
+              type="button"
+              onClick={() => { onRotate(45); setMenuOpen(false); }}
+              className="py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold cursor-pointer"
+            >
+              +45°
+            </button>
+            <button
+              type="button"
+              onClick={() => { onRotate(-45); setMenuOpen(false); }}
+              className="py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold cursor-pointer"
+            >
+              −45°
+            </button>
+            <button
+              type="button"
+              onClick={() => { onRotate(90); setMenuOpen(false); }}
+              className="py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold cursor-pointer"
+            >
+              +90°
+            </button>
+            <button
+              type="button"
+              onClick={() => { onRotate(-90); setMenuOpen(false); }}
+              className="py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold cursor-pointer"
+            >
+              −90°
+            </button>
+          </div>
+          {onFlip && (
+            <button
+              type="button"
+              onClick={() => { onFlip(); setMenuOpen(false); }}
+              className="w-full py-1.5 rounded-lg bg-amber-950/80 hover:bg-amber-900 border border-amber-600/60 text-amber-300 text-xs font-black text-center transition-all mt-1 cursor-pointer"
+            >
+              Inverser / Miroir (F)
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // PATCH 017F1 : le moteur recoit le projet actif de l onglet.
 function IsometrieModule(props: { projectId?: string }) {
   const projectId = props?.projectId;
@@ -1506,47 +1655,7 @@ function IsometrieModule(props: { projectId?: string }) {
     try { window.localStorage.setItem("pdi.projectSetup.v1", JSON.stringify(projectSetup)); } catch {}
   }, [projectSetup]);
 
-  // PATCH 016A2 native command typing capture : quand raccourcis OFF,
-  // taper sur le plan écrit dans la ligne de commande au lieu de déclencher P/impression, C/coude, etc.
-  useEffect(() => {
-    const onNativeType = (e: KeyboardEvent) => {
-      if (keyboardShortcutsEnabled) return;
-      if (e.ctrlKey || e.metaKey || e.altKey) return;
-      const target = e.target as HTMLElement | null;
-      const tag = target?.tagName?.toLowerCase();
-      if (tag === "input" || tag === "textarea" || (target as any)?.isContentEditable) return;
-      if (e.key === "Enter") {
-        e.preventDefault();
-        e.stopPropagation();
-        if (autocadCmdInput.trim()) executeCadCommand(autocadCmdInput.trim());
-        return;
-      }
-      // PATCH 017F1B : Echap ne doit plus etre confisque par le capteur de saisie
-      // natif. Ce gestionnaire est en phase de CAPTURE sur window : appeler
-      // stopPropagation() empechait les gestionnaires globaux de fermer les
-      // panneaux, le menu contextuel et de desselectionner.
-      if (e.key === "Escape") {
-        setAutocadCmdInput("");
-        setAutocadPrompt("Commande annulée.");
-        return;
-      }
-      if (e.key === "Backspace") {
-        e.preventDefault();
-        e.stopPropagation();
-        setAutocadCmdInput((prev) => prev.slice(0, -1));
-        return;
-      }
-      if (e.key.length === 1) {
-        e.preventDefault();
-        e.stopPropagation();
-        setAutocadCmdInput((prev) => prev + e.key);
-        setCommandPromptHidden(false);
-        setTimeout(() => (document.getElementById("cad-command-input") as HTMLInputElement | null)?.focus(), 0);
-      }
-    };
-    window.addEventListener("keydown", onNativeType, true);
-    return () => window.removeEventListener("keydown", onNativeType, true);
-  }, [keyboardShortcutsEnabled, autocadCmdInput]);
+  // PATCH 017Q4-A: Saisie native intégrée au Dispatcher Clavier Central Unifié (voir onGlobalKeyDown)
   const setPipeStrokeScale = (value: number) => setWorkspaceVisualStyle((prev) => ({ ...prev, pipeStrokeScale: Math.min(3, Math.max(0.35, Number(value) || 1)) }));
   const setCad2dStrokeScale = (value: number) => setWorkspaceVisualStyle((prev) => ({ ...prev, cad2dStrokeScale: Math.min(3, Math.max(0.35, Number(value) || 1)) }));
   const setDefaultPipeColor = (value: string) => setWorkspaceVisualStyle((prev) => ({ ...prev, defaultPipeColor: value || prev.defaultPipeColor }));
@@ -2208,6 +2317,13 @@ function IsometrieModule(props: { projectId?: string }) {
   const [draggedEquipmentType,setDraggedEquipmentType]=useState<IsoFittingType|null>(null);
   const [statusMessage,setStatusMessage]=useState("Prêt");
   const [selectedNodeIds,setSelectedNodeIds]=useState<string[]>([]);
+  // PATCH 017Q4-A: Unification de l'état de sélection - selectedNodeIds est la source de vérité unique.
+  useEffect(() => {
+    const primaryId = selectedNodeIds.length > 0 ? selectedNodeIds[selectedNodeIds.length - 1] : null;
+    if (selectedNodeId !== primaryId) {
+      setSelectedNodeId(primaryId);
+    }
+  }, [selectedNodeIds]);
   const [selectedSegmentIds,setSelectedSegmentIds]=useState<string[]>([]);
   const [selectedFittingIds,setSelectedFittingIds]=useState<string[]>([]);
   const [selectedFitting,setSelectedFitting]=useState<{segmentId:string;fittingId:string}|null>(null);
@@ -2522,177 +2638,7 @@ function IsometrieModule(props: { projectId?: string }) {
     }
   };
 
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (solid3dViewerOpen || weldSpoolModalOpen) return;
-      if (!e.key) return;
-      const key = (e.key || "").toLowerCase();
-      const isInput = (e.target as HTMLElement)?.matches("input,textarea,select");
-      if(e.key==="Escape"){
-        e.preventDefault();
-        setDrawStartNodeId(null);
-        setTubeHoverWorld(null);
-        setBranchDrawing(null);
-        setCadDraftSession(null);
-        setActiveSupportTypeToPlace(null);
-        setAlignWizard(null);
-        setParallelWizard(null);
-        setIsoDrawMode("select");
-        setStatusMessage("Action annulée · Mode Sélection");
-        setAutocadPrompt("Prêt.");
-        return;
-      }
-      if((e.key==="Delete"||e.key==="Backspace") && !isInput){
-        e.preventDefault();
-        let deleted = false;
-        if(selectedCad2dIds.length > 0){
-          deleteSelectedCad2d();
-          deleted = true;
-        }
-        if(selectedSupportId){
-          setSupports(prev => prev.filter(s => s.id !== selectedSupportId));
-          setSelectedSupportId(null);
-          deleted = true;
-        }
-        if(selectedNodeIds.length > 0 || selectedSegmentIds.length > 0 || selectedFittingIds.length > 0 || selectedDimensionIds.length > 0 || selectedDimensionId){
-          deleteSelection();
-          deleted = true;
-        }
-        if(deleted){
-          setStatusMessage("Éléments sélectionnés supprimés");
-        }
-        return;
-      }
-      if((e.ctrlKey||e.metaKey)&&key==="z" && !isInput){
-        e.preventDefault();
-        if(e.shiftKey) {
-          redoGraph();
-        } else {
-          undoGraph();
-        }
-        return;
-      }
-      if((e.ctrlKey||e.metaKey)&&key==="y" && !isInput){
-        e.preventDefault();
-        redoGraph();
-        return;
-      }
-      if((e.ctrlKey||e.metaKey)&&key==="c" && !isInput){
-        e.preventDefault();
-        if(selectedCad2dIds.length > 0){
-          copyCad2dSelection();
-        }
-        if(selectedNodeIds.length > 0 || selectedSegmentIds.length > 0){
-          copySelection();
-        }
-        return;
-      }
-      if((e.ctrlKey||e.metaKey)&&key==="x" && !isInput){
-        e.preventDefault();
-        if(selectedCad2dIds.length > 0){
-          copyCad2dSelection();
-          deleteSelectedCad2d();
-        }
-        if(selectedNodeIds.length > 0 || selectedSegmentIds.length > 0){
-          cutSelection();
-        }
-        return;
-      }
-      if((e.ctrlKey||e.metaKey)&&key==="v" && !isInput){
-        e.preventDefault();
-        pasteClipboard();
-        return;
-      }
-      if((e.ctrlKey||e.metaKey)&&key==="d" && !isInput){
-        e.preventDefault();
-        if(selectedCad2dIds.length > 0){
-          duplicateSelectedCad2d();
-        }
-        if(selectedNodeIds.length > 0 || selectedSegmentIds.length > 0){
-          duplicateSelection();
-        }
-        return;
-      }
-      // Note : Le traitement unifié des touches directionnelles (Arrow) et du panoramique
-      // est délégué au gestionnaire central onKey (PATCH 017Q3-UNIFY-CORE).
-      if((e.ctrlKey||e.metaKey)&&key==="a" && !isInput){
-        e.preventDefault();
-        setSelectedNodeIds(nodes.map(n=>n.id));
-        setSelectedSegmentIds(segments.map(s=>s.id));
-        setSelectedCad2dIds(cad2dEntities.map(c=>c.id));
-        setStatusMessage(`Tout sélectionné (${nodes.length} nœuds, ${segments.length} tronçons, ${cad2dEntities.length} dessins 2D)`);
-        return;
-      }
-      if((e.ctrlKey||e.metaKey)&&key==="s"){
-        e.preventDefault(); exportProjectJson(); return;
-      }
-      if((e.ctrlKey||e.metaKey)&&key==="k"){
-        e.preventDefault(); setCommandPaletteOpen(v=>!v); return;
-      }
-      if(isInput) return;
-      if(key==="v"){setInteractionMode("select");setIsoDrawMode("select");setStatusMessage("Outil Sélection");return;}
-      if(key==="h"||e.code==="Space"){e.preventDefault();setInteractionMode("main");setStatusMessage("Outil Main");return;}
-      if(key==="n"){setIsoDrawMode("node");setInteractionMode("select");setStatusMessage("Création de nœud");return;}
-      if(key==="t"){e.preventDefault();createTubeFromSelection();return;}
-      if(key==="e"){setIsoDrawMode("te");setInteractionMode("select");setStatusMessage("Création de Té");return;}
-      if(key==="c"){setIsoDrawMode("coude");setInteractionMode("select");setStatusMessage("Insertion de coude");return;}
-      if(key==="3"||(e.altKey&&key==="3")){setSolid3dViewerOpen(true);setStatusMessage("Ouverture de la Vue 3D Solide Extrudée");return;}
-      if(key==="r"){
-        e.preventDefault();
-        const delta = e.shiftKey ? -15 : 15;
-        if(selectedCad2dIds.length > 0){
-          rotateSelectedCad2d(delta);
-        } else {
-          rotateSelectedEquipment(delta);
-        }
-        return;
-      }
-      if(key==="g"){setShowGrid(v=>!v);return;}
-      if(key==="d"){setShowDimensions(v=>!v);return;}
-      if(key==="l"){setShowLabels(v=>!v);return;}
-      // PATCH 004 : "F" servait a la fois a recentrer la vue et a retourner
-      // l'equipement selectionne. Le retournement devient prioritaire
-      // quand un equipement est selectionne.
-      if(key==="0"){resetView();setStatusMessage("Vue recentrée");return;}
-      if(key==="f"&&!selectedNodeIds.some(id=>nodes.find(n=>n.id===id)?.equipmentType)){
-        resetView();setStatusMessage("Vue recentrée");return;
-      }
-      if(key==="+"||key==="="){zoomIn();return;}
-      if(key==="-"){zoomOut();return;}
-      if(key==="?"){setShortcutsOpen(true);return;}
-      if(!keyboardShortcutsEnabled && key.length===1){return;}
-      if(key==="p"){printPlanSheet();return;}
-      if(e.key==="Escape"){
-        setBranchDrawing(null);
-        setDrawStartNodeId(null);
-        setDragNodeId(null);
-        setDragFittingInfo(null);
-        dragSelectionRef.current=null;
-        clearSelection();
-        setAlignWizard(null);
-        setParallelWizard(null);
-        setIsoDrawMode("select");
-        setInteractionMode("select");
-        setContextMenu(null);
-        setCtxMenu(null);
-        setMarquee(null);
-        setPropertiesModalOpen(false);
-        setCommandPaletteOpen(false);
-        setShortcutsOpen(false);
-        setCadPropsOpen(false);
-        setRailFlyout(null);
-        setRightPanelOpen(false);
-        setLeftPanelOpen(false);
-        setInlineEditTextId(null);
-        setCadDraftSession(null);
-        setCad2dDraftTool(null);
-        setSelectedCad2dIds([]);
-        setStatusMessage("Panneaux fermés · Outils et sélections réinitialisés");
-      }
-    };
-    window.addEventListener("keydown",onKeyDown);
-    return()=>window.removeEventListener("keydown",onKeyDown);
-  },[nodes,segments,selectedNodeIds,selectedSegmentIds,selectedFittingIds,projectName,wilaya,pressDesign,showGrid,showDimensions,showLabels,isoSnapStep,viewport.zoom]);
+  // PATCH 017Q4-A: Gestionnaire de clavier unifié délégué au Dispatcher Central Unifié (onGlobalKeyDown)
 
   const cumulative=useMemo(()=>cumulativeData(nodes,segments),[nodes,segments]);
   const totalLength=useMemo(()=>segments.reduce((a,s)=>a+s.length,0),[segments]);
@@ -5324,158 +5270,147 @@ function IsometrieModule(props: { projectId?: string }) {
   };
 
 
-  useEffect(()=>{
-    const onKey=(e:KeyboardEvent)=>{
+  // PATCH 017Q4-A: Dispatcher Clavier Unifié Central (Central Unified Keyboard Dispatcher)
+  useEffect(() => {
+    const onGlobalKeyDown = (e: KeyboardEvent) => {
+      if (solid3dViewerOpen || weldSpoolModalOpen || printModalOpen) return;
       if (!e.key) return;
-      const key = (e.key || "").toLowerCase();
-      // Ignore if user is currently inside an input or textarea
-      const target = e.target as HTMLElement;
-      const isInput = target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT" || target.isContentEditable);
 
-      // PATCH 017F2 : Ctrl+1 ouvre l inspecteur de proprietes.
-      if ((e.ctrlKey || e.metaKey) && e.key === "1") {
-        e.preventDefault();
-        setRightPanelOpen(true);
-        setRightPanelTab("properties");
-        setStatusMessage("Inspecteur de proprietes ouvert");
-        return;
-      }
-      // PATCH 016B : Echap annule d'abord la commande guidee.
-      if (e.key === "Escape" && guidedCmd) {
-        e.preventDefault();
-        cancelGuidedCommand();
-        return;
-      }
-      // PALIER 2B : Echap annule la commande de modification géométrique active.
-      if (e.key === "Escape" && cad2dModifySession) {
-        e.preventDefault();
-        setCad2dModifySession(null);
-        setAutocadPrompt("Prêt. " + PDI_INVITE_COMMANDE_017M);
-        setStatusMessage("Commande géométrique annulée");
-        return;
-      }
-      // PALIER 2C : Echap annule le placement de support MSS SP-58 actif.
-      if (e.key === "Escape" && activeSupportTypeToPlace) {
-        e.preventDefault();
-        setActiveSupportTypeToPlace(null);
-        setStatusMessage("Placement de support annulé");
-        return;
-      }
-      // ESC: Global Escape closes all panels, modals, context menus, and resets active operations
+      const key = (e.key || "").toLowerCase();
+      const target = e.target as HTMLElement | null;
+      const isInput = Boolean(target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT" || (target as any).isContentEditable));
+
+      // 1. Touche Échap globale (Universal Escape)
       if (e.key === "Escape") {
-        e.preventDefault();
+        if (isInput && document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur();
+        }
+        setAutocadCmdInput("");
+        setGuidedCmd(null);
+        setCad2dModifySession(null);
         setActiveSupportTypeToPlace(null);
         setAlignWizard(null);
         setParallelWizard(null);
-        setPropertiesModalOpen(false);
-        setRightPanelOpen(false);
-        setLeftPanelOpen(false);
-        setCadPropsOpen(false);
-        setRailFlyout(null);
-        setContextMenu(null);
-        setCtxMenu(null);
-        setInlineEditTextId(null);
-        setEdit(null);
         setBranchDrawing(null);
-        if (cadDraftSession) {
-          cancelCadDraft();
-        }
-        setCad2dDraftTool(null);
+        setDrawStartNodeId(null);
+        setDragNodeId(null);
+        setDragFittingInfo(null);
+        setTubeHoverWorld(null);
+        dragSelectionRef.current = null;
+        clearSelection();
         setIsoDrawMode("select");
         setInteractionMode("select");
-        setSelectedNodeIds([]);
-        setSelectedNodeId(null);
-        setSelectedSegmentIds([]);
-        setSelectedSegmentId(null);
+        setContextMenu(null);
+        setCtxMenu(null);
+        setMarquee(null);
+        setPropertiesModalOpen(false);
+        setCommandPaletteOpen(false);
+        setShortcutsOpen(false);
+        setCadPropsOpen(false);
+        setRailFlyout(null);
+        setRightPanelOpen(false);
+        setLeftPanelOpen(false);
+        setInlineEditTextId(null);
+        setEdit(null);
+        if (cadDraftSession) cancelCadDraft();
+        setCad2dDraftTool(null);
         setSelectedCad2dIds([]);
-        setSelectedFitting(null);
-        setSelectedFittingIds([]);
-        setSelectedDimensionIds([]);
-        setSelectedDimensionId(null);
-        setStatusMessage("Prêt");
+        setStatusMessage("Panneaux fermés · Outils et sélections réinitialisés");
+        setAutocadPrompt("Prêt.");
         return;
       }
 
-      // If already in an input, let default typing happen
-      if (isInput) return;
+      // 2. Traitement si le focus est sur un champ de texte / saisie
+      if (isInput) {
+        if ((e.ctrlKey || e.metaKey) && e.key === "F1") {
+          e.preventDefault();
+          setRubanReplie017M((v) => !v);
+        }
+        return;
+      }
 
-      // Delete / Suppr / Backspace: Delete all selected elements (nodes, tubes, equipment, fittings, cad 2d, supports, dimensions)
+      // 3. Saisie directe de commandes style AutoCAD quand les raccourcis à 1 touche sont OFF
+      if (!keyboardShortcutsEnabled) {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          if (autocadCmdInput.trim()) executeCadCommand(autocadCmdInput.trim());
+          return;
+        }
+        if (e.key === "Backspace") {
+          e.preventDefault();
+          setAutocadCmdInput((prev) => prev.slice(0, -1));
+          return;
+        }
+        if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+          e.preventDefault();
+          setAutocadCmdInput((prev) => prev + e.key);
+          setCommandPromptHidden(false);
+          setTimeout(() => (document.getElementById("cad-command-input") as HTMLInputElement | null)?.focus(), 0);
+          return;
+        }
+      }
+
+      // 4. Raccourcis système avec modificateurs (Ctrl / Cmd)
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === "F1") { e.preventDefault(); setRubanReplie017M((v) => !v); return; }
+        if (e.key === "1") {
+          e.preventDefault();
+          setRightPanelOpen(true);
+          setRightPanelTab("properties");
+          setStatusMessage("Inspecteur de propriétés ouvert");
+          return;
+        }
+        if (key === "s") { e.preventDefault(); exportProjectJson(); return; }
+        if (key === "k") { e.preventDefault(); setCommandPaletteOpen((v) => !v); return; }
+        if (key === "a") {
+          e.preventDefault();
+          setSelectedNodeIds(nodes.map((n) => n.id));
+          setSelectedSegmentIds(segments.map((s) => s.id));
+          setSelectedCad2dIds(cad2dEntities.map((c) => c.id));
+          setStatusMessage(`Tout sélectionné (${nodes.length} nœuds, ${segments.length} tronçons, ${cad2dEntities.length} dessins 2D)`);
+          return;
+        }
+        if (key === "z") {
+          e.preventDefault();
+          if (e.shiftKey) redoGraph(); else undoGraph();
+          return;
+        }
+        if (key === "y") { e.preventDefault(); redoGraph(); return; }
+        if (key === "c") { e.preventDefault(); universalCopy(); return; }
+        if (key === "x") { e.preventDefault(); cutSelection(); return; }
+        if (key === "v") { e.preventDefault(); startCadDraft("paste_target"); return; }
+        if (key === "d") { e.preventDefault(); universalDuplicate(); return; }
+        if (key === "g") {
+          e.preventDefault();
+          if (e.shiftKey) dissociateSelectionFromSpool(); else associateSelectionToSpool();
+          return;
+        }
+        if (key === "u") { e.preventDefault(); dissociateSelectionFromSpool(); return; }
+      }
+
+      // 5. Suppressions (Delete / Backspace / Suppr)
       if (e.key === "Delete" || e.key === "Backspace" || e.key === "Suppr") {
         e.preventDefault();
         universalDelete();
         return;
       }
 
-      // Enter / Space during polyline drafting validates the polyline
+      // 6. Validation de tracé polyline
       if ((e.key === "Enter" || e.key === " ") && cadDraftSession?.tool === "polyline") {
         e.preventDefault();
         finishPolylineDraft();
         return;
       }
 
-      // Shortcut: Focus command line on ':' or '/'
+      // 7. Focus rapide sur la ligne de commande (':' ou '/')
       if (e.key === ":" || e.key === "/") {
         e.preventDefault();
-        const cmdInput = document.getElementById("cad-command-input") as HTMLInputElement;
-        if (cmdInput) {
-          cmdInput.focus();
-          cmdInput.select();
-        }
+        const cmdInput = document.getElementById("cad-command-input") as HTMLInputElement | null;
+        if (cmdInput) { cmdInput.focus(); cmdInput.select(); }
         return;
       }
 
-      // Shortcut: Ctrl+C / Cmd+C for Copy
-      if ((e.ctrlKey || e.metaKey) && key === "c") {
-        e.preventDefault();
-        universalCopy();
-        return;
-      }
-
-      // Shortcut: Ctrl+V / Cmd+V for Paste
-      if ((e.ctrlKey || e.metaKey) && key === "v") {
-        e.preventDefault();
-        startCadDraft("paste_target");
-        return;
-      }
-
-      // Shortcut: Ctrl+D / Cmd+D for Duplicate
-      if ((e.ctrlKey || e.metaKey) && key === "d") {
-        e.preventDefault();
-        universalDuplicate();
-        return;
-      }
-
-      // Shortcut: Ctrl+G (Associer en Spool) & Ctrl+Shift+G / Ctrl+U (Dissocier du Spool)
-      if ((e.ctrlKey || e.metaKey) && key === "g") {
-        e.preventDefault();
-        if (e.shiftKey) {
-          dissociateSelectionFromSpool();
-        } else {
-          associateSelectionToSpool();
-        }
-        return;
-      }
-      if ((e.ctrlKey || e.metaKey) && key === "u") {
-        e.preventDefault();
-        dissociateSelectionFromSpool();
-        return;
-      }
-
-      // Rotation universelle (R / Maj+R : 2D, Equipements, Vannes, Tés, Supports, Tronçons)
-      if (key === "r") {
-        e.preventDefault();
-        universalRotate(e.shiftKey ? -15 : 15);
-        return;
-      }
-
-      // Raccourci T : Création de tube (entre 2 nœuds sélectionnés ou tracé)
-      if (!e.ctrlKey && !e.metaKey && key === "t") {
-        e.preventDefault();
-        createTubeFromSelection();
-        return;
-      }
-
-      // Déplacement au clavier unifié (Flèches directionnelles - PATCH 017Q3-UNIFY-CORE)
+      // 8. Déplacement au clavier unifié (Flèches directionnelles)
       if (e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "ArrowLeft" || e.key === "ArrowRight") {
         e.preventDefault();
         const hasSelection = selectedNodeIds.length > 0 || selectedSegmentIds.length > 0 || selectedCad2dIds.length > 0 || Boolean(selectedSupportId);
@@ -5492,27 +5427,55 @@ function IsometrieModule(props: { projectId?: string }) {
           }
         } else {
           const panStep = e.shiftKey ? 80 : 35;
-          let dx = 0;
-          let dy = 0;
+          let dx = 0, dy = 0;
           if (e.key === "ArrowLeft") dx = panStep;
           if (e.key === "ArrowRight") dx = -panStep;
           if (e.key === "ArrowUp") dy = panStep;
           if (e.key === "ArrowDown") dy = -panStep;
-          setViewport(vp => ({ ...vp, panX: vp.panX + dx, panY: vp.panY + dy }));
+          setViewport((vp) => ({ ...vp, panX: vp.panX + dx, panY: vp.panY + dy }));
         }
         return;
       }
 
-      // Equipment flip (F)
-      if (key === "f" && selectedNodeIds.some(id => nodes.find(n => n.id === id)?.equipmentType)) {
-        e.preventDefault();
-        flipSelectedEquipment();
-        return;
+      // 9. Raccourcis outils 1 touche (quand keyboardShortcutsEnabled === true)
+      if (keyboardShortcutsEnabled) {
+        if (key === "v") { setInteractionMode("select"); setIsoDrawMode("select"); setStatusMessage("Outil Sélection"); return; }
+        if (key === "h" || e.code === "Space") { e.preventDefault(); setInteractionMode("main"); setStatusMessage("Outil Main"); return; }
+        if (key === "n") { setIsoDrawMode("node"); setInteractionMode("select"); setStatusMessage("Création de nœud"); return; }
+        if (key === "t") { e.preventDefault(); createTubeFromSelection(); return; }
+        if (key === "e") { setIsoDrawMode("te"); setInteractionMode("select"); setStatusMessage("Création de Té"); return; }
+        if (key === "c") { setIsoDrawMode("coude"); setInteractionMode("select"); setStatusMessage("Insertion de coude"); return; }
+        if (key === "3" || (e.altKey && key === "3")) { setSolid3dViewerOpen(true); setStatusMessage("Vue 3D Solide Extrudée"); return; }
+        if (key === "r") { e.preventDefault(); universalRotate(e.shiftKey ? -15 : 15); return; }
+        if (key === "f") {
+          if (selectedNodeIds.some((id) => nodes.find((n) => n.id === id)?.equipmentType)) {
+            e.preventDefault();
+            flipSelectedEquipment();
+          } else {
+            resetView();
+            setStatusMessage("Vue recentrée");
+          }
+          return;
+        }
+        if (key === "g") { setShowGrid((v) => !v); return; }
+        if (key === "d") { setShowDimensions((v) => !v); return; }
+        if (key === "l") { setShowLabels((v) => !v); return; }
+        if (key === "0") { resetView(); setStatusMessage("Vue recentrée"); return; }
+        if (key === "+" || key === "=") { zoomIn(); return; }
+        if (key === "-") { zoomOut(); return; }
+        if (key === "?") { setShortcutsOpen(true); return; }
+        if (key === "p") { printPlanSheet(); return; }
       }
     };
-    window.addEventListener("keydown",onKey);
-    return()=>window.removeEventListener("keydown",onKey);
-  },[selectedNodeIds, nodes, segments, cadDraftSession, selectedCad2dIds, selectedDimensionIds, selectedSegmentIds, selectedFittingIds, selectedFitting, selectedSupportId, isoSnapStep]);
+
+    window.addEventListener("keydown", onGlobalKeyDown, true);
+    return () => window.removeEventListener("keydown", onGlobalKeyDown, true);
+  }, [
+    solid3dViewerOpen, weldSpoolModalOpen, printModalOpen, keyboardShortcutsEnabled, autocadCmdInput,
+    guidedCmd, cad2dModifySession, activeSupportTypeToPlace, cadDraftSession,
+    nodes, segments, cad2dEntities, selectedNodeIds, selectedSegmentIds, selectedCad2dIds, selectedSupportId,
+    isoSnapStep
+  ]);
 
   // PATCH 017I : la molette est ecoutee en natif avec { passive: false }.
   // React enregistre "wheel" en passif : preventDefault y est ignore et
@@ -6632,15 +6595,16 @@ function IsometrieModule(props: { projectId?: string }) {
 
     // Calcul du barycentre (centroid) des nœuds de la sélection
     const selectedNodesObj = nodes.filter(n => targetNodeIds.includes(n.id));
-    const cx = selectedNodesObj.reduce((sum, n) => sum + n.x, 0) / selectedNodesObj.length;
-    const cy = selectedNodesObj.reduce((sum, n) => sum + n.y, 0) / selectedNodesObj.length;
+    const cx = selectedNodesObj.reduce((sum, n) => sum + n.x, 0) / (selectedNodesObj.length || 1);
+    const cy = selectedNodesObj.reduce((sum, n) => sum + n.y, 0) / (selectedNodesObj.length || 1);
     const pivot = { x: cx, y: cy, z: 0 };
 
     const nextNodes = nodes.map(n => {
       if (!targetNodeIds.includes(n.id)) return n;
 
-      // Rotation physique de la position 3D (x, y) du nœud autour du pivot commun de la sélection
-      const rotatedPt = rotateWorldPoint(n, pivot, delta);
+      // Si plusieurs nœuds sont sélectionnés ensemble, ils pivotent géométriquement autour du centre de gravité commun.
+      // Si un seul nœud / équipement est sélectionné, sa position spatiale (x, y) reste fixe et seule sa rotation propre change.
+      const rotatedPt = selectedNodesObj.length > 1 ? rotateWorldPoint(n, pivot, delta) : n;
 
       let rotation = ((((n.rotation || 0) + delta) % 360) + 360) % 360;
       let branchAngle = n.branchAngle;
@@ -6848,7 +6812,7 @@ function IsometrieModule(props: { projectId?: string }) {
 
   const iso=(n:IsoNode)=>isoProjectV4(n.x,n.y,n.z,viewport.zoom,viewport.panX,viewport.panY);
 
-  const screenToIsoWorld=(e:React.PointerEvent<SVGSVGElement>, targetZ:number = nodeZ || 0)=>{
+  const screenToIsoWorld=(e:React.PointerEvent<any>, targetZ:number = nodeZ || 0)=>{
     const { sx, sy } = getSvgCoordinates(e.clientX, e.clientY, svgRef.current || (e.currentTarget as unknown as SVGSVGElement));
     return isoUnprojectV4(sx, sy, viewport.zoom, viewport.panX, viewport.panY, targetZ);
   };
@@ -7147,7 +7111,8 @@ function IsometrieModule(props: { projectId?: string }) {
     }
     const w = screenToIsoWorld(e, nodeZ || 0);
     const node = makeEquipmentNode("te_egal", `Té N${nodes.length + 1}`, pdiCreatePoint(w).x, pdiCreatePoint(w).y, pdiCreatePoint(w).z, newDN, 0);
-    setNodes(prev => [...prev, node]);
+    const nextNodes = [...nodes, node];
+    commitGraph(nextNodes, segments);
     setSelectedNodeId(node.id);
     setSelectedNodeIds([node.id]);
     setStatusMessage("Té créé (3 ports) — tirer depuis le port 3 (dérivation) pour créer la branche");
@@ -7182,7 +7147,8 @@ function IsometrieModule(props: { projectId?: string }) {
     }
     const w = screenToIsoWorld(e, nodeZ || 0);
     const n = makeNode(`N${nodes.length + 1}`, pdiCreatePoint(w).x, pdiCreatePoint(w).y, pdiCreatePoint(w).z, "normal");
-    setNodes(prev => [...prev, n]);
+    const nextNodes = [...nodes, n];
+    commitGraph(nextNodes, segments);
     setSelectedNodeId(n.id);
     setSelectedNodeIds([n.id]);
     setStatusMessage(`Nœud N${nodes.length + 1} créé à (${n.x.toFixed(2)}, ${n.y.toFixed(2)}, Z=${n.z.toFixed(2)}m)`);
@@ -7214,7 +7180,8 @@ function IsometrieModule(props: { projectId?: string }) {
     }
     const w = screenToIsoWorld(e, nodeZ || 0);
     const node = makeEquipmentNode("coude_90", `Coude 90° N${nodes.length + 1}`, pdiCreatePoint(w).x, pdiCreatePoint(w).y, pdiCreatePoint(w).z, newDN, elbowOrientationFromSegment(selectedSegmentId, 0));
-    setNodes(prev => [...prev, node]);
+    const nextNodes = [...nodes, node];
+    commitGraph(nextNodes, segments);
     setSelectedNodeId(node.id);
     setSelectedNodeIds([node.id]);
     setStatusMessage("Coude 90° placé — raccorder ses ports");
@@ -7341,8 +7308,8 @@ function IsometrieModule(props: { projectId?: string }) {
       material:"Acier API 5L Gr. B",length:12,type:"straight",fittings:[
         makeFitting("jmi",.08,150),makeFitting("vanne_passage_total",.12,150)
       ]};
-    setNodes([a,b]);setSegments([s]);setFromNode(a.id);setToNode(b.id);
-    setSelectedSegmentId(s.id);resetView();
+    commitGraph([a,b], [s]); setFromNode(a.id); setToNode(b.id);
+    setSelectedSegmentId(s.id); resetView();
   };
 
   const loadPresetGare=()=>{
@@ -7359,18 +7326,21 @@ function IsometrieModule(props: { projectId?: string }) {
     const s3:IsoSegment={id:uid("seg"),fromNodeId:c.id,toNodeId:d.id,dn:600,pn:"Class 600",
       material:"Acier API 5L X52",length:6,type:"straight",
       fittings:[makeFitting("gare_racleur_depart",.25,600),makeFitting("event",.7,600)]};
-    setNodes([a,b,c,d]);setSegments([s1,s2,s3]);setFromNode(a.id);setToNode(b.id);
-    setSelectedSegmentId(s1.id);resetView();
+    commitGraph([a,b,c,d], [s1,s2,s3]); setFromNode(a.id); setToNode(b.id);
+    setSelectedSegmentId(s1.id); resetView();
   };
 
   const loadPresetDemoComplexe = () => {
     const demo = generateComplexIndustrialIsoDemo();
-    setLines(demo.lines);
-    setNodes(demo.nodes);
-    setSegments(demo.segments);
-    setDimensions(demo.dimensions);
-    setSupports(demo.supports);
-    setCad2dEntities(demo.cad2dEntities);
+    commitGraph(
+      demo.nodes,
+      demo.segments,
+      demo.lines,
+      demo.dimensions,
+      demo.cad2dEntities,
+      cad2dLayers,
+      demo.supports
+    );
     setCad2dLayers(demo.cad2dLayers);
     setFromNode(demo.nodes[0]?.id || "");
     setToNode(demo.nodes[demo.nodes.length - 1]?.id || "");
@@ -8046,7 +8016,8 @@ function IsometrieModule(props: { projectId?: string }) {
     }else{
       const world=isoUnprojectV4(sx,sy,viewport.zoom,viewport.panX,viewport.panY, nodeZ || 0);
       const node=makeEquipmentNode(type,FITTING_LABELS[type],snapIsoV4(world.x,isoSnapStep),snapIsoV4(world.y,isoSnapStep),nodeZ||0,newDN,0);
-      setNodes(prev=>[...prev,node]);
+      const nextNodes = [...nodes, node];
+      commitGraph(nextNodes, segments);
       setSelectedNodeId(node.id);setSelectedNodeIds([node.id]);
       setStatusMessage(`${FITTING_LABELS[type]} placé — raccorder ses ports`);
     }
@@ -8287,16 +8258,7 @@ function IsometrieModule(props: { projectId?: string }) {
     }
     catch { /* ignore */ }
   }, [railCollapsed]);
-  useEffect(() => {
-    const surTouche = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "F1") {
-        e.preventDefault();
-        setRubanReplie017M((v) => !v);
-      }
-    };
-    window.addEventListener("keydown", surTouche);
-    return () => window.removeEventListener("keydown", surTouche);
-  }, []);
+  // PATCH 017Q4-A: Ctrl+F1 est désormais géré par le Dispatcher Clavier Central Unifié (onGlobalKeyDown)
 
   // PATCH 017M : resolution de l action. Le registre designe une entree de
   // menu par (groupe, index) ; on reutilise la fermeture existante telle
@@ -9810,6 +9772,21 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
           </button>
         </div>
 
+        {/* BOUTON ROTATION +/- 15° DÉDIÉ AVEC APPUI PROLONGÉ */}
+        <div className="bg-slate-900/90 rounded-2xl border border-slate-700/80 p-2.5 shadow-lg space-y-1.5">
+          <div className="flex items-center justify-between text-[10px] font-black uppercase text-slate-400">
+            <span className="flex items-center gap-1">
+              <RotateCw className="w-3 h-3 text-cyan-400" />
+              Rotation Équipement / Objet
+            </span>
+            <span className="text-[9px] text-cyan-400 font-mono">±15°</span>
+          </div>
+          <PdiRotationButton15
+            onRotate={(angle) => universalRotate(angle)}
+            onFlip={() => flipSelectedEquipment()}
+          />
+        </div>
+
         {/* PATCH 007d — Propriétés 2D compactes style CAD */}
         {selectedCad2dEntity && (
           <div className="pdi-cad-props-mini mb-3">
@@ -10591,7 +10568,7 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                     onPointerLeave={()=>setHoveredEntity(null)}>
                     {(() => { const pts=isoPolylineV4(s,a,b,viewport.zoom,viewport.panX,viewport.panY); const path=isoPathV4(pts); return <>
                       {/* Zone de clic élargie invisible pour sélection sans faille */}
-                      <path d={path} stroke="transparent" strokeWidth={Math.max(width + 16, 20)} strokeLinecap="round" fill="none" className="cursor-pointer" />
+                      <path d={path} stroke="#000000" strokeOpacity="0.001" strokeWidth={Math.max(width + 16, 20)} strokeLinecap="round" fill="none" pointerEvents="all" className="cursor-pointer" />
                       {sel&&<path d={path} stroke="#38bdf8" strokeWidth={width+5} strokeOpacity=".16" strokeLinecap="round" strokeLinejoin="round" fill="none"/>}
                       {hoveredEntity?.type==="segment"&&hoveredEntity.id===s.id&&!sel&&<path d={path} stroke="#67e8f9" strokeWidth={width+3} strokeOpacity=".12" strokeLinecap="round" strokeLinejoin="round" fill="none"/>}
                       <path d={path} stroke={segmentStrokeColor(s)} strokeWidth={width} strokeLinecap="round" strokeLinejoin="round" fill="none"/>
@@ -10657,30 +10634,34 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                     elbowPathD = `M ${pArcA.x.toFixed(2)} ${pArcA.y.toFixed(2)} Q 0 0 ${pArcB.x.toFixed(2)} ${pArcB.y.toFixed(2)}`;
                   }
 
-                  let equipAngle = n.rotation || 0;
-                  if (p0 && p1 && (Math.abs(p1.sx - p0.sx) > 0.5 || Math.abs(p1.sy - p0.sy) > 0.5)) {
-                    equipAngle = (Math.atan2(p1.sy - p0.sy, p1.sx - p0.sx) * 180) / Math.PI;
-                  } else if (pAdjA && pAdjB) {
-                    const sIn = connSegs.find(s => s.toNodeId === n.id);
-                    const sOut = connSegs.find(s => s.fromNodeId === n.id);
-                    if (sIn && sOut) {
-                      const nIn = nodes.find(item => item.id === sIn.fromNodeId);
-                      const nOut = nodes.find(item => item.id === sOut.toNodeId);
-                      if (nIn && nOut) {
-                        const ptIn = iso(nIn), ptOut = iso(nOut);
-                        equipAngle = Math.atan2(ptOut.y - ptIn.y, ptOut.x - ptIn.x) * 180 / Math.PI;
+                  // PATCH 017Q3-C : Respecter node.rotation comme transformation locale de l'équipement.
+                  // L'orientation automatique déduite des tronçons sert de valeur par défaut uniquement si n.rotation est indéfini.
+                  let equipAngle = n.rotation != null ? n.rotation : 0;
+                  if (n.rotation == null) {
+                    if (p0 && p1 && (Math.abs(p1.sx - p0.sx) > 0.5 || Math.abs(p1.sy - p0.sy) > 0.5)) {
+                      equipAngle = (Math.atan2(p1.sy - p0.sy, p1.sx - p0.sx) * 180) / Math.PI;
+                    } else if (pAdjA && pAdjB) {
+                      const sIn = connSegs.find(s => s.toNodeId === n.id);
+                      const sOut = connSegs.find(s => s.fromNodeId === n.id);
+                      if (sIn && sOut) {
+                        const nIn = nodes.find(item => item.id === sIn.fromNodeId);
+                        const nOut = nodes.find(item => item.id === sOut.toNodeId);
+                        if (nIn && nOut) {
+                          const ptIn = iso(nIn), ptOut = iso(nOut);
+                          equipAngle = Math.atan2(ptOut.y - ptIn.y, ptOut.x - ptIn.x) * 180 / Math.PI;
+                        } else {
+                          equipAngle = Math.atan2(pAdjB.y - pAdjA.y, pAdjB.x - pAdjA.x) * 180 / Math.PI;
+                        }
                       } else {
                         equipAngle = Math.atan2(pAdjB.y - pAdjA.y, pAdjB.x - pAdjA.x) * 180 / Math.PI;
                       }
-                    } else {
-                      equipAngle = Math.atan2(pAdjB.y - pAdjA.y, pAdjB.x - pAdjA.x) * 180 / Math.PI;
-                    }
-                  } else if (pAdjA) {
-                    const s0 = connSegs[0];
-                    if (s0.toNodeId === n.id) {
-                      equipAngle = Math.atan2(p.y - pAdjA.y, p.x - pAdjA.x) * 180 / Math.PI;
-                    } else {
-                      equipAngle = Math.atan2(pAdjA.y - p.y, pAdjA.x - p.x) * 180 / Math.PI;
+                    } else if (pAdjA) {
+                      const s0 = connSegs[0];
+                      if (s0.toNodeId === n.id) {
+                        equipAngle = Math.atan2(p.y - pAdjA.y, p.x - pAdjA.x) * 180 / Math.PI;
+                      } else {
+                        equipAngle = Math.atan2(pAdjA.y - p.y, pAdjA.x - p.x) * 180 / Math.PI;
+                      }
                     }
                   }
 
@@ -10696,6 +10677,28 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                       }
                     }}
                     onPointerDown={e=>{
+                      const target = e.target as Element;
+                      const portEl = target.closest("[data-iso-port='true']");
+                      if (portEl) {
+                        const nodeId = portEl.getAttribute("data-port-node-id");
+                        const portIdx = Number(portEl.getAttribute("data-port-idx") || "1");
+                        if (nodeId) {
+                          e.stopPropagation();
+                          selectNodeV44(nodeId, e.ctrlKey || e.metaKey || e.shiftKey);
+                          const node = nodes.find(item => item.id === nodeId);
+                          const portCible = portByIndex(node, portIdx);
+                          const portOccupe = !!portCible && segments.some(s => s.fromPortId === portCible.id || s.toPortId === portCible.id);
+                          if (portOccupe) {
+                            setStatusMessage("PORT OCCUPÉ : ce port porte déjà une soudure.");
+                            return;
+                          }
+                          setBranchDrawing({ fromNodeId: nodeId, fromPortId: portCible?.id, handleIndex: portIdx, currentWorldPos: screenToIsoWorld(e) });
+                          try {
+                            (svgRef.current || e.currentTarget).setPointerCapture(e.pointerId);
+                          } catch {}
+                          return;
+                        }
+                      }
                       if (isoDrawMode === "segment") {
                         e.stopPropagation();
                         handleNodeClickForTube(n.id);
@@ -10718,8 +10721,8 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                       }
                       setContextMenu({ x: e.clientX, y: e.clientY, type: "node", id: n.id });
                     }}>
-                    {/* Zone de clic invisible pour sélection instantanée */}
-                    <circle r={Math.max(16 * kGlyph, 16)} fill="transparent" className="cursor-pointer" />
+                    {/* Zone de clic invisible pour sélection instantanée au clic & glisser */}
+                    <circle r={Math.max(24 * kGlyph, 24)} fill="#000000" fillOpacity="0.001" pointerEvents="all" className="cursor-pointer" />
                     {isEquip ? (
                       <g>
                         {isSel&&<rect x={-11.5*kGlyph} y={-11.5*kGlyph} width={23*kGlyph} height={23*kGlyph} rx="5" fill="none" stroke="#facc15" strokeWidth="1.5" strokeDasharray="4 2"/>}
@@ -12427,7 +12430,8 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                               } else {
                                 const world = isoUnprojectV4(310, 200, viewport.zoom, viewport.panX, viewport.panY, nodeZ || 0);
                                 const node = makeEquipmentNode(t, FITTING_LABELS[t], snapIsoV4(world.x, isoSnapStep), snapIsoV4(world.y, isoSnapStep), nodeZ || 0, newDN, 0);
-                                setNodes(prev => [...prev, node]);
+                                const nextNodes = [...nodes, node];
+                                commitGraph(nextNodes, segments);
                                 setSelectedNodeId(node.id);
                                 setSelectedNodeIds([node.id]);
                                 setStatusMessage(`${FITTING_LABELS[t]} inséré au centre du plan`);

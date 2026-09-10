@@ -6,6 +6,10 @@ import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import { ErrorBoundary } from './components/ErrorBoundary.tsx';
+import { testConnection } from './lib/firebase.ts';
+
+// Test connection to Firestore on boot
+void testConnection();
 // PATCH 017H : index.css est injecte par ./pdiInlineStyles (bundle JS).
 
 // Global error listener for non-React uncaught runtime and resource-loading crashes
