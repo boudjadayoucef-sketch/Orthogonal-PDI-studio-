@@ -44,7 +44,7 @@ export async function getSanityAnnouncements(): Promise<{ announcements: SanityA
         },
         {
           _id: "demo-2",
-          title: "Intégration du catalogue Trouvay & Cauvin",
+          title: "Intégration du catalogue international ASME / API / DIN",
           tag: "info",
           publishedAt: new Date(Date.now() - 86400000 * 2).toISOString(),
           content: "Tous les composants ASME B16.5 / B16.9 sont désormais indexés et cotés au millimètre près.",

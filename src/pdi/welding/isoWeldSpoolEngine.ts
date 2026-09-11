@@ -430,7 +430,7 @@ export function deriveSpoolsAndWelds(
       totalLengthM += s.length || 0;
     }
 
-    // Calcul Poids estimé (Tubes + Raccords Trouvay & Cauvin)
+    // Calcul Poids estimé (Tubes + Raccords Standards Internationaux ASME / API)
     let estimatedWeightKg = 0;
     for (const s of spoolSegs) {
       // Poids tube acier approx = (DN / 10) * 2.5 kg/m

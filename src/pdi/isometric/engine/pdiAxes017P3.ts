@@ -14,15 +14,15 @@ export type PdiAxisDir017P3 = {
 };
 
 export const PDI_AXIS_COLORS_017P3: Record<PdiAxisKey017P3, string> = {
-  X: "#f87171",
-  Y: "#4ade80",
-  Z: "#60a5fa",
+  X: "#f87171", // Red (East / West)
+  Y: "#4ade80", // Green (North / South)
+  Z: "#60a5fa", // Blue (Elevation +EL / -EL)
 };
 
 export const pdiIsoAxisDirs017P3 = (cos: number, sin: number): PdiAxisDir017P3[] => [
-  { key: "X", sx: cos, sy: sin, color: PDI_AXIS_COLORS_017P3.X, legende: "Abscisse" },
-  { key: "Y", sx: -cos, sy: sin, color: PDI_AXIS_COLORS_017P3.Y, legende: "Ordonnee" },
-  { key: "Z", sx: 0, sy: -1, color: PDI_AXIS_COLORS_017P3.Z, legende: "Altitude" },
+  { key: "X", sx: cos, sy: sin, color: PDI_AXIS_COLORS_017P3.X, legende: "Est (E) / Ouest (W)" },
+  { key: "Y", sx: -cos, sy: sin, color: PDI_AXIS_COLORS_017P3.Y, legende: "Nord (N) / Sud (S)" },
+  { key: "Z", sx: 0, sy: -1, color: PDI_AXIS_COLORS_017P3.Z, legende: "Élévation (+EL / -EL)" },
 ];
 
 // Rayon du cercle de noeud : suit le zoom mais reste lisible.

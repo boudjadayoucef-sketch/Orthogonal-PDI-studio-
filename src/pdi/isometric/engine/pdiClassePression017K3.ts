@@ -36,10 +36,9 @@ export const PDI_CLASSES_B165_017K3: string[] = [
 ];
 
 /**
- * Designations PN, conservees pour les specs non metalliques deja declarees
- * dans le projet (GRE, PE100). Ce ne sont pas des classes ASME B16.5.
+ * Designations PN (EN 1092-1 / DIN / ISO), pour les specs métriques et non métalliques.
  */
-export const PDI_DESIGNATIONS_PN_017K3: string[] = ["PN16", "PN40"];
+export const PDI_DESIGNATIONS_PN_017K3: string[] = ["PN10", "PN16", "PN25", "PN40", "PN63", "PN100", "PN160", "PN250", "PN400"];
 
 /** Classe de repli quand aucun projet n est encore charge. */
 export const PDI_CLASSE_PAR_DEFAUT_017K3: string =

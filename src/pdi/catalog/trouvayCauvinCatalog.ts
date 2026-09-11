@@ -2,9 +2,9 @@
  * ORTHOGONAL - ENG · PIPING DESIGN & ISOMETRICS (PD&I)
  * COPYRIGHT (C) 2026 ORTHOGONAL - ENG. ALL RIGHTS RESERVED.
  * 
- * MODULE : CATALOGUE INDUSTRIEL STANDARD TROUVAY & CAUVIN
- * Référentiels : ASME B16.9, ASME B16.5, ASME B16.34, ASME B16.10, API 6D, API 600, MSS SP-97, EN 10253.
- * Version : 021A-ETAPE-A (05 Septembre 2026)
+ * MODULE : CATALOGUE INDUSTRIEL STANDARD INTERNATIONAL (ASME / API / ISO / EN)
+ * Référentiels : ASME B16.9, ASME B16.5, ASME B16.34, ASME B16.10, API 5L, API 6D, API 600, MSS SP-97, EN 10253.
+ * 100% Déterministe - Zéro Dépendance API Externe
  */
 
 import type { IsoFittingType, JointConnectionType } from "../isometric/types/isoGraphTypes";
@@ -45,9 +45,9 @@ export interface TcComponentDefinition {
 }
 
 /**
- * Catalogue exhaustif Trouvay & Cauvin / Métallurgie Pétrole & Gaz
+ * Catalogue International Standardisé de Tuyauterie Industrielle & Hydrocarbures
  */
-export const TROUVAY_CAUVIN_CATALOG: Record<IsoFittingType, TcComponentDefinition> = {
+export const PDI_INTERNATIONAL_PIPING_CATALOG: Record<IsoFittingType, TcComponentDefinition> = {
   // ==========================================
   // TÉS & PIQUAGES (ASME B16.9 / MSS SP-97)
   // ==========================================
@@ -862,6 +862,9 @@ export const TROUVAY_CAUVIN_CATALOG: Record<IsoFittingType, TcComponentDefinitio
   },
 };
 
+/** Alias de compatibilité ascendante */
+export const TROUVAY_CAUVIN_CATALOG = PDI_INTERNATIONAL_PIPING_CATALOG;
+
 /**
  * Générateur de symbologie vectorielle normalisée pure (SVG path)
  * pour affichage en vignette dans :
@@ -1045,6 +1048,53 @@ export function getComponentVignetteSvg(
       return `<rect x="-8" y="-4.5" width="16" height="9" rx="1.5" fill="${isPrint ? "#fdf4ff" : "#2e1065"}" stroke="${cStation}" stroke-width="${sw}"/>` +
              `<line x1="4" y1="-4.5" x2="4" y2="4.5" stroke="${cStation}" stroke-width="${sw * 1.5}"/>` +
              `<line x1="-8" y1="0" x2="-4" y2="0" stroke="${cStation}" stroke-width="${sw * 1.2}"/>`;
+
+    // ---- GÉNIE CIVIL & INFRASTRUCTURES ----
+    case "massif_beton_gc":
+      return `<rect x="-7" y="-5" width="14" height="10" fill="${isPrint ? "#f1f5f9" : "#1e293b"}" stroke="#10b981" stroke-width="${sw * 1.2}"/>` +
+             `<line x1="-7" y1="-5" x2="7" y2="5" stroke="#10b981" stroke-width="${sw * 0.7}" stroke-dasharray="2 1.5"/>` +
+             `<line x1="-7" y1="5" x2="7" y2="-5" stroke="#10b981" stroke-width="${sw * 0.7}" stroke-dasharray="2 1.5"/>`;
+
+    case "butee_ancrage_gc":
+      return `<polygon points="-7,5 7,5 4,-5 -4,-5" fill="${isPrint ? "#ecfdf5" : "#064e3b"}" stroke="#10b981" stroke-width="${sw * 1.2}"/>` +
+             `<line x1="-5" y1="5" x2="-3" y2="7" stroke="#10b981" stroke-width="${sw}"/>` +
+             `<line x1="0" y1="5" x2="2" y2="7" stroke="#10b981" stroke-width="${sw}"/>` +
+             `<line x1="5" y1="5" x2="7" y2="7" stroke="#10b981" stroke-width="${sw}"/>`;
+
+    case "traversee_murale_gc":
+      return `<rect x="-3" y="-7" width="6" height="14" fill="${isPrint ? "#f8fafc" : "#334155"}" stroke="#10b981" stroke-width="${sw * 1.2}"/>` +
+             `<line x1="-7" y1="0" x2="7" y2="0" stroke="#06b6d4" stroke-width="${sw * 1.8}"/>` +
+             `<circle cx="-3" cy="0" r="1.5" fill="#10b981"/>` +
+             `<circle cx="3" cy="0" r="1.5" fill="#10b981"/>`;
+
+    case "caniveau_beton_gc":
+      return `<path d="M -7 -6 V 4 H 7 V -6" fill="${isPrint ? "#f1f5f9" : "#1e293b"}" stroke="#10b981" stroke-width="${sw * 1.3}"/>` +
+             `<line x1="-8" y1="-6" x2="8" y2="-6" stroke="#10b981" stroke-width="${sw * 1.6}"/>` +
+             `<circle cx="0" cy="0" r="2" fill="none" stroke="#06b6d4" stroke-width="${sw}"/>`;
+
+    case "fourreau_route_gc":
+      return `<rect x="-7" y="-4" width="14" height="8" rx="2" fill="none" stroke="#f59e0b" stroke-width="${sw * 1.4}"/>` +
+             `<line x1="-7" y1="0" x2="7" y2="0" stroke="#06b6d4" stroke-width="${sw * 1.6}"/>` +
+             `<line x1="-7" y1="-6" x2="7" y2="-6" stroke="#94a3b8" stroke-width="${sw}" stroke-dasharray="3 2"/>`;
+
+    case "regard_vanne_gc":
+      return `<rect x="-6" y="-6" width="12" height="12" fill="${isPrint ? "#f8fafc" : "#1e293b"}" stroke="#10b981" stroke-width="${sw * 1.4}"/>` +
+             `<circle cx="0" cy="0" r="3" fill="none" stroke="#10b981" stroke-width="${sw}"/>` +
+             `<line x1="0" y1="-3" x2="0" y2="3" stroke="#10b981" stroke-width="${sw}"/>` +
+             `<line x1="-3" y1="0" x2="3" y2="0" stroke="#10b981" stroke-width="${sw}"/>`;
+
+    case "portique_rack_gc":
+      return `<line x1="-6" y1="6" x2="-6" y2="-4" stroke="#10b981" stroke-width="${sw * 1.5}"/>` +
+             `<line x1="6" y1="6" x2="6" y2="-4" stroke="#10b981" stroke-width="${sw * 1.5}"/>` +
+             `<line x1="-7" y1="-4" x2="7" y2="-4" stroke="#10b981" stroke-width="${sw * 2}"/>` +
+             `<circle cx="0" cy="-4" r="1.5" fill="#06b6d4"/>`;
+
+    case "cloture_securite_gc":
+      return `<line x1="-7" y1="4" x2="7" y2="4" stroke="#10b981" stroke-width="${sw * 1.6}"/>` +
+             `<line x1="-5" y1="4" x2="-5" y2="-5" stroke="#94a3b8" stroke-width="${sw}"/>` +
+             `<line x1="0" y1="4" x2="0" y2="-5" stroke="#94a3b8" stroke-width="${sw}"/>` +
+             `<line x1="5" y1="4" x2="5" y2="-5" stroke="#94a3b8" stroke-width="${sw}"/>` +
+             `<line x1="-7" y1="-5" x2="7" y2="-5" stroke="#94a3b8" stroke-width="${sw * 0.8}" stroke-dasharray="2 2"/>`;
 
     default:
       // Tronçon de tube standard par défaut

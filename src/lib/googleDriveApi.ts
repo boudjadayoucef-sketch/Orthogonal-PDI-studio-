@@ -69,6 +69,33 @@ export async function createDriveFolder(accessToken: string, folderName: string)
   return await res.json();
 }
 
+/**
+ * Finds or automatically creates the dedicated PD&I engineering folder in the user's Drive.
+ */
+export async function getOrCreateDefaultPdiFolder(
+  accessToken: string,
+  folderName = "PD&I Industrial Piping Projects"
+): Promise<string> {
+  try {
+    const q = `mimeType = 'application/vnd.google-apps.folder' and name = '${folderName.replace(/'/g, "\\'")}' and trashed = false`;
+    const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name)&pageSize=1`;
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.files && data.files.length > 0) {
+        return data.files[0].id;
+      }
+    }
+    const created = await createDriveFolder(accessToken, folderName);
+    return created.id;
+  } catch (err) {
+    console.warn("Could not retrieve or create dedicated PD&I folder:", err);
+    return "";
+  }
+}
+
 export async function uploadJsonToDrive(
   accessToken: string,
   fileName: string,

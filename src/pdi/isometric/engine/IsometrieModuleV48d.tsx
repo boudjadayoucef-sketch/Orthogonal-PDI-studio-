@@ -1059,7 +1059,7 @@ function materialRows(nodes: IsoNode[], segments: IsoSegment[]) {
       qty: 1,
       unit: "u",
       length: n.length || 0,
-      source: n.reference || (catalogItem ? `${catalogItem.standard} - ${catalogItem.brand}` : "Trouvay & Cauvin"),
+      source: n.reference || (catalogItem ? `${catalogItem.standard} - ${catalogItem.brand}` : "Standard International ASME / API"),
       fittingType: n.equipmentType,
     });
   }
@@ -1071,7 +1071,7 @@ function materialRows(nodes: IsoNode[], segments: IsoSegment[]) {
       qty: 1,
       unit: "tronçon",
       length: s.length,
-      source: "Trouvay & Cauvin ASTM A106 Gr.B",
+      source: "Standard International ASTM A106 Gr.B / API 5L",
       fittingType: "pipe",
     });
     for (const f of s.fittings) {
@@ -1083,7 +1083,7 @@ function materialRows(nodes: IsoNode[], segments: IsoSegment[]) {
         qty: 1,
         unit: "u",
         length: 0,
-        source: f.reference || (catalogItem ? `${catalogItem.standard} - ${catalogItem.brand}` : "Trouvay & Cauvin"),
+        source: f.reference || (catalogItem ? `${catalogItem.standard} - ${catalogItem.brand}` : "Standard International ASME / API"),
         fittingType: f.type,
       });
     }
@@ -12205,7 +12205,7 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                       libraryCategoryTab === "trouvay" ? "bg-blue-500 text-white font-black" : "bg-slate-800/80 text-blue-300 hover:bg-slate-800"
                     }`}
                   >
-                    📦 Trouvay & Cauvin
+                    📦 Specs Internationales
                   </button>
                   <button
                     type="button"
@@ -12370,7 +12370,7 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                   {(libraryCategoryTab === "all" || libraryCategoryTab === "gc") && !libraryQuery && (
                     <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-2 space-y-1.5">
                       <div className="flex items-center justify-between text-[10px] font-black uppercase text-emerald-300">
-                        <span>🏗️ Génie Civil (GC) & Massifs Béton Armé</span>
+                        <span>🏗️ Ouvrages Génie Civil (GC) & Fondations Hydrocarbures</span>
                       </div>
                       <div className="grid grid-cols-2 gap-1.5">
                         <button
@@ -12389,9 +12389,30 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                           }}
                           className="p-2 rounded-lg bg-slate-900 border border-slate-700/80 hover:border-emerald-400 text-left flex flex-col justify-between transition-all"
                         >
-                          <span className="text-[9px] font-bold text-emerald-400 uppercase">Massif Béton</span>
+                          <span className="text-[9px] font-bold text-emerald-400 uppercase">Massif Fondation</span>
                           <span className="text-[11px] font-bold text-white">Massif GC 1.2×1.2m</span>
                           <span className="text-[8px] text-slate-400">Fondation béton Z=0</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const world = isoUnprojectV4(310, 200, viewport.zoom, viewport.panX, viewport.panY, 0);
+                            const x = snapIsoV4(world.x, isoSnapStep);
+                            const y = snapIsoV4(world.y, isoSnapStep);
+                            const gcNode = makeEquipmentNode("pompe_centrifuge" as any, "Butée Béton GC", x, y, 0, newDN, 0);
+                            (gcNode as any).equipmentType = "butee_ancrage_gc";
+                            (gcNode as any).equipmentLabel = `Massif de Butée DN${newDN} (Coude/Piquage)`;
+                            setNodes(prev => [...prev, gcNode]);
+                            setSelectedNodeId(gcNode.id);
+                            setSelectedNodeIds([gcNode.id]);
+                            setStatusMessage("Massif de butée béton armé inséré");
+                          }}
+                          className="p-2 rounded-lg bg-slate-900 border border-slate-700/80 hover:border-emerald-400 text-left flex flex-col justify-between transition-all"
+                        >
+                          <span className="text-[9px] font-bold text-emerald-400 uppercase">Massif Butée</span>
+                          <span className="text-[11px] font-bold text-white">Butée d'Ancrage</span>
+                          <span className="text-[8px] text-slate-400">Reprise poussée dynamique</span>
                         </button>
 
                         <button
@@ -12414,15 +12435,120 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                           <span className="text-[11px] font-bold text-white">Traversée Murale</span>
                           <span className="text-[8px] text-slate-400">Fourreau étanche GC</span>
                         </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const world = isoUnprojectV4(310, 200, viewport.zoom, viewport.panX, viewport.panY, 0);
+                            const x = snapIsoV4(world.x, isoSnapStep);
+                            const y = snapIsoV4(world.y, isoSnapStep);
+                            const gcNode = makeEquipmentNode("pompe_centrifuge" as any, "Caniveau Béton GC", x, y, 0, newDN, 0);
+                            (gcNode as any).equipmentType = "caniveau_beton_gc";
+                            (gcNode as any).equipmentLabel = "Caniveau Béton avec Dalle";
+                            setNodes(prev => [...prev, gcNode]);
+                            setSelectedNodeId(gcNode.id);
+                            setSelectedNodeIds([gcNode.id]);
+                            setStatusMessage("Caniveau technique béton armé inséré");
+                          }}
+                          className="p-2 rounded-lg bg-slate-900 border border-slate-700/80 hover:border-emerald-400 text-left flex flex-col justify-between transition-all"
+                        >
+                          <span className="text-[9px] font-bold text-emerald-400 uppercase">Caniveau Technique</span>
+                          <span className="text-[11px] font-bold text-white">Caniveau Béton BA</span>
+                          <span className="text-[8px] text-slate-400">Tranchée béton avec dallettes</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const world = isoUnprojectV4(310, 200, viewport.zoom, viewport.panX, viewport.panY, 0);
+                            const x = snapIsoV4(world.x, isoSnapStep);
+                            const y = snapIsoV4(world.y, isoSnapStep);
+                            const gcNode = makeEquipmentNode("pompe_centrifuge" as any, "Fourreau Route GC", x, y, -0.8, newDN, 0);
+                            (gcNode as any).equipmentType = "fourreau_route_gc";
+                            (gcNode as any).equipmentLabel = `Fourreau Sous Voirie DN${Math.round(newDN * 1.5)}`;
+                            setNodes(prev => [...prev, gcNode]);
+                            setSelectedNodeId(gcNode.id);
+                            setSelectedNodeIds([gcNode.id]);
+                            setStatusMessage("Fourreau de protection sous chaussée/piste inséré (Z=-0.8m)");
+                          }}
+                          className="p-2 rounded-lg bg-slate-900 border border-slate-700/80 hover:border-emerald-400 text-left flex flex-col justify-between transition-all"
+                        >
+                          <span className="text-[9px] font-bold text-emerald-400 uppercase">Traversée Route</span>
+                          <span className="text-[11px] font-bold text-white">Fourreau Chaussée</span>
+                          <span className="text-[8px] text-slate-400">Gaine acier de protection</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const world = isoUnprojectV4(310, 200, viewport.zoom, viewport.panX, viewport.panY, 0);
+                            const x = snapIsoV4(world.x, isoSnapStep);
+                            const y = snapIsoV4(world.y, isoSnapStep);
+                            const gcNode = makeEquipmentNode("pompe_centrifuge" as any, "Chambre de Vanne GC", x, y, 0, newDN, 0);
+                            (gcNode as any).equipmentType = "regard_vanne_gc";
+                            (gcNode as any).equipmentLabel = "Chambre de Vannes Enterrée";
+                            setNodes(prev => [...prev, gcNode]);
+                            setSelectedNodeId(gcNode.id);
+                            setSelectedNodeIds([gcNode.id]);
+                            setStatusMessage("Regard / Chambre de vannes en béton armé inséré");
+                          }}
+                          className="p-2 rounded-lg bg-slate-900 border border-slate-700/80 hover:border-emerald-400 text-left flex flex-col justify-between transition-all"
+                        >
+                          <span className="text-[9px] font-bold text-emerald-400 uppercase">Regard / Chambre</span>
+                          <span className="text-[11px] font-bold text-white">Chambre de Vannes</span>
+                          <span className="text-[8px] text-slate-400">Cuve béton fermée / tampons</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const world = isoUnprojectV4(310, 200, viewport.zoom, viewport.panX, viewport.panY, 0);
+                            const x = snapIsoV4(world.x, isoSnapStep);
+                            const y = snapIsoV4(world.y, isoSnapStep);
+                            const gcNode = makeEquipmentNode("pompe_centrifuge" as any, "Portique Pipe-Rack GC", x, y, 0, newDN, 0);
+                            (gcNode as any).equipmentType = "portique_rack_gc";
+                            (gcNode as any).equipmentLabel = "Portique Pipe-Rack Acier/Béton";
+                            setNodes(prev => [...prev, gcNode]);
+                            setSelectedNodeId(gcNode.id);
+                            setSelectedNodeIds([gcNode.id]);
+                            setStatusMessage("Portique de charpente / Pipe-Rack inséré");
+                          }}
+                          className="p-2 rounded-lg bg-slate-900 border border-slate-700/80 hover:border-emerald-400 text-left flex flex-col justify-between transition-all"
+                        >
+                          <span className="text-[9px] font-bold text-emerald-400 uppercase">Charpente / Rack</span>
+                          <span className="text-[11px] font-bold text-white">Portique Pipe-Rack</span>
+                          <span className="text-[8px] text-slate-400">Poutre HEA + massifs</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const world = isoUnprojectV4(310, 200, viewport.zoom, viewport.panX, viewport.panY, 0);
+                            const x = snapIsoV4(world.x, isoSnapStep);
+                            const y = snapIsoV4(world.y, isoSnapStep);
+                            const gcNode = makeEquipmentNode("pompe_centrifuge" as any, "Clôture Poste GC", x, y, 0, 0, 0);
+                            (gcNode as any).equipmentType = "cloture_securite_gc";
+                            (gcNode as any).equipmentLabel = "Longrine & Clôture de Sécurité";
+                            setNodes(prev => [...prev, gcNode]);
+                            setSelectedNodeId(gcNode.id);
+                            setSelectedNodeIds([gcNode.id]);
+                            setStatusMessage("Longrine et clôture de sécurité du poste insérée");
+                          }}
+                          className="p-2 rounded-lg bg-slate-900 border border-slate-700/80 hover:border-emerald-400 text-left flex flex-col justify-between transition-all"
+                        >
+                          <span className="text-[9px] font-bold text-emerald-400 uppercase">Clôture Poste</span>
+                          <span className="text-[11px] font-bold text-white">Longrine Clôture</span>
+                          <span className="text-[8px] text-slate-400">Béton armé + barreaudage</span>
+                        </button>
                       </div>
                     </div>
                   )}
 
-                  {/* SOUS-FAMILLE : TROUVAY & CAUVIN (Catalogue Tuyauterie Industrielle) */}
+                  {/* SOUS-FAMILLE : SPÉCIFICATIONS INTERNATIONALES (ASME / API / DIN) */}
                   {(libraryCategoryTab === "all" || libraryCategoryTab === "trouvay") && !libraryQuery && (
                     <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-2 space-y-1.5">
                       <div className="flex items-center justify-between text-[10px] font-black uppercase text-blue-300">
-                        <span>📦 Spécifications Trouvay & Cauvin (ASTM / ASME)</span>
+                        <span>📦 Spécifications Internationales (ASTM / ASME / API)</span>
                       </div>
                       <div className="grid grid-cols-2 gap-1.5">
                         <button
@@ -12430,11 +12556,11 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                           onClick={() => {
                             setNewDN(100);
                             setNewPN("Class 150");
-                            setStatusMessage("Trouvay & Cauvin : Tube ASTM A106 Gr.B DN100 Sch.STD sélectionné");
+                            setStatusMessage("Standard International : Tube ASTM A106 Gr.B DN100 Sch.STD sélectionné");
                           }}
                           className="p-2 rounded-lg bg-slate-900 border border-slate-700/80 hover:border-blue-400 text-left flex flex-col justify-between transition-all"
                         >
-                          <span className="text-[9px] font-bold text-blue-400 uppercase">Tube TC ASTM</span>
+                          <span className="text-[9px] font-bold text-blue-400 uppercase">Tube Acier ASTM</span>
                           <span className="text-[11px] font-bold text-white">ASTM A106 Gr.B</span>
                           <span className="text-[8px] text-slate-400">Sans soudure Sch 40/STD</span>
                         </button>
@@ -12444,11 +12570,11 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                           onClick={() => {
                             setNewDN(150);
                             setNewPN("Class 300");
-                            setStatusMessage("Trouvay & Cauvin : Bride ASME B16.5 Cl.300 WN sélectionnée");
+                            setStatusMessage("Standard International : Bride ASME B16.5 Cl.300 WN sélectionnée");
                           }}
                           className="p-2 rounded-lg bg-slate-900 border border-slate-700/80 hover:border-blue-400 text-left flex flex-col justify-between transition-all"
                         >
-                          <span className="text-[9px] font-bold text-blue-400 uppercase">Bride TC ASME</span>
+                          <span className="text-[9px] font-bold text-blue-400 uppercase">Bride Forgée ASME</span>
                           <span className="text-[11px] font-bold text-white">ASME B16.5 Cl.300</span>
                           <span className="text-[8px] text-slate-400">Collerette à souder (WN)</span>
                         </button>

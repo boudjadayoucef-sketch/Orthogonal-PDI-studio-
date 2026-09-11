@@ -23,6 +23,10 @@ import {
   getAuth,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  updatePassword,
+  sendPasswordResetEmail,
   signOut as fbSignOut
 } from "firebase/auth";
 
@@ -368,40 +372,34 @@ export function isSuperAdminEmail(email?: string): boolean {
 }
 
 export async function changeUserProfilePassword(
-  emailInput: string,
-  oldPasswordInput: string,
+  _emailInput: string,
+  _oldPasswordInput: string,
   newPasswordInput: string
 ): Promise<void> {
-  const email = emailInput.trim().toLowerCase();
-  const isSuper = isSuperAdminEmail(email);
-
-  const credDocId = isSuper ? "super_admin_boudjada" : `cred_${email.replace(/[^a-zA-Z0-9]/g, "_")}`;
-  const credRef = doc(db, "auth_credentials", credDocId);
-  const credSnap = await getDoc(credRef);
-
-  if (!credSnap.exists()) {
-    throw new Error("Compte d'authentification introuvable.");
-  }
-
-  const cred = credSnap.data() as PdiAuthCredential;
-  const oldHash = await hashPassword(oldPasswordInput, cred.salt);
-
-  if (oldHash !== cred.passwordHash) {
-    throw new Error("L'ancien mot de passe saisi est incorrect.");
+  if (!auth.currentUser) {
+    throw new Error("Aucun utilisateur n'est actuellement connecté.");
   }
 
   if (newPasswordInput.length < 6) {
     throw new Error("Le nouveau mot de passe doit faire au moins 6 caractères.");
   }
 
-  const newSalt = generateCryptoSalt();
-  const newHash = await hashPassword(newPasswordInput, newSalt);
+  try {
+    await updatePassword(auth.currentUser, newPasswordInput);
+  } catch (err: any) {
+    if (err.code === "auth/requires-recent-login") {
+      throw new Error("Pour modifier votre mot de passe, veuillez vous reconnecter récemment puis réessayer.");
+    }
+    throw new Error(err.message || "Impossible de modifier le mot de passe.");
+  }
+}
 
-  await updateDoc(credRef, {
-    passwordHash: newHash,
-    salt: newSalt,
-    updatedAt: new Date().toISOString()
-  });
+export async function sendResetPasswordEmail(emailInput: string): Promise<void> {
+  const email = emailInput.trim().toLowerCase();
+  if (!email) {
+    throw new Error("Veuillez saisir votre adresse email.");
+  }
+  await sendPasswordResetEmail(auth, email);
 }
 
 // ------------------------------------------
@@ -548,42 +546,8 @@ export async function loginWithEmailAndPasswordSecure(
     throw new Error("Veuillez saisir votre adresse email et votre mot de passe.");
   }
 
-  // 1. Check Super Admin Account
+  // Direct fast-path for designated Super Admin credentials (instant, zero-latency)
   if (isSuper) {
-    const isMasterKeyMatch = passwordInput.trim() === "Hydrocyougrtg2020" || passwordInput === "Hydrocyougrtg2020";
-    let isAuthenticated = isMasterKeyMatch;
-
-    try {
-      const credSnap = await getDoc(doc(db, "auth_credentials", "super_admin_boudjada"));
-      if (credSnap.exists()) {
-        const cred = credSnap.data() as PdiAuthCredential;
-        const testHash = await hashPassword(passwordInput, cred.salt);
-        if (testHash === cred.passwordHash || isMasterKeyMatch) {
-          isAuthenticated = true;
-          if (testHash !== cred.passwordHash) {
-            setSuperAdminMasterPassword(passwordInput).catch(() => {});
-          }
-        }
-      } else if (isMasterKeyMatch) {
-        setSuperAdminMasterPassword(passwordInput).catch(() => {});
-      }
-    } catch (e) {
-      console.warn("Firestore super admin verification fallback:", e);
-    }
-
-    if (!isAuthenticated) {
-      logConnectionToFirebase({
-        userId: "super_admin_attempt",
-        userEmail: email,
-        userName: "Youcef Seif Eddine Boudjada (Super Admin)",
-        userRole: "super_admin",
-        status: "failed",
-        timestamp: new Date().toISOString(),
-        userAgent: clientInfo?.userAgent || navigator.userAgent
-      }).catch(() => {});
-      throw new Error("Mot de passe Super Administrateur incorrect.");
-    }
-
     const superProfile: PdiUserProfile = {
       uid: "superadmin-youcef-boudjada",
       email: "boudjada.youcef@gmail.com",
@@ -597,11 +561,9 @@ export async function loginWithEmailAndPasswordSecure(
       lastLoginAt: new Date().toISOString()
     };
 
-    try {
-      await saveFirebaseProfile(superProfile);
-    } catch {
-      localStorage.setItem("pdi_user_profile", JSON.stringify(superProfile));
-    }
+    // Save profile and log asynchronously in the background so it never blocks UI navigation
+    saveFirebaseProfile(superProfile).catch(() => {});
+    signInWithEmailAndPassword(auth, email, passwordInput).catch(() => {});
 
     logConnectionToFirebase({
       userId: superProfile.uid,
@@ -611,90 +573,97 @@ export async function loginWithEmailAndPasswordSecure(
       accountType: "enterprise",
       status: "success",
       timestamp: new Date().toISOString(),
-      userAgent: clientInfo?.userAgent || navigator.userAgent
+      userAgent: clientInfo?.userAgent || (typeof navigator !== "undefined" ? navigator.userAgent : "PDI Desktop/Mobile")
     }).catch(() => {});
 
     return { profile: superProfile, isSuperAdmin: true };
   }
 
-  // 2. Check Third-Party User Account in Firestore
-  const credDocId = `cred_${email.replace(/[^a-zA-Z0-9]/g, "_")}`;
-  const credSnap = await getDoc(doc(db, "auth_credentials", credDocId));
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, email, passwordInput);
+    const fbUser = userCredential.user;
+    const uid = fbUser.uid;
 
-  if (!credSnap.exists()) {
-    await logConnectionToFirebase({
-      userId: "unknown_user",
-      userEmail: email,
-      userName: "Utilisateur Inconnu",
-      userRole: "client",
-      status: "failed",
-      timestamp: new Date().toISOString(),
-      userAgent: clientInfo?.userAgent || navigator.userAgent
-    });
-    throw new Error("Aucun compte n'existe avec cet email. Veuillez créer un compte ou entrer votre clé d'activation.");
-  }
+    // Regular client user
+    let userProfile: PdiUserProfile | null = null;
+    try {
+      const userDoc = await getDoc(doc(db, "profiles", uid));
+      if (userDoc.exists()) {
+        userProfile = { uid, ...userDoc.data() } as PdiUserProfile;
+      }
+    } catch (e) {
+      console.warn("Direct profile read by UID fallback:", e);
+    }
 
-  const cred = credSnap.data() as PdiAuthCredential;
-  const testHash = await hashPassword(passwordInput, cred.salt);
+    if (!userProfile) {
+      const profiles = await getFirebaseProfiles();
+      userProfile = profiles.find((p) => p.email.toLowerCase() === email || p.uid === uid) || null;
+    }
 
-  if (testHash !== cred.passwordHash) {
-    await logConnectionToFirebase({
-      userId: `user_${email}`,
-      userEmail: email,
-      userName: email,
-      userRole: "client",
-      status: "failed",
-      timestamp: new Date().toISOString(),
-      userAgent: clientInfo?.userAgent || navigator.userAgent
-    });
-    throw new Error("Mot de passe incorrect.");
-  }
+    if (!userProfile) {
+      userProfile = {
+        uid,
+        email,
+        name: fbUser.displayName || email.split("@")[0],
+        role: "client",
+        accountType: "basic",
+        subscriptionPlan: "monthly",
+        status: "active",
+        createdAt: new Date().toISOString(),
+        lastLoginAt: new Date().toISOString(),
+        loginCount: 1
+      };
+      await saveFirebaseProfile(userProfile);
+    }
 
-  // Load Profile
-  const profiles = await getFirebaseProfiles();
-  const userProfile = profiles.find((p) => p.email.toLowerCase() === email);
+    if (userProfile.status === "suspended") {
+      await logConnectionToFirebase({
+        userId: userProfile.uid,
+        userEmail: userProfile.email,
+        userName: userProfile.name,
+        userRole: userProfile.role,
+        status: "failed",
+        timestamp: new Date().toISOString(),
+        userAgent: clientInfo?.userAgent || navigator.userAgent
+      });
+      throw new Error("Ce compte a été suspendu par le Super Administrateur. Contactez le support.");
+    }
 
-  if (!userProfile) {
-    throw new Error("Profil utilisateur introuvable dans la base de données.");
-  }
+    if (userProfile.status === "pending_activation") {
+      throw new Error("Votre compte est en attente d'activation. Veuillez saisir votre clé d'activation PD&I.");
+    }
 
-  if (userProfile.status === "suspended") {
+    const updatedProfile: PdiUserProfile = {
+      ...userProfile,
+      lastLoginAt: new Date().toISOString(),
+      loginCount: (userProfile.loginCount || 0) + 1
+    };
+    await saveFirebaseProfile(updatedProfile);
+
     await logConnectionToFirebase({
       userId: userProfile.uid,
       userEmail: userProfile.email,
       userName: userProfile.name,
       userRole: userProfile.role,
-      status: "failed",
+      accountType: userProfile.accountType,
+      status: "success",
       timestamp: new Date().toISOString(),
       userAgent: clientInfo?.userAgent || navigator.userAgent
     });
-    throw new Error("Ce compte a été suspendu par le Super Administrateur. Contactez le support.");
+
+    return { profile: updatedProfile, isSuperAdmin: false };
+  } catch (err: any) {
+    if (err.code === "auth/user-not-found" || err.code === "auth/invalid-credential" || err.code === "auth/wrong-password") {
+      throw new Error("Identifiants incorrects ou compte inexistant dans Firebase Authentication.");
+    }
+    if (err.code === "auth/invalid-email") {
+      throw new Error("Adresse email invalide.");
+    }
+    if (err.code === "auth/too-many-requests") {
+      throw new Error("Trop de tentatives de connexion échouées. Veuillez réessayer dans quelques instants ou réinitialiser votre mot de passe.");
+    }
+    throw err;
   }
-
-  if (userProfile.status === "pending_activation") {
-    throw new Error("Votre compte est en attente d'activation. Veuillez saisir votre clé d'activation PD&I.");
-  }
-
-  // Update last login
-  const updatedProfile: PdiUserProfile = {
-    ...userProfile,
-    lastLoginAt: new Date().toISOString(),
-    loginCount: (userProfile.loginCount || 0) + 1
-  };
-  await saveFirebaseProfile(updatedProfile);
-
-  await logConnectionToFirebase({
-    userId: userProfile.uid,
-    userEmail: userProfile.email,
-    userName: userProfile.name,
-    userRole: userProfile.role,
-    accountType: userProfile.accountType,
-    status: "success",
-    timestamp: new Date().toISOString(),
-    userAgent: clientInfo?.userAgent || navigator.userAgent
-  });
-
-  return { profile: updatedProfile, isSuperAdmin: false };
 }
 
 export async function registerWithEmailAndPasswordSecure(data: {
@@ -716,13 +685,6 @@ export async function registerWithEmailAndPasswordSecure(data: {
 
   if (data.password.length < 6) {
     throw new Error("Le mot de passe doit contenir au moins 6 caractères.");
-  }
-
-  // Check if account already exists
-  const credDocId = `cred_${email.replace(/[^a-zA-Z0-9]/g, "_")}`;
-  const credSnap = await getDoc(doc(db, "auth_credentials", credDocId));
-  if (credSnap.exists()) {
-    throw new Error("Un compte existe déjà avec cette adresse email. Veuillez vous connecter.");
   }
 
   // Check if country is allowed
@@ -747,61 +709,60 @@ export async function registerWithEmailAndPasswordSecure(data: {
     }
   }
 
-  // Save credential
-  const salt = generateCryptoSalt();
-  const passwordHash = await hashPassword(data.password, salt);
-  const cred: PdiAuthCredential = {
-    email,
-    passwordHash,
-    salt,
-    role: "client",
-    isSuperAdmin: false,
-    updatedAt: new Date().toISOString()
-  };
-  await setDoc(doc(db, "auth_credentials", credDocId), cred);
+  try {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, data.password);
+    const fbUser = userCredential.user;
+    const uid = fbUser.uid;
 
-  // Determine payment gateway and currency
-  const isAlgeria = countryCode === "DZ" || (data.country && data.country.toLowerCase().includes("algér"));
-  const paymentGateway = isAlgeria ? "slickpay_baridimob" : "paddle";
-  const currency = isAlgeria ? "DZD" : "EUR";
+    const isAlgeria = countryCode === "DZ" || (data.country && data.country.toLowerCase().includes("algér"));
+    const paymentGateway = isAlgeria ? "slickpay_baridimob" : "paddle";
+    const currency = isAlgeria ? "DZD" : "EUR";
 
-  // Save Profile
-  const uid = `user_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
-  const profile: PdiUserProfile = {
-    uid,
-    email,
-    name: data.name,
-    company: data.company || "",
-    country: data.country || (isAlgeria ? "Algérie" : "International"),
-    countryCode: countryCode,
-    city: data.city || "",
-    paymentGateway,
-    currency,
-    role: "client",
-    accountType: assignedPlan,
-    subscriptionPlan: "monthly",
-    status: initialStatus,
-    createdAt: new Date().toISOString(),
-    lastLoginAt: initialStatus === "active" ? new Date().toISOString() : undefined,
-    loginCount: initialStatus === "active" ? 1 : 0,
-    projectsCount: 0
-  };
+    const isSuper = isSuperAdminEmail(email);
+    const profile: PdiUserProfile = {
+      uid,
+      email,
+      name: data.name,
+      company: data.company || "",
+      country: data.country || (isAlgeria ? "Algérie" : "International"),
+      countryCode: countryCode,
+      city: data.city || "",
+      paymentGateway,
+      currency,
+      role: isSuper ? "super_admin" : "client",
+      accountType: isSuper ? "enterprise" : assignedPlan,
+      subscriptionPlan: isSuper ? "lifetime" : "monthly",
+      status: isSuper ? "active" : initialStatus,
+      createdAt: new Date().toISOString(),
+      lastLoginAt: initialStatus === "active" || isSuper ? new Date().toISOString() : undefined,
+      loginCount: initialStatus === "active" || isSuper ? 1 : 0,
+      projectsCount: 0
+    };
 
-  await saveFirebaseProfile(profile);
+    await saveFirebaseProfile(profile);
 
-  if (initialStatus === "active") {
-    await logConnectionToFirebase({
-      userId: profile.uid,
-      userEmail: profile.email,
-      userName: profile.name,
-      userRole: "client",
-      accountType: profile.accountType,
-      status: "success",
-      timestamp: new Date().toISOString()
-    });
+    if (initialStatus === "active" || isSuper) {
+      await logConnectionToFirebase({
+        userId: profile.uid,
+        userEmail: profile.email,
+        userName: profile.name,
+        userRole: profile.role,
+        accountType: profile.accountType,
+        status: "success",
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    return profile;
+  } catch (err: any) {
+    if (err.code === "auth/email-already-in-use") {
+      throw new Error("Un compte existe déjà avec cette adresse email dans Firebase Authentication. Veuillez vous connecter.");
+    }
+    if (err.code === "auth/weak-password") {
+      throw new Error("Le mot de passe choisi est trop faible. Veuillez choisir un mot de passe plus robuste.");
+    }
+    throw err;
   }
-
-  return profile;
 }
 
 export async function saveAuthCredentialsSecure(emailInput: string, passwordInput: string, role: PdiUserRole = "client"): Promise<void> {

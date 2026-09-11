@@ -17,12 +17,14 @@ import { googleSignIn, logoutGoogle, initAuth, getAccessToken } from '../lib/goo
 import { 
   listDriveFiles, 
   createDriveFolder, 
+  getOrCreateDefaultPdiFolder,
   uploadJsonToDrive, 
   deleteDriveFile, 
   downloadDriveFileContent, 
   GoogleDriveFile 
 } from '../lib/googleDriveApi.ts';
 import { User } from 'firebase/auth';
+import { projectsApi } from '../lib/pdiApiClient.ts';
 
 interface GoogleDriveWorkspaceProps {
   onLoadProjectToEditor?: (data: any, name: string) => void;
@@ -145,8 +147,25 @@ export const GoogleDriveWorkspace: React.FC<GoogleDriveWorkspaceProps> = ({
         content: currentIsoState || { schema: "PD&I Industrial Project", date: new Date().toISOString() }
       };
 
-      const file = await uploadJsonToDrive(accessToken, exportFileName.trim(), payload);
-      setFeedback({ type: 'success', message: `Fichier ISO "${file.name}" sauvegardé avec succès sur Google Drive !` });
+      const defaultFolderId = await getOrCreateDefaultPdiFolder(accessToken);
+      const file = await uploadJsonToDrive(accessToken, exportFileName.trim(), payload, defaultFolderId || undefined);
+      
+      // Also register/sync the project in PostgreSQL Cloud SQL database
+      try {
+        await projectsApi.saveProject({
+          name: exportFileName.trim(),
+          description: "Projet sauvegardé via Google Drive Workspace",
+          module: "isometric",
+          status: "active",
+          driveFileId: file.id,
+          driveWebViewLink: file.webViewLink || null,
+          data: payload.content,
+        });
+      } catch (sqlErr) {
+        console.warn("Could not sync project record to Cloud SQL:", sqlErr);
+      }
+
+      setFeedback({ type: 'success', message: `Fichier ISO "${file.name}" sauvegardé avec succès sur Google Drive & Cloud SQL !` });
       setShowExportModal(false);
       loadFiles();
     } catch (err: any) {

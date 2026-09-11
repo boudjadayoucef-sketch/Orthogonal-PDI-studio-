@@ -80,6 +80,7 @@ import { PdiSuperAdminConsole } from "../superadmin/PdiSuperAdminConsole";
 import { PdiFeedbackModal } from "../feedback/PdiFeedbackModal";
 import { PdiNewProjectModal } from "../modals/PdiNewProjectModal";
 import { recordSubscriberUsage, changeUserProfilePassword } from "../../lib/firebase";
+import { projectsApi } from "../../lib/pdiApiClient";
 
 type PdiModule = "home" | "isometric" | "drive" | "vision" | "sketch" | "cad" | "json" | "pdf" | "projects" | "assistant" | "profile" | "subscription" | "super_admin_console" | "license_keys";
 type PdiWorkspaceTab = { id: string; title: string; module: PdiModule; projectId: string; dirty?: boolean; createdAt: string };
@@ -747,6 +748,12 @@ export default function PdiUnifiedApp() {
             window.sessionStorage.setItem(PDI_STAGE_KEY, "app");
             window.localStorage.setItem("pdi.force.app.v1", "1");
           } catch {}
+          
+          // Asynchronously sync user to PostgreSQL Cloud SQL in the background
+          void projectsApi.syncUser(profile.name, (profile as any).photoUrl || (profile as any).photoURL).catch((err) => {
+            console.warn("Background user sync to Cloud SQL non-blocking error:", err);
+          });
+
           setStage("app");
           setActiveModule(isSuper ? "super_admin_console" : "isometric");
         }}
@@ -1345,7 +1352,7 @@ export default function PdiUnifiedApp() {
                   <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">Étape A Active</span>
                 </span>
               </p>
-              <p><b>Palier Industriel</b><span className="text-zinc-300 text-xs">Trouvay &amp; Cauvin / Symbologie ISO</span></p>
+              <p><b>Palier Industriel</b><span className="text-zinc-300 text-xs">Standard International (ASME / API / ISO)</span></p>
               <p><b>Plan</b><span>{pdiUserProfile.plan}</span></p>
               <p><b>Email</b><span>{pdiUserProfile.emailStatus}</span></p>
               <p><b>Créé le</b><span>{pdiUserProfile.createdAt}</span></p>

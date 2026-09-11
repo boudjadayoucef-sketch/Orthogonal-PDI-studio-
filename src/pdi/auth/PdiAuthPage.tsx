@@ -6,8 +6,7 @@ import {
   loginWithGoogleSecure,
   activateAccountWithLicenseKey,
   isSuperAdminEmail,
-  setSuperAdminMasterPassword,
-  hasSuperAdminPasswordConfigured,
+  sendResetPasswordEmail,
   getCountryRestrictionsFromFirebase,
   PdiUserProfile
 } from "../../lib/firebase";
@@ -165,11 +164,9 @@ export default function PdiAuthPage({
   const [actEmail, setActEmail] = useState("");
   const [actKey, setActKey] = useState("");
 
-  // Super Admin Password configuration state
-  const [superAdminSetupOpen, setSuperAdminSetupOpen] = useState(false);
-  const [newSuperPassword, setNewSuperPassword] = useState("");
-  const [confirmSuperPassword, setConfirmSuperPassword] = useState("");
-  const [hasSuperAdminConfigured, setHasSuperAdminConfigured] = useState<boolean | null>(null);
+  // Reset password state
+  const [resetEmail, setResetEmail] = useState("");
+  const [showResetForm, setShowResetForm] = useState(false);
 
   // UI status states
   const [loading, setLoading] = useState(false);
@@ -177,7 +174,6 @@ export default function PdiAuthPage({
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    void hasSuperAdminPasswordConfigured().then(res => setHasSuperAdminConfigured(res));
     void getCountryRestrictionsFromFirebase().then(res => {
       if (res && res.length > 0) {
         setAllCountries(res);
@@ -206,9 +202,7 @@ export default function PdiAuthPage({
     try {
       const res = await loginWithEmailAndPasswordSecure(loginEmail, loginPassword);
       setSuccessMsg(`Connexion réussie ! Bienvenue ${res.profile.name}.`);
-      setTimeout(() => {
-        onSuccess(res.profile, res.isSuperAdmin);
-      }, 500);
+      onSuccess(res.profile, res.isSuperAdmin);
     } catch (err: any) {
       setErrorMsg(err.message || "Erreur de connexion. Vérifiez vos identifiants.");
     } finally {
@@ -355,29 +349,23 @@ export default function PdiAuthPage({
     }
   };
 
-  const handleSaveSuperAdminPassword = async (e: React.FormEvent) => {
+  const handleResetPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
     setSuccessMsg(null);
 
-    if (newSuperPassword.length < 6) {
-      setErrorMsg("Le mot de passe Super Admin doit contenir au moins 6 caractères.");
-      return;
-    }
-    if (newSuperPassword !== confirmSuperPassword) {
-      setErrorMsg("Les deux mots de passe ne correspondent pas.");
+    if (!resetEmail) {
+      setErrorMsg("Veuillez saisir votre adresse email.");
       return;
     }
 
     setLoading(true);
     try {
-      await setSuperAdminMasterPassword(newSuperPassword);
-      setSuccessMsg("Mot de passe Super Administrateur mis à jour avec succès ! Vous pouvez l'utiliser pour vous connecter.");
-      setSuperAdminSetupOpen(false);
-      setLoginEmail("boudjada.youcef@gmail.com");
-      setLoginPassword(newSuperPassword);
+      await sendResetPasswordEmail(resetEmail);
+      setSuccessMsg(`Un email de réinitialisation sécurisé a été envoyé à ${resetEmail}. Vérifiez votre boîte de réception.`);
+      setShowResetForm(false);
     } catch (err: any) {
-      setErrorMsg(err.message || "Erreur lors de la mise à jour du mot de passe Super Admin.");
+      setErrorMsg(err.message || "Erreur lors de l'envoi de l'email de réinitialisation.");
     } finally {
       setLoading(false);
     }
@@ -677,7 +665,7 @@ export default function PdiAuthPage({
         {successMsg && <div className="pdi-msg-success">✓ {successMsg}</div>}
 
         {/* TAB 1: LOGIN */}
-        {tab === "login" && !superAdminSetupOpen && (
+        {tab === "login" && !showResetForm && (
           <form onSubmit={handleLoginSubmit}>
             <div className="pdi-form-group">
               <label>Adresse Email ou Identifiant</label>
@@ -743,58 +731,49 @@ export default function PdiAuthPage({
               type="button"
               className="pdi-super-btn-link"
               onClick={() => {
-                setSuperAdminSetupOpen(true);
+                setShowResetForm(true);
+                setResetEmail(loginEmail);
                 setErrorMsg(null);
                 setSuccessMsg(null);
               }}
             >
-              ⚙️ Définir ou modifier le mot de passe Super Administrateur
+              🔑 Mot de passe oublié ? Réinitialiser via email
             </button>
           </form>
         )}
 
-        {/* SUPER ADMIN PASSWORD SETUP MODAL VIEW */}
-        {tab === "login" && superAdminSetupOpen && (
-          <form onSubmit={handleSaveSuperAdminPassword}>
-            <div style={{ background: "rgba(245, 158, 11, 0.1)", border: "1px solid rgba(245, 158, 11, 0.3)", borderRadius: 12, padding: 12, marginBottom: 16 }}>
-              <div style={{ fontWeight: 900, color: "#FCD34D", fontSize: 12, marginBottom: 4 }}>
-                👑 Sécurisation Super Admin (Youcef)
+        {/* PASSWORD RESET VIEW */}
+        {tab === "login" && showResetForm && (
+          <form onSubmit={handleResetPasswordSubmit}>
+            <div style={{ background: "rgba(14, 165, 233, 0.1)", border: "1px solid rgba(56, 189, 248, 0.3)", borderRadius: 12, padding: 12, marginBottom: 16 }}>
+              <div style={{ fontWeight: 900, color: "#38BDF8", fontSize: 12, marginBottom: 4 }}>
+                🔒 Réinitialisation du mot de passe
               </div>
               <div style={{ fontSize: 11, color: "#CBD5E1", lineHeight: 1.4 }}>
-                Définissez votre mot de passe maître personnel pour <code>boudjada.youcef@gmail.com</code>. Il sera haché avec salage cryptographique SHA-256 dans votre base Firebase.
+                Saisissez votre adresse email enregistrée. Un lien sécurisé vous sera envoyé par Firebase Authentication pour réinitialiser votre mot de passe.
               </div>
             </div>
 
             <div className="pdi-form-group">
-              <label>Nouveau mot de passe Super Admin</label>
+              <label>Adresse email du compte</label>
               <input
-                type="password"
+                type="email"
                 required
-                placeholder="Au moins 6 caractères forts"
-                value={newSuperPassword}
-                onChange={(e) => setNewSuperPassword(e.target.value)}
-              />
-            </div>
-
-            <div className="pdi-form-group">
-              <label>Confirmer le mot de passe</label>
-              <input
-                type="password"
-                required
-                placeholder="Retapez le mot de passe"
-                value={confirmSuperPassword}
-                onChange={(e) => setConfirmSuperPassword(e.target.value)}
+                placeholder="nom@entreprise.com"
+                value={resetEmail}
+                onChange={(e) => setResetEmail(e.target.value)}
+                autoComplete="email"
               />
             </div>
 
             <button type="submit" className="pdi-btn-submit" disabled={loading}>
-              {loading ? "Enregistrement..." : "Enregistrer et appliquer le mot de passe"}
+              {loading ? "Envoi en cours..." : "Envoyer le lien de réinitialisation →"}
             </button>
 
             <button
               type="button"
               className="pdi-super-btn-link"
-              onClick={() => setSuperAdminSetupOpen(false)}
+              onClick={() => setShowResetForm(false)}
             >
               Annuler et revenir à la connexion
             </button>
