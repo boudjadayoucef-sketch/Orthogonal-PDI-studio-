@@ -139,7 +139,8 @@ app.post("/api/admin/set-user-role", requireAuth, requireSuperAdmin, async (req:
       return res.status(400).json({ error: "Paramètres targetUid et role requis." });
     }
 
-    const validRoles = ["super_admin", "admin", "client", "guest", "demo", "enterprise"];
+    // Alignment strictly with PdiUserRole ("super_admin" | "admin" | "client" | "guest" | "demo")
+    const validRoles = ["super_admin", "admin", "client", "guest", "demo"];
     if (!validRoles.includes(role)) {
       return res.status(400).json({ error: `Rôle invalide. Rôles autorisés: ${validRoles.join(", ")}` });
     }
@@ -147,7 +148,12 @@ app.post("/api/admin/set-user-role", requireAuth, requireSuperAdmin, async (req:
     await adminAuth.setCustomUserClaims(targetUid, { role });
     console.log(`Custom Claim 'role: ${role}' successfully assigned to UID: ${targetUid} by ${req.user?.email}`);
     
-    res.json({ success: true, targetUid, role });
+    res.json({ 
+      success: true, 
+      targetUid, 
+      role, 
+      message: "Rôle attribué via Firebase Custom Claim. Un rafraîchissement du token client (getIdToken(true)) est nécessaire pour appliquer le rôle." 
+    });
   } catch (err: any) {
     console.error("Error setting custom user claim:", err);
     res.status(500).json({ error: err.message || "Échec de l'attribution du rôle utilisateur." });

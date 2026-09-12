@@ -47,8 +47,10 @@ export const requireAuth = async (
 };
 
 /**
- * Ensures the authenticated user has one of the allowed roles
- * or is the authoritative Super Admin email.
+ * Ensures the authenticated user has one of the allowed roles.
+ * Order of authority:
+ * 1. Custom Claim `role` from verified Firebase ID token (req.user.role)
+ * 2. Fallback to historical Super Admin email list ONLY if no custom claim role is set.
  */
 export const requireRole = (allowedRoles: string[]) => {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -59,9 +61,14 @@ export const requireRole = (allowedRoles: string[]) => {
 
     const email = user.email?.toLowerCase();
     const isSuperAdminEmail = email === 'boudjada.youcef@gmail.com' || email === 'superadmin@pdi-vision.dz';
-    const userRole = (user.role as string) || (isSuperAdminEmail ? 'super_admin' : 'client');
+    
+    // 1. Primary Authority: Custom Claim role from verified ID token
+    const customClaimRole = typeof user.role === 'string' ? user.role : undefined;
+    
+    // 2. Fallback: Super admin email compatibility fallback ONLY when custom claim is absent
+    const effectiveRole = customClaimRole || (isSuperAdminEmail ? 'super_admin' : 'client');
 
-    if (isSuperAdminEmail || allowedRoles.includes(userRole)) {
+    if (allowedRoles.includes(effectiveRole) || (!customClaimRole && isSuperAdminEmail)) {
       return next();
     }
 
