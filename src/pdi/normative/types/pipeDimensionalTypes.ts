@@ -74,4 +74,7 @@ export interface PipeDimensionalRecord {
 
   /** Statut de traçabilité et de vérification de la donnée */
   readonly sourceStatus: PipeSourceStatus;
+
+  /** Référence explicite de traçabilité de la source (obligatoire si VERIFIED ou LICENSED) */
+  readonly sourceReference?: string;
 }

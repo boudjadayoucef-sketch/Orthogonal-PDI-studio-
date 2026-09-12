@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { runNormativeEngineTests, runPipeDimensionalEngineTests } from "../normative";
 
 export type ModalType = "legal" | "tech_ref" | "payment_terms" | null;
 
@@ -14,8 +15,11 @@ export default function PdiInfoModals({
   userCountryCode = "DZ"
 }: PdiInfoModalsProps) {
   const isAlgeria = userCountryCode.toUpperCase() === "DZ";
-  const [techTab, setTechTab] = useState<"piping" | "fittings" | "materials" | "valves" | "supports_civil" | "welding_ndt">("piping");
+  const [techTab, setTechTab] = useState<"piping" | "fittings" | "materials" | "valves" | "supports_civil" | "welding_ndt" | "normative_engine">("piping");
   const [paymentTab, setPaymentTab] = useState<"paddle" | "slickpay" | "security">("paddle");
+
+  const normativeEngineTestRes = techTab === "normative_engine" ? runNormativeEngineTests() : null;
+  const pipeDimensionalTestRes = techTab === "normative_engine" ? runPipeDimensionalEngineTests() : null;
 
   if (!activeModal) return null;
 
@@ -227,7 +231,8 @@ export default function PdiInfoModals({
                   { id: "materials", label: "Nuances & Tubes (ASTM/API)" },
                   { id: "valves", label: "Robinetterie (API/ISO)" },
                   { id: "supports_civil", label: "Génie Civil & Supports (MSS/AISC)" },
-                  { id: "welding_ndt", label: "Soudures & Contrôles CND" }
+                  { id: "welding_ndt", label: "Soudures & Contrôles CND" },
+                  { id: "normative_engine", label: "⚡ Validateur Normatif (NORM-02-R1)" }
                 ].map((t) => (
                   <button
                     key={t.id}
@@ -427,6 +432,52 @@ export default function PdiInfoModals({
                       Calcul de la pression d'épreuve hydrostatique normalisée (P_test = 1.5 × P_design × [S_test / S_design]), établissement des circuits de test et procès-verbaux de mise sous pression.
                     </div>
                   </div>
+                </div>
+              )}
+
+              {/* TAB 7: ENGINE NORMATIF & VALIDATEUR (NORM-02-R1) */}
+              {techTab === "normative_engine" && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                  <div style={{ background: "rgba(16, 185, 129, 0.08)", border: "1px solid rgba(16, 185, 129, 0.3)", borderRadius: "8px", padding: "12px" }}>
+                    <div style={{ fontWeight: 800, color: "#34D399", fontSize: "13px" }}>
+                      🛡️ Statut d'Exécution du Moteur Normatif Immuable (PATCH NORM-01, NORM-02, NORM-02-R1)
+                    </div>
+                    <p style={{ margin: "4px 0 0", fontSize: "11.5px", color: "#CBD5E1" }}>
+                      Validations déterministes actives : Traçabilité des sources (VERIFIED / LICENSED), Rejet des données calculées/artificielles, Distinction stricte entre standards de dimensionnement et codes de calcul (ASME B31.3 vs B36.10M), et vérification de non-conversion NPS ↔ DN.
+                    </p>
+                  </div>
+
+                  {/* RESULTS NORM-01 */}
+                  {normativeEngineTestRes && (
+                    <div style={{ background: "#0F172A", border: "1px solid rgba(148, 163, 184, 0.15)", borderRadius: "8px", padding: "12px" }}>
+                      <div style={{ fontWeight: 800, color: "#38BDF8", fontSize: "12px", marginBottom: "8px" }}>
+                        Core Standards Registry Tests (NORM-01) — {normativeEngineTestRes.success ? "PASSED (100%)" : "FAILED"}
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "4px", fontFamily: "monospace", fontSize: "10.5px" }}>
+                        {normativeEngineTestRes.results.map((r, idx) => (
+                          <div key={idx} style={{ color: r.startsWith("✅") ? "#34D399" : "#F87171" }}>
+                            {r}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* RESULTS NORM-02-R1 */}
+                  {pipeDimensionalTestRes && (
+                    <div style={{ background: "#0F172A", border: "1px solid rgba(148, 163, 184, 0.15)", borderRadius: "8px", padding: "12px" }}>
+                      <div style={{ fontWeight: 800, color: "#38BDF8", fontSize: "12px", marginBottom: "8px" }}>
+                        Pipe Dimensional Validator &amp; Conditional Rules (NORM-02 &amp; NORM-02-R1) — {pipeDimensionalTestRes.success ? "PASSED (24/24 TESTS)" : "FAILED"}
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px", fontFamily: "monospace", fontSize: "10.5px" }}>
+                        {pipeDimensionalTestRes.results.map((r, idx) => (
+                          <div key={idx} style={{ color: r.startsWith("✅") ? "#34D399" : "#F87171", background: "rgba(15, 23, 42, 0.5)", padding: "4px 6px", borderRadius: "4px" }}>
+                            {r}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

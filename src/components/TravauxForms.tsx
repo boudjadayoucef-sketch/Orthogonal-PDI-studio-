@@ -16,7 +16,7 @@ import {
   Wifi,
   Scale
 } from "lucide-react";
-import defaultLogo from "../assets/images/sonelgaz_logo_1783415417090.jpg";
+import defaultLogo from "../assets/images/pdi-logo-horizontal.png";
 
 export interface TravauxTemplate {
   id: string;
@@ -196,7 +196,7 @@ export default function TravauxForms({ formType }: TravauxFormsProps) {
     // Prestation checklist
     controlePrestationItems: [
       { item: "01", desig: "Fourniture des vannes de ligne", existant: "Oui", nonExist: "Non", conf: "Oui", nonConf: "Non", obs: "Vannes à boisseau sphérique 12\" Class 600" },
-      { item: "02", desig: "Étude d'exécution mécanique", existant: "Oui", nonExist: "Non", conf: "Oui", nonConf: "Non", obs: "Approuvée par Sonelgaz STG" },
+      { item: "02", desig: "Étude d'exécution mécanique", existant: "Oui", nonExist: "Non", conf: "Oui", nonConf: "Non", obs: "Approuvée par PD&I STG" },
       { item: "03", desig: "Travaux de raccordement optique", existant: "Oui", nonExist: "Non", conf: "Oui", nonConf: "Non", obs: "Soudage de fibre par fusion" }
     ],
 
@@ -217,9 +217,9 @@ export default function TravauxForms({ formType }: TravauxFormsProps) {
     ],
 
     // Comments & Observations
-    commentaires: "Par le présent document, le chantier est déclaré conforme aux normes de Sonelgaz-TG.",
+    commentaires: "Par le présent document, le chantier est déclaré conforme aux normes de PD&I.",
     verdictMiseEnGaz: "Mise en gaz réussie après vérification des paramètres d'épreuve et de balayage.",
-    verdictGenerique: "Travaux déclarés entièrement conformes aux règles de l'art de Sonelgaz.",
+    verdictGenerique: "Travaux déclarés entièrement conformes aux règles de l'art de PD&I.",
     dateLieuOpposition: "Sidi Aïssa, le 13/07/2026",
 
     // Missing state fields for dynamic forms
@@ -239,25 +239,25 @@ export default function TravauxForms({ formType }: TravauxFormsProps) {
     // Dynamic signatory and section text properties
     signLeftTitle: "P/ LE PRESTATAIRE (REALISATEUR)",
     signLeftSub: "Signature & Cachet",
-    signRightTitle: "P/ SONELGAZ TRANSPORT DU GAZ",
+    signRightTitle: "P/ PD&I PIPELINE DESIGN & ISOMETRICS",
     signRightSub: "Signature & Cachet",
     signCenterTitle: "L'ORGANISME DE CONTROLE (VERITAL)",
     signCenterSub: "Signature",
     signThirdLeftTitle: "LE PRESTATAIRE / SOUDEUR",
     signThirdLeftSub: "Signature",
-    signThirdRightTitle: "LE REPRESENTANT SONELGAZ",
+    signThirdRightTitle: "LE REPRESENTANT PD&I",
     signThirdRightSub: "Signature",
 
     // Dynamic paragraph content properties
     odsPrestataireText: "Notification est faite à Monsieur de commencer les prestations relatives au Marché/Commande/Lettre de commande N°.\n\nLe présent ordre de service met en application les clauses du présent Marché/Commande/Lettre de commande.\n\nLe présent ordre de service sera notifié au prestataire demeurant en Algérie.",
     odsArretText: "Notification est faite à Monsieur, d’arrêter temporairement les travaux relatifs au Marché/Commande/Lettre de commande N° , à partir du , pour des raisons de force majeure ou de libération d'emprises.\n\nLe présent ordre d’arrêt de service sera notifié à l'entrepreneur.",
     odsRepriseText: "Notification est faite à Monsieur, de reprendre les travaux relatifs au contrat suspendu par l’ordre d’arrêt de service N° .\n\nLe présent ordre de reprise de service sera notifié au prestataire.",
-    pvDemarrageIntro: "Nous soussignés, représentants de SONELGAZ Transport du Gaz et du prestataire, certifions que toutes les conditions d'ouverture de chantier sont réunies :",
-    certifConformiteLigneText: "Nous soussignés, réalisateur représenté par son responsable habilité, certifions avoir réalisé les travaux de pipeline de transport :\n- D'ouverture de tranchée\n- De soudage, radiographie et enrobage des tubes aciers\n- De mise en fouille et de remblais de la conduite.\n\nRelatif à la ligne, d'une longueur de ml et de Ø \", du joint au joint , selon les spécifications techniques de Sonelgaz dans les règles de l'art.",
-    certifConformitePosteText: "Nous soussignés, réalisateur , certifions avoir réalisé les travaux du Poste :\n- De Préfabrication des manifolds et collecteurs\n- De Montage des lignes de détente et sécurité\n- De Radiographie 100% des soudures à l'arc.\n\nLe projet est déclaré entièrement conforme au cahier des charges de Sonelgaz.",
+    pvDemarrageIntro: "Nous soussignés, représentants de PD&I Transport du Gaz et du prestataire, certifions que toutes les conditions d'ouverture de chantier sont réunies :",
+    certifConformiteLigneText: "Nous soussignés, réalisateur représenté par son responsable habilité, certifions avoir réalisé les travaux de pipeline de transport :\n- D'ouverture de tranchée\n- De soudage, radiographie et enrobage des tubes aciers\n- De mise en fouille et de remblais de la conduite.\n\nRelatif à la ligne, d'une longueur de ml et de Ø \", du joint au joint , selon les spécifications techniques de PD&I dans les règles de l'art.",
+    certifConformitePosteText: "Nous soussignés, réalisateur , certifions avoir réalisé les travaux du Poste :\n- De Préfabrication des manifolds et collecteurs\n- De Montage des lignes de détente et sécurité\n- De Radiographie 100% des soudures à l'arc.\n\nLe projet est déclaré entièrement conforme au cahier des charges de PD&I.",
     certifConstructionLigneText: "Nous soussignés, réalisateur , certifions que les travaux de la ligne de longueur ml, diamètre \", du PK au PK ont été construits conformément aux spécifications techniques.\n\nL'ouvrage est déclaré apte à subir les épreuves hydrostatiques de résistance et d'étanchéité sans réserves.",
     certifConstructionPosteText: "Nous soussignés, réalisateur , certifions que les travaux du Poste de Détente/Coupure ont été construits de manière conforme.\n\nLe poste est déclaré apte aux épreuves hydrostatiques sous pression sans aucune réserve.",
-    pvEssuyageText: "Essuyage de la conduite : Par le passage de racleurs d'essuyage propulsés à l'air sec, en présence des représentants de Sonelgaz-TG, jusqu'à obtention d'un état interne parfaitement propre et exempt de poussière ou d'eau résiduelle.",
+    pvEssuyageText: "Essuyage de la conduite : Par le passage de racleurs d'essuyage propulsés à l'air sec, en présence des représentants de PD&I, jusqu'à obtention d'un état interne parfaitement propre et exempt de poussière ou d'eau résiduelle.",
     pvSechageText: "Séchage de la conduite : Par circulation d'air sec déshydraté.\n\nTempérature ambiante : 28°C\nPoint de rosée atteint à la sortie : -45°C",
     pvSoufflageText: "Soufflage des tuyauteries de poste : Réalisé par purges successives de l'air comprimé pour chasser toutes les impuretés et scories de soudage des collecteurs. Le résultat de l'essai est déclaré pleinement satisfaisant.",
     finChantierProvisoireText: "Réception provisoire du chantier de construction. Réception prononcée SANS réserves.",
@@ -349,17 +349,17 @@ export default function TravauxForms({ formType }: TravauxFormsProps) {
         <div className="w-[18%] border-r-2 border-slate-900 flex flex-col items-center justify-center p-1 bg-white select-none">
           <img 
             src={defaultLogo} 
-            alt="Sonelgaz Logo" 
+            alt="PD&I Logo" 
             className="h-16 w-16 max-h-full max-w-full object-contain aspect-square"
             onError={(e) => {
-              e.currentTarget.src = "/sonelgaz-logo.png";
+              e.currentTarget.src = "/pdi-logo-horizontal.png";
             }}
           />
         </div>
 
         <div className="w-[57%] border-r-2 border-slate-900 flex flex-col justify-between py-0.5 px-2 text-center bg-white">
           <div className="font-extrabold text-[11px] uppercase text-slate-800 tracking-wide pt-0.5 select-none">
-            SONELGAZ-Transport du Gaz
+            PD&I Pipeline Design & Isometrics
           </div>
           <input
             type="text"
@@ -480,12 +480,12 @@ export default function TravauxForms({ formType }: TravauxFormsProps) {
               <div className="w-full border-t border-dashed border-slate-400"></div>
             </div>
             <div className="relative flex justify-center text-[8px] font-extrabold uppercase tracking-widest">
-              <span className="bg-white px-2 text-slate-400">PARTIE A CONSERVER PAR L’ENTREPRENEUR / RETOURNER A SONELGAZ</span>
+              <span className="bg-white px-2 text-slate-400">PARTIE A CONSERVER PAR L’ENTREPRENEUR / RETOURNER A PD&I</span>
             </div>
           </div>
 
           <div className="p-3 border border-dashed border-slate-300 bg-slate-50/50 rounded-lg text-left text-[11px] print:hidden">
-            <h4 className="font-extrabold text-[10px] text-slate-600 uppercase tracking-wider mb-2">A RETOURNER IMPERATIVEMENT A SONELGAZ SOUS HUITAINE :</h4>
+            <h4 className="font-extrabold text-[10px] text-slate-600 uppercase tracking-wider mb-2">A RETOURNER IMPERATIVEMENT A PD&I SOUS HUITAINE :</h4>
             <p className="text-[10px] text-slate-500 mb-3">
               Le soussigné <span className="font-bold">{state.responsableAuteur}</span> déclare avoir fait parvenir au domicile de Monsieur <span className="font-bold">{state.prestataire}</span> l'ordre de service susvisé en date du <span className="font-bold">{state.dateJour}</span>.
             </p>
@@ -505,7 +505,7 @@ export default function TravauxForms({ formType }: TravauxFormsProps) {
           <div className="grid grid-cols-2 gap-3 bg-slate-50 p-2 border border-slate-200 rounded text-[11px]">
             {renderDottedField("Ouvrage", state.ouvrage, "ouvrage")}
             {renderDottedField("Lieu et date", state.dateLieu, "dateLieu")}
-            {renderDottedField("Maitre de l'ouvrage", "SONELGAZ TRANSPORT DU GAZ", "direction")}
+            {renderDottedField("Maitre de l'ouvrage", "PD&I PIPELINE DESIGN & ISOMETRICS", "direction")}
             {renderDottedField("Réalisateur / Prestataire", state.prestataire, "prestataire")}
             {renderDottedField("Contrat N°", state.contratNo, "contratNo")}
           </div>
@@ -1816,7 +1816,7 @@ export default function TravauxForms({ formType }: TravauxFormsProps) {
                 onChange={(e) => setState({ ...state, signRightTitle: e.target.value })}
                 className="w-full text-center bg-transparent border-b border-dashed border-slate-200 focus:border-orange-500 focus:outline-none font-bold pb-4 mb-1 resize-none h-12 print:border-none uppercase"
               />
-              <span className="text-[8px] text-slate-400 font-normal font-mono">SONELGAZ TRANSPORT DU GAZ</span>
+              <span className="text-[8px] text-slate-400 font-normal font-mono">PD&I PIPELINE DESIGN & ISOMETRICS</span>
             </div>
           </div>
         </div>

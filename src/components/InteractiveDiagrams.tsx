@@ -74,7 +74,7 @@ const ORIGINAL_PLANS = [
     page: 36,
     category: "Croisements",
     src: cableImg,
-    caption: "Plan type d'ingénierie Sonelgaz décrivant le passage en dessus ou en dessous d'un câble souterrain (télécommunication, fibre optique ou lignes d'énergie BT/MT/HT). Spécifie la distance verticale minimale libre (clearance de 0.40 m à 0.50 m), le remblaiement obligatoire en sable de granulométrie contrôlée et la pose du grillage avertisseur.",
+    caption: "Plan type d'ingénierie PD&I décrivant le passage en dessus ou en dessous d'un câble souterrain (télécommunication, fibre optique ou lignes d'énergie BT/MT/HT). Spécifie la distance verticale minimale libre (clearance de 0.40 m à 0.50 m), le remblaiement obligatoire en sable de granulométrie contrôlée et la pose du grillage avertisseur.",
     tags: ["câble", "croisement", "distance", "électricité", "télécom", "sable", "sécurité"]
   },
   {
@@ -442,7 +442,7 @@ export default function InteractiveDiagrams({ isAdmin = false, isSuperAdmin = fa
       <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
           <h2 className="text-lg font-black text-slate-800">Recueil de Plans, Abaques & Dessins Techniques</h2>
-          <p className="text-xs text-slate-500">Explorez les schémas réglementaires originaux et interactifs de la SONELGAZ.</p>
+          <p className="text-xs text-slate-500">Explorez les schémas réglementaires originaux et interactifs de la PD&I.</p>
         </div>
 
         <div className="flex bg-slate-100 p-1 rounded-xl self-start md:self-auto flex-wrap gap-1 md:gap-0 shrink-0 border border-slate-200/50">
@@ -595,7 +595,7 @@ export default function InteractiveDiagrams({ isAdmin = false, isSuperAdmin = fa
             
             {/* Legend/Context Overlay */}
             <div className="absolute top-4 left-4 bg-slate-800/90 backdrop-blur border border-slate-700/50 px-3 py-1.5 rounded-lg text-[10px] text-slate-300 font-mono z-10">
-              SPEC : <span className="text-orange-400 font-bold">SONELGAZ MANUAL</span> | SCHÉMA : 
+              SPEC : <span className="text-orange-400 font-bold">PD&I MANUAL</span> | SCHÉMA : 
               <span className="text-white font-bold ml-1 uppercase">
                 {selectedDiagram === "trench" && "T-01 PROFIL DE TRANCHÉE"}
                 {selectedDiagram === "sandbag" && "T-02 PROTECTION FORTE PENTE SACS DE SABLE"}

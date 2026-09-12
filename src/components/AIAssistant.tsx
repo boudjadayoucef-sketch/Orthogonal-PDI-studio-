@@ -11,7 +11,7 @@ export default function AIAssistant() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "model",
-      content: "Bonjour ! Je suis votre Conseiller Technique IA spécialisé dans le Cahier des Charges de **Sonelgaz - Transport du Gaz** (Édition Octobre 2025).\n\nJe peux vous aider à vérifier les normes, cotes réglementaires, formules de calcul, ou vous expliquer les procédures d'épreuve (méthode GAUVIN, soudure, remblai, etc.).\n\nPosez-moi votre question !"
+      content: "Bonjour ! Je suis votre Conseiller Technique IA spécialisé dans les normes et exigences de **PD&I — Pipeline Design & Isometrics** (Édition 2026).\n\nJe peux vous aider à vérifier les normes ASME B31.3 / EN 13480, cotes réglementaires, formules de calcul, ou vous expliquer les procédures d'épreuve (méthode GAUVIN, soudure, remblai, etc.).\n\nPosez-moi votre question !"
     }
   ]);
   const [input, setInput] = useState("");
@@ -73,7 +73,7 @@ export default function AIAssistant() {
             <Sparkles className="w-6 h-6 animate-pulse" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-slate-800">Conseiller Technique IA Sonelgaz</h2>
+            <h2 className="text-xl font-bold text-slate-800">Conseiller Technique IA PD&amp;I</h2>
             <p className="text-sm text-slate-500">Posez des questions en langage naturel sur le Cahier des Charges.</p>
           </div>
         </div>

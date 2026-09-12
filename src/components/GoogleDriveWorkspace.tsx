@@ -533,7 +533,7 @@ export const GoogleDriveWorkspace: React.FC<GoogleDriveWorkspaceProps> = ({
                   required
                   value={newFolderName}
                   onChange={(e) => setNewFolderName(e.target.value)}
-                  placeholder="Ex: Projets Sonelgaz 2026"
+                  placeholder="Ex: Projets PD&I 2026"
                   className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-cyan-400"
                 />
               </div>

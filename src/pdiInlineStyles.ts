@@ -14,7 +14,6 @@
 // du tableau PDI_INLINE_SHEETS ci-dessous qui fait foi (Tailwind en dernier).
 import baseCss from "./index.css?inline";
 import precisionCss from "./pdiIsoPrecisionUx.css?inline";
-import landingCss from "./pdi/landing/pdiLandingV4.css?inline";
 import leafletCss from "leaflet/dist/leaflet.css?inline";
 
 type PdiInlineSheet = { id: string; css: string };
@@ -26,7 +25,6 @@ type PdiInlineSheet = { id: string; css: string };
 const PDI_INLINE_SHEETS: PdiInlineSheet[] = [
   { id: "pdi-inline-precision-017h", css: precisionCss },
   { id: "pdi-inline-leaflet-017h", css: leafletCss },
-  { id: "pdi-inline-landing-017h", css: landingCss },
   { id: "pdi-inline-base-017h", css: baseCss },
 ];
 

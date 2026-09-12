@@ -45,7 +45,7 @@ export const FASCICULES_DATA: Fascicule[] = [
         points: [
           "Documents écrits (notes de calcul, notices techniques, procès-verbaux, rapports d'avancement) : Format standardisé A4 (297 x 210 mm) sous reliure.",
           "Plans de masse et plans d'ensemble : Formats normalisés de la série A (A0, A1, A2 ou A3) pliés obligatoirement au format A4.",
-          "Chaque document ou plan doit porter un numéro de codification uniforme conformément aux exigences de la SONELGAZ, permettant une identification rapide et un classement rigoureux dans les archives techniques."
+          "Chaque document ou plan doit porter un numéro de codification uniforme conformément aux exigences de la PD&I, permettant une identification rapide et un classement rigoureux dans les archives techniques."
         ]
       },
       {
@@ -114,7 +114,7 @@ export const FASCICULES_DATA: Fascicule[] = [
         id: "cable_crossing_clearance_spec",
         title: "Croisement de Câbles Souterrains (Fascicule 2)",
         src: cableImg,
-        caption: "Plan type d'ingénierie Sonelgaz décrivant le passage en dessus ou en dessous d'un câble souterrain. Spécifie la distance libre minimale E (0.40 m pour télécom/fibre, 0.50 m pour lignes électriques), le doublement du revêtement de part et d'autre de l'axe, la distance e par rapport au dispositif grillage avertisseur, et le remblai de sable fin.",
+        caption: "Plan type d'ingénierie PD&I décrivant le passage en dessus ou en dessous d'un câble souterrain. Spécifie la distance libre minimale E (0.40 m pour télécom/fibre, 0.50 m pour lignes électriques), le doublement du revêtement de part et d'autre de l'axe, la distance e par rapport au dispositif grillage avertisseur, et le remblai de sable fin.",
         page: 36
       }
     ],
@@ -365,7 +365,7 @@ export const FASCICULES_DATA: Fascicule[] = [
         id: "f3_s4",
         title: "Article 4 - Contrôle Non Destructif des Joints Soudés (C.N.D.)",
         page: 76,
-        content: "Toutes les soudures bout à bout exécutées sur le tracé de la canalisation de transport de gaz de la SONELGAZ doivent être contrôlées à 100% par des méthodes non destructives (radiographie industrielle par rayons X, ou à défaut par rayons Gamma, complétée par des examens par ultrasons).",
+        content: "Toutes les soudures bout à bout exécutées sur le tracé de la canalisation de transport de gaz de la PD&I doivent être contrôlées à 100% par des méthodes non destructives (radiographie industrielle par rayons X, ou à défaut par rayons Gamma, complétée par des examens par ultrasons).",
         points: [
           "L'évaluation de la qualité des soudures se fait conformément aux normes API 1104 ou ISO 13847, selon les tolérances très strictes du Cahier des Charges.",
           "Les défauts inacceptables tels que fissures, manque de pénétration à la racine, collages, ou inclusions de laitier excessives entraînent le refus immédiat du joint soudé.",
@@ -404,7 +404,7 @@ export const FASCICULES_DATA: Fascicule[] = [
         id: "poste_layout_spec",
         title: "Extrait du Plan d'Implantation d'un Poste de Détente (Fascicule 4)",
         src: posteImg,
-        caption: "Aperçu authentique d'implantation générale de génie civil d'un poste de détente standard de la Sonelgaz. Comprend la dalle de l'abri principal, les longrines de clôture, les massifs supports de tuyauteries aériennes et la disposition d'accès.",
+        caption: "Aperçu authentique d'implantation générale de génie civil d'un poste de détente standard de la PD&I. Comprend la dalle de l'abri principal, les longrines de clôture, les massifs supports de tuyauteries aériennes et la disposition d'accès.",
         page: 82
       }
     ],
@@ -601,7 +601,7 @@ export const FASCICULES_DATA: Fascicule[] = [
         id: "f6_s2",
         title: "Article 2 - Dossier d'Exploitation, d'Entretien & Fiches Fournisseurs",
         page: 120,
-        content: "Ce dossier regroupe toutes les informations indispensables à l'exploitation et à la maintenance courante de la canalisation et de ses postes annexes par le personnel d'exploitation de la SONELGAZ.",
+        content: "Ce dossier regroupe toutes les informations indispensables à l'exploitation et à la maintenance courante de la canalisation et de ses postes annexes par le personnel d'exploitation de la PD&I.",
         points: [
           "Il contient les schémas de principe et de fonctionnement mécanique détaillés de tous les postes de détente, de coupure et de livraison.",
           "Les notices descriptives de fonctionnement, de démontage et d'entretien périodique des matériels de robinetterie (vannes de ligne, clapets anti-retour, soupapes de sécurité, régulateurs, filtres séparateurs).",
@@ -634,7 +634,7 @@ export const FASCICULES_DATA: Fascicule[] = [
         id: "cable_crossing_spec",
         title: "Plan Type de Croisement de Câbles Souterrains (Fascicule 7 / Annexe 4)",
         src: cableImg,
-        caption: "Plan type d'ingénierie Sonelgaz décrivant le passage en dessus ou en dessous d'un câble souterrain (télécommunication, fibre optique ou lignes d'énergie BT/MT/HT). Spécifie la distance verticale minimale libre (clearance de 0.40 m à 0.50 m), le remblaiement obligatoire en sable de granulométrie contrôlée et la pose du grillage avertisseur.",
+        caption: "Plan type d'ingénierie PD&I décrivant le passage en dessus ou en dessous d'un câble souterrain (télécommunication, fibre optique ou lignes d'énergie BT/MT/HT). Spécifie la distance verticale minimale libre (clearance de 0.40 m à 0.50 m), le remblaiement obligatoire en sable de granulométrie contrôlée et la pose du grillage avertisseur.",
         page: 36
       },
       {
@@ -657,7 +657,7 @@ export const FASCICULES_DATA: Fascicule[] = [
         id: "f7_s_annexe1",
         title: "Annexe 1 - Symboles, Abréviations et Unités de Mesure de l'Ingénierie Gaz",
         page: 5,
-        content: "Définition des symboles réglementaires utilisés dans les plans de l'ingénierie gazière de Sonelgaz. Elle normalise les représentations graphiques pour les vannes de sectionnement, les piquages, la protection cathodique, les postes de coupure, ainsi que les unités de mesure de débit (Nm³/h), de pression (bar) et de température (°C).",
+        content: "Définition des symboles réglementaires utilisés dans les plans de l'ingénierie gazière de PD&I. Elle normalise les représentations graphiques pour les vannes de sectionnement, les piquages, la protection cathodique, les postes de coupure, ainsi que les unités de mesure de débit (Nm³/h), de pression (bar) et de température (°C).",
         points: [
           "Standardisation des abréviations : Dn (Diamètre Nominal), Ep (Épaisseur), Pms (Pression Maximale de Service), Pe (Pression d'Épreuve).",
           "Représentation graphique unifiée des raccords isolants monoblocs, des gares de racleurs et des postes de détente.",
@@ -823,7 +823,7 @@ export const FASCICULES_DATA: Fascicule[] = [
         id: "f7_s_annexe11",
         title: "Annexe 11 - Procédures de Soudage Approuvées (WPS / PQR) et Métaux d'Apport",
         page: 195,
-        content: "Spécification technique des cahiers de soudage réglementaires pour l'assemblage bout à bout des tubes en acier carbone API 5L. Elle définit les types de chanfrein, les températures de préchauffage requises selon les conditions climatiques, l'épaisseur unitaire des passes et les exigences de qualification des soudeurs agréés par Sonelgaz.",
+        content: "Spécification technique des cahiers de soudage réglementaires pour l'assemblage bout à bout des tubes en acier carbone API 5L. Elle définit les types de chanfrein, les températures de préchauffage requises selon les conditions climatiques, l'épaisseur unitaire des passes et les exigences de qualification des soudeurs agréés par PD&I.",
         points: [
           "Procédés de soudage approuvés : Électrode enrobée cellulosique (passes de pénétration) et basique (passes de remplissage et de finition).",
           "Contrôle de la température inter-passes : Maintien obligatoire d'une température minimale de 100°C sur les fortes épaisseurs.",
@@ -874,7 +874,7 @@ export const FASCICULES_DATA: Fascicule[] = [
         content: "Détails constructifs des dispositifs de signalisation de la conduite enterrée. Elle spécifie les dimensions, couleurs et inscriptions des bornes de balisage en béton ou métal, des plaques indicatrices au droit des vannes et de la signalisation aérienne de sécurité.",
         points: [
           "Bornes de repérage : Implantées à chaque changement de direction, au droit des franchissements et au minimum tous les 500 m.",
-          "Inscriptions réglementaires : Logo Sonelgaz, diamètre nominal de la conduite, pression nominale et numéro de téléphone d'urgence.",
+          "Inscriptions réglementaires : Logo PD&I, diamètre nominal de la conduite, pression nominale et numéro de téléphone d'urgence.",
           "Code couleur : Jaune sécurité pour le gaz à haute pression, blanc pour la protection cathodique.",
           "Plaques d'avertissement de survol aérien implantées aux limites de zones d'accès réglementé."
         ]
@@ -923,7 +923,7 @@ export const FASCICULES_DATA: Fascicule[] = [
         points: [
           "Clôture constituée d'un grillage métallique plastifié haute résistance de 2,00 m de hauteur surmonté de 3 rangs de ronces.",
           "Portail principal à double battant d'une largeur libre de 4,00 m pour permettre l'accès facile des camions de maintenance.",
-          "Portillon piéton de service de 1,00 m équipé de serrure de sécurité Sonelgaz avec barre anti-panique.",
+          "Portillon piéton de service de 1,00 m équipé de serrure de sécurité PD&I avec barre anti-panique.",
           "Semelle en béton de fondation continue sous le grillage pour empêcher l'affouillement du sol par le ruissellement d'eau."
         ]
       },
@@ -960,7 +960,7 @@ export const FASCICULES_DATA: Fascicule[] = [
           "Armoire de télétransmission auto-ventilée et climatisée avec protection contre la foudre et les surtensions d'alimentation.",
           "Système d'alimentation sans coupure (SASI / UPS) assurant une autonomie minimale de 48 heures sur batteries étanches.",
           "Raccordement des transmetteurs de pression, température et débit par câbles armés blindés de type instrumentation.",
-          "Module d'interface SCADA conforme aux protocoles de communication Sonelgaz de type Modbus TCP ou DNP3."
+          "Module d'interface SCADA conforme aux protocoles de communication PD&I de type Modbus TCP ou DNP3."
         ]
       },
       {
@@ -994,7 +994,7 @@ export const FASCICULES_DATA: Fascicule[] = [
         content: "Spécifications d'étiquetage des vannes, conduites et appareils de mesure à l'intérieur des installations de transport. Elle normalise le lettrage, le code de couleur et les matériaux résistant aux UV pour garantir une identification rapide par l'exploitant.",
         points: [
           "Plaques d'identification des vannes en acier inoxydable ou aluminium gravé fixées par colliers métalliques.",
-          "Code de désignation normalisé Sonelgaz : type de vanne (ex : MV-301), diamètre nominal et pression de service.",
+          "Code de désignation normalisé PD&I : type de vanne (ex : MV-301), diamètre nominal et pression de service.",
           "Flèches indicatrices de sens d'écoulement du gaz peintes sur les canalisations aériennes (couleur jaune sécurité).",
           "Panneaux d'interdiction réglementaires : 'DÉFENSE DE FUMER', 'ACCÈS RÉSERVÉ AU PERSONNEL AUTORISÉ', 'DANGER GAZ'."
         ]
@@ -1008,7 +1008,7 @@ export const FASCICULES_DATA: Fascicule[] = [
           "Obligation de réaliser des sondages manuels préalables (fouilles d'identification) pour localiser précisément l'ouvrage existant.",
           "Terrassement mécanique interdit à moins de 1,50 m de la paroi extérieure de la canalisation en service.",
           "Obligation d'installer un soutènement de blindage rigide pour éviter le glissement de terrain autour de la conduite sous pression.",
-          "Surveillance continue et présence obligatoire d'un représentant qualifié de Sonelgaz pendant les phases actives de fouille."
+          "Surveillance continue et présence obligatoire d'un représentant qualifié de PD&I pendant les phases actives de fouille."
         ]
       },
       {
@@ -1087,7 +1087,7 @@ export const FASCICULES_DATA: Fascicule[] = [
         id: "f7_s_annexe33",
         title: "Annexe 33 - Modèle Officiel de PV de Réception Technique avant Mise en Gaz",
         page: 405,
-        content: "Document type de réception d'ouvrage à viser obligatoirement par la commission technique de Sonelgaz, l'organisme de contrôle agréé et l'entrepreneur pour autoriser l'introduction du gaz naturel dans la canalisation.",
+        content: "Document type de réception d'ouvrage à viser obligatoirement par la commission technique de PD&I, l'organisme de contrôle agréé et l'entrepreneur pour autoriser l'introduction du gaz naturel dans la canalisation.",
         points: [
           "Vérification de la conformité du dossier de construction complet (As-Built Documentation) et des radiographies de soudures.",
           "Validation des certificats d'épreuves hydrostatiques et du rapport de séchage de la conduite (point de rosée).",

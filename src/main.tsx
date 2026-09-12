@@ -36,7 +36,7 @@ window.addEventListener("error", (event) => {
             <pre style="margin: 8px 0 0; white-space: pre-wrap; word-break: break-all; opacity: 0.85;">${event.error?.stack || 'Pas de trace de pile disponible.'}</pre>
           </div>
           <div style="margin-top: 24px; display: flex; justify-content: space-between; align-items: center;">
-            <span style="font-size: 10px; font-family: monospace; color: #64748b;">SONELGAZ-TG • Diagnostic</span>
+            <span style="font-size: 10px; font-family: monospace; color: #64748b;">PD&amp;I • Diagnostic</span>
             <button onclick="window.location.reload()" style="background-color: #f97316; hover:background-color: #ea580c; color: #ffffff; border: none; padding: 10px 20px; border-radius: 12px; font-size: 12px; font-weight: bold; cursor: pointer; transition: all 0.2s;">Recharger la page</button>
           </div>
         </div>

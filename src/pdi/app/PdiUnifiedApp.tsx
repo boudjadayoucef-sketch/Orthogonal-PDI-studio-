@@ -62,8 +62,8 @@ import PdiBrandMark from "./PdiBrandMark";
 import { Folder, FolderOpen, Plus, X, Layers, FileText, Pin, Trash2, LayoutGrid, Search, CheckSquare, Square, Home, Box, HardDrive, PenTool, FileCode, Code2, Printer, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import PdiIsometricEditor from "../isometric/PdiIsometricEditor";
 import { SketchToIsoModule } from "../sketch/SketchToIsoModule";
-// PATCH 004c : page publicitaire publique, montee AVANT la coquille applicative.
-import PdiLandingV4 from "../landing/PdiLandingV4";
+// PATCH 004c : modules applicatifs PD&I
+import HomePdi from "../home/HomePdi";
 import PdiIllustratorHome from "../home/PdiIllustratorHome";
 import PdiAuthPage from "../auth/PdiAuthPage";
 import { GoogleDriveWorkspace } from "../../components/GoogleDriveWorkspace";
@@ -297,7 +297,7 @@ let pdiPrevModule017K: string | null = null;
 const PDI_PROJECT_CONTEXT_017K: string[] = ["isometric", "cad", "json", "pdf", "sketch", "drive"];
 
 const PDI_NAV_THEMES: Record<string, { color: string; lightColor: string; bgGlow: string; code: string; label: string }> = {
-  home: { color: "#E4E4E7", lightColor: "#FFFFFF", bgGlow: "rgba(255,255,255,0.12)", code: "⌂", label: "ACCUEIL" },
+  home: { color: "#38BDF8", lightColor: "#60A5FA", bgGlow: "rgba(56,189,248,0.18)", code: "⌂", label: "ACCUEIL" },
   isometric: { color: "#06B6D4", lightColor: "#22D3EE", bgGlow: "rgba(6,182,212,0.18)", code: "ISO", label: "ISO" },
   drive: { color: "#F59E0B", lightColor: "#FBBF24", bgGlow: "rgba(245,158,11,0.18)", code: "DRV", label: "DRIVE" },
   sketch: { color: "#A855F7", lightColor: "#C084FC", bgGlow: "rgba(168,85,247,0.18)", code: "CRQ", label: "CROQUIS" },
@@ -307,7 +307,7 @@ const PDI_NAV_THEMES: Record<string, { color: string; lightColor: string; bgGlow
 };
 
 const navItems: Array<{ id: PdiModule; label: string; icon: React.ReactNode; code: string; title: string }> = [
-  { id: "home", label: "Accueil", code: "⌂", icon: <Home className="h-4 w-4 text-neutral-300" />, title: "Accueil PD&I" },
+  { id: "home", label: "Accueil", code: "⌂", icon: <Home className="h-4 w-4 text-sky-400" />, title: "Accueil PD&I" },
   { id: "isometric", label: "ISO", code: "ISO", icon: <Box className="h-4 w-4 text-cyan-400" />, title: "Dessin isométrique" },
   { id: "drive", label: "Drive", code: "DRV", icon: <HardDrive className="h-4 w-4 text-amber-400" />, title: "Google Drive & Cloud SQL" },
   { id: "sketch", label: "Croquis", code: "CRQ", icon: <PenTool className="h-4 w-4 text-purple-400" />, title: "Croquis vers JSON/ISO" },
@@ -510,7 +510,10 @@ export default function PdiUnifiedApp() {
   const persistTabs = (tabs: PdiWorkspaceTab[], id: string | null) => { try { window.localStorage.setItem(PDI_TABS_KEY, JSON.stringify(tabs)); if(id) window.localStorage.setItem(PDI_ACTIVE_TAB_KEY,id); } catch {} };
   const canOpenWorkspaceModule = authMode === "demo" || authMode === "client" || authMode === "admin" || authMode === "super_admin";
   const openModuleInTab = (module: PdiModule, title?: string, projectId?: string) => {
-    if (!canOpenWorkspaceModule && module !== "home") { setAuthPanelMode("login"); setActiveModule("home"); return; }
+    if (!canOpenWorkspaceModule && module !== "home") {
+      setAuthMode("demo");
+      try { window.localStorage.setItem(PDI_AUTH_KEY, "demo"); } catch {}
+    }
     if (module === "home") { setActiveModule("home"); return; }
     const id = `tab-${Date.now().toString(36)}`;
     // PATCH 017F1 : un onglet = un projet identifie, reutilisable et renommable.
@@ -552,17 +555,42 @@ export default function PdiUnifiedApp() {
     }
   };
 
-  // Rechargement : conserve dans le module ISO quand connecté
-  const [stage, setStage] = useState<"landing" | "auth" | "app">(() => {
+  // Rechargement : conserve dans le module ISO ou Accueil dans l'application
+  const [stage, setStage] = useState<"landing" | "auth" | "app">((): "landing" | "auth" | "app" => {
     try {
-      const auth = window.localStorage.getItem(PDI_AUTH_KEY);
-      const isConnected = auth && auth !== "guest" && auth !== "pending_email";
-      const forced = window.localStorage.getItem("pdi.force.app.v1") === "1" || window.sessionStorage.getItem(PDI_STAGE_KEY) === "app";
-      return (isConnected || forced) ? "app" : "landing";
-    } catch { return "landing"; }
+      const hash = window.location.hash.toLowerCase();
+      const search = window.location.search.toLowerCase();
+      if (hash.includes("landing") || search.includes("landing") || search.includes("commercial")) {
+        return "landing";
+      }
+      if (hash.includes("auth") || hash.includes("login") || search.includes("auth") || search.includes("login")) {
+        return "auth";
+      }
+      if (hash.includes("app") || search.includes("app")) {
+        return "app";
+      }
+    } catch {}
+    return "landing";
   });
-  const [landingScreen, setLandingScreen] = useState<"landing" | "home" | "launcher">("landing");
   const [authPageTab, setAuthPageTab] = useState<"login" | "register" | "activation">("login");
+
+  // Synchronisation dynamique du stage avec les changements d'ancres URL (#landing, #auth, #app)
+  useEffect(() => {
+    const handleHashChange = () => {
+      try {
+        const hash = window.location.hash.toLowerCase();
+        if (hash === "#landing" || hash === "#commercial") {
+          setStage("landing");
+        } else if (hash === "#auth" || hash === "#login" || hash === "#connexion") {
+          setStage("auth");
+        } else if (hash === "#app") {
+          setStage("app");
+        }
+      } catch {}
+    };
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
+  }, []);
 
   const enterApp = React.useCallback((target?: string) => {
     try {
@@ -570,6 +598,7 @@ export default function PdiUnifiedApp() {
       if (!auth || auth === "guest" || auth === "pending_email") {
         setAuthPageTab("login");
         setStage("auth");
+        try { window.location.hash = "auth"; } catch {}
         return;
       }
       window.sessionStorage.setItem(PDI_STAGE_KEY, "app");
@@ -578,6 +607,7 @@ export default function PdiUnifiedApp() {
       /* stockage indisponible */
     }
     setStage("app");
+    try { window.location.hash = "app"; } catch {}
 
     const allowed: PdiModule[] = [
       "home",
@@ -596,7 +626,7 @@ export default function PdiUnifiedApp() {
       "license_keys"
     ];
 
-    const dest = (target && allowed.includes(target as PdiModule) ? (target as PdiModule) : "isometric");
+    const dest = (target && allowed.includes(target as PdiModule) ? (target as PdiModule) : "home");
     setActiveModule(dest);
     try { window.localStorage.setItem("pdi.activeModule.v1", dest); } catch {}
     window.scrollTo(0, 0);
@@ -610,9 +640,9 @@ export default function PdiUnifiedApp() {
       window.localStorage.setItem("pdi.activeModule.v1", "home");
     } catch {}
     setAuthMode("guest");
-    setLandingScreen("home");
     setAuthPageTab("login");
     setStage("auth");
+    try { window.location.hash = "auth"; } catch {}
     setActiveModule("home");
     setAccountMenuOpen(false);
   }, []);
@@ -635,26 +665,25 @@ export default function PdiUnifiedApp() {
         "profile",
         "subscription",
       ];
-      if (detail === "landing") {
-        try { window.sessionStorage.removeItem(PDI_STAGE_KEY); window.localStorage.removeItem("pdi.force.app.v1"); } catch {}
-        setLandingScreen("landing");
+      if (detail === "landing" || detail === "portal" || detail === "commercial" || detail === "landing_home") {
         setStage("landing");
-        setActiveModule("home");
+        try { window.location.hash = "landing"; } catch {}
         return;
       }
-      if (detail === "logout" || detail === "landing_home") {
+      if (detail === "auth" || detail === "login") {
+        setStage("auth");
+        try { window.location.hash = "auth"; } catch {}
+        return;
+      }
+      if (detail === "logout") {
         handleLogoutToHome();
         return;
       }
-      if (detail === "launcher") {
-        try { window.sessionStorage.removeItem(PDI_STAGE_KEY); } catch {}
-        setLandingScreen("launcher");
-        setStage("landing");
-        setActiveModule("home");
-        return;
-      }
       setStage("app");
-      try { window.sessionStorage.setItem(PDI_STAGE_KEY, "app"); } catch {}
+      try {
+        window.sessionStorage.setItem(PDI_STAGE_KEY, "app");
+        window.location.hash = "app";
+      } catch {}
       setActiveModule(allowed.includes(detail as PdiModule) ? (detail as PdiModule) : "home");
     };
     window.addEventListener("pdi:navigate", onNavigate as EventListener);
@@ -725,28 +754,57 @@ export default function PdiUnifiedApp() {
   };
   const moduleTitle = useMemo(() => navItems.find((x) => x.id === activeModule)?.title || "PD&I", [activeModule]);
 
-  // PATCH 004c : la page publicitaire est rendue seule, sans barre laterale ni
-  // barre superieure. Une navigation externe (pdi:navigate) entre directement
-  // dans le logiciel, ce qui preserve le comportement existant.
+  // STAGE 1 : PAGE COMMERCIALE (HOME PDI / LANDING)
   if (stage === "landing") {
     return (
-      <PdiLandingV4
-        onEnter={enterApp}
-        onOpenAuth={(t) => {
-          setAuthPageTab(t || "login");
-          setStage("auth");
+      <HomePdi
+        onEnterModule={(mod) => {
+          setStage("app");
+          setAuthMode("demo");
+          try { window.location.hash = "app"; } catch {}
+          if (mod && mod !== "home") {
+            openModuleInTab(mod as PdiModule);
+          } else {
+            setActiveModule("home");
+          }
         }}
-        initialScreen={landingScreen}
+        onNewProject={() => {
+          setStage("app");
+          setAuthMode("demo");
+          setActiveModule("home");
+          setNewProjectModalOpen(true);
+          try { window.location.hash = "app"; } catch {}
+        }}
+        onOpenProject={() => {
+          setStage("app");
+          setAuthMode("demo");
+          openModuleInTab("projects", "Mes Projets");
+          try { window.location.hash = "app"; } catch {}
+        }}
+        onLoginRequest={(req) => {
+          if (req === "register") {
+            setAuthPageTab("register");
+          } else {
+            setAuthPageTab("login");
+          }
+          setStage("auth");
+          try { window.location.hash = "auth"; } catch {}
+        }}
+        userEmail={pdiUserProfile.email}
+        isLoggedIn={authMode !== "guest"}
       />
     );
   }
 
-  // ÉTAPE AUTHENTIFICATION & VERROUILLAGE SÉCURISÉ
+  // STAGE 2 : PAGE CONNEXION / AUTHENTIFICATION
   if (stage === "auth") {
     return (
       <PdiAuthPage
         initialTab={authPageTab}
-        onBackToLanding={() => setStage("landing")}
+        onBackToLanding={() => {
+          setStage("landing");
+          try { window.location.hash = "landing"; } catch {}
+        }}
         onSuccess={(profile, isSuper) => {
           const role = isSuper ? "super_admin" : (profile.role || "client");
           setAuthMode(role as any);
@@ -756,15 +814,16 @@ export default function PdiUnifiedApp() {
             window.localStorage.setItem("pdi.user.profile.v1", JSON.stringify(profile));
             window.sessionStorage.setItem(PDI_STAGE_KEY, "app");
             window.localStorage.setItem("pdi.force.app.v1", "1");
+            window.location.hash = "app";
           } catch {}
-          
+
           // Asynchronously sync user to PostgreSQL Cloud SQL in the background
           void projectsApi.syncUser(profile.name, (profile as any).photoUrl || (profile as any).photoURL).catch((err) => {
             console.warn("Background user sync to Cloud SQL non-blocking error:", err);
           });
 
           setStage("app");
-          setActiveModule(isSuper ? "super_admin_console" : "isometric");
+          setActiveModule(isSuper ? "super_admin_console" : "home");
         }}
       />
     );
@@ -1241,7 +1300,8 @@ export default function PdiUnifiedApp() {
                 </div>
                 <div style={{ color: '#A1A1AA', fontSize: 10, fontFamily: 'monospace', marginTop: 2 }}>{pdiUserProfile.email} • Version active • Tout implémenté</div>
               </div>
-              <button onClick={()=>{setActiveModule("home"); setAccountMenuOpen(false);}}>Accueil</button>
+              <button onClick={()=>{setActiveModule("home"); setAccountMenuOpen(false);}}>Accueil Application</button>
+              <button onClick={()=>{setStage("landing"); try { window.location.hash = "landing"; } catch {} setAccountMenuOpen(false);}} style={{ color: "#FB923C", fontWeight: 800 }}>🌐 Page Commerciale (Vitrine)</button>
               {(authMode === "super_admin" || pdiUserProfile.email.includes("boudjada")) && (
                 <button onClick={()=>{setActiveModule("super_admin_console"); setAccountMenuOpen(false);}} style={{ color: "#FFFFFF", fontWeight: 900 }}>⚡ Super Admin Console</button>
               )}
@@ -1252,7 +1312,6 @@ export default function PdiUnifiedApp() {
               {(authMode === "super_admin" || pdiUserProfile.email.includes("boudjada")) && (
                 <button onClick={()=>{setActiveModule("license_keys"); setAccountMenuOpen(false);}}>Clés SaaS</button>
               )}
-              <button onClick={()=>{try{window.localStorage.removeItem(PDI_STAGE_KEY); window.localStorage.removeItem("pdi.force.app.v1")}catch{}; setLandingScreen("landing"); setStage("landing"); setAccountMenuOpen(false);}}>Présentation Landing</button>
               <button className="pdi-menu-logout" onClick={handleLogoutToHome} style={{ color: "#f87171", borderTop: "1px solid rgba(248,113,113,0.2)", marginTop: "4px", paddingTop: "6px" }}>⎋ Déconnexion</button>
             </div>
           )}
@@ -1447,22 +1506,9 @@ export default function PdiUnifiedApp() {
       {/* PATCH 017E : barre d onglets top désactivée au profit du dock vertical de la liste de plans en bas */}
       {/* Le dock vertical de plans en bas offre une ergonomie parfaite et évite l encombrement */}
       <main className="pdi-content">
-        {activeModule === "home" && (authMode === "guest" || authMode === "pending_email") && <div className="pdi-auth-gateway">
-          <section className="pdi-auth-card"><div className="pdi-panel-kicker">Accès PD&I sécurisé</div><h1>Connexion requise</h1><p>Pour ouvrir ISO, Vision, CAD ou créer un nouveau plan, passez par Connexion, Création compte ou Mode démo. L'accès direct par bouton Commencer est désactivé.</p><div className="pdi-auth-tabs"><button className={authPanelMode==="login"?"active":""} onClick={()=>setAuthPanelMode("login")}>Connexion</button><button className={authPanelMode==="register"?"active":""} onClick={()=>setAuthPanelMode("register")}>Créer compte</button><button className={authPanelMode==="activation"?"active":""} onClick={()=>setAuthPanelMode("activation")}>Activation</button></div>
-            {authPanelMode === "login" && <div className="pdi-auth-form"><input placeholder="Email" value={authDraft.email} onChange={e=>setAuthDraft({...authDraft,email:e.target.value})}/><input placeholder="Mot de passe" type="password" value={authDraft.password} onChange={e=>setAuthDraft({...authDraft,password:e.target.value})}/><button onClick={startDemoSession}>Continuer en mode démo</button><small>Message unique : identifiants invalides ou compte non activé.</small></div>}
-            {authPanelMode === "register" && <div className="pdi-auth-form"><input placeholder="Nom complet" value={authDraft.name} onChange={e=>setAuthDraft({...authDraft,name:e.target.value})}/><input placeholder="Email" value={authDraft.email} onChange={e=>setAuthDraft({...authDraft,email:e.target.value})}/><input placeholder="Entreprise" value={authDraft.company} onChange={e=>setAuthDraft({...authDraft,company:e.target.value})}/><input placeholder="Mot de passe min. 6" type="password" value={authDraft.password} onChange={e=>setAuthDraft({...authDraft,password:e.target.value})}/><select value={authDraft.plan} onChange={e=>setAuthDraft({...authDraft,plan:e.target.value})}><option value="demo">Demo</option><option value="pro">Pro</option><option value="team">Team</option></select><button onClick={submitRegisterSimulated}>Générer email d’activation</button></div>}
-            {authPanelMode === "activation" && <div className="pdi-auth-form"><p><b>Email simulé :</b> cliquez sur le lien unique pour confirmer l’email.</p><code>{activationToken || "Aucun token — créez un compte d’abord"}</code><button disabled={!activationToken} onClick={activateSimulatedAccount}>Activer le compte</button></div>}
-          </section>
-        </div>}
         {activeModule === "home" && (
           <PdiIllustratorHome
-            onNewProject={() => {
-              if (canOpenWorkspaceModule) {
-                setNewProjectModalOpen(true);
-              } else {
-                setAuthPanelMode("login");
-              }
-            }}
+            onNewProject={() => setNewProjectModalOpen(true)}
             onOpenProject={() => openModuleInTab("projects", "Mes Projets")}
             onOpenModule={(m) => openModuleInTab(m as PdiModule)}
           />

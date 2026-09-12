@@ -4,7 +4,7 @@ This directory defines the autonomous SaaS boundary for the future PD&I product.
 
 ## Product boundary
 
-PD&I must not depend on the PLAN-SONELGAZ-TG-GUIDE application, its navigation, or its application state. The Guide may link to PD&I as an external client, but PD&I owns its own identity, organizations, projects, licensing, storage, and application state.
+PD&I must not depend on the PLAN-PDI-GUIDE application, its navigation, or its application state. The Guide may link to PD&I as an external client, but PD&I owns its own identity, organizations, projects, licensing, storage, and application state.
 
 ## Planned domains
 

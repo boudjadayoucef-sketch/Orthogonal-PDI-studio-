@@ -5,7 +5,7 @@ import { pdiFeuilleImpression017L, PDI_STYLE_IMPRESSION_017L } from "../pdi/impr
  */
 
 import { useState, useRef, useEffect } from "react";
-import defaultLogo from "../assets/images/sonelgaz_logo_1783415417090.jpg";
+import defaultLogo from "../assets/images/pdi-logo-horizontal.png";
 import { SPARE_PARTS_RULES, RIGHT_OF_WAY_TABLE, COLD_BENDING_DATA } from "../data/fascicules";
 import { collection, onSnapshot } from "firebase/firestore";
 import { db } from "../lib/firebase";
@@ -116,16 +116,16 @@ interface Project {
 }
 
 
-const SonelgazHeader = () => (
+const PdiHeader = () => (
   <div className="w-full bg-white pb-2 mb-3 border-b-2 border-[#007ac3]">
     <div className="flex items-center justify-between gap-4">
       <div className="flex items-center gap-3">
         <img
           src={defaultLogo}
-          alt="Sonelgaz Logo Officiel"
+          alt="PD&I Logo Officiel"
           className="h-16 max-h-20 w-auto object-contain select-none"
           onError={(e) => {
-            e.currentTarget.src = "https://upload.wikimedia.org/wikipedia/commons/e/ec/Logo_Sonelgaz.svg";
+            e.currentTarget.src = "https://upload.wikimedia.org/wikipedia/commons/e/ec/Logo_PD&I.svg";
           }}
         />
       </div>
@@ -181,7 +181,7 @@ export default function Calculators() {
     epreuve: 150000
   });
 
-  // Real-time listener for Sonelgaz projects from Firestore
+  // Real-time listener for PD&I projects from Firestore
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "projects"), (snapshot) => {
       const projectsList: Project[] = [];
@@ -965,7 +965,7 @@ export default function Calculators() {
         <head>
           <base href="${window.location.origin}/" />
           <meta charset="utf-8" />
-          <title>Plan_CAD_Sonelgaz_${cartoucheInfo.planNumber || "GC-001"}</title>
+          <title>Plan_CAD_PD&I_${cartoucheInfo.planNumber || "GC-001"}</title>
           <style>
             @page {
               size: A4 landscape;
@@ -1157,10 +1157,10 @@ export default function Calculators() {
         </head>
         <body>
           <div class="page-container">
-            <!-- HEADER SONELGAZ OFFICIEL -->
+            <!-- HEADER PD&I OFFICIEL -->
             <div class="header-banner" style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2.5px solid #0072bc; padding-bottom: 6px; margin-bottom: 8px;">
               <div style="display: flex; align-items: center; gap: 14px;">
-                <img src="/sonelgaz-logo.png" alt="Sonelgaz Logo" style="height: 72px; width: 72px; min-width: 72px; object-fit: contain;" />
+                <img src="/pdi-logo-horizontal.png" alt="PD&I Logo" style="height: 72px; width: 72px; min-width: 72px; object-fit: contain;" />
                 <div>
                   <div style="font-size: 20px; font-weight: 900; color: #0072bc; font-family: 'Cairo', 'Amiri', 'Arial', sans-serif; line-height: 1.2;">
                     الشركة الجزائرية للكهرباء والغاز–نقل الغاز
@@ -1172,7 +1172,7 @@ export default function Calculators() {
               </div>
               <div style="text-align: right; font-family: monospace; font-size: 9px; font-weight: 800;">
                 <div style="color: #0072bc; text-transform: uppercase; font-size: 10px; font-weight: 900;">PLAN D'IMPLANTATION GC TECHNIQUE</div>
-                <div>DOC N° : ${cartoucheInfo.planNumber || "SONELGAZ-GC-001"} | RÉV : ${cartoucheInfo.revisionIndex || "0"}</div>
+                <div>DOC N° : ${cartoucheInfo.planNumber || "PD&I-GC-001"} | RÉV : ${cartoucheInfo.revisionIndex || "0"}</div>
               </div>
             </div>
 
@@ -1182,7 +1182,7 @@ export default function Calculators() {
               <div class="left-column">
                 <div>
                   <div style="text-align: center; background: #0f172a; color: #ffffff; padding: 3px; font-size: 8.5px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">
-                    CARTOUCHE OFFICIEL SONELGAZ
+                    CARTOUCHE OFFICIEL PD&I
                   </div>
 
                   <table class="cartouche-table">
@@ -1209,7 +1209,7 @@ export default function Calculators() {
                     <tr>
                       <td>
                         <span class="label">Édité par :</span><br/>
-                        <span class="val" style="color: #0284c7;">${cartoucheInfo.editorName || "SONELGAZ"}</span>
+                        <span class="val" style="color: #0284c7;">${cartoucheInfo.editorName || "PD&I"}</span>
                       </td>
                       <td>
                         <span class="label">Vérifié par :</span><br/>
@@ -1218,7 +1218,7 @@ export default function Calculators() {
                     </tr>
                     <tr>
                       <td colSpan="2">
-                        <span class="label">Approuvé par (Sonelgaz) :</span><br/>
+                        <span class="label">Approuvé par (PD&I) :</span><br/>
                         <span class="val" style="color: #16a34a;">${cartoucheInfo.approverName || "DIRECTION TRANSPORT DU GAZ"}</span>
                       </td>
                     </tr>
@@ -1323,7 +1323,7 @@ export default function Calculators() {
         <head>
           <base href="${window.location.origin}/" />
           <meta charset="utf-8" />
-          <title>Plan_Emprise_Piste_Sonelgaz_Fasc2_DN${row.diameterInches}</title>
+          <title>Plan_Emprise_Piste_PD&I_Fasc2_DN${row.diameterInches}</title>
           <style>
             @page { size: A4 landscape; margin: 10mm; }
             body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #0f172a; margin: 0; padding: 0; background: #ffffff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -1345,7 +1345,7 @@ export default function Calculators() {
           <div class="container">
             <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2.5px solid #0072bc; padding-bottom: 6px; margin-bottom: 10px;">
               <div style="display: flex; align-items: center; gap: 14px;">
-                <img src="/sonelgaz-logo.png" alt="Sonelgaz Logo" style="height: 68px; width: 68px; min-width: 68px; object-fit: contain;" />
+                <img src="/pdi-logo-horizontal.png" alt="PD&I Logo" style="height: 68px; width: 68px; min-width: 68px; object-fit: contain;" />
                 <div>
                   <div style="font-size: 19px; font-weight: 900; color: #0072bc; font-family: 'Cairo', 'Amiri', 'Arial', sans-serif; line-height: 1.2;">
                     الشركة الجزائرية للكهرباء والغاز–نقل الغاز
@@ -1401,15 +1401,15 @@ export default function Calculators() {
 
             <table class="cartouche">
               <tr>
-                <td width="25%"><span class="label">Maître d'Ouvrage :</span><br/><span class="value">SONELGAZ TRANSPORT DU GAZ</span></td>
+                <td width="25%"><span class="label">Maître d'Ouvrage :</span><br/><span class="value">PD&I PIPELINE DESIGN & ISOMETRICS</span></td>
                 <td width="25%"><span class="label">Ouvrage :</span><br/><span class="value">PISTE D'EMPRISE DN ${row.diameterInches}</span></td>
                 <td width="25%"><span class="label">N° Plan :</span><br/><span class="value">${cartoucheInfo.planNumber || "EMP-FASC2-001"}</span></td>
                 <td width="25%"><span class="label">Échelle & Date :</span><br/><span class="value">${cartoucheInfo.scale || "1 / 100"} | ${cartoucheInfo.date || "2026"}</span></td>
               </tr>
               <tr>
-                <td><span class="label">Édité par :</span><br/><span class="value">${cartoucheInfo.editorName || "SONELGAZ"}</span></td>
+                <td><span class="label">Édité par :</span><br/><span class="value">${cartoucheInfo.editorName || "PD&I"}</span></td>
                 <td><span class="label">Vérifié par :</span><br/><span class="value">${cartoucheInfo.verifierName || "INGÉNIEUR GC"}</span></td>
-                <td colspan="2"><span class="label">Approuvé par (Sonelgaz) :</span><br/><span class="value">${cartoucheInfo.approverName || "DIRECTION TRANSPORT GAZ"}</span></td>
+                <td colspan="2"><span class="label">Approuvé par (PD&I) :</span><br/><span class="value">${cartoucheInfo.approverName || "DIRECTION TRANSPORT GAZ"}</span></td>
               </tr>
             </table>
           </div>
@@ -1436,7 +1436,7 @@ export default function Calculators() {
         <head>
           <base href="${window.location.origin}/" />
           <meta charset="utf-8" />
-          <title>Plan_Cintrage_Sonelgaz_Fasc3_DN${bData.diameterInches}</title>
+          <title>Plan_Cintrage_PD&I_Fasc3_DN${bData.diameterInches}</title>
           <style>
             @page { size: A4 landscape; margin: 10mm; }
             body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #0f172a; margin: 0; padding: 0; background: #ffffff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -1458,7 +1458,7 @@ export default function Calculators() {
           <div class="container">
             <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2.5px solid #0072bc; padding-bottom: 6px; margin-bottom: 10px;">
               <div style="display: flex; align-items: center; gap: 14px;">
-                <img src="/sonelgaz-logo.png" alt="Sonelgaz Logo" style="height: 68px; width: 68px; min-width: 68px; object-fit: contain;" />
+                <img src="/pdi-logo-horizontal.png" alt="PD&I Logo" style="height: 68px; width: 68px; min-width: 68px; object-fit: contain;" />
                 <div>
                   <div style="font-size: 19px; font-weight: 900; color: #0072bc; font-family: 'Cairo', 'Amiri', 'Arial', sans-serif; line-height: 1.2;">
                     الشركة الجزائرية للكهرباء والغاز–نقل الغاز
@@ -1512,15 +1512,15 @@ export default function Calculators() {
 
             <table class="cartouche">
               <tr>
-                <td width="25%"><span class="label">Maître d'Ouvrage :</span><br/><span class="value">SONELGAZ TRANSPORT DU GAZ</span></td>
+                <td width="25%"><span class="label">Maître d'Ouvrage :</span><br/><span class="value">PD&I PIPELINE DESIGN & ISOMETRICS</span></td>
                 <td width="25%"><span class="label">Ouvrage :</span><br/><span class="value">CINTRAGE À FROID DN ${bData.diameterInches}</span></td>
                 <td width="25%"><span class="label">N° Plan :</span><br/><span class="value">${cartoucheInfo.planNumber || "CIN-FASC3-001"}</span></td>
                 <td width="25%"><span class="label">Échelle & Date :</span><br/><span class="value">${cartoucheInfo.scale || "1 / 50"} | ${cartoucheInfo.date || "2026"}</span></td>
               </tr>
               <tr>
-                <td><span class="label">Édité par :</span><br/><span class="value">${cartoucheInfo.editorName || "SONELGAZ"}</span></td>
+                <td><span class="label">Édité par :</span><br/><span class="value">${cartoucheInfo.editorName || "PD&I"}</span></td>
                 <td><span class="label">Vérifié par :</span><br/><span class="value">${cartoucheInfo.verifierName || "INGÉNIEUR PIPE"}</span></td>
-                <td colspan="2"><span class="label">Approuvé par (Sonelgaz) :</span><br/><span class="value">${cartoucheInfo.approverName || "DIRECTION TRANSPORT GAZ"}</span></td>
+                <td colspan="2"><span class="label">Approuvé par (PD&I) :</span><br/><span class="value">${cartoucheInfo.approverName || "DIRECTION TRANSPORT GAZ"}</span></td>
               </tr>
             </table>
           </div>
@@ -1546,7 +1546,7 @@ export default function Calculators() {
         <head>
           <base href="${window.location.origin}/" />
           <meta charset="utf-8" />
-          <title>Plan_Lestage_Cavaliers_Sonelgaz_Fasc7</title>
+          <title>Plan_Lestage_Cavaliers_PD&I_Fasc7</title>
           <style>
             @page { size: A4 landscape; margin: 10mm; }
             body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #0f172a; margin: 0; padding: 0; background: #ffffff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -1568,7 +1568,7 @@ export default function Calculators() {
           <div class="container">
             <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2.5px solid #0072bc; padding-bottom: 6px; margin-bottom: 10px;">
               <div style="display: flex; align-items: center; gap: 14px;">
-                <img src="/sonelgaz-logo.png" alt="Sonelgaz Logo" style="height: 68px; width: 68px; min-width: 68px; object-fit: contain;" />
+                <img src="/pdi-logo-horizontal.png" alt="PD&I Logo" style="height: 68px; width: 68px; min-width: 68px; object-fit: contain;" />
                 <div>
                   <div style="font-size: 19px; font-weight: 900; color: #0072bc; font-family: 'Cairo', 'Amiri', 'Arial', sans-serif; line-height: 1.2;">
                     الشركة الجزائرية للكهرباء والغاز–نقل الغاز
@@ -1624,15 +1624,15 @@ export default function Calculators() {
 
             <table class="cartouche">
               <tr>
-                <td width="25%"><span class="label">Maître d'Ouvrage :</span><br/><span class="value">SONELGAZ TRANSPORT DU GAZ</span></td>
+                <td width="25%"><span class="label">Maître d'Ouvrage :</span><br/><span class="value">PD&I PIPELINE DESIGN & ISOMETRICS</span></td>
                 <td width="25%"><span class="label">Ouvrage :</span><br/><span class="value">LESTAGE GAZODUC EN OUED</span></td>
                 <td width="25%"><span class="label">N° Plan :</span><br/><span class="value">${cartoucheInfo.planNumber || "LES-FASC7-001"}</span></td>
                 <td width="25%"><span class="label">Échelle & Date :</span><br/><span class="value">${cartoucheInfo.scale || "1 / 100"} | ${cartoucheInfo.date || "2026"}</span></td>
               </tr>
               <tr>
-                <td><span class="label">Édité par :</span><br/><span class="value">${cartoucheInfo.editorName || "SONELGAZ"}</span></td>
+                <td><span class="label">Édité par :</span><br/><span class="value">${cartoucheInfo.editorName || "PD&I"}</span></td>
                 <td><span class="label">Vérifié par :</span><br/><span class="value">${cartoucheInfo.verifierName || "INGÉNIEUR HYDRAULIQUE"}</span></td>
-                <td colspan="2"><span class="label">Approuvé par (Sonelgaz) :</span><br/><span class="value">${cartoucheInfo.approverName || "DIRECTION TRANSPORT GAZ"}</span></td>
+                <td colspan="2"><span class="label">Approuvé par (PD&I) :</span><br/><span class="value">${cartoucheInfo.approverName || "DIRECTION TRANSPORT GAZ"}</span></td>
               </tr>
             </table>
           </div>
@@ -2009,7 +2009,7 @@ export default function Calculators() {
   const isYS_Ok = mechYS >= activeGradeLimit.ysMin && mechYS <= activeGradeLimit.ysMax;
   const isUTS_Ok = mechUTS >= activeGradeLimit.utsMin && mechUTS <= activeGradeLimit.utsMax;
   const isElong_Ok = mechElong >= activeGradeLimit.elongMin;
-  const isCharpy_Ok = pslLevel === "PSL2" ? mechCharpy >= 27 : true; // Sonelgaz spec requires 27J min for PSL2
+  const isCharpy_Ok = pslLevel === "PSL2" ? mechCharpy >= 27 : true; // PD&I spec requires 27J min for PSL2
 
   const isOD_Ok = geomOD >= 0.995 * 323.8 && geomOD <= 1.005 * 323.8; // Tolerances +/- 0.5%
   const isThick_Ok = geomThick >= 0.90 * 8.0 && geomThick <= 1.15 * 8.0; // Tolerances -10% / +15%
@@ -4221,7 +4221,7 @@ export default function Calculators() {
               </svg>
             </div>
             <p className="text-[10px] text-slate-400 text-center italic">
-              Conforme à l'Abaque Réglementaire Fascicule 2 — Pistes de Travail et Servitudes Gazoducs Sonelgaz.
+              Conforme à l'Abaque Réglementaire Fascicule 2 — Pistes de Travail et Servitudes Gazoducs PD&I.
             </p>
           </div>
         </div>
@@ -4544,7 +4544,7 @@ export default function Calculators() {
               </svg>
             </div>
             <p className="text-[10px] text-slate-400 text-center italic">
-              Équilibre de stabilité sous coefficient de sécurité K = {K_factor} (Annexe Fascicule 7 Sonelgaz).
+              Équilibre de stabilité sous coefficient de sécurité K = {K_factor} (Annexe Fascicule 7 PD&I).
             </p>
           </div>
         </div>
@@ -4604,7 +4604,7 @@ export default function Calculators() {
                 </div>
               </div>
               <span className="text-[10px] font-bold text-orange-600 bg-orange-50 border border-orange-200 px-2.5 py-1 rounded-full font-mono">
-                Conforme Fascicule 5 (Sonelgaz Transport Gaz)
+                Conforme Fascicule 5 (PD&I Transport Gaz)
               </span>
             </div>
 
@@ -5204,7 +5204,7 @@ export default function Calculators() {
               </div>
 
               <div className="mt-6 pt-4 border-t border-slate-200 text-[10px] text-slate-400">
-                * Calculs théoriques basés sur le dosage réglementaire de la Sonelgaz pour béton armé de fondation.
+                * Calculs théoriques basés sur le dosage réglementaire de la PD&I pour béton armé de fondation.
               </div>
             </div>
           </div>
@@ -5417,7 +5417,7 @@ export default function Calculators() {
                               {calculatedCE.toFixed(3)}
                             </td>
                             <td className="p-2 text-center border-r border-slate-200 text-slate-400 font-sans text-[9px]">Non exigé (Option)</td>
-                            <td className="p-2 text-center border-r border-slate-200 font-bold text-blue-950 bg-blue-100/40">≤ 0.43 (Sonelgaz)</td>
+                            <td className="p-2 text-center border-r border-slate-200 font-bold text-blue-950 bg-blue-100/40">≤ 0.43 (PD&I)</td>
                             <td className="p-2 text-center font-sans">
                               <span className={"inline-flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-full " + (isCE_Ok ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800")}>
                                 {isCE_Ok ? "CONFORME ✓" : "DÉPASSEMENT ⚠️"}
@@ -5632,12 +5632,12 @@ export default function Calculators() {
                           <line x1="240" y1="140" x2="240" y2="170" stroke="#ef4444" strokeWidth="1.5" />
                           <text x="245" y="158" fill="#ef4444" fontSize="9" fontWeight="bold">Talon = 1.6 ± 0.8 mm</text>
 
-                          <text x="140" y="210" fill="#94a3b8" textAnchor="middle" fontSize="9">Conforme à la spécification Sonelgaz Ed.2025</text>
+                          <text x="140" y="210" fill="#94a3b8" textAnchor="middle" fontSize="9">Conforme à la spécification PD&I Ed.2025</text>
                         </g>
 
                         {/* Title block */}
                         <rect x="40" y="240" width="720" height="50" fill="#1e293b" rx="4" stroke="#334155" />
-                        <text x="50" y="260" fill="#e2e8f0" fontSize="10" fontWeight="bold">PROJET : TRANSPORT GAZ HAUTE PRESSION - SONELGAZ</text>
+                        <text x="50" y="260" fill="#e2e8f0" fontSize="10" fontWeight="bold">PROJET : TRANSPORT GAZ HAUTE PRESSION - PD&I</text>
                         <text x="50" y="278" fill="#94a3b8" fontSize="9">Norme d'Inspection: API 5L (Éd. 46) / PSL2 | N° Coulée: {heatNumber} | Grade: L{activeGradeLimit.ysMin} ({pipeGrade})</text>
                       </svg>
                     </div>
@@ -5720,7 +5720,7 @@ export default function Calculators() {
 
                         {/* Title bar */}
                         <rect x="40" y="245" width="720" height="45" fill="#1e293b" rx="4" stroke="#334155" />
-                        <text x="50" y="265" fill="#e2e8f0" fontSize="10" fontWeight="bold">PRÉLÈVEMENT PAR COULÉE N° {heatNumber} - NORME SONELGAZ / API 5L</text>
+                        <text x="50" y="265" fill="#e2e8f0" fontSize="10" fontWeight="bold">PRÉLÈVEMENT PAR COULÉE N° {heatNumber} - NORME PD&I / API 5L</text>
                         <text x="50" y="280" fill="#94a3b8" fontSize="9">Tous les essais mécaniques doivent satisfaire les exigences minimales du Grade L{activeGradeLimit.ysMin} ({pipeGrade})</text>
                       </svg>
                     </div>
@@ -5736,7 +5736,7 @@ export default function Calculators() {
                     <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
                       <span className="font-bold text-slate-900 block mb-1">2. Résilience Charpy V-Notch (-10°C)</span>
                       <p className="text-[11px] text-slate-600">
-                        Prélèvement de 3 éprouvettes en métal de base, 3 en zone affectée thermiquement (ZAT) et 3 au centre de la soudure. Énergie minimale exigée par Sonelgaz : 27 Joules à -10°C.
+                        Prélèvement de 3 éprouvettes en métal de base, 3 en zone affectée thermiquement (ZAT) et 3 au centre de la soudure. Énergie minimale exigée par PD&I : 27 Joules à -10°C.
                       </p>
                     </div>
                     <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
@@ -5829,7 +5829,7 @@ export default function Calculators() {
 
                         {/* Title block */}
                         <rect x="40" y="250" width="720" height="40" fill="#1e293b" rx="4" stroke="#334155" />
-                        <text x="50" y="272" fill="#e2e8f0" fontSize="10" fontWeight="bold">QUALIFICATION USINE TOUS TUBES - EXIGENCE AUDIT QUALITÉ SONELGAZ</text>
+                        <text x="50" y="272" fill="#e2e8f0" fontSize="10" fontWeight="bold">QUALIFICATION USINE TOUS TUBES - EXIGENCE AUDIT QUALITÉ PD&I</text>
                       </svg>
                     </div>
                   </div>
@@ -5890,7 +5890,7 @@ export default function Calculators() {
                     <div className="flex justify-between items-center border-b-2 border-slate-800 pb-4">
                       <div>
                         <p className="font-black text-sm tracking-tight">SOCIÉTÉ ALGÉRIENNE DE DISTRIBUTION DU GAZ ET DE L'ÉLECTRICITÉ</p>
-                        <p className="font-bold text-xs text-slate-600">SONELGAZ - TRANSPORT DU GAZ</p>
+                        <p className="font-bold text-xs text-slate-600">PD&I - PIPELINE DESIGN & ISOMETRICS</p>
                         <p className="text-[10px] text-slate-500">DIVISION REALISATION DES PROJETS - TRANSPORT</p>
                       </div>
                       <div className="text-right">
@@ -5900,7 +5900,7 @@ export default function Calculators() {
                     </div>
 
                     <h2 className="text-center text-sm font-black tracking-wider uppercase bg-slate-100 py-2 border border-slate-800">
-                      PROCES-VERBAL DE RECEP-QUALIFICATION DU TUBE EN USINE (NORMES API 5L / SONELGAZ)
+                      PROCES-VERBAL DE RECEP-QUALIFICATION DU TUBE EN USINE (NORMES API 5L / PD&I)
                     </h2>
 
                     {/* Metadata summary */}
@@ -5915,7 +5915,7 @@ export default function Calculators() {
                       </thead>
                       <tbody>
                         <tr className="border-b border-slate-800">
-                          <td className="p-2 border-r border-slate-800">SONELGAZ TRANS-GAZ ED.2025</td>
+                          <td className="p-2 border-r border-slate-800">PD&I TRANS-GAZ ED.2025</td>
                           <td className="p-2 border-r border-slate-800 font-bold">L{activeGradeLimit.ysMin} / {pipeGrade}</td>
                           <td className="p-2 border-r border-slate-800 font-bold">{pslLevel}</td>
                           <td className="p-2 border-r border-slate-800 font-bold">{heatNumber} / {pipeIdNumber}</td>
@@ -5976,7 +5976,7 @@ export default function Calculators() {
                             <td className="p-1 border-r border-slate-800">≤ 0.50%</td>
                             <td className="p-1 border-r border-slate-800">≤ 0.50%</td>
                             <td className="p-1 border-r border-slate-800">≤ 0.10%</td>
-                            <td className="p-1 border-r border-slate-800 text-blue-900">≤ 0.43 (Sonelgaz)</td>
+                            <td className="p-1 border-r border-slate-800 text-blue-900">≤ 0.43 (PD&I)</td>
                           </tr>
                         </tbody>
                       </table>
@@ -6073,7 +6073,7 @@ export default function Calculators() {
                         <p className="text-[9px] text-slate-500 italic mt-6">Visa & Tampon Homologué</p>
                       </div>
                       <div>
-                        <p className="font-bold text-[10px] uppercase">Le Représentant Technique Sonelgaz</p>
+                        <p className="font-bold text-[10px] uppercase">Le Représentant Technique PD&I</p>
                         <p className="text-[9px] text-slate-500 italic mt-6">Visa & Signature de Réception</p>
                       </div>
                     </div>
@@ -6095,7 +6095,7 @@ export default function Calculators() {
                <div>
                  <h2 className="text-base font-black text-slate-800 flex items-center gap-2">
                    <Compass className="w-5 h-5 text-blue-600 animate-spin" style={{ animationDuration: "5s" }} />
-                   <span>Concepteur de Croquis Génie Civil - SONELGAZ</span>
+                   <span>Concepteur de Croquis Génie Civil - PD&I</span>
                  </h2>
                  <p className="text-xs text-slate-500 mt-1">
                    Générez un croquis technique d'implantation pour dalles et clôtures de sécurité.
@@ -7549,14 +7549,14 @@ export default function Calculators() {
             <div className="flex items-center justify-between border-b border-orange-500/30 pb-2 mb-2">
               <span className="text-xs font-black uppercase text-orange-400 tracking-wider flex items-center gap-2">
                 <FileText className="w-4 h-4 text-orange-400" />
-                <span>Carré Orange — Cartouche Technique Normalisé Sonelgaz (Block 2 d'Impression)</span>
+                <span>Carré Orange — Cartouche Technique Normalisé PD&I (Block 2 d'Impression)</span>
               </span>
               <span className="text-[10px] bg-orange-950 text-orange-300 font-mono font-bold px-2.5 py-0.5 rounded border border-orange-800">
-                Plan N° {cartoucheInfo.planNumber || "SONELGAZ-GC-001"}
+                Plan N° {cartoucheInfo.planNumber || "PD&I-GC-001"}
               </span>
             </div>
 
-            {/* Rendered Normalized Sonelgaz Cartouche Title Block */}
+            {/* Rendered Normalized PD&I Cartouche Title Block */}
             <div className="w-full bg-slate-950 rounded-2xl p-4 border border-slate-800 flex justify-center items-center overflow-x-auto">
               <svg viewBox="0 0 450 205" className="w-full max-w-lg h-auto">
                 <g transform="translate(7, 5)">
@@ -7566,7 +7566,7 @@ export default function Calculators() {
                                 {/* Header Strip */}
                                 <rect x="0" y="0" width="435" height="32" fill="#1e293b" stroke="#334155" strokeWidth="1" />
                                 <text x="12" y="20" fill="#38bdf8" fontSize="12" fontWeight="bold" letterSpacing="0.5">
-                                  SONELGAZ • GAZ TRANSPORT & DISTRIBUTION
+                                  PD&I • PIPELINE DESIGN & ISOMETRICS
                                 </text>
                                 <text x="420" y="20" fill="#f59e0b" fontSize="10" fontWeight="bold" textAnchor="end">
                                   FORMAT A3
@@ -7585,7 +7585,7 @@ export default function Calculators() {
                                   LOCALISATION:
                                 </text>
                                 <text x="240" y="62" fill="#e2e8f0" fontSize="10" fontWeight="semibold">
-                                  GROUPE SONELGAZ / DZA
+                                  PD&I / PIPELINE DESIGN & ISOMETRICS
                                 </text>
 
                                 <line x1="0" y1="72" x2="435" y2="72" stroke="#334155" strokeWidth="1" />
@@ -7627,7 +7627,7 @@ export default function Calculators() {
                                   <text x="180" y="11" fill="#ffffff" fontSize="9" fontWeight="bold">{cartoucheInfo.date || "2026"}</text>
 
                                   <text x="290" y="0" fill="#64748b" fontSize="8">ENTREPRISE / DESSIN:</text>
-                                  <text x="290" y="11" fill="#f59e0b" fontSize="9" fontWeight="bold">{cartoucheInfo.editorName || "SONELGAZ"}</text>
+                                  <text x="290" y="11" fill="#f59e0b" fontSize="9" fontWeight="bold">{cartoucheInfo.editorName || "PD&I"}</text>
                                 </g>
 
                                 <rect x="0" y="168" width="435" height="27" fill="#0284c7" fillOpacity="0.2" rx="2" />
@@ -7700,7 +7700,7 @@ export default function Calculators() {
                             <div className="flex items-center gap-2 border-b border-orange-500/30 pb-2">
                               <FileText className="w-4 h-4 text-orange-400" />
                               <span className="text-xs font-black uppercase text-orange-400 tracking-wider">
-                                Renseignements du Cartouche Technique (Imprimés sur Plan Sonelgaz)
+                                Renseignements du Cartouche Technique (Imprimés sur Plan PD&I)
                               </span>
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
@@ -7762,7 +7762,7 @@ export default function Calculators() {
                                 />
                               </div>
                               <div>
-                                <label className="text-[10px] font-bold text-slate-400 block mb-1">Approuvé par (Sonelgaz) :</label>
+                                <label className="text-[10px] font-bold text-slate-400 block mb-1">Approuvé par (PD&I) :</label>
                                 <input
                                   type="text"
                                   value={cartoucheInfo.approverName}
@@ -7776,7 +7776,7 @@ export default function Calculators() {
                           {/* Action Button: Direct Print / PDF Export */}
                           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-slate-200">
                             <span className="text-[11px] text-slate-500 font-medium">
-                              💡 L'impression génère le plan officiel combinant le <strong className="text-blue-600">Bloc Bleu (Schéma CAD 2D)</strong> et le <strong className="text-orange-600">Bloc Orange (Métrage & Cartouche)</strong> avec le logo officiel Sonelgaz.
+                              💡 L'impression génère le plan officiel combinant le <strong className="text-blue-600">Bloc Bleu (Schéma CAD 2D)</strong> et le <strong className="text-orange-600">Bloc Orange (Métrage & Cartouche)</strong> avec le logo officiel PD&I.
                             </span>
                             <button
                               type="button"
@@ -7784,7 +7784,7 @@ export default function Calculators() {
                               className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white rounded-2xl text-xs font-black shadow-lg shadow-orange-500/20 transition-all flex items-center justify-center gap-2 shrink-0 cursor-pointer active:scale-95"
                             >
                               <Printer className="w-4 h-4" />
-                              <span>Imprimer / Exporter PDF (Plan CAD & Cartouche Sonelgaz)</span>
+                              <span>Imprimer / Exporter PDF (Plan CAD & Cartouche PD&I)</span>
                             </button>
                           </div>
                         </div>
@@ -7900,18 +7900,18 @@ export default function Calculators() {
                        {/* ========================================================================= */}
                        <div className="flex flex-row gap-3 items-stretch min-h-[580px]">
                          
-                         {/* LEFT COLUMN: SONELGAZ HEADER, CARTOUCHE & METRES TABLES (35% WIDTH) */}
+                         {/* LEFT COLUMN: PD&I HEADER, CARTOUCHE & METRES TABLES (35% WIDTH) */}
                          <div className="w-[340px] shrink-0 flex flex-col justify-between border-r-2 border-slate-900 pr-3 space-y-2">
                            <div className="space-y-2">
-                             {/* Official Sonelgaz Transport du Gaz Header */}
-                             <SonelgazHeader />
+                             {/* Official PD&I Transport du Gaz Header */}
+                             <PdiHeader />
 
                              <div className="text-center border border-slate-900 bg-slate-50 py-1.5 px-2">
                                <h2 className="text-[10px] font-black tracking-widest uppercase text-slate-900">
                                  PLAN D'IMPLANTATION & CARTOUCHE TECHNIQUE
                                </h2>
                                <p className="text-[8px] text-slate-600 uppercase mt-0.5">
-                                 {conceptionMode === "neuf" ? "Ouvrage Neuf d'Origine" : "Extension sur Ouvrage Existant"} • Plan N° {cartoucheInfo.planNumber || "SONELGAZ-GC-001"}
+                                 {conceptionMode === "neuf" ? "Ouvrage Neuf d'Origine" : "Extension sur Ouvrage Existant"} • Plan N° {cartoucheInfo.planNumber || "PD&I-GC-001"}
                                </p>
                              </div>
 
@@ -8269,7 +8269,7 @@ export default function Calculators() {
             {loadingProjects ? (
               <div className="flex flex-col items-center justify-center p-12 space-y-3">
                 <RefreshCw className="w-8 h-8 text-orange-600 animate-spin" />
-                <p className="text-sm text-slate-500 font-bold">Chargement des ouvrages Sonelgaz...</p>
+                <p className="text-sm text-slate-500 font-bold">Chargement des ouvrages PD&I...</p>
               </div>
             ) : projects.length === 0 ? (
               <div className="bg-white rounded-2xl border border-slate-150 p-8 text-center text-slate-500 font-medium">
@@ -8342,7 +8342,7 @@ export default function Calculators() {
                     <div>
                       <span className="text-[10px] font-black uppercase text-orange-600 tracking-wider font-mono">Module Évaluation Financière</span>
                       <h3 className="font-extrabold text-lg text-slate-800">Bordereau des Prix Unitaire & Quantitatif (BPU)</h3>
-                      <p className="text-xs text-slate-500 font-medium">Générez l'estimation financière d'un ouvrage gaz à partir des abaques Sonelgaz.</p>
+                      <p className="text-xs text-slate-500 font-medium">Générez l'estimation financière d'un ouvrage gaz à partir des abaques PD&I.</p>
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="text-xs font-bold text-slate-600 shrink-0">Ouvrage :</span>
@@ -8476,7 +8476,7 @@ export default function Calculators() {
                           <thead>
                             <tr className="bg-slate-50 border-b border-slate-100 text-slate-500 font-black">
                               <th className="py-3 px-4 w-12 text-center">Code</th>
-                              <th className="py-3 px-4">Prestations de l'Abaque Sonelgaz</th>
+                              <th className="py-3 px-4">Prestations de l'Abaque PD&I</th>
                               <th className="py-3 px-3 w-16 text-center">Unité</th>
                               <th className="py-3 px-3 w-20 text-center">Quantité</th>
                               <th className="py-3 px-4 w-36 text-right">P.U Estimé (DA)</th>
@@ -8558,11 +8558,11 @@ export default function Calculators() {
             <div className="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-200 p-8 flex flex-col justify-between space-y-6">
               {/* Print area */}
               <div id="printable-bordereau" className="space-y-6 text-left text-slate-800 p-6 border border-slate-100 rounded-2xl bg-white shadow-xs">
-                {/* Sonelgaz header */}
+                {/* PD&I header */}
                 <div className="flex justify-between items-start border-b border-slate-300 pb-4">
                   <div className="space-y-1">
                     <p className="font-extrabold text-[10px] uppercase tracking-wider text-slate-900">Société Algérienne de l'Électricité et du Gaz</p>
-                    <p className="font-black text-xs text-orange-500 uppercase tracking-widest">SONELGAZ</p>
+                    <p className="font-black text-xs text-orange-500 uppercase tracking-widest">PD&I</p>
                     <p className="text-[9px] font-bold text-slate-500 uppercase">Direction Régionale du Transport Gaz</p>
                     <p className="text-[9px] font-medium text-slate-400">Division Engineering et Travaux Neufs (DETN)</p>
                   </div>
@@ -8656,7 +8656,7 @@ export default function Calculators() {
                     <p className="text-[9px] text-slate-400 italic">(Nom, Cachet et Signature précédés de la mention "Lu et approuvé")</p>
                   </div>
                   <div className="border border-slate-200 p-4 rounded-xl text-center space-y-12 bg-slate-50/50">
-                    <p className="font-extrabold text-slate-600">Pour Sonelgaz / Division Engineering (DETN)</p>
+                    <p className="font-extrabold text-slate-600">Pour PD&I / Division Engineering (DETN)</p>
                     <p className="text-[9px] text-slate-400 italic">(Visa pour validation technique réglementaire)</p>
                   </div>
                 </div>
@@ -8679,7 +8679,7 @@ export default function Calculators() {
                         win.document.write(`
                           <html>
                             <head>
-                              <title>Sonelgaz BPU - ${activeProject.name}</title>
+                              <title>PD&I BPU - ${activeProject.name}</title>
                               <style>${pdiFeuilleImpression017L()}
 ${PDI_STYLE_IMPRESSION_017L}</style>
                               <style>
@@ -9976,7 +9976,7 @@ ${PDI_STYLE_IMPRESSION_017L}</style>
                       className="w-4 h-4 rounded text-cyan-500 focus:ring-cyan-400"
                     />
                     <div>
-                      <span className="text-xs font-bold text-white block">📋 Cartouche Technique Sonelgaz</span>
+                      <span className="text-xs font-bold text-white block">📋 Cartouche Technique PD&I</span>
                       <span className="text-[10px] text-slate-400">Cartouche réglementaire avec visas et plan N°</span>
                     </div>
                   </label>
@@ -10041,7 +10041,7 @@ ${PDI_STYLE_IMPRESSION_017L}</style>
                   <FileText className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="text-base font-black uppercase tracking-wider text-white">Éditeur de Cartouche Normalisé Sonelgaz</h3>
+                  <h3 className="text-base font-black uppercase tracking-wider text-white">Éditeur de Cartouche Normalisé PD&I</h3>
                   <p className="text-xs text-slate-400">Renseignez les métadonnées officielles figurant au bas du plan</p>
                 </div>
               </div>

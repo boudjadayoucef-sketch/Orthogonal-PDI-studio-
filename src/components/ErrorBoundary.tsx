@@ -66,7 +66,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
               >
                 Recharger l'application
               </button>
-              <span className="text-[10px] font-mono text-slate-500">SONELGAZ-TG • Diagnostic</span>
+              <span className="text-[10px] font-mono text-slate-500">PD&I-TG • Diagnostic</span>
             </div>
           </div>
         </div>

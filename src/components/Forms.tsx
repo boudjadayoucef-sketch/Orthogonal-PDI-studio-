@@ -16,7 +16,7 @@ import {
   Search,
   FileDown
 } from "lucide-react";
-import defaultLogo from "../assets/images/sonelgaz_logo_1783415417090.jpg";
+import defaultLogo from "../assets/images/pdi-logo-horizontal.png";
 import TravauxForms, { TRAVAUX_TEMPLATES } from "./TravauxForms";
 // PATCH 017K2
 import { pdiAlert } from "../pdi/ui/PdiNotice";
@@ -106,10 +106,10 @@ export default function Forms() {
 
     // Dynamically editable content and signatories
     leveeOppositionIntro: "Ce jour il a été procédé a la levée de l’opposition à la construction du gazoduc alimentant la localité suscitée en objet, localisé comme suite :",
-    leveeOppositionSignLeft: "P/SONELGAZ-STG",
+    leveeOppositionSignLeft: "P/PD&I",
     leveeOppositionSignRight: "P/ L’EXPERT",
     signalisationOppositionIntro: "Ce jour il a été signalé l’opposition à la construction du gazoduc alimentant la localité suscitée en objet, localisé comme suite :",
-    signalisationOppositionSignLeft: "P/SONELGAZ-STG",
+    signalisationOppositionSignLeft: "P/PD&I",
     signalisationOppositionSignRight: "P/ L’EXPERT",
     etatEstimatifIntro: "Déclare accepter pour solde de tout compte le montant de l’indemnité ci-dessus indiquée et renoncer à toute réclamation ultérieure pour dépréciation de sa propriété.",
     estimSignLeftTitle: "L'INTERESSE",
@@ -174,7 +174,7 @@ export default function Forms() {
     execControle: "Dossier d'Exécution Final (Plan, Profils, Calculs mécaniques)",
     execStart: "2026-09-20",
     execEnd: "2026-09-25",
-    execConstat: "Le dossier d'exécution est complet et conforme aux normes d'ingénierie ASME B31.8 et aux règles de Sonelgaz. Toutes les réserves de la phase préliminaire ont été levées.",
+    execConstat: "Le dossier d'exécution est complet et conforme aux normes d'ingénierie ASME B31.8 et aux règles de PD&I. Toutes les réserves de la phase préliminaire ont été levées.",
     execReserves: "1. Transmettre 3 exemplaires physiques d'exécution tamponnés 'Bon pour Construction'.\n2. Fournir les fichiers d'implantation géospatiale Shapefile (GIS).",
 
     // Dynamically editable content and signatories
@@ -189,7 +189,7 @@ export default function Forms() {
     direction: "DETN - Division Engineering et Travaux Neufs",
     district: "District Gaz Centre",
     ouvrage: "Liaison Fibre Optique de sécurité pour Gazoduc 28\" Alger-Est",
-    maitreOuvrage: "SONELGAZ TRANSPORT DU GAZ",
+    maitreOuvrage: "PD&I PIPELINE DESIGN & ISOMETRICS",
     lieuDate: "Alger, le 13/07/2026",
     siteNom: "Poste de Coupure PC 14 - Réseau de sécurité",
     siteAdresse: "Oued Smar, Alger",
@@ -204,11 +204,11 @@ export default function Forms() {
     fluideAutres: "Signaux optiques de sécurité et mesures de téléconduite",
     distanceMin: "0.50 m par rapport à la génératrice supérieure de la conduite de gaz",
     restrictionsTravaux: "Interdiction d'engins mécaniques lourds à moins de 2 mètres sans surveillance.",
-    reglesSecurite: "Travaux de terrassement manuel obligatoires aux abords immédiats. Présence obligatoire d'un superviseur Sonelgaz.",
+    reglesSecurite: "Travaux de terrassement manuel obligatoires aux abords immédiats. Présence obligatoire d'un superviseur PD&I.",
     commentaires: "La collecte d'information valide le raccordement télécom du poste PC 14. Les distances de sécurité avec le gazoduc principal de 28\" adjacent sont respectées.",
 
     // Dynamically editable content and signatories
-    signLeftTitle: "P/ Maitre de l'ouvrage\nSonelgaz- Transport du Gaz",
+    signLeftTitle: "P/ Maitre de l'ouvrage\nPD&I- Transport du Gaz",
     signRightTitle: "P/ Le Prestataire",
     signRightSub: "Signature & Cachet"
   });
@@ -469,10 +469,10 @@ export default function Forms() {
         <div className="w-[18%] border-r-2 border-slate-900 flex flex-col items-center justify-center p-1 bg-white select-none">
           <img 
             src={defaultLogo} 
-            alt="Sonelgaz Logo" 
+            alt="PD&I Logo" 
             className="h-20 w-20 max-h-full max-w-full object-contain aspect-square"
             onError={(e) => {
-              e.currentTarget.src = "/sonelgaz-logo.png";
+              e.currentTarget.src = "/pdi-logo-horizontal.png";
             }}
           />
         </div>
@@ -480,7 +480,7 @@ export default function Forms() {
         {/* Middle column: Title */}
         <div className="w-[57%] border-r-2 border-slate-900 flex flex-col justify-between py-1 px-3 text-center bg-white">
           <div className="font-extrabold text-[12px] uppercase text-slate-800 tracking-wide pt-1 select-none">
-            SONELGAZ-Transport du Gaz
+            PD&I Pipeline Design & Isometrics
           </div>
           <input
             type="text"
@@ -557,7 +557,7 @@ export default function Forms() {
       <div id="forms_input_sidebar" className="xl:col-span-1 bg-white rounded-2xl shadow-sm border border-slate-100 p-6 space-y-5 print:hidden">
         <div>
           <h2 className="text-xl font-bold text-slate-800">Générateur de Procès-Verbal</h2>
-          <p className="text-sm text-slate-500">Sélectionnez la section pour générer et éditer un PV officiel de Sonelgaz en direct.</p>
+          <p className="text-sm text-slate-500">Sélectionnez la section pour générer et éditer un PV officiel de PD&I en direct.</p>
         </div>
 
         {/* Real-time Search bar */}
@@ -1485,7 +1485,7 @@ export default function Forms() {
 
           {/* Footer of the sheet */}
           <div className="border-t border-slate-200 pt-4 text-[9px] text-slate-400 text-center flex justify-between uppercase font-bold mt-12 print:mt-6 select-none">
-            <span>SONELGAZ Transport Gaz - Cahier des charges réalisation des ouvrages</span>
+            <span>PD&I Transport Gaz - Cahier des charges réalisation des ouvrages</span>
             <span>Reproduction interdite</span>
           </div>
 

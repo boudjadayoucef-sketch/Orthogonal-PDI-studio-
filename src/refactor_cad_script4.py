@@ -527,7 +527,7 @@ svg_replacement = """{/* SVG Blueprint Canvas */}
                                 {/* Header Strip */}
                                 <rect x="0" y="0" width="435" height="32" fill="#1e293b" stroke="#334155" strokeWidth="1" />
                                 <text x="12" y="20" fill="#38bdf8" fontSize="12" fontWeight="bold" letterSpacing="0.5">
-                                  SONELGAZ • GAZ TRANSPORT & DISTRIBUTION
+                                  PD&I • GAZ TRANSPORT & DISTRIBUTION
                                 </text>
                                 <text x="420" y="20" fill="#f59e0b" fontSize="10" fontWeight="bold" textAnchor="end">
                                   FORMAT A3
@@ -546,7 +546,7 @@ svg_replacement = """{/* SVG Blueprint Canvas */}
                                   LOCALISATION:
                                 </text>
                                 <text x="240" y="62" fill="#e2e8f0" fontSize="10" fontWeight="semibold">
-                                  GROUPE SONELGAZ / DZA
+                                  GROUPE PD&I / DZA
                                 </text>
 
                                 <line x1="0" y1="72" x2="435" y2="72" stroke="#334155" strokeWidth="1" />
@@ -588,7 +588,7 @@ svg_replacement = """{/* SVG Blueprint Canvas */}
                                   <text x="180" y="11" fill="#ffffff" fontSize="9" fontWeight="bold">{cartoucheInfo.date || "2026"}</text>
 
                                   <text x="290" y="0" fill="#64748b" fontSize="8">ENTREPRISE / DESSIN:</text>
-                                  <text x="290" y="11" fill="#f59e0b" fontSize="9" fontWeight="bold">{cartoucheInfo.editorName || "SONELGAZ"}</text>
+                                  <text x="290" y="11" fill="#f59e0b" fontSize="9" fontWeight="bold">{cartoucheInfo.editorName || "PD&I"}</text>
                                 </g>
 
                                 <rect x="0" y="168" width="435" height="27" fill="#0284c7" fillOpacity="0.2" rx="2" />

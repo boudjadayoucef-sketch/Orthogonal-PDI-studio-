@@ -1480,7 +1480,7 @@ function IsometrieModule(props: { projectId?: string }) {
   // puis le profil applicatif validé par App.tsx est utilisé en mode fallback.
   const readPlatformProfileUid=()=>{
     try{
-      const raw=localStorage.getItem("pdi.userProfile.v1")||localStorage.getItem("sonelgaz_user_profile");
+      const raw=localStorage.getItem("pdi.userProfile.v1")||localStorage.getItem("pdi_user_profile");
       if(!raw)return null;
       const profile=JSON.parse(raw);
       return typeof profile?.uid==="string"&&profile.uid.trim()?profile.uid.trim():null;
@@ -7800,7 +7800,7 @@ function IsometrieModule(props: { projectId?: string }) {
     const paperConfig = {
       ...DEFAULT_PRINT_CONFIG,
       documentTitle: projectName,
-      companyName: "Sonelgaz",
+      companyName: "PD&I",
     };
     const res = generateIsoDrawingSvg(
       nodes,

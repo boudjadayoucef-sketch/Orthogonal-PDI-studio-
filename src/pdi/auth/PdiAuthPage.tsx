@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import PdiBrandMark from "../app/PdiBrandMark";
+import { PdiLoginLoadingOverlay } from "./PdiLoginLoadingOverlay";
 import {
   loginWithEmailAndPasswordSecure,
   registerWithEmailAndPasswordSecure,
@@ -202,10 +203,12 @@ export default function PdiAuthPage({
     try {
       const res = await loginWithEmailAndPasswordSecure(loginEmail, loginPassword);
       setSuccessMsg(`Connexion réussie ! Bienvenue ${res.profile.name}.`);
-      onSuccess(res.profile, res.isSuperAdmin);
+      setTimeout(() => {
+        onSuccess(res.profile, res.isSuperAdmin);
+        setLoading(false);
+      }, 1500);
     } catch (err: any) {
       setErrorMsg(err.message || "Erreur de connexion. Vérifiez vos identifiants.");
-    } finally {
       setLoading(false);
     }
   };
@@ -220,10 +223,10 @@ export default function PdiAuthPage({
       setSuccessMsg(`Authentifié avec succès via Google (${res.profile.email}) !`);
       setTimeout(() => {
         onSuccess(res.profile, res.isSuperAdmin);
-      }, 500);
+        setLoading(false);
+      }, 1500);
     } catch (err: any) {
       setErrorMsg(err.message || "Impossible de se connecter avec Google.");
-    } finally {
       setLoading(false);
     }
   };
@@ -1454,6 +1457,15 @@ export default function PdiAuthPage({
           </div>
         </div>
       </div>
+
+      {/* HIGH-TECH LOADING OVERLAY ANIMATION DURING LOGIN/REGISTRATION */}
+      {loading && (
+        <PdiLoginLoadingOverlay
+          userEmail={loginEmail || regEmail}
+          userName={loginEmail ? loginEmail.split("@")[0] : regName}
+          message="Connexion et vérification des accès PD&I..."
+        />
+      )}
 
       {/* MODAL SYSTEM: LEGAL, TECH REFS & PAYMENT MODALS */}
       <PdiInfoModals

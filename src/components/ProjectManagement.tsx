@@ -1,5 +1,5 @@
 import { pdiFeuilleImpression017L, PDI_STYLE_IMPRESSION_017L } from "../pdi/impression/pdiImpression017L";
-import defaultLogo from "../assets/images/sonelgaz_logo_1783415417090.jpg";
+import defaultLogo from "../assets/images/pdi-logo-horizontal.png";
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { db, createNotification, getPaginatedProfilesFromFirebase, getPaginatedProjectsFromFirestore } from "../lib/firebase";
@@ -69,7 +69,7 @@ import ProjectAltitudeProfile from "./ProjectAltitudeProfile";
 // PATCH 017K2
 import { pdiAlert } from "../pdi/ui/PdiNotice";
 
-// Project Interface structure matched with Sonelgaz requirements
+// Project Interface structure matched with PD&I requirements
 export interface PlanDeControleItemStatus {
   dateControle: string;
   resultat: "C" | "NC" | "/";
@@ -1071,7 +1071,7 @@ function generateKMLString(project: Project): string {
 }
 
 
-// Hardcoded initial sample projects to populate empty firestore database automatically with realistic Sonelgaz data
+// Hardcoded initial sample projects to populate empty firestore database automatically with realistic PD&I data
 const SAMPLE_PROJECTS: Omit<Project, "id">[] = [
   {
     name: "Gazoduc d'Alimentation Centrale Électrique JIJEL (20\")",
@@ -1654,7 +1654,7 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
   }) => {
     let html = `
       <div style="text-align: center; margin-bottom: 25px; border-bottom: 3px double #1e3a8a; padding-bottom: 15px;">
-        <h1 style="color: #1e3a8a; font-size: 22pt; margin: 0; font-weight: bold; text-transform: uppercase; border: none; padding: 0;">SONELGAZ - TRANSPORT GAZ</h1>
+        <h1 style="color: #1e3a8a; font-size: 22pt; margin: 0; font-weight: bold; text-transform: uppercase; border: none; padding: 0;">PD&I - TRANSPORT GAZ</h1>
         <h2 style="color: #475569; font-size: 14pt; margin: 5px 0 0 0; font-weight: bold; text-transform: uppercase; border: none; padding: 0;">PLAN DE CHARGE D'INGÉNIERIE & TRAVAUX</h2>
         <p style="font-size: 10pt; color: #64748b; margin: 5px 0 0 0;">Généré le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}</p>
       </div>
@@ -1733,7 +1733,7 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
         </tbody>
       </table>
       <div style="margin-top: 30px; text-align: center; font-size: 8pt; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 10px;">
-        Document confidentiel • Sonelgaz Division Engineering et Travaux Neufs (DETN)
+        Document confidentiel • PD&I Division Engineering et Travaux Neufs (DETN)
       </div>
     `;
 
@@ -1756,7 +1756,7 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
       win.document.write(`
         <html>
           <head>
-            <title>Plan de Charge Sonelgaz</title>
+            <title>Plan de Charge PD&I</title>
             <style>
               body { padding: 30px; font-family: 'Segoe UI', system-ui, sans-serif; background-color: #fff; color: #1e293b; }
               table { border-collapse: collapse; width: 100%; margin-top: 15px; margin-bottom: 15px; }
@@ -1790,7 +1790,7 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
       objectif: planDeChargeObjectif
     };
     const htmlContent = generatePlanDeChargeHtml(filteredProjects, filters);
-    downloadAsWord(htmlContent, `Plan_de_Charge_Sonelgaz_${new Date().toISOString().split('T')[0]}.doc`);
+    downloadAsWord(htmlContent, `Plan_de_Charge_PD&I_${new Date().toISOString().split('T')[0]}.doc`);
   };
 
   const safeHtml2Canvas = async (element: HTMLElement, options: any = {}) => {
@@ -2006,7 +2006,7 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
         heightLeft -= pageHeight;
       }
       
-      pdf.save(`Plan_de_Charge_Sonelgaz_${new Date().toISOString().split('T')[0]}.pdf`);
+      pdf.save(`Plan_de_Charge_PD&I_${new Date().toISOString().split('T')[0]}.pdf`);
     } catch (error) {
       console.error("Error generating PDF:", error);
       void pdiAlert("Une erreur est survenue lors de la génération du PDF.");
@@ -2031,7 +2031,7 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
     };
     
     const moduleName = activeModuleNames[activeModule] || "Page";
-    const fileName = `${moduleName}_Sonelgaz_${new Date().toISOString().split('T')[0]}.pdf`;
+    const fileName = `${moduleName}_PD&I_${new Date().toISOString().split('T')[0]}.pdf`;
     
     try {
       const canvas = await safeHtml2Canvas(element, {
@@ -2239,7 +2239,7 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
       <!-- PAGE 1: PAGE DE GARDE -->
       <div style="height: 800px; border: 4px double #1e3a8a; padding: 40px; margin-bottom: 40px;">
         <div style="text-align: center;">
-          <h3 style="color: #1e3a8a; font-size: 14pt; font-weight: bold; margin: 0; text-transform: uppercase;">SONELGAZ - TRANSPORT GAZ</h3>
+          <h3 style="color: #1e3a8a; font-size: 14pt; font-weight: bold; margin: 0; text-transform: uppercase;">PD&I - TRANSPORT GAZ</h3>
           <p style="font-size: 10pt; color: #475569; margin: 5px 0 0 0; font-weight: bold;">DIVISION ENGINEERING ET TRAVAUX NEUFS (DETN)</p>
           <p style="font-size: 9pt; color: #64748b; margin: 2px 0 0 0;">Département de Suivi d'Ingénierie & de Réalisation</p>
         </div>
@@ -2727,7 +2727,7 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
     let html = `
       <div style="font-family: 'Segoe UI', Arial, sans-serif; color: #1e293b; max-width: 800px; margin: 0 auto; padding: 20px;">
         <div style="text-align: center; border-bottom: 3px solid #e30613; padding-bottom: 15px; margin-bottom: 25px;">
-          <h1 style="color: #004d9a; margin: 0; font-size: 22pt; font-weight: bold; text-transform: uppercase;">SONELGAZ</h1>
+          <h1 style="color: #004d9a; margin: 0; font-size: 22pt; font-weight: bold; text-transform: uppercase;">PD&I</h1>
           <h2 style="color: #475569; margin: 5px 0 0 0; font-size: 14pt; font-weight: bold;">Genèse & Chronologie de l'Ouvrage</h2>
         </div>
 
@@ -3140,7 +3140,7 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
       date: creationDate,
       status: "completed",
       color: "bg-blue-500",
-      description: "Enregistrement officiel de l'ouvrage gazoduc dans le portefeuille d'investissement de Sonelgaz.",
+      description: "Enregistrement officiel de l'ouvrage gazoduc dans le portefeuille d'investissement de PD&I.",
       details: [
         { label: "Nom de l'affaire", value: p.name },
         { label: "Cadre d'inscription", value: p.identity?.cadreInscription },
@@ -3719,7 +3719,7 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
       
       // Auto-seed if empty
       if (projectsList.length === 0 && snapshot.metadata.fromCache === false) {
-        console.log("Seeding project collection with default sample Sonelgaz data...");
+        console.log("Seeding project collection with default sample PD&I data...");
         try {
           for (const sample of SAMPLE_PROJECTS) {
             await addDoc(collection(db, "projects"), sample);
@@ -3882,7 +3882,7 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
         travauxPlanification: finalTravauxPlanification,
         updatedAt: new Date().toISOString(),
         updatedByEmail: userProfile?.email || currentUser?.email || "",
-        updatedByName: userProfile?.name || currentUser?.displayName || "Ingénieur Sonelgaz",
+        updatedByName: userProfile?.name || currentUser?.displayName || "Ingénieur PD&I",
         updatedByUid: userProfile?.uid || currentUser?.uid || ""
       };
       // Remove id from document body before setDoc
@@ -4017,7 +4017,7 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
           projectName: editProjectData.name || "Ouvrage",
           message: message,
           category: category,
-          authorName: userProfile?.name || currentUser?.displayName || "Ingénieur Sonelgaz",
+          authorName: userProfile?.name || currentUser?.displayName || "Ingénieur PD&I",
           authorEmail: userProfile?.email || currentUser?.email || "",
           authorRole: userProfile?.role || "",
           pole: editProjectData.identity?.pole || "",
@@ -4203,10 +4203,10 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
         createdAt: new Date().toISOString(), 
         updatedAt: new Date().toISOString(),
         createdByEmail: userProfile?.email || currentUser?.email || "",
-        createdByName: userProfile?.name || currentUser?.displayName || "Ingénieur Sonelgaz",
+        createdByName: userProfile?.name || currentUser?.displayName || "Ingénieur PD&I",
         createdByUid: userProfile?.uid || currentUser?.uid || "",
         updatedByEmail: userProfile?.email || currentUser?.email || "",
-        updatedByName: userProfile?.name || currentUser?.displayName || "Ingénieur Sonelgaz",
+        updatedByName: userProfile?.name || currentUser?.displayName || "Ingénieur PD&I",
         updatedByUid: userProfile?.uid || currentUser?.uid || ""
       };
       delete (payload as any).id; // Remove temp-id
@@ -4219,7 +4219,7 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
           projectName: payload.name || "Nouveau Projet",
           message: `Le projet "${payload.name}" a été créé par ${userProfile?.name || currentUser?.displayName || userProfile?.email || "un superviseur"}.`,
           category: "creation",
-          authorName: userProfile?.name || currentUser?.displayName || "Ingénieur Sonelgaz",
+          authorName: userProfile?.name || currentUser?.displayName || "Ingénieur PD&I",
           authorEmail: userProfile?.email || currentUser?.email || "",
           authorRole: userProfile?.role || "",
           pole: payload.identity?.pole || "",
@@ -5089,7 +5089,7 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
                                       <div>
                                         <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider font-mono">Dernière Modification</p>
                                         <p className="font-semibold text-slate-200 mt-0.5">
-                                          Modifié par <strong className="text-white font-extrabold">{p.updatedByName || "Ingénieur Sonelgaz"}</strong>
+                                          Modifié par <strong className="text-white font-extrabold">{p.updatedByName || "Ingénieur PD&I"}</strong>
                                         </p>
                                         {p.updatedByEmail && (
                                           <p className="text-[9px] text-slate-500 font-mono">{p.updatedByEmail}</p>
@@ -5103,7 +5103,7 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
                                         <div className="border-t border-slate-800/60 pt-2">
                                           <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider font-mono">Création Initiale</p>
                                           <p className="font-semibold text-slate-300 mt-0.5">
-                                            Créé par <strong className="text-white font-semibold">{p.createdByName || "Ingénieur Sonelgaz"}</strong>
+                                            Créé par <strong className="text-white font-semibold">{p.createdByName || "Ingénieur PD&I"}</strong>
                                           </p>
                                           {p.createdByEmail && (
                                             <p className="text-[9px] text-slate-500 font-mono">{p.createdByEmail}</p>
@@ -5750,7 +5750,7 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
             <span className="text-[10px] font-black uppercase text-amber-600 tracking-wider">Tableau de bord de performance</span>
             <h2 className="text-xl md:text-2xl font-black text-slate-800 tracking-tight mt-0.5">Analyses & Amélioration Continue</h2>
             <p className="text-xs text-slate-400 mt-1">
-              Gouvernance opérationnelle SONELGAZ basée sur les KPIs de conformité, d'avancement physique et d'ingénierie.
+              Gouvernance opérationnelle PD&I basée sur les KPIs de conformité, d'avancement physique et d'ingénierie.
             </p>
           </div>
           <div className="flex bg-slate-50 border border-slate-100 rounded-2xl p-1 shrink-0 self-start md:self-center">
@@ -5830,7 +5830,7 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
         <div className="bg-white rounded-3xl border border-slate-100 p-6 md:p-8 shadow-sm space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5 text-left">
             <div>
-              <span className="text-[10px] font-black uppercase text-blue-600 tracking-wider">SONELGAZ • Direction de l'Énergie</span>
+              <span className="text-[10px] font-black uppercase text-blue-600 tracking-wider">PD&I • Direction de l'Énergie</span>
               <h3 className="text-lg font-black text-slate-800 tracking-tight mt-0.5">Tableau de Bord Officiel & Indicateurs Clés (02 TR 2026)</h3>
               <p className="text-xs text-slate-400 mt-0.5">Calculé automatiquement en temps réel sur la base des livrables et des arrêtés obtenus.</p>
             </div>
@@ -6153,7 +6153,7 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
               <span>Générateur Automatique de Plan d'Action d'Urgence</span>
             </h4>
             <p className="text-[11px] text-indigo-700 mt-0.5 leading-relaxed">
-              Le système a analysé les points de blocage fonciers et administratifs et recommande les actions prioritaires immédiates suivantes pour maximiser les indicateurs de performance SONELGAZ :
+              Le système a analysé les points de blocage fonciers et administratifs et recommande les actions prioritaires immédiates suivantes pour maximiser les indicateurs de performance PD&I :
             </p>
             <div className="mt-3.5 space-y-2 text-[11px] font-medium text-slate-700">
               {(() => {
@@ -6191,7 +6191,7 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-white rounded-2xl border border-slate-100 p-6 space-y-4 shadow-sm">
             <h3 className="text-xs font-black uppercase text-slate-700 tracking-wider">Distribution des Projets par Phase</h3>
-            <p className="text-[11px] text-slate-400">Positionnement des ouvrages dans le cycle de vie de développement de la SONELGAZ.</p>
+            <p className="text-[11px] text-slate-400">Positionnement des ouvrages dans le cycle de vie de développement de la PD&I.</p>
             
             <div className="space-y-4">
               <div className="w-full h-8 bg-slate-100 rounded-2xl overflow-hidden flex text-white text-[10px] font-black shadow-inner">
@@ -6294,7 +6294,7 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
               {dashboardPeriod === "mensuel" && "Vérification des jalons opérationnels à court terme, libération ponctuelle des oppositions de tiers et coordination étroite avec l'organisme d'inspection agréé (VERITAL)."}
               {dashboardPeriod === "trimestriel" && "Optimisation des processus administratifs de PC et d'AS avec les GEF, réconciliation logistique du matériel tubulaire sous-douane et évaluation des livrables techniques."}
               {dashboardPeriod === "semestriel" && "Suivi de la certification de soudage des entrepreneurs agréés, audits périodiques d'enrobage et de protection cathodique, et préparation du plan hivernal d'approvisionnement gazier."}
-              {dashboardPeriod === "annuel" && "Bilan consolidé des extensions de réseaux haute pression SONELGAZ, développement des compétences des équipes d'ingénieurs régionaux, et planification budgétaire décennale."}
+              {dashboardPeriod === "annuel" && "Bilan consolidé des extensions de réseaux haute pression PD&I, développement des compétences des équipes d'ingénieurs régionaux, et planification budgétaire décennale."}
             </p>
           </div>
 
@@ -6381,7 +6381,7 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
       const htmlBody = `
         <div style="font-family: Arial, sans-serif; padding: 20px;">
           <div style="border-bottom: 2px solid #0f172a; padding-bottom: 10px; margin-bottom: 20px;">
-            <p style="font-weight: bold; font-size: 14pt; margin: 0; text-transform: uppercase; color: #1e3a8a;">SOCIÉTÉ ALGÉRIENNE DE L'ÉLECTRICITÉ ET DU GAZ (SONELGAZ)</p>
+            <p style="font-weight: bold; font-size: 14pt; margin: 0; text-transform: uppercase; color: #1e3a8a;">PD&I — PIPELINE DESIGN & ISOMETRICS</p>
             <p style="font-weight: bold; font-size: 11pt; margin: 5px 0 0 0; color: #f97316;">DIRECTION RÉGIONALE DU TRANSPORT GAZ</p>
             <p style="font-size: 9pt; color: #64748b; margin: 2px 0 0 0;">Division Engineering et Travaux Neufs</p>
           </div>
@@ -6437,7 +6437,7 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
             <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #000000; padding-bottom: 15px; margin-bottom: 20px;">
               <div>
                 <p style="font-weight: 800; font-size: 10pt; margin: 0; text-transform: uppercase;">Société Algérienne de l'Électricité et du Gaz</p>
-                <p style="font-weight: 900; font-size: 14pt; margin: 3px 0; color: #f97316; letter-spacing: 1px;">SONELGAZ</p>
+                <p style="font-weight: 900; font-size: 14pt; margin: 3px 0; color: #f97316; letter-spacing: 1px;">PD&I</p>
                 <p style="font-size: 8.5pt; font-weight: bold; color: #475569; margin: 0;">Direction Régionale du Transport Gaz</p>
                 <p style="font-size: 8pt; color: #64748b; margin: 0;">Division Engineering et Travaux Neufs</p>
               </div>
@@ -6598,7 +6598,7 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
           category: "status_change",
           message: `📂 [ARCHIVAGE DE SÉCURITÉ COMPLET] L'utilisateur habilité (${currentUser?.email || "Superviseur"}) a généré, téléchargé et archivé localement la copie officielle de sauvegarde de l'État d'avancement des ouvrages et du Plan de Charge Mensuel pour ${currentMonthName} ${reportYear}.`,
           authorName: userProfile?.name || "Administrateur Système",
-          authorEmail: currentUser?.email || "admin@sonelgaz.dz",
+          authorEmail: currentUser?.email || "admin@pdi-pipeline.com",
           authorRole: userProfile?.role || "Superviseur",
           readBy: []
         });
@@ -6638,7 +6638,7 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
             <span className="text-[10px] font-black uppercase text-indigo-600 tracking-wider">Générateur automatisé de rapports</span>
             <h2 className="text-xl md:text-2xl font-black text-slate-800 tracking-tight mt-0.5">Rapports d'Activité Mensuels</h2>
             <p className="text-xs text-slate-400 mt-1">
-              Générez, assainissez et consolidez des synthèses formelles d'ingénierie et d'avancement pour la Direction de Région SONELGAZ.
+              Générez, assainissez et consolidez des synthèses formelles d'ingénierie et d'avancement pour la Direction de Région PD&I.
             </p>
           </div>
 
@@ -6763,7 +6763,7 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
                 <div className="flex justify-between items-start border-b-2 border-slate-950 pb-5 text-slate-800">
                   <div className="space-y-1 text-left">
                     <p className="font-extrabold text-[11px] uppercase tracking-wider text-slate-950">Société Algérienne de l'Électricité et du Gaz</p>
-                    <p className="font-black text-xs text-orange-500 uppercase tracking-widest">SONELGAZ</p>
+                    <p className="font-black text-xs text-orange-500 uppercase tracking-widest">PD&I</p>
                     <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wide">Direction Régionale du Transport Gaz</p>
                     <p className="text-[9px] font-medium text-slate-400">Division Engineering et Travaux Neufs</p>
                   </div>
@@ -7185,7 +7185,7 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
     return (
       <div className="flex flex-col items-center justify-center p-16 space-y-4">
         <RefreshCw className="w-8 h-8 text-blue-600 animate-spin" />
-        <p className="text-sm text-slate-500 font-bold">Synchronisation des projets Sonelgaz avec Firebase Firestore...</p>
+        <p className="text-sm text-slate-500 font-bold">Synchronisation des projets PD&I avec Firebase Firestore...</p>
       </div>
     );
   }
@@ -7269,7 +7269,7 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
               <span className="font-black text-[9px] uppercase tracking-wider">Gouvernance</span>
             </div>
             <p className="text-[10px] text-slate-300 leading-relaxed font-semibold">
-              Ce système centralise la planification, l'avancement physique et les contraintes des ouvrages de transport gaz SONELGAZ.
+              Ce système centralise la planification, l'avancement physique et les contraintes des ouvrages de transport gaz PD&I.
             </p>
           </div>
         </div>
@@ -13561,20 +13561,20 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
               <div className="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-200 p-8 flex flex-col justify-between space-y-6">
                 {/* Print area */}
                 <div id="printable-bordereau" className="space-y-6 text-left text-slate-800 p-6 border border-slate-100 rounded-2xl bg-white shadow-xs">
-                  {/* Sonelgaz header */}
+                  {/* PD&I header */}
                   <div className="flex justify-between items-center border-b-2 border-[#007ac3] pb-3 mb-2">
                     <div className="flex items-center gap-3">
                       <img
                         src={defaultLogo}
-                        alt="Sonelgaz Logo Officiel"
+                        alt="PD&I Logo Officiel"
                         className="h-14 max-h-16 w-auto object-contain select-none"
                         onError={(e) => {
-                          e.currentTarget.src = "https://upload.wikimedia.org/wikipedia/commons/e/ec/Logo_Sonelgaz.svg";
+                          e.currentTarget.src = "https://upload.wikimedia.org/wikipedia/commons/e/ec/Logo_PD&I.svg";
                         }}
                       />
                       <div className="space-y-0.5">
                         <p className="font-extrabold text-[10px] uppercase tracking-wider text-[#007ac3]">Société Algérienne de l'Électricité et du Gaz</p>
-                        <p className="font-black text-xs text-[#007ac3] uppercase tracking-widest">SONELGAZ – TRANSPORT DU GAZ</p>
+                        <p className="font-black text-xs text-[#007ac3] uppercase tracking-widest">PD&I – PIPELINE DESIGN & ISOMETRICS</p>
                         <p className="text-[9px] font-bold text-slate-600 uppercase">Direction Régionale du Transport Gaz</p>
                         <p className="text-[9px] font-medium text-slate-500">Division Engineering et Travaux Neufs (DETN)</p>
                       </div>
@@ -13680,7 +13680,7 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
                       <p className="text-[9px] text-slate-400 italic">(Nom, Cachet et Signature précédés de la mention "Lu et approuvé")</p>
                     </div>
                     <div className="border border-slate-200 p-4 rounded-xl text-center space-y-12 bg-slate-50/50">
-                      <p className="font-extrabold text-slate-600">Pour Sonelgaz / Division Engineering (DETN)</p>
+                      <p className="font-extrabold text-slate-600">Pour PD&I / Division Engineering (DETN)</p>
                       <p className="text-[9px] text-slate-400 italic">(Visa pour validation technique réglementaire)</p>
                     </div>
                   </div>
@@ -13703,7 +13703,7 @@ export default function ProjectManagement({ isAdmin, currentUser, userProfile }:
                           win.document.write(`
                             <html>
                               <head>
-                                <title>Sonelgaz BPU - ${selectedProject.name}</title>
+                                <title>PD&I BPU - ${selectedProject.name}</title>
                                 <style>${pdiFeuilleImpression017L()}
 ${PDI_STYLE_IMPRESSION_017L}</style>
                                 <style>
