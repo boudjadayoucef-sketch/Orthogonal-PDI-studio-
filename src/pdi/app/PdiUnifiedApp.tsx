@@ -59,11 +59,12 @@ class PdiModuleErrorBoundary extends React.Component<
   }
 }
 import PdiBrandMark from "./PdiBrandMark";
-import { Folder, FolderOpen, Plus, X, Layers, FileText, Pin, Trash2, LayoutGrid } from "lucide-react";
+import { Folder, FolderOpen, Plus, X, Layers, FileText, Pin, Trash2, LayoutGrid, Search, CheckSquare, Square, Home, Box, HardDrive, PenTool, FileCode, Code2, Printer, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import PdiIsometricEditor from "../isometric/PdiIsometricEditor";
 import { SketchToIsoModule } from "../sketch/SketchToIsoModule";
 // PATCH 004c : page publicitaire publique, montee AVANT la coquille applicative.
 import PdiLandingV4 from "../landing/PdiLandingV4";
+import PdiIllustratorHome from "../home/PdiIllustratorHome";
 import PdiAuthPage from "../auth/PdiAuthPage";
 import { GoogleDriveWorkspace } from "../../components/GoogleDriveWorkspace";
 import isoPiping3D from "../../assets/images/pdi_iso_piping_3d_1787006532562.jpg";
@@ -293,17 +294,26 @@ const showcase = [
 // PATCH 017K : pile de navigation et contextes projet.
 const PDI_NAV_STACK_017K: string[] = [];
 let pdiPrevModule017K: string | null = null;
-const PDI_PROJECT_CONTEXT_017K: string[] = ["isometric", "cad", "json", "pdf", "sketch", "vision", "drive"];
-const navItems: Array<{ id: PdiModule; label: string; icon: string; title: string }> = [
-  { id: "home", label: "Accueil", icon: "⌂", title: "Accueil PD&I" },
-  { id: "isometric", label: "ISO", icon: "ISO", title: "Dessin isométrique" },
-  { id: "drive", label: "Drive", icon: "DRV", title: "Google Drive & Cloud SQL" },
-  { id: "vision", label: "Vision", icon: "VIS", title: "Vision PD&I — Photo vers ISO" },
-  { id: "sketch", label: "Croquis", icon: "CRQ", title: "Croquis vers JSON/ISO" },
-  { id: "cad", label: "CAO", icon: "DX", title: "Import CAD/DXF/PDF" },
-  { id: "json", label: "JSON", icon: "{}", title: "Modèle JSON PD&I" },
-  { id: "pdf", label: "Export", icon: "PDF", title: "PDF / DXF / Impression" },
-  { id: "assistant", label: "IA", icon: "AI", title: "Assistant et agents spécialisés" },
+const PDI_PROJECT_CONTEXT_017K: string[] = ["isometric", "cad", "json", "pdf", "sketch", "drive"];
+
+const PDI_NAV_THEMES: Record<string, { color: string; lightColor: string; bgGlow: string; code: string; label: string }> = {
+  home: { color: "#E4E4E7", lightColor: "#FFFFFF", bgGlow: "rgba(255,255,255,0.12)", code: "⌂", label: "ACCUEIL" },
+  isometric: { color: "#06B6D4", lightColor: "#22D3EE", bgGlow: "rgba(6,182,212,0.18)", code: "ISO", label: "ISO" },
+  drive: { color: "#F59E0B", lightColor: "#FBBF24", bgGlow: "rgba(245,158,11,0.18)", code: "DRV", label: "DRIVE" },
+  sketch: { color: "#A855F7", lightColor: "#C084FC", bgGlow: "rgba(168,85,247,0.18)", code: "CRQ", label: "CROQUIS" },
+  cad: { color: "#3B82F6", lightColor: "#60A5FA", bgGlow: "rgba(59,130,246,0.18)", code: "DX", label: "CAO" },
+  json: { color: "#F97316", lightColor: "#FB923C", bgGlow: "rgba(249,115,22,0.18)", code: "{}", label: "JSON" },
+  pdf: { color: "#F43F5E", lightColor: "#FB7185", bgGlow: "rgba(244,63,94,0.18)", code: "PDF", label: "EXPORT" },
+};
+
+const navItems: Array<{ id: PdiModule; label: string; icon: React.ReactNode; code: string; title: string }> = [
+  { id: "home", label: "Accueil", code: "⌂", icon: <Home className="h-4 w-4 text-neutral-300" />, title: "Accueil PD&I" },
+  { id: "isometric", label: "ISO", code: "ISO", icon: <Box className="h-4 w-4 text-cyan-400" />, title: "Dessin isométrique" },
+  { id: "drive", label: "Drive", code: "DRV", icon: <HardDrive className="h-4 w-4 text-amber-400" />, title: "Google Drive & Cloud SQL" },
+  { id: "sketch", label: "Croquis", code: "CRQ", icon: <PenTool className="h-4 w-4 text-purple-400" />, title: "Croquis vers JSON/ISO" },
+  { id: "cad", label: "CAO", code: "DX", icon: <FileCode className="h-4 w-4 text-blue-400" />, title: "Import CAD/DXF/PDF" },
+  { id: "json", label: "JSON", code: "{}", icon: <Code2 className="h-4 w-4 text-orange-400" />, title: "Modèle JSON PD&I" },
+  { id: "pdf", label: "Export", code: "PDF", icon: <Printer className="h-4 w-4 text-rose-400" />, title: "PDF / DXF / Impression" },
 ];
 
 function ComingSoonPanel({ title, children }: { title: string; children: React.ReactNode }) {
@@ -464,6 +474,8 @@ export default function PdiUnifiedApp() {
   const [renamingTabId, setRenamingTabId] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState("");
   const [projectsRefresh, setProjectsRefresh] = useState(0);
+  const [projectSearchQuery, setProjectSearchQuery] = useState("");
+  const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([]);
   const activeWorkspaceTab = workspaceTabs.find((t) => t.id === activeTabId) || null;
   const activeProjectId = activeWorkspaceTab?.projectId || "default";
   const beginRenameTab = (tab: PdiWorkspaceTab) => { setRenamingTabId(tab.id); setRenameDraft(tab.title); };
@@ -514,13 +526,14 @@ export default function PdiUnifiedApp() {
 
   // ÉTAPE 5 : Modal Nouveau Projet & Raccordement ISO
   const [newProjectModalOpen, setNewProjectModalOpen] = useState(false);
+  const [sidebarHidden, setSidebarHidden] = useState(false);
   const handleOpenNewProject = (params: {
     name: string;
     service: string;
     dn: number;
     pressureClass: string;
     material: string;
-    mode: "sketch" | "blank" | "vision" | "cad" | "assistant";
+    mode: "sketch" | "blank" | "cad";
   }) => {
     const projId = `project-${Date.now().toString(36)}`;
     if (params.mode === "sketch") {
@@ -534,12 +547,8 @@ export default function PdiUnifiedApp() {
       openModuleInTab("sketch", `Croquis · ${params.name}`, projId);
     } else if (params.mode === "blank") {
       openModuleInTab("isometric", params.name, projId);
-    } else if (params.mode === "vision") {
-      openModuleInTab("vision", `Vision · ${params.name}`, projId);
     } else if (params.mode === "cad") {
       openModuleInTab("cad", `CAD · ${params.name}`, projId);
-    } else if (params.mode === "assistant") {
-      openModuleInTab("assistant", `Assistant · ${params.name}`, projId);
     }
   };
 
@@ -1095,12 +1104,18 @@ export default function PdiUnifiedApp() {
   );
 
   return (
-    <div className="pdi-unified-root">
+    <div className={`pdi-unified-root ${activeModule === "home" ? "is-home-module" : ""} ${sidebarHidden ? "is-sidebar-hidden" : ""}`}>
       <style>{`
         body:has(.pdi-modal-backdrop) .pdi-tab-dock-iso { display: none !important; }
         .pdi-unified-root{height:100vh;width:100vw;overflow:hidden;background:#000000;color:#F4F4F5;font-family:Inter,ui-sans-serif,system-ui,sans-serif;display:grid;grid-template-columns:96px 1fr;grid-template-rows:72px 40px 1fr}
-        .pdi-unified-topbar{grid-column:1/3;display:flex;align-items:center;gap:18px;padding:8px 16px;background:#08080A;border-bottom:1px solid rgba(255,255,255,.08);box-shadow:0 8px 24px rgba(0,0,0,.45);min-width:0}
-        .pdi-unified-brand{display:flex;align-items:center;gap:14px;min-width:260px}
+        .pdi-unified-root.is-home-module{grid-template-columns:1fr;grid-template-rows:72px 1fr}
+        .pdi-unified-root.is-home-module .pdi-content{grid-column:1/-1;grid-row:2/3;padding:0;background:#000000}
+        .pdi-unified-root.is-sidebar-hidden{grid-template-columns:1fr !important;grid-template-rows:72px 40px 1fr !important}
+        .pdi-unified-root.is-sidebar-hidden .pdi-main-nav{display:none !important}
+        .pdi-unified-root.is-sidebar-hidden .pdi-breadcrumb-bar{grid-column:1/-1 !important;grid-row:2/3 !important}
+        .pdi-unified-root.is-sidebar-hidden .pdi-content{grid-column:1/-1 !important;grid-row:3/4 !important}
+        .pdi-unified-topbar{grid-column:1/-1;grid-row:1/2;display:flex;align-items:center;gap:18px;padding:8px 16px;background:#08080A;border-bottom:1px solid rgba(255,255,255,.08);box-shadow:0 8px 24px rgba(0,0,0,.45);min-width:0}
+        .pdi-breadcrumb-bar{grid-column:2/3;grid-row:2/3;display:flex;flex-direction:row;align-items:center;flex-wrap:nowrap;white-space:nowrap;gap:12px;padding:0 14px;height:40px;min-height:40px;max-height:40px;background:#050507;border-bottom:1px solid rgba(255,255,255,.08);box-sizing:border-box;overflow:hidden;z-index:10}
         .pdi-project-title{min-width:0;border-left:1px solid rgba(255,255,255,.12);padding-left:14px;line-height:1.1}
         .pdi-project-title small{display:block;color:#71717A;font-size:10px;text-transform:uppercase;font-weight:900}
         .pdi-project-title strong{display:block;color:#FFFFFF;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -1110,12 +1125,12 @@ export default function PdiUnifiedApp() {
         .pdi-search:focus{outline:none;border-color:rgba(255,255,255,.3)}
         .pdi-account{height:36px;border:1px solid rgba(255,255,255,.15);background:#121215;color:#FFFFFF;border-radius:10px;padding:0 12px;font-weight:800;cursor:pointer}
         .pdi-account:hover{background:#1C1C20;border-color:rgba(255,255,255,.3)}
-        .pdi-main-nav{grid-row:2/4;display:flex;flex-direction:column;gap:10px;padding:14px 10px;background:#050507;border-right:1px solid rgba(255,255,255,.08);overflow:auto}
+        .pdi-main-nav{grid-column:1/2;grid-row:2/4;display:flex;flex-direction:column;gap:10px;padding:14px 10px;background:#050507;border-right:1px solid rgba(255,255,255,.08);overflow:auto;z-index:10}
         .pdi-main-nav button{height:58px;border:1px solid rgba(255,255,255,.08);background:#0E0E11;color:#A1A1AA;border-radius:14px;font-weight:900;font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;transition:all .15s ease}
         .pdi-main-nav button:hover{background:#18181C;color:#FFFFFF;border-color:rgba(255,255,255,.2)}
         .pdi-main-nav button.active{background:#27272A;color:#FFFFFF;border-color:#52525B;box-shadow:0 0 0 1px rgba(255,255,255,.15),0 8px 24px rgba(0,0,0,.5)}
         .pdi-main-nav small{font-size:8px;letter-spacing:.06em;text-transform:uppercase;opacity:.85}
-        .pdi-content{grid-column:2;grid-row:3;min-width:0;min-height:0;overflow:auto;padding:22px;background:#000000}
+        .pdi-content{grid-column:2/3;grid-row:3/4;min-width:0;min-height:0;overflow:auto;padding:0;background:#000000;position:relative}
         .pdi-home-hero{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(330px,.8fr);gap:20px;align-items:stretch}
         .pdi-hero-card,.pdi-module-panel,.pdi-launch-card,.pdi-showcase-card{border:1px solid rgba(255,255,255,.08);background:#09090B;border-radius:24px;box-shadow:0 24px 70px rgba(0,0,0,.5)}
         .pdi-hero-card{padding:28px}
@@ -1244,15 +1259,191 @@ export default function PdiUnifiedApp() {
         </div>
       </header>
       {/* PATCH 017K : fil d Ariane et retour, a partir du 2e niveau seulement. */}
-      {activeModule !== "home" && <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 14px", background: "#050507", borderBottom: "1px solid rgba(255,255,255,.08)" }}>
-        <button type="button" onClick={pdiGoBack017K} title="Retour au niveau precedent" style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 10px", borderRadius: 8, border: "1px solid rgba(255,255,255,.15)", background: "#121215", color: "#FFFFFF", fontSize: 11, fontWeight: 900, cursor: "pointer" }}>
-          {"\u2190 Retour"}
-        </button>
-        <button type="button" onClick={() => setActiveModule("home")} style={{ background: "none", border: "none", color: "#71717A", fontSize: 11, fontWeight: 800, cursor: "pointer", padding: 0 }}>Accueil</button>
-        <span style={{ color: "#3F3F46", fontSize: 11, fontWeight: 900 }}>/</span>
-        <strong style={{ color: "#FFFFFF", fontSize: 11, fontWeight: 900 }}>{moduleTitle}</strong>
-      </div>}
-      <nav className="pdi-main-nav" aria-label="Navigation PD&I">{navItems.map((item) => <button key={item.id} className={activeModule === item.id ? "active" : ""} onClick={() => item.id === "home" ? setActiveModule("home") : openModuleInTab(item.id, item.title)} title={item.title}><span>{item.icon}</span><small>{item.label}</small></button>)}</nav>
+      {activeModule !== "home" && (
+        <div
+          className="pdi-breadcrumb-bar"
+          style={{
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "center",
+            flexWrap: "nowrap",
+            whiteSpace: "nowrap",
+            gap: 12,
+            padding: "0 14px",
+            height: "40px",
+            minHeight: "40px",
+            maxHeight: "40px",
+            background: "#050507",
+            borderBottom: "1px solid rgba(255,255,255,.08)",
+            boxSizing: "border-box",
+            overflow: "hidden"
+          }}
+        >
+          {sidebarHidden && (
+            <button
+              type="button"
+              onClick={() => setSidebarHidden(false)}
+              title="Afficher la barre latérale (+)"
+              style={{
+                display: "inline-flex",
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                whiteSpace: "nowrap",
+                flexShrink: 0,
+                padding: "4px 8px",
+                height: "26px",
+                borderRadius: 6,
+                border: "1px solid rgba(56,189,248,0.4)",
+                background: "rgba(56,189,248,0.12)",
+                color: "#38BDF8",
+                fontSize: 11,
+                fontWeight: 900,
+                cursor: "pointer",
+                lineHeight: 1
+              }}
+            >
+              (+)
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={pdiGoBack017K}
+            title="Retour au niveau précédent"
+            style={{
+              display: "inline-flex",
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              whiteSpace: "nowrap",
+              flexShrink: 0,
+              gap: 6,
+              padding: "4px 12px",
+              height: "26px",
+              borderRadius: 6,
+              border: "1px solid rgba(255,255,255,.15)",
+              background: "#121215",
+              color: "#FFFFFF",
+              fontSize: 11,
+              fontWeight: 800,
+              cursor: "pointer",
+              lineHeight: 1
+            }}
+          >
+            <span>←</span>
+            <span>Retour</span>
+          </button>
+
+          <div
+            style={{
+              display: "inline-flex",
+              flexDirection: "row",
+              alignItems: "center",
+              whiteSpace: "nowrap",
+              gap: 8,
+              flexShrink: 0
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => setActiveModule("home")}
+              style={{
+                background: "none",
+                border: "none",
+                color: "#71717A",
+                fontSize: 12,
+                fontWeight: 800,
+                cursor: "pointer",
+                padding: 0,
+                whiteSpace: "nowrap"
+              }}
+            >
+              Accueil
+            </button>
+            <span style={{ color: "#3F3F46", fontSize: 12, fontWeight: 900 }}>/</span>
+            <strong style={{ color: "#FFFFFF", fontSize: 12, fontWeight: 800, whiteSpace: "nowrap" }}>
+              {moduleTitle}
+            </strong>
+          </div>
+        </div>
+      )}
+      {activeModule !== "home" && (
+        <nav className="pdi-main-nav" aria-label="Navigation PD&I">
+          {/* Bouton (-) pour masquer la barre latérale au-dessus d'Accueil */}
+          <button
+            type="button"
+            onClick={() => setSidebarHidden(true)}
+            title="Masquer la barre latérale (-)"
+            style={{
+              height: 26,
+              minHeight: 26,
+              background: "rgba(255,255,255,0.03)",
+              border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: 8,
+              color: "#A1A1AA",
+              fontWeight: 900,
+              fontSize: "12px",
+              cursor: "pointer",
+              display: "flex",
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 4,
+              marginBottom: 2,
+              transition: "all 0.15s ease"
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = "#38BDF8";
+              e.currentTarget.style.borderColor = "rgba(56,189,248,0.4)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = "#A1A1AA";
+              e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)";
+            }}
+          >
+            <span>(-)</span>
+          </button>
+
+          {navItems.map((item) => {
+            const theme = PDI_NAV_THEMES[item.id] || PDI_NAV_THEMES.home;
+            const isActive = activeModule === item.id;
+            return (
+              <button
+                key={item.id}
+                className={isActive ? "active" : ""}
+                onClick={() =>
+                  item.id === "home"
+                    ? setActiveModule("home")
+                    : openModuleInTab(item.id, item.title)
+                }
+                title={item.title}
+                style={{
+                  borderColor: isActive ? theme.color : "rgba(255,255,255,0.08)",
+                  background: isActive ? theme.bgGlow : "#09090B",
+                  boxShadow: isActive ? `0 0 16px ${theme.bgGlow}, 0 4px 20px rgba(0,0,0,0.6)` : "none",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  {item.icon}
+                </div>
+                <small
+                  style={{
+                    color: isActive ? "#FFFFFF" : "#A1A1AA",
+                    fontWeight: isActive ? 900 : 700,
+                    fontSize: "9px",
+                    letterSpacing: "0.06em",
+                    textTransform: "uppercase",
+                    marginTop: 2,
+                  }}
+                >
+                  {item.label}
+                </small>
+              </button>
+            );
+          })}
+        </nav>
+      )}
       {/* PATCH 017E : barre d onglets top désactivée au profit du dock vertical de la liste de plans en bas */}
       {/* Le dock vertical de plans en bas offre une ergonomie parfaite et évite l encombrement */}
       <main className="pdi-content">
@@ -1263,54 +1454,19 @@ export default function PdiUnifiedApp() {
             {authPanelMode === "activation" && <div className="pdi-auth-form"><p><b>Email simulé :</b> cliquez sur le lien unique pour confirmer l’email.</p><code>{activationToken || "Aucun token — créez un compte d’abord"}</code><button disabled={!activationToken} onClick={activateSimulatedAccount}>Activer le compte</button></div>}
           </section>
         </div>}
-        {activeModule === "home" && <div className="pdi-home-hero">
-          <section className="pdi-hero-card">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-4">
-              <div className="pdi-badge-row my-0"><span className="pdi-badge">SaaS autonome</span><span className="pdi-badge">JSON central</span><span className="pdi-badge">Python calculs</span><span className="pdi-badge">Agents spécialisés</span></div>
-              <div className="hidden sm:block shrink-0 rounded-2xl overflow-hidden border border-white/10 shadow-lg bg-black p-1">
-                <PdiBrandMark variant="square" size="md" />
-              </div>
-            </div>
-            <h1>Construire vos plans isométriques depuis toutes vos sources.</h1>
-            <p>PD&I devient le logiciel principal : dessin manuel, Vision PD&I photo/croquis, import CAO/DXF/PDF, JSON central, exports et validation engineering.</p>
-            <button className="pdi-start-primary" onClick={() => setNewProjectModalOpen(true)}>{canOpenWorkspaceModule ? "Nouveau projet isométrique" : "Connexion requise"}</button>
-            <div className="pdi-launch-grid">
-              {launchCards.map((card) => (
-                <button key={card.id} className="pdi-launch-card" onClick={() => openModuleInTab(card.id, card.title)} title={card.title}>
-                  <div className="icon">{card.icon}</div>
-                  <h3>{card.title}</h3>
-                  <p>{card.subtitle}</p>
-                  <span className="badge">{card.ready ? "Disponible" : card.badge}</span>
-                </button>
-              ))}
-            </div>
-          </section>
-          <aside className="pdi-showcase">
-            <div className="pdi-showcase-track">
-              {[...showcase, ...showcase].map((item, index) => (
-                <div key={`${item.tag}-${index}`} className="pdi-showcase-card">
-                  <div className="pdi-showcase-img-box">
-                    <img
-                      src={item.image}
-                      alt={item.title}
-                      className="pdi-showcase-img"
-                      referrerPolicy="no-referrer"
-                      loading="lazy"
-                    />
-                    <div className="pdi-showcase-img-overlay" />
-                    <div className="pdi-showcase-img-caption">{item.caption}</div>
-                  </div>
-                  <div className="flex items-center justify-between gap-2 mb-2">
-                    <span className="tag">{item.tag}</span>
-                    <span className="text-[10px] font-mono text-zinc-400 font-bold">3D CAD ENGINE</span>
-                  </div>
-                  <h3>{item.title}</h3>
-                  <p>{item.text}</p>
-                </div>
-              ))}
-            </div>
-          </aside>
-        </div>}
+        {activeModule === "home" && (
+          <PdiIllustratorHome
+            onNewProject={() => {
+              if (canOpenWorkspaceModule) {
+                setNewProjectModalOpen(true);
+              } else {
+                setAuthPanelMode("login");
+              }
+            }}
+            onOpenProject={() => openModuleInTab("projects", "Mes Projets")}
+            onOpenModule={(m) => openModuleInTab(m as PdiModule)}
+          />
+        )}
         {activeModule === "drive" && <GoogleDriveWorkspace onLoadProjectToEditor={(data, name) => { openModuleInTab("isometric", name); }} />}
         {activeModule === "vision" && <ComingSoonPanel title="Vision PD&I"><p><b>Vision PD&I</b> préparera le flux <code>photo réelle → analyse agent → scripts Python → JSON PD&I → validation → ISO</code>. Les images restent en cache local temporaire navigateur.</p></ComingSoonPanel>}
         {activeModule === "sketch" && (
@@ -1443,41 +1599,323 @@ export default function PdiUnifiedApp() {
           </div>
         </ComingSoonPanel>}
 
-        {/* PATCH 017E : ecran "Mes projets" reel, alimente par les sessions locales. */}
-        {activeModule === "projects" && <ComingSoonPanel title="Mes projets PD&I">
-          <p>Projets PD&I de ce poste. Chaque projet possede son propre plan et sa propre sauvegarde locale. Double-cliquez sur le titre d un onglet pour le renommer.</p>
-          {/* PATCH 017F1 : index des projets, independant des onglets ouverts. */}
-          <div key={projectsRefresh} style={{ display: "grid", gap: 8, marginTop: 12 }}>
-            {pdiReadProjectIndex().length === 0 && <span style={{ color: "#71717A", fontWeight: 800 }}>Aucun projet enregistre. Cliquez sur Nouveau plan ISO.</span>}
-            {pdiReadProjectIndex().map(entry => (
-              <div key={entry.projectId} style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, border: "1px solid rgba(255,255,255,.12)", borderRadius: 14, padding: "10px 12px", background: "#0E0E12" }}>
-                <b style={{ color: "#FFFFFF" }}>{entry.title}</b>
-                <span style={{ color: "#71717A", fontSize: 10, fontWeight: 800 }}>{entry.projectId}</span>
-                <span style={{ color: "#A1A1AA", fontSize: 11, fontWeight: 800 }}>{String(entry.updatedAt).slice(0, 16).replace("T", " ")}</span>
-                <button type="button" className="pdi-start-primary" style={{ marginLeft: "auto", padding: "8px 14px", fontSize: 12 }} onClick={() => openProjectInTab(entry)}>Ouvrir</button>
-                <button type="button" style={{ padding: "8px 12px", borderRadius: 10, border: "1px solid #7F1D1D", background: "#1F0B0B", color: "#FCA5A5", fontSize: 11, fontWeight: 900, cursor: "pointer" }} onClick={() => { pdiConfirm({ title: "Supprimer le projet", message: "Le projet \"" + entry.title + "\" et sa sauvegarde locale seront definitivement supprimes. Cette action ne peut pas etre annulee.", confirmLabel: "Supprimer le projet", destructive: true }).then((ok) => { if (!ok) return; pdiRemoveProject(entry.projectId); closeTabsForProject(entry.projectId); setProjectsRefresh((v) => v + 1); }); }}>Supprimer</button>
+        {/* Écran "Mes projets" avec barre de recherche, sélection multiple & suppression groupée */}
+        {activeModule === "projects" && (() => {
+          const allProjects = pdiReadProjectIndex();
+          const filteredProjects = allProjects.filter((entry) => {
+            if (!projectSearchQuery.trim()) return true;
+            const q = projectSearchQuery.toLowerCase().trim();
+            return (
+              entry.title.toLowerCase().includes(q) ||
+              entry.projectId.toLowerCase().includes(q)
+            );
+          });
+          const isAllFilteredSelected =
+            filteredProjects.length > 0 &&
+            filteredProjects.every((p) => selectedProjectIds.includes(p.projectId));
+
+          return (
+            <ComingSoonPanel title="Mes projets PD&I">
+              <p style={{ marginBottom: 16 }}>
+                Projets PD&I de ce poste. Chaque projet possède son propre plan et sa propre sauvegarde locale.
+              </p>
+
+              {/* Barre d'outils (Recherche, Sélection Tout, Suppression groupée) */}
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                  gap: 12,
+                  padding: "12px 14px",
+                  background: "#0A0A0E",
+                  border: "1px solid rgba(255, 255, 255, 0.12)",
+                  borderRadius: 14,
+                  marginBottom: 16,
+                }}
+              >
+                {/* Input Barre de recherche */}
+                <div style={{ position: "relative", flex: "1 1 240px", minWidth: 200, display: "flex", alignItems: "center" }}>
+                  <Search style={{ width: 14, height: 14, color: "#71717A", position: "absolute", left: 12, pointerEvents: "none" }} />
+                  <input
+                    type="text"
+                    value={projectSearchQuery}
+                    onChange={(e) => setProjectSearchQuery(e.target.value)}
+                    placeholder="Rechercher par nom ou identifiant de projet..."
+                    style={{
+                      width: "100%",
+                      background: "#050507",
+                      border: "1px solid rgba(255, 255, 255, 0.14)",
+                      borderRadius: 10,
+                      padding: "8px 32px 8px 34px",
+                      fontSize: 12,
+                      color: "#FFFFFF",
+                      outline: "none",
+                    }}
+                  />
+                  {projectSearchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setProjectSearchQuery("")}
+                      style={{ position: "absolute", right: 10, background: "transparent", border: 0, color: "#71717A", cursor: "pointer", padding: 2 }}
+                      title="Effacer la recherche"
+                    >
+                      <X style={{ width: 14, height: 14 }} />
+                    </button>
+                  )}
+                </div>
+
+                {/* Bouton Tout Sélectionner / Désélectionner */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const filteredIds = filteredProjects.map((p) => p.projectId);
+                    if (isAllFilteredSelected) {
+                      setSelectedProjectIds((prev) => prev.filter((id) => !filteredIds.includes(id)));
+                    } else {
+                      setSelectedProjectIds((prev) => Array.from(new Set([...prev, ...filteredIds])));
+                    }
+                  }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "8px 14px",
+                    borderRadius: 10,
+                    border: isAllFilteredSelected
+                      ? "1px solid #06B6D4"
+                      : "1px solid rgba(255, 255, 255, 0.14)",
+                    background: isAllFilteredSelected ? "rgba(6, 182, 212, 0.12)" : "#0E0E12",
+                    color: isAllFilteredSelected ? "#67E8F9" : "#E4E4E7",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                >
+                  {isAllFilteredSelected ? (
+                    <CheckSquare style={{ width: 15, height: 15, color: "#22D3EE" }} />
+                  ) : (
+                    <Square style={{ width: 15, height: 15, color: "#A1A1AA" }} />
+                  )}
+                  <span>
+                    {isAllFilteredSelected ? "Tout désélectionner" : "Tout sélectionner"}
+                    {filteredProjects.length > 0 &&
+                      ` (${selectedProjectIds.filter((id) => filteredProjects.some((f) => f.projectId === id)).length}/${filteredProjects.length})`}
+                  </span>
+                </button>
+
+                {/* Bouton Suppression Groupée */}
+                {selectedProjectIds.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const count = selectedProjectIds.length;
+                      pdiConfirm({
+                        title: `Supprimer ${count} projet(s)`,
+                        message: `Les ${count} projet(s) sélectionné(s) ainsi que leurs sauvegardes locales seront définitivement supprimés. Cette action ne peut pas être annulée.`,
+                        confirmLabel: `Supprimer (${count})`,
+                        destructive: true,
+                      }).then((ok) => {
+                        if (!ok) return;
+                        selectedProjectIds.forEach((id) => {
+                          pdiRemoveProject(id);
+                          closeTabsForProject(id);
+                        });
+                        setSelectedProjectIds([]);
+                        setProjectsRefresh((v) => v + 1);
+                      });
+                    }}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      padding: "8px 14px",
+                      borderRadius: 10,
+                      border: "1px solid #991B1B",
+                      background: "linear-gradient(180deg, #7F1D1D, #450A0A)",
+                      color: "#FECACA",
+                      fontSize: 12,
+                      fontWeight: 800,
+                      cursor: "pointer",
+                      boxShadow: "0 4px 12px rgba(153, 27, 27, 0.3)",
+                    }}
+                  >
+                    <Trash2 style={{ width: 14, height: 14, color: "#FCA5A5" }} />
+                    <span>Supprimer la sélection ({selectedProjectIds.length})</span>
+                  </button>
+                )}
               </div>
-            ))}
-          </div>
-          <p style={{ marginTop: 16 }}>Sauvegardes locales detectees sur ce poste :</p>
-          <div style={{ display: "grid", gap: 8, marginTop: 14 }}>
-            {pdiListLocalSessions().length === 0 && <span style={{ color: "#71717A", fontWeight: 800 }}>Aucune session enregistree pour le moment. Dessinez un tronçon dans l editeur ISO : la sauvegarde locale est automatique.</span>}
-            {pdiListLocalSessions().map(session => (
-              <div key={session.key} style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, border: "1px solid rgba(255,255,255,.08)", borderRadius: 14, padding: "10px 12px", background: "#0E0E12" }}>
-                <b style={{ color: "#FFFFFF" }}>{session.name}</b>
-                <span style={{ color: "#E4E4E7", fontWeight: 900, fontSize: 11 }}>{session.nodes} noeuds · {session.segments} tronçons</span>
-                <span style={{ color: "#A1A1AA", fontSize: 11, fontWeight: 800 }}>{session.updatedAt}</span>
-                <span style={{ color: "#71717A", fontSize: 10, fontWeight: 800, textTransform: "uppercase" }}>{"projet " + session.projectId}</span>
-                <button type="button" className="pdi-start-primary" style={{ marginLeft: "auto", padding: "8px 14px", fontSize: 12 }} onClick={() => openProjectInTab({ projectId: session.projectId, title: session.name || "Projet isometrique", module: "isometric" })}>Ouvrir dans son onglet</button>
+
+              {/* Index des projets filtrés */}
+              <div key={projectsRefresh} style={{ display: "grid", gap: 8, marginTop: 12 }}>
+                {allProjects.length === 0 && (
+                  <span style={{ color: "#71717A", fontWeight: 800 }}>
+                    Aucun projet enregistré. Cliquez sur Nouveau plan ISO.
+                  </span>
+                )}
+                {allProjects.length > 0 && filteredProjects.length === 0 && (
+                  <span style={{ color: "#71717A", fontWeight: 700, padding: "12px 0" }}>
+                    Aucun projet ne correspond à la recherche "{projectSearchQuery}".
+                  </span>
+                )}
+
+                {filteredProjects.map((entry) => {
+                  const isSelected = selectedProjectIds.includes(entry.projectId);
+                  return (
+                    <div
+                      key={entry.projectId}
+                      style={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        alignItems: "center",
+                        gap: 12,
+                        border: isSelected
+                          ? "1px solid rgba(34, 211, 238, 0.5)"
+                          : "1px solid rgba(255, 255, 255, 0.12)",
+                        borderRadius: 14,
+                        padding: "10px 14px",
+                        background: isSelected ? "rgba(8, 47, 73, 0.4)" : "#0E0E12",
+                        transition: "all 0.15s ease",
+                      }}
+                    >
+                      {/* Checkbox de sélection individuelle */}
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          if (isSelected) {
+                            setSelectedProjectIds((prev) => prev.filter((id) => id !== entry.projectId));
+                          } else {
+                            setSelectedProjectIds((prev) => [...prev, entry.projectId]);
+                          }
+                        }}
+                        style={{
+                          width: 16,
+                          height: 16,
+                          accentColor: "#06B6D4",
+                          cursor: "pointer",
+                        }}
+                      />
+
+                      <b style={{ color: "#FFFFFF", fontSize: 13 }}>{entry.title}</b>
+                      <span style={{ color: "#71717A", fontSize: 10, fontWeight: 800 }}>{entry.projectId}</span>
+                      <span style={{ color: "#A1A1AA", fontSize: 11, fontWeight: 800 }}>
+                        {String(entry.updatedAt).slice(0, 16).replace("T", " ")}
+                      </span>
+
+                      {/* Boutons d'action individuel */}
+                      <button
+                        type="button"
+                        className="pdi-start-primary"
+                        style={{ marginLeft: "auto", padding: "8px 14px", fontSize: 12 }}
+                        onClick={() => openProjectInTab(entry)}
+                      >
+                        Ouvrir
+                      </button>
+                      <button
+                        type="button"
+                        style={{
+                          padding: "8px 12px",
+                          borderRadius: 10,
+                          border: "1px solid #7F1D1D",
+                          background: "#1F0B0B",
+                          color: "#FCA5A5",
+                          fontSize: 11,
+                          fontWeight: 900,
+                          cursor: "pointer",
+                        }}
+                        onClick={() => {
+                          pdiConfirm({
+                            title: "Supprimer le projet",
+                            message: `Le projet "${entry.title}" et sa sauvegarde locale seront définitivement supprimés. Cette action ne peut pas être annulée.`,
+                            confirmLabel: "Supprimer le projet",
+                            destructive: true,
+                          }).then((ok) => {
+                            if (!ok) return;
+                            pdiRemoveProject(entry.projectId);
+                            closeTabsForProject(entry.projectId);
+                            setSelectedProjectIds((prev) => prev.filter((id) => id !== entry.projectId));
+                            setProjectsRefresh((v) => v + 1);
+                          });
+                        }}
+                      >
+                        Supprimer
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
-            ))}
-          </div>
-          <div style={{ marginTop: 16, display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button type="button" className="pdi-start-primary" onClick={() => setNewProjectModalOpen(true)}>Nouveau plan ISO</button>
-            {/* PATCH 017F2 : recuperation des sauvegardes orphelines. */}
-            <button type="button" className="pdi-start-primary" onClick={() => { const added = pdiAdoptOrphanSessions(); setProjectsRefresh((v) => v + 1); void pdiAlert(added > 0 ? added + " projet(s) recupere(s) depuis les sauvegardes locales." : "Aucune sauvegarde orpheline a recuperer."); }}>Recuperer les sauvegardes orphelines</button>
-          </div>
-        </ComingSoonPanel>}
+
+              <p style={{ marginTop: 20 }}>Sauvegardes locales détectées sur ce poste :</p>
+              <div style={{ display: "grid", gap: 8, marginTop: 14 }}>
+                {pdiListLocalSessions().length === 0 && (
+                  <span style={{ color: "#71717A", fontWeight: 800 }}>
+                    Aucune session enregistrée pour le moment. Dessinez un tronçon dans l'éditeur ISO : la sauvegarde locale est automatique.
+                  </span>
+                )}
+                {pdiListLocalSessions().map((session) => (
+                  <div
+                    key={session.key}
+                    style={{
+                      display: "flex",
+                      flexWrap: "wrap",
+                      alignItems: "center",
+                      gap: 10,
+                      border: "1px solid rgba(255,255,255,.08)",
+                      borderRadius: 14,
+                      padding: "10px 12px",
+                      background: "#0E0E12",
+                    }}
+                  >
+                    <b style={{ color: "#FFFFFF" }}>{session.name}</b>
+                    <span style={{ color: "#E4E4E7", fontWeight: 900, fontSize: 11 }}>
+                      {session.nodes} noeuds · {session.segments} tronçons
+                    </span>
+                    <span style={{ color: "#A1A1AA", fontSize: 11, fontWeight: 800 }}>{session.updatedAt}</span>
+                    <span style={{ color: "#71717A", fontSize: 10, fontWeight: 800, textTransform: "uppercase" }}>
+                      {"projet " + session.projectId}
+                    </span>
+                    <button
+                      type="button"
+                      className="pdi-start-primary"
+                      style={{ marginLeft: "auto", padding: "8px 14px", fontSize: 12 }}
+                      onClick={() =>
+                        openProjectInTab({
+                          projectId: session.projectId,
+                          title: session.name || "Projet isometrique",
+                          module: "isometric",
+                        })
+                      }
+                    >
+                      Ouvrir dans son onglet
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div style={{ marginTop: 16, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button type="button" className="pdi-start-primary" onClick={() => setNewProjectModalOpen(true)}>
+                  Nouveau plan ISO
+                </button>
+                <button
+                  type="button"
+                  className="pdi-start-primary"
+                  onClick={() => {
+                    const added = pdiAdoptOrphanSessions();
+                    setProjectsRefresh((v) => v + 1);
+                    void pdiAlert(
+                      added > 0
+                        ? added + " projet(s) récupéré(s) depuis les sauvegardes locales."
+                        : "Aucune sauvegarde orpheline à récupérer."
+                    );
+                  }}
+                >
+                  Récupérer les sauvegardes orphelines
+                </button>
+              </div>
+            </ComingSoonPanel>
+          );
+        })()}
 
         {/* PATCH 017B : plus jamais d ecran vide pour un module sans rendu. */}
         {!PDI_RENDERABLE_MODULES.includes(activeModule) && <ComingSoonPanel title="Espace projets PD&I">

@@ -29,8 +29,9 @@ export interface SketchCanvasOverlayProps {
   segments: SketchVectorSegment[];
   fittings: SketchVectorFitting[];
   calibrationScale: number; // px par mm
-  activeTool: "select" | "pipe" | "fitting" | "calibrate" | "erase";
+  activeTool: "select" | "pipe" | "fitting" | "calibrate" | "erase" | "pan";
   selectedFittingType: SketchVectorFitting["type"];
+  recenterTrigger?: number;
   onNodesChange: (nodes: SketchVectorNode[]) => void;
   onSegmentsChange: (segments: SketchVectorSegment[]) => void;
   onFittingsChange: (fittings: SketchVectorFitting[]) => void;
@@ -53,6 +54,7 @@ export const SketchCanvasOverlay: React.FC<SketchCanvasOverlayProps> = ({
   calibrationScale,
   activeTool,
   selectedFittingType,
+  recenterTrigger,
   onNodesChange,
   onSegmentsChange,
   onFittingsChange,
@@ -68,6 +70,9 @@ export const SketchCanvasOverlay: React.FC<SketchCanvasOverlayProps> = ({
   const [isPanning, setIsPanning] = useState(false);
   const panStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
+  // Node Dragging in Select mode
+  const [isDraggingNode, setIsDraggingNode] = useState(false);
+
   // Drawing state
   const [pipeStartNodeId, setPipeStartNodeId] = useState<string | null>(null);
   const [mousePos, setMousePos] = useState<SketchPoint2D | null>(null);
@@ -78,6 +83,33 @@ export const SketchCanvasOverlay: React.FC<SketchCanvasOverlayProps> = ({
 
   // Offscreen source image for fast rendering
   const sourceImageRef = useRef<HTMLImageElement | null>(null);
+
+  // Recenter function
+  const handleRecenter = useCallback(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const cw = container.clientWidth;
+    const ch = container.clientHeight;
+    const targetW = imageDimensions.width || 1200;
+    const targetH = imageDimensions.height || 850;
+
+    const scaleX = (cw - 60) / targetW;
+    const scaleY = (ch - 60) / targetH;
+    const newZoom = Math.min(Math.max(Math.min(scaleX, scaleY), 0.2), 2.5);
+
+    const newPanX = (cw - targetW * newZoom) / 2;
+    const newPanY = (ch - targetH * newZoom) / 2;
+
+    setZoom(newZoom);
+    setPan({ x: Math.round(newPanX), y: Math.round(newPanY) });
+  }, [imageDimensions]);
+
+  // Trigger recenter when recenterTrigger changes
+  useEffect(() => {
+    if (recenterTrigger !== undefined && recenterTrigger > 0) {
+      handleRecenter();
+    }
+  }, [recenterTrigger, handleRecenter]);
 
   // Load image when url changes
   useEffect(() => {
@@ -90,9 +122,10 @@ export const SketchCanvasOverlay: React.FC<SketchCanvasOverlayProps> = ({
     img.onload = () => {
       sourceImageRef.current = img;
       renderBackground();
+      setTimeout(handleRecenter, 50);
     };
     img.src = imageDataUrl;
-  }, [imageDataUrl]);
+  }, [imageDataUrl, handleRecenter]);
 
   // Render background image with filters
   const renderBackground = useCallback(() => {
@@ -457,23 +490,53 @@ export const SketchCanvasOverlay: React.FC<SketchCanvasOverlayProps> = ({
       });
       return;
     }
+
     const pt = getCanvasCoords(e);
     setMousePos(pt);
+
+    // Node dragging in select mode
+    if (isDraggingNode && selectedNodeId && activeTool === "select") {
+      onNodesChange(
+        nodes.map((n) =>
+          n.id === selectedNodeId ? { ...n, x: Math.round(pt.x), y: Math.round(pt.y) } : n
+        )
+      );
+    }
   };
 
-  // Pan with Space / Middle Click / Alt+Click
+  // Pan with Tool "pan" or Space / Middle Click / Alt+Click
   const handleMouseDown = (e: React.MouseEvent) => {
+    if (activeTool === "pan" && e.button === 0) {
+      setIsPanning(true);
+      panStartRef.current = {
+        x: e.clientX - pan.x,
+        y: e.clientY - pan.y
+      };
+      return;
+    }
+
     if (e.button === 1 || (e.button === 0 && e.altKey)) {
       setIsPanning(true);
       panStartRef.current = {
         x: e.clientX - pan.x,
         y: e.clientY - pan.y
       };
+      return;
+    }
+
+    if (activeTool === "select" && e.button === 0) {
+      const pt = getCanvasCoords(e);
+      const clickedNode = findNearestNode(pt);
+      if (clickedNode) {
+        setSelectedNodeId(clickedNode.id);
+        setIsDraggingNode(true);
+      }
     }
   };
 
   const handleMouseUp = () => {
     setIsPanning(false);
+    setIsDraggingNode(false);
   };
 
   // Zoom with wheel
@@ -502,7 +565,16 @@ export const SketchCanvasOverlay: React.FC<SketchCanvasOverlayProps> = ({
         minHeight: 520,
         backgroundColor: "#0B1120",
         overflow: "hidden",
-        cursor: isPanning ? "grab" : activeTool === "pipe" ? "crosshair" : "default",
+        cursor:
+          isPanning
+            ? "grabbing"
+            : activeTool === "pan"
+            ? "grab"
+            : activeTool === "pipe"
+            ? "crosshair"
+            : activeTool === "select"
+            ? "default"
+            : "default",
         userSelect: "none"
       }}
     >
@@ -536,29 +608,57 @@ export const SketchCanvasOverlay: React.FC<SketchCanvasOverlayProps> = ({
         />
       </div>
 
-      {/* Floating Canvas Info HUD */}
+      {/* Floating Canvas Info & Quick Actions HUD */}
       <div
         style={{
           position: "absolute",
           bottom: 12,
           left: 12,
-          background: "rgba(15, 23, 42, 0.85)",
-          backdropFilter: "blur(6px)",
+          background: "rgba(15, 23, 42, 0.9)",
+          backdropFilter: "blur(8px)",
           border: "1px solid #334155",
           borderRadius: 8,
           padding: "6px 12px",
           color: "#94A3B8",
           fontSize: 11,
           display: "flex",
+          alignItems: "center",
           gap: 12,
-          pointerEvents: "none"
+          zIndex: 15,
+          boxShadow: "0 4px 16px rgba(0,0,0,0.4)"
         }}
       >
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleRecenter();
+          }}
+          title="Recentrer et adapter le scan à l'écran"
+          style={{
+            background: "#0284C7",
+            border: "none",
+            borderRadius: 5,
+            color: "#FFFFFF",
+            padding: "3px 8px",
+            fontSize: 10,
+            fontWeight: 800,
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: 4
+          }}
+        >
+          <span>🎯 Recentrer</span>
+        </button>
+
+        <div style={{ width: 1, height: 14, background: "rgba(255,255,255,0.15)" }} />
+
         <span>Zoom: {Math.round(zoom * 100)}%</span>
         <span>Échelle: {calibrationScale > 0 ? `${calibrationScale.toFixed(2)} px/mm` : "Non étalonné"}</span>
         <span>Nœuds: {nodes.length}</span>
         <span>Tronçons: {segments.length}</span>
-        {pipeStartNodeId && <span style={{ color: "#10B981", fontWeight: 700 }}>● Traçage tuyau en cours (Clic droit pour clore)</span>}
+        {pipeStartNodeId && <span style={{ color: "#10B981", fontWeight: 700 }}>● Traçage en cours (Clic droit pour clore)</span>}
       </div>
     </div>
   );

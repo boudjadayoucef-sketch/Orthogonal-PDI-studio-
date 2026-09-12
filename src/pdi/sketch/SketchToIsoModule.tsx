@@ -45,8 +45,10 @@ export const SketchToIsoModule: React.FC<SketchToIsoModuleProps> = ({
   const [calibrationScale, setCalibrationScale] = useState<number>(0.25); // px per mm
 
   // Tools
-  const [activeTool, setActiveTool] = useState<"select" | "pipe" | "fitting" | "calibrate" | "erase">("pipe");
+  const [activeTool, setActiveTool] = useState<"select" | "pipe" | "fitting" | "calibrate" | "erase" | "pan">("pipe");
   const [selectedFittingType, setSelectedFittingType] = useState<SketchVectorFitting["type"]>("valve");
+  const [sidebarOpen, setSidebarOpen] = useState<boolean>(true);
+  const [recenterTrigger, setRecenterTrigger] = useState<number>(0);
 
   // Geometry
   const [nodes, setNodes] = useState<SketchVectorNode[]>([]);
@@ -68,6 +70,9 @@ export const SketchToIsoModule: React.FC<SketchToIsoModuleProps> = ({
   // Show live compiled JSON modal
   const [showJsonModal, setShowJsonModal] = useState<boolean>(false);
   const [compiledJsonPreview, setCompiledJsonPreview] = useState<CompiledIsoModel | null>(null);
+
+  // Table de révision pré-import masquée par défaut pour affichage maximal du croquis
+  const [showReviewTable, setShowReviewTable] = useState<boolean>(false);
 
   // Status message
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -227,292 +232,11 @@ export const SketchToIsoModule: React.FC<SketchToIsoModuleProps> = ({
         style={{ display: "none" }}
       />
 
-      {/* TOP CONTROL RIBBON */}
-      <header
-        style={{
-          background: "linear-gradient(180deg, #0F172A 0%, #0B1120 100%)",
-          borderBottom: "1px solid #1E293B",
-          padding: "10px 16px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 12,
-          flexWrap: "wrap"
-        }}
-      >
-        {/* Left: Brand / Title */}
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div
-            style={{
-              background: "linear-gradient(135deg, #0284C7 0%, #38BDF8 100%)",
-              color: "#FFFFFF",
-              fontWeight: 900,
-              fontSize: 11,
-              padding: "4px 8px",
-              borderRadius: 6,
-              letterSpacing: "0.08em"
-            }}
-          >
-            CRQ → ISO
-          </div>
-          <div>
-            <h2 style={{ margin: 0, fontSize: 14, fontWeight: 800, color: "#F8FAFC" }}>
-              Atelier Calque A4/A3 & Numérisation Croquis
-            </h2>
-            <div style={{ fontSize: 11, color: "#94A3B8" }}>
-              Reconnaissance de tracé manuel, vectorisation isométrique 30° et export CAO
-            </div>
-          </div>
-        </div>
-
-        {/* Center: Tools Selector */}
-        <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#020617", padding: 4, borderRadius: 8, border: "1px solid #1E293B" }}>
-          {[
-            { id: "pipe", label: "📏 Tuyau (ISO)", icon: "●" },
-            { id: "fitting", label: "⭕ Accessoire", icon: "❖" },
-            { id: "calibrate", label: "📐 Étalonner 1:1", icon: "⇿" },
-            { id: "select", label: "🔍 Sélectionner", icon: "↗" }
-          ].map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => setActiveTool(t.id as any)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                padding: "6px 12px",
-                borderRadius: 6,
-                border: "none",
-                fontSize: 11,
-                fontWeight: 700,
-                cursor: "pointer",
-                background: activeTool === t.id ? "#0284C7" : "transparent",
-                color: activeTool === t.id ? "#FFFFFF" : "#94A3B8",
-                transition: "all 0.15s ease"
-              }}
-            >
-              <span>{t.icon}</span>
-              <span>{t.label}</span>
-            </button>
-          ))}
-
-          {/* Fitting Subtype if fitting tool active */}
-          {activeTool === "fitting" && (
-            <select
-              value={selectedFittingType}
-              onChange={(e) => setSelectedFittingType(e.target.value as any)}
-              style={{
-                background: "#0F172A",
-                color: "#38BDF8",
-                border: "1px solid #0284C7",
-                borderRadius: 6,
-                fontSize: 11,
-                padding: "4px 8px",
-                fontWeight: 700
-              }}
-            >
-              <option value="valve">Vanne Passage Total</option>
-              <option value="check_valve">Clapet</option>
-              <option value="flange">Bride WN</option>
-              <option value="elbow_90">Coude 90°</option>
-              <option value="elbow_45">Coude 45°</option>
-              <option value="tee">Té égal</option>
-              <option value="reducer">Réduction</option>
-              <option value="instrument">Manomètre</option>
-              <option value="support">Support</option>
-            </select>
-          )}
-        </div>
-
-        {/* Right: Actions */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            style={{
-              padding: "7px 12px",
-              background: "#1E293B",
-              border: "1px solid #334155",
-              borderRadius: 6,
-              color: "#F8FAFC",
-              fontSize: 11,
-              fontWeight: 700,
-              cursor: "pointer"
-            }}
-          >
-            📂 Importer Scan / Photo
-          </button>
-
-          <button
-            type="button"
-            onClick={loadDemoCroquis}
-            style={{
-              padding: "7px 12px",
-              background: "#0F172A",
-              border: "1px solid #0284C7",
-              borderRadius: 6,
-              color: "#38BDF8",
-              fontSize: 11,
-              fontWeight: 700,
-              cursor: "pointer"
-            }}
-          >
-            ⚡ Exemple Démo
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              handleCompileJson();
-              setShowJsonModal(true);
-            }}
-            style={{
-              padding: "7px 12px",
-              background: "#1E293B",
-              border: "1px solid #475569",
-              borderRadius: 6,
-              color: "#A7F3D0",
-              fontSize: 11,
-              fontWeight: 700,
-              cursor: "pointer"
-            }}
-          >
-            📄 Voir JSON
-          </button>
-
-          <button
-            type="button"
-            onClick={handleTransferToIsometricEditor}
-            style={{
-              padding: "7px 16px",
-              background: "linear-gradient(135deg, #0284C7 0%, #059669 100%)",
-              border: "none",
-              borderRadius: 6,
-              color: "#FFFFFF",
-              fontSize: 11,
-              fontWeight: 800,
-              cursor: "pointer",
-              boxShadow: "0 2px 10px rgba(2, 132, 199, 0.4)",
-              display: "flex",
-              alignItems: "center",
-              gap: 6
-            }}
-            title="Valider la tuyauterie du croquis et ouvrir immédiatement l'isométrie 2D cotée et la vue 3D solide"
-          >
-            <span>🚀 Valider &amp; Ouvrir dans l'Éditeur ISO</span>
-          </button>
-        </div>
-      </header>
-
-      {/* FILTER & PAPER FORMAT CONTROLS SUB-BAR */}
-      <div
-        style={{
-          background: "#090E17",
-          borderBottom: "1px solid #1E293B",
-          padding: "6px 16px",
-          display: "flex",
-          alignItems: "center",
-          gap: 16,
-          fontSize: 11,
-          color: "#94A3B8",
-          flexWrap: "wrap"
-        }}
-      >
-        {/* Paper Format */}
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ fontWeight: 700, color: "#E2E8F0" }}>Format Papier :</span>
-          <select
-            value={format}
-            onChange={(e) => setFormat(e.target.value as PaperFormat)}
-            style={{
-              background: "#0F172A",
-              color: "#F8FAFC",
-              border: "1px solid #334155",
-              borderRadius: 4,
-              padding: "2px 6px",
-              fontSize: 11
-            }}
-          >
-            {Object.entries(PAPER_FORMATS).map(([k, v]) => (
-              <option key={k} value={k}>
-                {v.label} ({v.width} × {v.height} mm)
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Opacity slider */}
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span>Opacité Calque :</span>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            value={opacity}
-            onChange={(e) => setOpacity(Number(e.target.value))}
-            style={{ width: 70 }}
-          />
-          <span style={{ width: 26, textAlign: "right" }}>{opacity}%</span>
-        </div>
-
-        {/* Contrast / B&W Threshold */}
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span>Filtre Encre N&B :</span>
-          <input
-            type="range"
-            min={0}
-            max={255}
-            value={contrastThreshold}
-            onChange={(e) => setContrastThreshold(Number(e.target.value))}
-            style={{ width: 70 }}
-          />
-          <span style={{ width: 26, textAlign: "right" }}>{contrastThreshold}</span>
-        </div>
-
-        {/* Invert */}
-        <label style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer" }}>
-          <input
-            type="checkbox"
-            checked={invert}
-            onChange={(e) => setInvert(e.target.checked)}
-          />
-          <span>Inverser fond/traits</span>
-        </label>
-
-        {/* Angle Snap Tolerance */}
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span>Tolérance Aimantation ISO :</span>
-          <input
-            type="range"
-            min={5}
-            max={25}
-            value={snapAngleToleranceDeg}
-            onChange={(e) => setSnapAngleToleranceDeg(Number(e.target.value))}
-            style={{ width: 60 }}
-          />
-          <span>±{snapAngleToleranceDeg}°</span>
-        </div>
-
-        {/* Notification Toast in sub-bar */}
-        {statusMessage && (
-          <div
-            style={{
-              marginLeft: "auto",
-              color: "#38BDF8",
-              fontWeight: 700,
-              animation: "fadeIn 0.2s"
-            }}
-          >
-            {statusMessage}
-          </div>
-        )}
-      </div>
-
-      {/* MAIN DUAL-PANE WORKSPACE */}
-      <div style={{ display: "flex", flex: 1, minHeight: 0, position: "relative" }}>
-        {/* LEFT: CALQUE CANVAS OVERLAY */}
-        <div style={{ flex: 1.6, height: "100%", position: "relative" }}>
+      {/* MAIN WORKSPACE: CANVAS ON LEFT, CONTROLS RIGHT SIDEBAR */}
+      <div style={{ display: "flex", flex: 1, minHeight: 0, position: "relative", width: "100%", height: "100%", overflow: "hidden" }}>
+        
+        {/* CENTER/LEFT: CALQUE CANVAS OVERLAY (MAXIMAL DISPLAY) */}
+        <div style={{ flex: 1, width: "100%", height: "100%", position: "relative", minWidth: 0 }}>
           <SketchCanvasOverlay
             imageBlob={null}
             imageDataUrl={imageDataUrl}
@@ -530,6 +254,7 @@ export const SketchToIsoModule: React.FC<SketchToIsoModuleProps> = ({
             calibrationScale={calibrationScale}
             activeTool={activeTool}
             selectedFittingType={selectedFittingType}
+            recenterTrigger={recenterTrigger}
             onNodesChange={setNodes}
             onSegmentsChange={setSegments}
             onFittingsChange={setFittings}
@@ -538,25 +263,513 @@ export const SketchToIsoModule: React.FC<SketchToIsoModuleProps> = ({
               setStatusMessage(`📐 Échelle étalonnée : ${newScale.toFixed(3)} px/mm.`);
             }}
           />
+
+          {/* FLOATING BUTTON (+) TO RESTORE RIGHT SIDEBAR WHEN COLLAPSED */}
+          {!sidebarOpen && (
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(true)}
+              title="Afficher la barre latérale (+)"
+              style={{
+                position: "absolute",
+                top: 12,
+                right: 12,
+                zIndex: 30,
+                background: "#0284C7",
+                color: "#FFFFFF",
+                border: "1px solid rgba(255,255,255,0.3)",
+                borderRadius: 8,
+                padding: "6px 12px",
+                fontSize: 11,
+                fontWeight: 800,
+                cursor: "pointer",
+                boxShadow: "0 4px 14px rgba(0,0,0,0.5)",
+                display: "flex",
+                alignItems: "center",
+                gap: 6
+              }}
+            >
+              <span>(+)</span>
+              <span>Outils Croquis</span>
+            </button>
+          )}
         </div>
 
-        {/* RIGHT: REVIEW & CORRECTION TABLE */}
-        <div style={{ flex: 1, minWidth: 360, maxWidth: 460, height: "100%" }}>
-          <SketchReviewTable
-            nodes={nodes}
-            segments={segments}
-            fittings={fittings}
-            profile={profile}
-            calibrationScale={calibrationScale}
-            onNodesChange={setNodes}
-            onSegmentsChange={setSegments}
-            onFittingsChange={setFittings}
-            onProfileChange={(p) => {
-              setProfile(p);
-              saveLocalLearningProfile(p);
+        {/* REVIEW & CORRECTION TABLE (EXPANDABLE PANEL) */}
+        {showReviewTable && (
+          <div
+            style={{
+              width: 400,
+              minWidth: 340,
+              maxWidth: 460,
+              height: "100%",
+              borderLeft: "1px solid #1E293B",
+              position: "relative",
+              background: "#090E17",
+              display: "flex",
+              flexDirection: "column",
+              zIndex: 10
             }}
-          />
-        </div>
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "8px 12px",
+                background: "#0B1120",
+                borderBottom: "1px solid #1E293B"
+              }}
+            >
+              <span style={{ fontSize: 11, fontWeight: 800, color: "#38BDF8" }}>
+                TABLE DE RÉVISION PRÉ-IMPORT
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowReviewTable(false)}
+                title="Masquer la table de révision"
+                style={{
+                  background: "#1E293B",
+                  border: "1px solid #334155",
+                  borderRadius: 4,
+                  color: "#94A3B8",
+                  cursor: "pointer",
+                  padding: "3px 8px",
+                  fontSize: 10,
+                  fontWeight: 800
+                }}
+              >
+                Masquer ✕
+              </button>
+            </div>
+            <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
+              <SketchReviewTable
+                nodes={nodes}
+                segments={segments}
+                fittings={fittings}
+                profile={profile}
+                calibrationScale={calibrationScale}
+                onNodesChange={setNodes}
+                onSegmentsChange={setSegments}
+                onFittingsChange={setFittings}
+                onProfileChange={(p) => {
+                  setProfile(p);
+                  saveLocalLearningProfile(p);
+                }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* RIGHT SIDEBAR: GROUPED CONTROLS WITH ADJUSTED BUTTON SIZES */}
+        {sidebarOpen && (
+          <aside
+            style={{
+              width: 250,
+              minWidth: 250,
+              maxWidth: 250,
+              height: "100%",
+              background: "#080C14",
+              borderLeft: "1px solid #1E293B",
+              display: "flex",
+              flexDirection: "column",
+              overflowY: "auto",
+              overflowX: "hidden",
+              zIndex: 20
+            }}
+          >
+            {/* SIDEBAR HEADER WITH (-) BUTTON */}
+            <div
+              style={{
+                padding: "8px 12px",
+                background: "#0B1120",
+                borderBottom: "1px solid #1E293B",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 8
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span
+                  style={{
+                    background: "linear-gradient(135deg, #0284C7 0%, #38BDF8 100%)",
+                    color: "#FFFFFF",
+                    fontWeight: 900,
+                    fontSize: 10,
+                    padding: "3px 6px",
+                    borderRadius: 4,
+                    letterSpacing: "0.06em"
+                  }}
+                >
+                  CRQ → ISO
+                </span>
+                <span style={{ fontSize: 12, fontWeight: 800, color: "#F8FAFC" }}>
+                  Atelier Croquis
+                </span>
+              </div>
+
+              {/* Bouton (-) pour masquer la barre latérale droite */}
+              <button
+                type="button"
+                onClick={() => setSidebarOpen(false)}
+                title="Masquer la barre latérale (-)"
+                style={{
+                  background: "rgba(255,255,255,0.06)",
+                  border: "1px solid rgba(255,255,255,0.15)",
+                  borderRadius: 6,
+                  color: "#94A3B8",
+                  fontSize: 11,
+                  fontWeight: 900,
+                  padding: "2px 7px",
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center"
+                }}
+              >
+                (-)
+              </button>
+            </div>
+
+            <div style={{ padding: "10px 10px", display: "flex", flexDirection: "column", gap: 12, flex: 1 }}>
+              {/* PRIMARY ACTION BUTTON */}
+              <div>
+                <button
+                  type="button"
+                  onClick={handleTransferToIsometricEditor}
+                  style={{
+                    width: "100%",
+                    padding: "9px 12px",
+                    background: "linear-gradient(135deg, #0284C7 0%, #059669 100%)",
+                    border: "none",
+                    borderRadius: 8,
+                    color: "#FFFFFF",
+                    fontSize: 12,
+                    fontWeight: 800,
+                    cursor: "pointer",
+                    boxShadow: "0 4px 14px rgba(2, 132, 199, 0.4)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 6,
+                    transition: "transform 0.1s ease"
+                  }}
+                  title="Valider la tuyauterie du croquis et ouvrir immédiatement l'isométrie 2D cotée et la vue 3D solide"
+                >
+                  <span>🚀 Valider &amp; Ouvrir ISO</span>
+                </button>
+              </div>
+
+              {/* SECTION 1: OUTILS DE TRACÉ & NAVIGATION */}
+              <div>
+                <div style={{ fontSize: 10, fontWeight: 800, color: "#38BDF8", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>
+                  Outils de Tracé ISO
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 5 }}>
+                  {[
+                    { id: "pipe", label: "Tuyau ISO", icon: "●" },
+                    { id: "fitting", label: "Accessoire", icon: "❖" },
+                    { id: "pan", label: "Main", icon: "✋" },
+                    { id: "select", label: "Sélection", icon: "↗" },
+                    { id: "calibrate", label: "Étalonner", icon: "⇿" }
+                  ].map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => setActiveTool(t.id as any)}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 5,
+                        padding: "7px 6px",
+                        borderRadius: 6,
+                        border: activeTool === t.id ? "1px solid #38BDF8" : "1px solid #1E293B",
+                        fontSize: 11,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        background: activeTool === t.id ? "#0284C7" : "#0F172A",
+                        color: activeTool === t.id ? "#FFFFFF" : "#CBD5E1",
+                        transition: "all 0.15s ease"
+                      }}
+                    >
+                      <span>{t.icon}</span>
+                      <span>{t.label}</span>
+                    </button>
+                  ))}
+
+                  {/* Bouton Recentrer Scan / Image */}
+                  <button
+                    type="button"
+                    onClick={() => setRecenterTrigger((c) => c + 1)}
+                    title="Recentrer le scan et adapter la vue"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 4,
+                      padding: "7px 6px",
+                      borderRadius: 6,
+                      border: "1px solid #0284C7",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      background: "rgba(2, 132, 199, 0.15)",
+                      color: "#38BDF8",
+                      transition: "all 0.15s ease"
+                    }}
+                  >
+                    <span>🎯</span>
+                    <span>Recentrer</span>
+                  </button>
+                </div>
+
+                {/* Sub-select for fitting */}
+                {activeTool === "fitting" && (
+                  <div style={{ marginTop: 6 }}>
+                    <label style={{ display: "block", fontSize: 10, color: "#94A3B8", marginBottom: 3, fontWeight: 600 }}>
+                      Type d'accessoire :
+                    </label>
+                    <select
+                      value={selectedFittingType}
+                      onChange={(e) => setSelectedFittingType(e.target.value as any)}
+                      style={{
+                        width: "100%",
+                        background: "#0F172A",
+                        color: "#38BDF8",
+                        border: "1px solid #0284C7",
+                        borderRadius: 6,
+                        fontSize: 11,
+                        padding: "5px 8px",
+                        fontWeight: 700
+                      }}
+                    >
+                      <option value="valve">Vanne Passage Total</option>
+                      <option value="check_valve">Clapet anti-retour</option>
+                      <option value="flange">Bride WN</option>
+                      <option value="elbow_90">Coude 90°</option>
+                      <option value="elbow_45">Coude 45°</option>
+                      <option value="tee">Té égal</option>
+                      <option value="reducer">Réduction</option>
+                      <option value="instrument">Manomètre</option>
+                      <option value="support">Support</option>
+                    </select>
+                  </div>
+                )}
+              </div>
+
+            {/* SECTION 2: ACTIONS & FICHIERS */}
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 800, color: "#38BDF8", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>
+                Fichiers &amp; Données
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  style={{
+                    width: "100%",
+                    padding: "7px 10px",
+                    background: "#1E293B",
+                    border: "1px solid #334155",
+                    borderRadius: 6,
+                    color: "#F8FAFC",
+                    fontSize: 11,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6
+                  }}
+                >
+                  <span>📂</span>
+                  <span>Importer Scan / Photo</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={loadDemoCroquis}
+                  style={{
+                    width: "100%",
+                    padding: "7px 10px",
+                    background: "#0F172A",
+                    border: "1px solid #0284C7",
+                    borderRadius: 6,
+                    color: "#38BDF8",
+                    fontSize: 11,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6
+                  }}
+                >
+                  <span>⚡</span>
+                  <span>Charger Exemple Démo</span>
+                </button>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 5 }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleCompileJson();
+                      setShowJsonModal(true);
+                    }}
+                    style={{
+                      padding: "7px 6px",
+                      background: "#1E293B",
+                      border: "1px solid #475569",
+                      borderRadius: 6,
+                      color: "#A7F3D0",
+                      fontSize: 10,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 4
+                    }}
+                  >
+                    <span>📄</span>
+                    <span>Voir JSON</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowReviewTable((v) => !v)}
+                    style={{
+                      padding: "7px 6px",
+                      background: showReviewTable ? "#0369a1" : "#1E293B",
+                      border: `1px solid ${showReviewTable ? "#38BDF8" : "#334155"}`,
+                      borderRadius: 6,
+                      color: showReviewTable ? "#FFFFFF" : "#CBD5E1",
+                      fontSize: 10,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 4
+                    }}
+                  >
+                    <span>📋</span>
+                    <span>{showReviewTable ? "Masquer Tab." : "Table Rév."}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* SECTION 3: RÉGLAGES DU CALQUE */}
+            <div style={{ background: "#050912", border: "1px solid #1E293B", borderRadius: 8, padding: 8, display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ fontSize: 10, fontWeight: 800, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                Réglages Calque &amp; Papier
+              </div>
+
+              {/* Format Papier */}
+              <div>
+                <label style={{ display: "block", fontSize: 10, color: "#64748B", marginBottom: 2 }}>Format :</label>
+                <select
+                  value={format}
+                  onChange={(e) => setFormat(e.target.value as PaperFormat)}
+                  style={{
+                    width: "100%",
+                    background: "#0F172A",
+                    color: "#F8FAFC",
+                    border: "1px solid #334155",
+                    borderRadius: 4,
+                    padding: "4px 6px",
+                    fontSize: 11
+                  }}
+                >
+                  {Object.entries(PAPER_FORMATS).map(([k, v]) => (
+                    <option key={k} value={k}>
+                      {v.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Opacité Slider */}
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#94A3B8", marginBottom: 2 }}>
+                  <span>Opacité Calque :</span>
+                  <span style={{ fontWeight: 700, color: "#38BDF8" }}>{opacity}%</span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={opacity}
+                  onChange={(e) => setOpacity(Number(e.target.value))}
+                  style={{ width: "100%", accentColor: "#0284C7" }}
+                />
+              </div>
+
+              {/* Filtre N&B */}
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#94A3B8", marginBottom: 2 }}>
+                  <span>Filtre Encre N&amp;B :</span>
+                  <span style={{ fontWeight: 700, color: "#38BDF8" }}>{contrastThreshold}</span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={255}
+                  value={contrastThreshold}
+                  onChange={(e) => setContrastThreshold(Number(e.target.value))}
+                  style={{ width: "100%", accentColor: "#0284C7" }}
+                />
+              </div>
+
+              {/* Inverser fond/traits */}
+              <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontSize: 10, color: "#CBD5E1" }}>
+                <input
+                  type="checkbox"
+                  checked={invert}
+                  onChange={(e) => setInvert(e.target.checked)}
+                  style={{ accentColor: "#0284C7" }}
+                />
+                <span>Inverser fond / traits</span>
+              </label>
+
+              {/* Tolérance Aimantation */}
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#94A3B8", marginBottom: 2 }}>
+                  <span>Aimantation ISO :</span>
+                  <span style={{ fontWeight: 700, color: "#38BDF8" }}>±{snapAngleToleranceDeg}°</span>
+                </div>
+                <input
+                  type="range"
+                  min={5}
+                  max={25}
+                  value={snapAngleToleranceDeg}
+                  onChange={(e) => setSnapAngleToleranceDeg(Number(e.target.value))}
+                  style={{ width: "100%", accentColor: "#0284C7" }}
+                />
+              </div>
+            </div>
+
+            {/* Notification Toast in Sidebar */}
+            {statusMessage && (
+              <div
+                style={{
+                  background: "rgba(56, 189, 248, 0.1)",
+                  border: "1px solid rgba(56, 189, 248, 0.3)",
+                  borderRadius: 6,
+                  padding: "6px 8px",
+                  fontSize: 10,
+                  color: "#38BDF8",
+                  fontWeight: 600,
+                  lineHeight: 1.4
+                }}
+              >
+                {statusMessage}
+              </div>
+            )}
+          </div>
+        </aside>
+      )}
       </div>
 
       {/* JSON PREVIEW MODAL */}
