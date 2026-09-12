@@ -1,22 +1,31 @@
 /**
  * PDI NORMATIVE ENGINE — PIPE DIMENSIONAL VALIDATOR
- * Reference: PATCH NORM-02-R1 (Conditional Type Rules)
+ * Reference: PATCH NORM-02-R1.1 (Complete Record Validation — Type Safety)
  * 
  * Validateur d'intégrité structurelle pour `PipeDimensionalRecord`.
  * 
- * RÈGLE FONDAMENTALE (NORM-02-R1) :
- * - Ce validateur garantit la cohérence des données saisies selon leur propre statut et structure.
- * - Il ne calcule PAS de conformité normative ASME/DIN/ISO (pas de Barlow, pas de calcul d'épaisseur).
- * - Il n'effectue AUCUNE conversion automatique (ex: NPS ↔ DN, Schedule → épaisseur).
+ * RÈGLE FONDAMENTALE (NORM-02-R1.1) :
+ * - Distingue explicitement la validation d'un record complet (validateCompletePipeDimensionalRecord)
+ *   de la validation d'un record partiel (validatePartialPipeDimensionalRecord).
+ * - Garantit la sécurité de typage strict à la frontière d'exécution (record: unknown).
+ * - Ne calcule PAS de conformité normative ASME/DIN/ISO (pas de Barlow, pas de calcul d'épaisseur).
+ * - N'effectue AUCUNE conversion automatique (ex: NPS ↔ DN, Schedule → épaisseur).
  */
 
 import { PDI_STANDARDS_REGISTRY } from "../registry/standardsRegistry";
-import type { PipeDimensionalRecord, PipeType } from "../types/pipeDimensionalTypes";
+import type { PipeDimensionalRecord, PipeType, PipeSourceStatus } from "../types/pipeDimensionalTypes";
 
 /**
- * Codes d'erreur fortement typés pour la traçabilité et la validation NORM-02-R1.
+ * Codes d'erreur fortement typés pour la traçabilité et la validation NORM-02-R1.1.
  */
 export type PipeDimensionalValidationErrorCode =
+  | "MISSING_RECORD_ID"
+  | "EMPTY_RECORD_ID"
+  | "MISSING_STANDARD_ID"
+  | "MISSING_UNIT_SYSTEM"
+  | "MISSING_SOURCE_STATUS"
+  | "INVALID_UNIT_SYSTEM"
+  | "INVALID_SOURCE_STATUS"
   | "INVALID_STANDARD_ID"
   | "STANDARD_IS_NOT_DIMENSIONAL"
   | "MISSING_SOURCE_REFERENCE"
@@ -47,15 +56,34 @@ const VALID_PIPE_TYPES: readonly PipeType[] = Object.freeze([
   "UNKNOWN",
 ]);
 
+const VALID_SOURCE_STATUSES: readonly PipeSourceStatus[] = Object.freeze([
+  "VERIFIED",
+  "LICENSED",
+  "UNVERIFIED",
+  "LEGACY",
+]);
+
 /**
- * Valide un enregistrement PipeDimensionalRecord selon les 14 règles conditionnelles NORM-02-R1.
+ * Type Guard pour vérifier qu'une valeur d'entrée inconnue est un objet non-null et non-tableau.
  */
-export function validatePipeDimensionalRecord(
+export function isRecordObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Valide un enregistrement partiel (Partial<PipeDimensionalRecord>).
+ * Valide uniquement les champs présents sans exiger la présence des champs obligatoires du record complet.
+ */
+export function validatePartialPipeDimensionalRecord(
   record: Partial<PipeDimensionalRecord>
 ): PipeDimensionalValidationResult {
   const errors: PipeDimensionalValidationError[] = [];
 
-  // RÈGLE CONDITIONNELLE 1 & 2 & 3 & 4 — SOURCE TRACEABILITY (VERIFIED / LICENSED / UNVERIFIED / LEGACY)
+  if (!record || typeof record !== "object" || Array.isArray(record)) {
+    return { valid: true, errors: [] };
+  }
+
+  // Traçabilité de la source si sourceStatus est présent
   if (record.sourceStatus === "VERIFIED") {
     if (!record.sourceReference || record.sourceReference.trim().length === 0) {
       errors.push({
@@ -84,7 +112,7 @@ export function validatePipeDimensionalRecord(
     }
   }
 
-  // RÈGLE CONDITIONNELLE 6 — STANDARD ID & CLASSIFICATION
+  // standardId & Classification
   if (record.standardId) {
     const standard = PDI_STANDARDS_REGISTRY[record.standardId];
     if (!standard) {
@@ -99,15 +127,10 @@ export function validatePipeDimensionalRecord(
         field: "standardId",
         message: `Le standard ${record.standardId} (${standard.standardType}) n'est pas un standard dimensionnel (DIMENSIONAL_STANDARD).`,
       });
-      errors.push({
-        code: "INVALID_STANDARD_ID",
-        field: "standardId",
-        message: `Le standard ${record.standardId} n'est pas valide pour un tube dimensionnel.`,
-      });
     }
   }
 
-  // RÈGLE CONDITIONNELLE 7 — OUTSIDE DIAMETER
+  // Outside Diameter
   if (record.outsideDiameterMm !== undefined) {
     if (typeof record.outsideDiameterMm !== "number" || isNaN(record.outsideDiameterMm) || record.outsideDiameterMm <= 0) {
       errors.push({
@@ -118,29 +141,29 @@ export function validatePipeDimensionalRecord(
     }
   }
 
-  // RÈGLE CONDITIONNELLE 8 — WALL THICKNESS
+  // Wall Thickness
   if (record.wallThicknessMm !== undefined) {
     if (typeof record.wallThicknessMm !== "number" || isNaN(record.wallThicknessMm) || record.wallThicknessMm <= 0) {
       errors.push({
         code: "INVALID_WALL_THICKNESS",
         field: "wallThicknessMm",
-        message: "L'épaisseur de paroi (wallThicknessMm) doit être un nombre strictly positif (> 0).",
+        message: "L'épaisseur de paroi (wallThicknessMm) doit être un nombre strictement positif (> 0).",
       });
     }
   }
 
-  // RÈGLE CONDITIONNELLE 9 — DN
+  // DN
   if (record.dn !== undefined) {
     if (typeof record.dn !== "number" || isNaN(record.dn) || record.dn <= 0) {
       errors.push({
         code: "INVALID_DN",
         field: "dn",
-        message: "Le diamètre nominal DN (dn) doit être un nombre entier/strictement positif (> 0).",
+        message: "Le diamètre nominal DN (dn) doit être un nombre strictement positif (> 0).",
       });
     }
   }
 
-  // RÈGLE CONDITIONNELLE 10 — NPS
+  // NPS
   if (record.nps !== undefined) {
     if (typeof record.nps !== "string" || record.nps.trim().length === 0) {
       errors.push({
@@ -151,7 +174,7 @@ export function validatePipeDimensionalRecord(
     }
   }
 
-  // RÈGLE CONDITIONNELLE 11 — SCHEDULE
+  // Schedule
   if (record.schedule !== undefined) {
     if (typeof record.schedule !== "string" || record.schedule.trim().length === 0) {
       errors.push({
@@ -162,9 +185,9 @@ export function validatePipeDimensionalRecord(
     }
   }
 
-  // RÈGLE CONDITIONNELLE 12 — PIPE TYPE
+  // Pipe Type
   if (record.pipeType !== undefined) {
-    if (!VALID_PIPE_TYPES.includes(record.pipeType as any)) {
+    if (typeof record.pipeType !== "string" || !VALID_PIPE_TYPES.includes(record.pipeType as PipeType)) {
       errors.push({
         code: "INVALID_PIPE_TYPE",
         field: "pipeType",
@@ -178,3 +201,97 @@ export function validatePipeDimensionalRecord(
     errors,
   };
 }
+
+/**
+ * Valide un enregistrement complet (PipeDimensionalRecord).
+ * Entrée typée en `unknown` pour garantir la sécurité de typage strict sans contournement `any`.
+ * Exige impérativement la présence et la validité des champs de base : id, standardId, unitSystem, sourceStatus.
+ */
+export function validateCompletePipeDimensionalRecord(
+  record: unknown
+): PipeDimensionalValidationResult {
+  const errors: PipeDimensionalValidationError[] = [];
+
+  if (!isRecordObject(record)) {
+    return {
+      valid: false,
+      errors: [
+        { code: "MISSING_RECORD_ID", field: "id", message: "L'identifiant de record (id) est nul ou absent (entrée non-objet)." },
+        { code: "MISSING_STANDARD_ID", field: "standardId", message: "Le standardId est nul ou absent (entrée non-objet)." },
+        { code: "MISSING_UNIT_SYSTEM", field: "unitSystem", message: "Le système d'unités est nul ou absent (entrée non-objet)." },
+        { code: "MISSING_SOURCE_STATUS", field: "sourceStatus", message: "Le statut de source est nul ou absent (entrée non-objet)." },
+      ],
+    };
+  }
+
+  // REQUIRED 01: id
+  if (record.id === undefined || record.id === null) {
+    errors.push({
+      code: "MISSING_RECORD_ID",
+      field: "id",
+      message: "L'identifiant de record (id) est obligatoire pour un record complet.",
+    });
+  } else if (typeof record.id !== "string" || record.id.trim().length === 0) {
+    errors.push({
+      code: "EMPTY_RECORD_ID",
+      field: "id",
+      message: "L'identifiant de record (id) ne peut pas être une chaîne vide.",
+    });
+  }
+
+  // REQUIRED 02: standardId
+  if (!record.standardId) {
+    errors.push({
+      code: "MISSING_STANDARD_ID",
+      field: "standardId",
+      message: "Le standard (standardId) est obligatoire pour un record complet.",
+    });
+  }
+
+  // REQUIRED 03: unitSystem
+  if (!record.unitSystem) {
+    errors.push({
+      code: "MISSING_UNIT_SYSTEM",
+      field: "unitSystem",
+      message: "Le système d'unités (unitSystem) est obligatoire pour un record complet.",
+    });
+  } else if (record.unitSystem !== "SI" && record.unitSystem !== "US_CUSTOMARY") {
+    errors.push({
+      code: "INVALID_UNIT_SYSTEM",
+      field: "unitSystem",
+      message: "Le système d'unités doit être 'SI' ou 'US_CUSTOMARY'.",
+    });
+  }
+
+  // REQUIRED 04: sourceStatus
+  if (!record.sourceStatus) {
+    errors.push({
+      code: "MISSING_SOURCE_STATUS",
+      field: "sourceStatus",
+      message: "Le statut de source (sourceStatus) est obligatoire pour un record complet.",
+    });
+  } else if (typeof record.sourceStatus !== "string" || !VALID_SOURCE_STATUSES.includes(record.sourceStatus as PipeSourceStatus)) {
+    errors.push({
+      code: "INVALID_SOURCE_STATUS",
+      field: "sourceStatus",
+      message: "Le statut de source doit être VERIFIED, LICENSED, UNVERIFIED ou LEGACY.",
+    });
+  }
+
+  // Déléguer aux règles conditionnelles de manière sûre
+  const partialResult = validatePartialPipeDimensionalRecord(record as Partial<PipeDimensionalRecord>);
+
+  const combinedErrors = [...errors, ...partialResult.errors];
+
+  return {
+    valid: combinedErrors.length === 0,
+    errors: combinedErrors,
+  };
+}
+
+/**
+ * Alias de compatibilité.
+ */
+export const validatePipeDimensionalRecord = validatePartialPipeDimensionalRecord;
+
+

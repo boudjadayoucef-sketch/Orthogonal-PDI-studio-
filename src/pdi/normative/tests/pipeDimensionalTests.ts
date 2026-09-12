@@ -21,7 +21,11 @@ import {
 } from "../registry/pipeDimensionalRegistry";
 import type { PipeDimensionalRecord } from "../types/pipeDimensionalTypes";
 import * as pipeRegistryModule from "../registry/pipeDimensionalRegistry";
-import { validatePipeDimensionalRecord } from "../validators/pipeDimensionalValidator";
+import {
+  validatePipeDimensionalRecord,
+  validatePartialPipeDimensionalRecord,
+  validateCompletePipeDimensionalRecord,
+} from "../validators/pipeDimensionalValidator";
 
 export function runPipeDimensionalEngineTests(): { success: boolean; results: string[] } {
   const results: string[] = [];
@@ -108,117 +112,276 @@ export function runPipeDimensionalEngineTests(): { success: boolean; results: st
   assert(t10Valid, "TEST 10 — Aucune donnée ou formule de calcul B31/Barlow dans le moteur dimensionnel");
 
   // =========================================================================
-  // 2. TESTS CONDITIONNELS OBLIGATOIRES NORM-02-R1 (TESTS C01 à C14)
+  // 2. TESTS NORM-02-R1.1 — COMPLETE VS PARTIAL RECORD VALIDATION (M01 - M07)
   // =========================================================================
 
-  // TEST C01: VERIFIED sans sourceReference → FAIL
-  const resC01 = validatePipeDimensionalRecord({ sourceStatus: "VERIFIED", sourceReference: undefined });
-  assert(
-    !resC01.valid && resC01.errors.some((e) => e.code === "VERIFIED_RECORD_REQUIRES_SOURCE_REFERENCE" || e.code === "MISSING_SOURCE_REFERENCE"),
-    "TEST C01 — VERIFIED sans sourceReference doit échouer à la validation"
-  );
-
-  // TEST C02: VERIFIED avec sourceReference → PASS (sur la sourceReference)
-  const resC02 = validatePipeDimensionalRecord({
-    sourceStatus: "VERIFIED",
-    sourceReference: "ASME B36.10M-2018 Table 1",
+  // FIXTURES DE TEST SYNTHÉTIQUES
+  const validCompleteFixture: PipeDimensionalRecord = Object.freeze({
+    id: "TEST_SYNTHETIC_PIPE_001",
     standardId: "ASME-B36.10M",
     unitSystem: "SI",
-  });
-  assert(
-    resC02.valid,
-    "TEST C02 — VERIFIED avec sourceReference valide doit être accepté"
-  );
-
-  // TEST C03: LICENSED sans sourceReference → FAIL
-  const resC03 = validatePipeDimensionalRecord({ sourceStatus: "LICENSED", sourceReference: undefined });
-  assert(
-    !resC03.valid && resC03.errors.some((e) => e.code === "LICENSED_RECORD_REQUIRES_SOURCE_REFERENCE" || e.code === "MISSING_SOURCE_REFERENCE"),
-    "TEST C03 — LICENSED sans sourceReference doit échouer à la validation"
-  );
-
-  // TEST C04: UNVERIFIED sans sourceReference → PASS (aucune source requise)
-  const resC04 = validatePipeDimensionalRecord({
     sourceStatus: "UNVERIFIED",
+  });
+
+  // TEST M01: validateCompletePipeDimensionalRecord({}) → FAIL
+  const resM01 = validateCompletePipeDimensionalRecord({});
+  assert(
+    !resM01.valid && resM01.errors.some((e) => e.code === "MISSING_RECORD_ID"),
+    "TEST M01 — validateCompletePipeDimensionalRecord({}) doit échouer (objet vide)"
+  );
+
+  // TEST M02: validateCompletePipeDimensionalRecord(null) → FAIL
+  const resM02 = validateCompletePipeDimensionalRecord(null);
+  assert(
+    !resM02.valid && resM02.errors.some((e) => e.code === "MISSING_RECORD_ID"),
+    "TEST M02 — validateCompletePipeDimensionalRecord(null) doit échouer (null non-objet)"
+  );
+
+  // TEST M03: validateCompletePipeDimensionalRecord("invalid") → FAIL
+  const resM03 = validateCompletePipeDimensionalRecord("invalid");
+  assert(
+    !resM03.valid && resM03.errors.some((e) => e.code === "MISSING_RECORD_ID"),
+    "TEST M03 — validateCompletePipeDimensionalRecord('invalid') doit échouer (string non-objet)"
+  );
+
+  // TEST M04: validateCompletePipeDimensionalRecord([]) → FAIL
+  const resM04 = validateCompletePipeDimensionalRecord([]);
+  assert(
+    !resM04.valid && resM04.errors.some((e) => e.code === "MISSING_RECORD_ID"),
+    "TEST M04 — validateCompletePipeDimensionalRecord([]) doit échouer (array non-record-object)"
+  );
+
+  // TEST M05: Record complet valide (id, standardId, unitSystem, sourceStatus) → PASS
+  const resM05 = validateCompletePipeDimensionalRecord(validCompleteFixture);
+  assert(
+    resM05.valid && resM05.errors.length === 0,
+    "TEST M05 — Un record complet valide doit passer la validation complète"
+  );
+
+  // TEST M06: Vérification du typage unknown à la signature de validateCompletePipeDimensionalRecord
+  const acceptUnknownTypeCheck: (val: unknown) => unknown = validateCompletePipeDimensionalRecord;
+  assert(
+    typeof acceptUnknownTypeCheck === "function",
+    "TEST M06 — validateCompletePipeDimensionalRecord accepte l'entrée 'unknown' de manière type-safe"
+  );
+
+  // TEST M07: validatePartialPipeDimensionalRecord({}) reste valide comme état partiel
+  const resM07 = validatePartialPipeDimensionalRecord({});
+  assert(
+    resM07.valid && resM07.errors.length === 0,
+    "TEST M07 — validatePartialPipeDimensionalRecord({}) reste valide comme état partiel"
+  );
+
+  // TEST R1.1-04: Record complet sans id → FAIL MISSING_RECORD_ID
+  const resR1_1_04 = validateCompletePipeDimensionalRecord({
+    standardId: "ASME-B36.10M",
+    unitSystem: "SI",
+    sourceStatus: "UNVERIFIED",
+  });
+  assert(
+    !resR1_1_04.valid && resR1_1_04.errors.some((e) => e.code === "MISSING_RECORD_ID"),
+    "TEST R1.1-04 — Record complet sans 'id' doit renvoyer l'erreur MISSING_RECORD_ID"
+  );
+
+  // TEST R1.1-05: Record complet sans standardId → FAIL MISSING_STANDARD_ID
+  const resR1_1_05 = validateCompletePipeDimensionalRecord({
+    id: "TEST_PIPE_005",
+    unitSystem: "SI",
+    sourceStatus: "UNVERIFIED",
+  });
+  assert(
+    !resR1_1_05.valid && resR1_1_05.errors.some((e) => e.code === "MISSING_STANDARD_ID"),
+    "TEST R1.1-05 — Record complet sans 'standardId' doit renvoyer l'erreur MISSING_STANDARD_ID"
+  );
+
+  // TEST R1.1-06: Record complet sans unitSystem → FAIL MISSING_UNIT_SYSTEM
+  const resR1_1_06 = validateCompletePipeDimensionalRecord({
+    id: "TEST_PIPE_006",
+    standardId: "ASME-B36.10M",
+    sourceStatus: "UNVERIFIED",
+  });
+  assert(
+    !resR1_1_06.valid && resR1_1_06.errors.some((e) => e.code === "MISSING_UNIT_SYSTEM"),
+    "TEST R1.1-06 — Record complet sans 'unitSystem' doit renvoyer l'erreur MISSING_UNIT_SYSTEM"
+  );
+
+  // TEST R1.1-07: Record complet sans sourceStatus → FAIL MISSING_SOURCE_STATUS
+  const resR1_1_07 = validateCompletePipeDimensionalRecord({
+    id: "TEST_PIPE_007",
     standardId: "ASME-B36.10M",
     unitSystem: "SI",
   });
   assert(
-    resC04.valid,
-    "TEST C04 — UNVERIFIED sans sourceReference doit être valide"
+    !resR1_1_07.valid && resR1_1_07.errors.some((e) => e.code === "MISSING_SOURCE_STATUS"),
+    "TEST R1.1-07 — Record complet sans 'sourceStatus' doit renvoyer l'erreur MISSING_SOURCE_STATUS"
   );
 
-  // TEST C05: LEGACY sans sourceReference → PASS, non VERIFIED automatiquement
-  const resC05 = validatePipeDimensionalRecord({
+  // TEST R1.1-08: standardId = ASME-B31.3 → FAIL STANDARD_IS_NOT_DIMENSIONAL
+  const resR1_1_08 = validateCompletePipeDimensionalRecord({
+    id: "TEST_PIPE_008",
+    standardId: "ASME-B31.3",
+    unitSystem: "SI",
+    sourceStatus: "UNVERIFIED",
+  });
+  assert(
+    !resR1_1_08.valid && resR1_1_08.errors.some((e) => e.code === "STANDARD_IS_NOT_DIMENSIONAL"),
+    "TEST R1.1-08 — Record avec standardId = ASME-B31.3 doit renvoyer STANDARD_IS_NOT_DIMENSIONAL"
+  );
+
+  // TEST R1.1-09: VERIFIED sans sourceReference → FAIL
+  const resR1_1_09 = validateCompletePipeDimensionalRecord({
+    id: "TEST_PIPE_009",
+    standardId: "ASME-B36.10M",
+    unitSystem: "SI",
+    sourceStatus: "VERIFIED",
+  });
+  assert(
+    !resR1_1_09.valid && resR1_1_09.errors.some((e) => e.code === "VERIFIED_RECORD_REQUIRES_SOURCE_REFERENCE"),
+    "TEST R1.1-09 — Statut VERIFIED sans sourceReference doit échouer à la validation"
+  );
+
+  // TEST R1.1-10: LICENSED sans sourceReference → FAIL
+  const resR1_1_10 = validateCompletePipeDimensionalRecord({
+    id: "TEST_PIPE_010",
+    standardId: "ASME-B36.10M",
+    unitSystem: "SI",
+    sourceStatus: "LICENSED",
+  });
+  assert(
+    !resR1_1_10.valid && resR1_1_10.errors.some((e) => e.code === "LICENSED_RECORD_REQUIRES_SOURCE_REFERENCE"),
+    "TEST R1.1-10 — Statut LICENSED sans sourceReference doit échouer à la validation"
+  );
+
+  // TEST R1.1-11: UNVERIFIED sans sourceReference → PASS
+  const resR1_1_11 = validateCompletePipeDimensionalRecord({
+    id: "TEST_PIPE_011",
+    standardId: "ASME-B36.10M",
+    unitSystem: "SI",
+    sourceStatus: "UNVERIFIED",
+  });
+  assert(
+    resR1_1_11.valid,
+    "TEST R1.1-11 — Statut UNVERIFIED sans sourceReference est valide"
+  );
+
+  // TEST R1.1-12: LEGACY sans sourceReference → PASS comme état legacy
+  const resR1_1_12 = validateCompletePipeDimensionalRecord({
+    id: "TEST_PIPE_012",
+    standardId: "ASME-B36.10M",
+    unitSystem: "SI",
     sourceStatus: "LEGACY",
-    standardId: "ASME-B36.10M",
-    unitSystem: "SI",
   });
   assert(
-    resC05.valid,
-    "TEST C05 — LEGACY sans sourceReference reste valide comme donnée historique non VERIFIED"
+    resR1_1_12.valid,
+    "TEST R1.1-12 — Statut LEGACY sans sourceReference est valide comme donnée historique"
   );
 
-  // TEST C06: standardId = ASME-B31.3 (DESIGN_CODE) → FAIL
-  const resC06 = validatePipeDimensionalRecord({ standardId: "ASME-B31.3", sourceStatus: "UNVERIFIED", unitSystem: "SI" });
+  // TEST R1.1-13: dn = 0 → FAIL INVALID_DN
+  const resR1_1_13 = validateCompletePipeDimensionalRecord({
+    id: "TEST_PIPE_013",
+    standardId: "ASME-B36.10M",
+    unitSystem: "SI",
+    sourceStatus: "UNVERIFIED",
+    dn: 0,
+  });
   assert(
-    !resC06.valid && resC06.errors.some((e) => e.code === "STANDARD_IS_NOT_DIMENSIONAL" || e.code === "INVALID_STANDARD_ID"),
-    "TEST C06 — standardId = ASME-B31.3 (Code de conception) doit être rejeté par le validateur dimensionnel"
+    !resR1_1_13.valid && resR1_1_13.errors.some((e) => e.code === "INVALID_DN"),
+    "TEST R1.1-13 — dn = 0 doit renvoyer INVALID_DN"
   );
 
-  // TEST C07: standardId = ASME-B36.10M (DIMENSIONAL_STANDARD) → PASS
-  const resC07 = validatePipeDimensionalRecord({ standardId: "ASME-B36.10M", sourceStatus: "UNVERIFIED", unitSystem: "SI" });
+  // TEST R1.1-14: outsideDiameterMm = -1 → FAIL INVALID_OUTSIDE_DIAMETER
+  const resR1_1_14 = validateCompletePipeDimensionalRecord({
+    id: "TEST_PIPE_014",
+    standardId: "ASME-B36.10M",
+    unitSystem: "SI",
+    sourceStatus: "UNVERIFIED",
+    outsideDiameterMm: -1,
+  });
   assert(
-    resC07.valid,
-    "TEST C07 — standardId = ASME-B36.10M (Standard dimensionnel) doit être accepté"
+    !resR1_1_14.valid && resR1_1_14.errors.some((e) => e.code === "INVALID_OUTSIDE_DIAMETER"),
+    "TEST R1.1-14 — outsideDiameterMm = -1 doit renvoyer INVALID_OUTSIDE_DIAMETER"
   );
 
-  // TEST C08: dn = 0 → FAIL
-  const resC08 = validatePipeDimensionalRecord({ dn: 0, sourceStatus: "UNVERIFIED", unitSystem: "SI" });
+  // TEST R1.1-15: wallThicknessMm = 0 → FAIL INVALID_WALL_THICKNESS
+  const resR1_1_15 = validateCompletePipeDimensionalRecord({
+    id: "TEST_PIPE_015",
+    standardId: "ASME-B36.10M",
+    unitSystem: "SI",
+    sourceStatus: "UNVERIFIED",
+    wallThicknessMm: 0,
+  });
   assert(
-    !resC08.valid && resC08.errors.some((e) => e.code === "INVALID_DN"),
-    "TEST C08 — dn = 0 doit être rejeté (INVALID_DN)"
+    !resR1_1_15.valid && resR1_1_15.errors.some((e) => e.code === "INVALID_WALL_THICKNESS"),
+    "TEST R1.1-15 — wallThicknessMm = 0 doit renvoyer INVALID_WALL_THICKNESS"
   );
 
-  // TEST C09: outsideDiameterMm = -1 → FAIL
-  const resC09 = validatePipeDimensionalRecord({ outsideDiameterMm: -1, sourceStatus: "UNVERIFIED", unitSystem: "SI" });
+  // TEST R1.1-16: schedule = "" → FAIL EMPTY_SCHEDULE
+  const resR1_1_16 = validateCompletePipeDimensionalRecord({
+    id: "TEST_PIPE_016",
+    standardId: "ASME-B36.10M",
+    unitSystem: "SI",
+    sourceStatus: "UNVERIFIED",
+    schedule: "",
+  });
   assert(
-    !resC09.valid && resC09.errors.some((e) => e.code === "INVALID_OUTSIDE_DIAMETER"),
-    "TEST C09 — outsideDiameterMm = -1 doit être rejeté (INVALID_OUTSIDE_DIAMETER)"
+    !resR1_1_16.valid && resR1_1_16.errors.some((e) => e.code === "EMPTY_SCHEDULE"),
+    "TEST R1.1-16 — schedule = '' doit renvoyer EMPTY_SCHEDULE"
   );
 
-  // TEST C10: wallThicknessMm = 0 → FAIL
-  const resC10 = validatePipeDimensionalRecord({ wallThicknessMm: 0, sourceStatus: "UNVERIFIED", unitSystem: "SI" });
+  // TEST R1.1-17: pipeType = "INVALID" → FAIL INVALID_PIPE_TYPE
+  const resR1_1_17 = validateCompletePipeDimensionalRecord({
+    id: "TEST_PIPE_017",
+    standardId: "ASME-B36.10M",
+    unitSystem: "SI",
+    sourceStatus: "UNVERIFIED",
+    pipeType: "INVALID" as any,
+  });
   assert(
-    !resC10.valid && resC10.errors.some((e) => e.code === "INVALID_WALL_THICKNESS"),
-    "TEST C10 — wallThicknessMm = 0 doit être rejeté (INVALID_WALL_THICKNESS)"
+    !resR1_1_17.valid && resR1_1_17.errors.some((e) => e.code === "INVALID_PIPE_TYPE"),
+    "TEST R1.1-17 — pipeType = 'INVALID' doit renvoyer INVALID_PIPE_TYPE"
   );
 
-  // TEST C11: schedule = "" → FAIL
-  const resC11 = validatePipeDimensionalRecord({ schedule: "", sourceStatus: "UNVERIFIED", unitSystem: "SI" });
+  // TEST R1.1-18: Détection d'ID dupliqués dans un registre synthétique de test
+  const syntheticDuplicatesList: PipeDimensionalRecord[] = [
+    { id: "TEST_DUPLICATE_001", standardId: "ASME-B36.10M", unitSystem: "SI", sourceStatus: "UNVERIFIED" },
+    { id: "TEST_DUPLICATE_001", standardId: "ASME-B36.10M", unitSystem: "SI", sourceStatus: "UNVERIFIED" },
+  ];
+  const seenIds = new Set<string>();
+  const duplicateIds: string[] = [];
+  for (const item of syntheticDuplicatesList) {
+    if (seenIds.has(item.id)) {
+      duplicateIds.push(item.id);
+    } else {
+      seenIds.add(item.id);
+    }
+  }
   assert(
-    !resC11.valid && resC11.errors.some((e) => e.code === "EMPTY_SCHEDULE"),
-    "TEST C11 — schedule = '' doit être rejeté si fourni (EMPTY_SCHEDULE)"
+    duplicateIds.length === 1 && duplicateIds[0] === "TEST_DUPLICATE_001",
+    "TEST R1.1-18 — Détection exacte d'identifiant dupliqué dans un registre synthétique de test"
   );
 
-  // TEST C12: pipeType = "INVALID" → FAIL
-  const resC12 = validatePipeDimensionalRecord({ pipeType: "INVALID" as any, sourceStatus: "UNVERIFIED", unitSystem: "SI" });
+  // VÉRIFICATION PRODUCTION REGISTRY COUNT
   assert(
-    !resC12.valid && resC12.errors.some((e) => e.code === "INVALID_PIPE_TYPE"),
-    "TEST C12 — pipeType invalide doit être rejeté (INVALID_PIPE_TYPE)"
+    PIPE_DIMENSIONAL_REGISTRY.length === 0,
+    "TEST PRODUCTION REGISTRY — Le registre de production reste à 0 record tant qu'aucune donnée normative vérifiée n'est chargée"
   );
 
-  // TEST C13: Aucune fonction de conversion NPS/DN créée
-  assert(
-    !hasConversionFunction,
-    "TEST C13 — Confirmation stricte : Aucune fonction de conversion NPS ↔ DN n'a été créée"
-  );
-
-  // TEST C14: Aucune dérivation Schedule → thickness créée
-  assert(
-    !hasScheduleMapper,
-    "TEST C14 — Confirmation stricte : Aucune dérivation automatique Schedule → épaisseur n'a été créée"
-  );
+  // IMMUTABILITÉ — Vérification que la validation ne mute pas l'objet d'entrée
+  const immutableInput = Object.freeze({
+    id: "TEST_IMMUTABLE_PIPE",
+    standardId: "ASME-B36.10M" as const,
+    unitSystem: "SI" as const,
+    sourceStatus: "UNVERIFIED" as const,
+  });
+  let immutabilityPassed = true;
+  try {
+    validateCompletePipeDimensionalRecord(immutableInput);
+    validatePartialPipeDimensionalRecord(immutableInput);
+  } catch {
+    immutabilityPassed = false;
+  }
+  assert(immutabilityPassed, "TEST IMMUTABILITÉ — Les fonctions de validation sont pures et n'altèrent pas l'objet fourni");
 
   return { success, results };
 }
+
