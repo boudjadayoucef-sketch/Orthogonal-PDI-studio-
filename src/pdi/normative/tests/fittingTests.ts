@@ -56,28 +56,28 @@ export function runFittingEngineTests(): { success: boolean; testsRun: number } 
     "TEST F02 — validateCompleteFittingRecord({}) doit échouer (champs obligatoires manquants)"
   );
 
-  // TEST F03: null -> FAIL
+  // TEST F03: null -> FAIL (INVALID_RECORD_OBJECT)
   testsRun++;
   const resF03 = validateCompleteFittingRecord(null);
   assert(
-    !resF03.valid && resF03.errors.some((e) => e.code === "MISSING_RECORD_ID"),
-    "TEST F03 — validateCompleteFittingRecord(null) doit échouer"
+    !resF03.valid && resF03.errors.some((e) => e.code === "INVALID_RECORD_OBJECT"),
+    "TEST F03 — validateCompleteFittingRecord(null) doit échouer avec INVALID_RECORD_OBJECT"
   );
 
-  // TEST F04: string -> FAIL
+  // TEST F04: string -> FAIL (INVALID_RECORD_OBJECT)
   testsRun++;
   const resF04 = validateCompleteFittingRecord("invalid_string_input");
   assert(
-    !resF04.valid && resF04.errors.some((e) => e.code === "MISSING_RECORD_ID"),
-    "TEST F04 — validateCompleteFittingRecord('string') doit échouer"
+    !resF04.valid && resF04.errors.some((e) => e.code === "INVALID_RECORD_OBJECT"),
+    "TEST F04 — validateCompleteFittingRecord('string') doit échouer avec INVALID_RECORD_OBJECT"
   );
 
-  // TEST F05: array -> FAIL
+  // TEST F05: array -> FAIL (INVALID_RECORD_OBJECT)
   testsRun++;
   const resF05 = validateCompleteFittingRecord([validFittingFixture]);
   assert(
-    !resF05.valid && resF05.errors.some((e) => e.code === "MISSING_RECORD_ID"),
-    "TEST F05 — validateCompleteFittingRecord([]) doit échouer"
+    !resF05.valid && resF05.errors.some((e) => e.code === "INVALID_RECORD_OBJECT"),
+    "TEST F05 — validateCompleteFittingRecord([]) doit échouer avec INVALID_RECORD_OBJECT"
   );
 
   // TEST F06: standardId inconnu -> FAIL (INVALID_STANDARD_ID)
@@ -301,6 +301,112 @@ export function runFittingEngineTests(): { success: boolean; testsRun: number } 
   assert(getFittingsByStandard("ASME-B16.9").length === 0, "getFittingsByStandard retourne un tableau vide");
   assert(getFittingsByType("ELBOW").length === 0, "getFittingsByType retourne un tableau vide");
   assert(getAllFittings().length === 0, "getAllFittings retourne un tableau vide");
+
+  // =========================================================================
+  // NORM-03-R1: TYPE SAFETY & PARTIAL INPUT TESTS (R1-01 to R1-12)
+  // =========================================================================
+
+  // TEST R1-01: validatePartialFittingRecord({}) → valid === true
+  testsRun++;
+  const resR1_01 = validatePartialFittingRecord({});
+  assert(
+    resR1_01.valid && resR1_01.errors.length === 0,
+    "TEST R1-01 — validatePartialFittingRecord({}) doit être valide (état partiel)"
+  );
+
+  // TEST R1-02: validatePartialFittingRecord(null) → valid === false (INVALID_RECORD_OBJECT)
+  testsRun++;
+  const resR1_02 = validatePartialFittingRecord(null as unknown);
+  assert(
+    !resR1_02.valid && resR1_02.errors.some((e) => e.code === "INVALID_RECORD_OBJECT"),
+    "TEST R1-02 — validatePartialFittingRecord(null) doit échouer avec INVALID_RECORD_OBJECT"
+  );
+
+  // TEST R1-03: validatePartialFittingRecord(undefined) → valid === false (INVALID_RECORD_OBJECT)
+  testsRun++;
+  const resR1_03 = validatePartialFittingRecord(undefined as unknown);
+  assert(
+    !resR1_03.valid && resR1_03.errors.some((e) => e.code === "INVALID_RECORD_OBJECT"),
+    "TEST R1-03 — validatePartialFittingRecord(undefined) doit échouer avec INVALID_RECORD_OBJECT"
+  );
+
+  // TEST R1-04: validatePartialFittingRecord("invalid") → valid === false (INVALID_RECORD_OBJECT)
+  testsRun++;
+  const resR1_04 = validatePartialFittingRecord("invalid" as unknown);
+  assert(
+    !resR1_04.valid && resR1_04.errors.some((e) => e.code === "INVALID_RECORD_OBJECT"),
+    "TEST R1-04 — validatePartialFittingRecord('invalid') doit échouer avec INVALID_RECORD_OBJECT"
+  );
+
+  // TEST R1-05: validatePartialFittingRecord(123) → valid === false (INVALID_RECORD_OBJECT)
+  testsRun++;
+  const resR1_05 = validatePartialFittingRecord(123 as unknown);
+  assert(
+    !resR1_05.valid && resR1_05.errors.some((e) => e.code === "INVALID_RECORD_OBJECT"),
+    "TEST R1-05 — validatePartialFittingRecord(123) doit échouer avec INVALID_RECORD_OBJECT"
+  );
+
+  // TEST R1-06: validatePartialFittingRecord([]) → valid === false (INVALID_RECORD_OBJECT)
+  testsRun++;
+  const resR1_06 = validatePartialFittingRecord([] as unknown);
+  assert(
+    !resR1_06.valid && resR1_06.errors.some((e) => e.code === "INVALID_RECORD_OBJECT"),
+    "TEST R1-06 — validatePartialFittingRecord([]) doit échouer avec INVALID_RECORD_OBJECT"
+  );
+
+  // TEST R1-07: validateCompleteFittingRecord({}) → valid === false
+  testsRun++;
+  const resR1_07 = validateCompleteFittingRecord({});
+  assert(
+    !resR1_07.valid && resR1_07.errors.some((e) => e.code === "MISSING_RECORD_ID"),
+    "TEST R1-07 — validateCompleteFittingRecord({}) doit échouer (champs requis manquants)"
+  );
+
+  // TEST R1-08: Un record complet valide → valid === true
+  testsRun++;
+  const resR1_08 = validateCompleteFittingRecord(validFittingFixture);
+  assert(
+    resR1_08.valid && resR1_08.errors.length === 0,
+    "TEST R1-08 — Un record complet valide doit passer la validation complète"
+  );
+
+  // TEST R1-09: Vérifier que l'erreur structurelle est bien INVALID_RECORD_OBJECT (pas MISSING_RECORD_ID)
+  testsRun++;
+  const resR1_09_bool = validatePartialFittingRecord(true as unknown);
+  assert(
+    !resR1_09_bool.valid &&
+      resR1_09_bool.errors.length === 1 &&
+      resR1_09_bool.errors[0].code === "INVALID_RECORD_OBJECT",
+    "TEST R1-09 — Entrée booléenne produit uniquement INVALID_RECORD_OBJECT"
+  );
+
+  // TEST R1-10: Type safety check - la signature accepte unknown sans contournement any
+  testsRun++;
+  const acceptUnknownPartial: (v: unknown) => unknown = validatePartialFittingRecord;
+  const acceptUnknownComplete: (v: unknown) => unknown = validateCompleteFittingRecord;
+  assert(
+    typeof acceptUnknownPartial === "function" && typeof acceptUnknownComplete === "function",
+    "TEST R1-10 — Frontière runtime type-safe acceptant unknown sans contournement any"
+  );
+
+  // TEST R1-11: Vérifier que les règles VERIFIED/LICENSED sont préservées
+  testsRun++;
+  const resR1_11_verified = validatePartialFittingRecord({
+    sourceStatus: "VERIFIED",
+    sourceReference: undefined,
+  });
+  assert(
+    !resR1_11_verified.valid &&
+      resR1_11_verified.errors.some((e) => e.code === "VERIFIED_RECORD_REQUIRES_SOURCE_REFERENCE"),
+    "TEST R1-11 — VERIFIED sans sourceReference continue d'échouer dans le partial validator"
+  );
+
+  // TEST R1-12: Vérifier que FITTING_DIMENSIONAL_REGISTRY.length === 0
+  testsRun++;
+  assert(
+    FITTING_DIMENSIONAL_REGISTRY.length === 0,
+    "TEST R1-12 — FITTING_DIMENSIONAL_REGISTRY.length === 0 strictement garanti"
+  );
 
   return { success: true, testsRun };
 }

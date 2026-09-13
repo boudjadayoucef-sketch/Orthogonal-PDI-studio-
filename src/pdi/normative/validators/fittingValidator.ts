@@ -35,7 +35,7 @@ export interface FittingValidationResult {
   readonly errors: readonly FittingValidationError[];
 }
 
-const VALID_FITTING_TYPES: readonly FittingType[] = Object.freeze([
+export const VALID_FITTING_TYPES: readonly FittingType[] = Object.freeze([
   "ELBOW",
   "TEE",
   "REDUCER",
@@ -48,34 +48,34 @@ const VALID_FITTING_TYPES: readonly FittingType[] = Object.freeze([
   "OTHER",
 ]);
 
-const VALID_CONNECTION_TYPES: readonly FittingConnectionType[] = Object.freeze([
+export const VALID_CONNECTION_TYPES: readonly FittingConnectionType[] = Object.freeze([
   "BUTT_WELD",
   "SOCKET_WELD",
   "THREADED",
   "UNKNOWN",
 ]);
 
-const VALID_SOURCE_STATUSES: readonly FittingSourceStatus[] = Object.freeze([
+export const VALID_SOURCE_STATUSES: readonly FittingSourceStatus[] = Object.freeze([
   "VERIFIED",
   "LICENSED",
   "UNVERIFIED",
   "LEGACY",
 ]);
 
+const VALID_FITTING_TYPES_SET = new Set<string>(VALID_FITTING_TYPES);
+const VALID_CONNECTION_TYPES_SET = new Set<string>(VALID_CONNECTION_TYPES);
+const VALID_SOURCE_STATUSES_SET = new Set<string>(VALID_SOURCE_STATUSES);
+
 // isRecordObject is imported from ./pipeDimensionalValidator
 
 /**
- * Valide un enregistrement partiel (Partial<FittingDimensionalRecord>).
- * Valide uniquement les champs présents sans exiger la présence des champs obligatoires du record complet.
+ * Valide les règles conditionnelles et sémantiques communes sur un objet record.
+ * Fonctionne directement sur Record<string, unknown> sans aucun cast dangereux.
  */
-export function validatePartialFittingRecord(
-  record: Partial<FittingDimensionalRecord>
+function validateFittingRecordRules(
+  record: Record<string, unknown>
 ): FittingValidationResult {
   const errors: FittingValidationError[] = [];
-
-  if (!record || typeof record !== "object" || Array.isArray(record)) {
-    return { valid: true, errors: [] };
-  }
 
   // Verification du standard (standardId) si présent
   if (record.standardId !== undefined) {
@@ -107,7 +107,7 @@ export function validatePartialFittingRecord(
   if (record.fittingType !== undefined) {
     if (
       typeof record.fittingType !== "string" ||
-      !VALID_FITTING_TYPES.includes(record.fittingType as FittingType)
+      !VALID_FITTING_TYPES_SET.has(record.fittingType)
     ) {
       errors.push({
         code: "INVALID_FITTING_TYPE",
@@ -121,7 +121,7 @@ export function validatePartialFittingRecord(
   if (record.connectionType !== undefined) {
     if (
       typeof record.connectionType !== "string" ||
-      !VALID_CONNECTION_TYPES.includes(record.connectionType as FittingConnectionType)
+      !VALID_CONNECTION_TYPES_SET.has(record.connectionType)
     ) {
       errors.push({
         code: "INVALID_CONNECTION_TYPE",
@@ -135,7 +135,7 @@ export function validatePartialFittingRecord(
   if (record.sourceStatus !== undefined) {
     if (
       typeof record.sourceStatus !== "string" ||
-      !VALID_SOURCE_STATUSES.includes(record.sourceStatus as FittingSourceStatus)
+      !VALID_SOURCE_STATUSES_SET.has(record.sourceStatus)
     ) {
       errors.push({
         code: "INVALID_SOURCE_STATUS",
@@ -231,27 +231,51 @@ export function validatePartialFittingRecord(
 }
 
 /**
+ * Valide un enregistrement partiel (Partial<FittingDimensionalRecord> ou inconnu).
+ * L'entrée {} est un état partiel valide.
+ * Toute entrée non objet (null, undefined, string, number, array, boolean) produit INVALID_RECORD_OBJECT.
+ */
+export function validatePartialFittingRecord(
+  record: unknown
+): FittingValidationResult {
+  if (!isRecordObject(record)) {
+    return {
+      valid: false,
+      errors: [
+        {
+          code: "INVALID_RECORD_OBJECT",
+          field: "record",
+          message: "L'enregistrement partiel doit être un objet non-null et non-tableau.",
+        },
+      ],
+    };
+  }
+
+  return validateFittingRecordRules(record);
+}
+
+/**
  * Valide un enregistrement complet (FittingDimensionalRecord).
- * Entrée typée en `unknown` pour garantir la sécurité de typage strict sans contournement `any`.
+ * Entrée typée en `unknown` pour garantir la sécurité de typage strict à la frontière runtime.
  * Exige impérativement la présence et la validité des champs de base : id, standardId, fittingType, connectionType, sourceStatus.
  */
 export function validateCompleteFittingRecord(
   record: unknown
 ): FittingValidationResult {
-  const errors: FittingValidationError[] = [];
-
   if (!isRecordObject(record)) {
     return {
       valid: false,
       errors: [
-        { code: "MISSING_RECORD_ID", field: "id", message: "L'identifiant (id) est nul ou absent (entrée non-objet)." },
-        { code: "MISSING_STANDARD_ID", field: "standardId", message: "Le standardId est nul ou absent (entrée non-objet)." },
-        { code: "MISSING_FITTING_TYPE", field: "fittingType", message: "Le type de raccord (fittingType) est nul ou absent (entrée non-objet)." },
-        { code: "MISSING_CONNECTION_TYPE", field: "connectionType", message: "Le type de raccordement (connectionType) est nul ou absent (entrée non-objet)." },
-        { code: "MISSING_SOURCE_STATUS", field: "sourceStatus", message: "Le statut de source (sourceStatus) est nul ou absent (entrée non-objet)." },
+        {
+          code: "INVALID_RECORD_OBJECT",
+          field: "record",
+          message: "L'enregistrement complet doit être un objet non-null et non-tableau.",
+        },
       ],
     };
   }
+
+  const errors: FittingValidationError[] = [];
 
   // Field: id
   if (record.id === undefined || record.id === null) {
@@ -284,15 +308,6 @@ export function validateCompleteFittingRecord(
       field: "fittingType",
       message: "La famille de raccord (fittingType) est obligatoire pour un record complet.",
     });
-  } else if (
-    typeof record.fittingType !== "string" ||
-    !VALID_FITTING_TYPES.includes(record.fittingType as FittingType)
-  ) {
-    errors.push({
-      code: "INVALID_FITTING_TYPE",
-      field: "fittingType",
-      message: `La famille de raccord '${String(record.fittingType)}' n'est pas valide.`,
-    });
   }
 
   // Field: connectionType
@@ -301,15 +316,6 @@ export function validateCompleteFittingRecord(
       code: "MISSING_CONNECTION_TYPE",
       field: "connectionType",
       message: "Le type de raccordement (connectionType) est obligatoire pour un record complet.",
-    });
-  } else if (
-    typeof record.connectionType !== "string" ||
-    !VALID_CONNECTION_TYPES.includes(record.connectionType as FittingConnectionType)
-  ) {
-    errors.push({
-      code: "INVALID_CONNECTION_TYPE",
-      field: "connectionType",
-      message: `Le type de raccordement '${String(record.connectionType)}' n'est pas valide.`,
     });
   }
 
@@ -320,21 +326,12 @@ export function validateCompleteFittingRecord(
       field: "sourceStatus",
       message: "Le statut de source (sourceStatus) est obligatoire pour un record complet.",
     });
-  } else if (
-    typeof record.sourceStatus !== "string" ||
-    !VALID_SOURCE_STATUSES.includes(record.sourceStatus as FittingSourceStatus)
-  ) {
-    errors.push({
-      code: "INVALID_SOURCE_STATUS",
-      field: "sourceStatus",
-      message: `Le statut de source '${String(record.sourceStatus)}' n'est pas valide.`,
-    });
   }
 
-  // Déléguer aux règles conditionnelles de manière sûre
-  const partialResult = validatePartialFittingRecord(record as Partial<FittingDimensionalRecord>);
+  // Évaluation des règles partagées sans cast de type inutile
+  const rulesResult = validateFittingRecordRules(record);
 
-  const combinedErrors = [...errors, ...partialResult.errors];
+  const combinedErrors = [...errors, ...rulesResult.errors];
 
   return {
     valid: combinedErrors.length === 0,
