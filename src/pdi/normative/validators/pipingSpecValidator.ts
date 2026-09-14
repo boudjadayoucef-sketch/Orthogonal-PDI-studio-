@@ -138,9 +138,40 @@ function validatePipingSpecRules(
     }
   }
 
+  // 4b. Material Reference Ids au niveau de la spec
+  if (record.materialReferenceIds !== undefined) {
+    if (!Array.isArray(record.materialReferenceIds)) {
+      errors.push({
+        code: "INVALID_ARRAY",
+        field: "materialReferenceIds",
+        message: "materialReferenceIds doit être un tableau de références matériaux.",
+      });
+      errors.push({
+        code: "INVALID_MATERIAL_REFERENCE",
+        field: "materialReferenceIds",
+        message: "materialReferenceIds doit être un tableau.",
+      });
+    } else {
+      record.materialReferenceIds.forEach((matId, mIdx) => {
+        if (typeof matId !== "string" || matId.trim() === "") {
+          errors.push({
+            code: "INVALID_MATERIAL_REFERENCE",
+            field: `materialReferenceIds[${mIdx}]`,
+            message: `La référence matériau à l'index ${mIdx} doit être une chaîne non vide.`,
+          });
+        }
+      });
+    }
+  }
+
   // 5. Pipe Rules
   if (record.pipeRules !== undefined) {
     if (!Array.isArray(record.pipeRules)) {
+      errors.push({
+        code: "INVALID_ARRAY",
+        field: "pipeRules",
+        message: "pipeRules doit être un tableau de règles de tubes.",
+      });
       errors.push({
         code: "INVALID_PIPE_RULES",
         field: "pipeRules",
@@ -154,33 +185,68 @@ function validatePipingSpecRules(
             field: `pipeRules[${index}]`,
             message: "Chaque règle de tube doit être un objet.",
           });
+          errors.push({
+            code: "INVALID_PIPE_RULE",
+            field: `pipeRules[${index}]`,
+            message: "Chaque règle de tube doit être un objet.",
+          });
           return;
         }
-        if (rule.pipeDimensionalStandardId !== undefined) {
-          if (typeof rule.pipeDimensionalStandardId !== "string" || rule.pipeDimensionalStandardId.trim() === "") {
+
+        // Champ obligatoire : pipeDimensionalStandardId
+        if (rule.pipeDimensionalStandardId === undefined || rule.pipeDimensionalStandardId === null) {
+          errors.push({
+            code: "MISSING_PIPE_STANDARD",
+            field: `pipeRules[${index}].pipeDimensionalStandardId`,
+            message: "pipeDimensionalStandardId est obligatoire pour une règle de tube.",
+          });
+          errors.push({
+            code: "INVALID_PIPE_RULE",
+            field: `pipeRules[${index}].pipeDimensionalStandardId`,
+            message: "Standard dimensionnel manquant.",
+          });
+        } else if (typeof rule.pipeDimensionalStandardId !== "string" || rule.pipeDimensionalStandardId.trim() === "") {
+          errors.push({
+            code: "INVALID_STANDARD_ID",
+            field: `pipeRules[${index}].pipeDimensionalStandardId`,
+            message: "pipeDimensionalStandardId doit être une chaîne non vide.",
+          });
+        } else {
+          const std = PDI_STANDARDS_REGISTRY[rule.pipeDimensionalStandardId];
+          if (!std) {
             errors.push({
               code: "INVALID_STANDARD_ID",
               field: `pipeRules[${index}].pipeDimensionalStandardId`,
-              message: "pipeDimensionalStandardId doit être une chaîne non vide.",
+              message: `Le standard ${rule.pipeDimensionalStandardId} n'est pas enregistré.`,
             });
-          } else {
-            const std = PDI_STANDARDS_REGISTRY[rule.pipeDimensionalStandardId];
-            if (!std) {
-              errors.push({
-                code: "INVALID_STANDARD_ID",
-                field: `pipeRules[${index}].pipeDimensionalStandardId`,
-                message: `Le standard ${rule.pipeDimensionalStandardId} n'est pas enregistré.`,
-              });
-            } else if (std.standardType !== "DIMENSIONAL_STANDARD") {
-              errors.push({
-                code: "STANDARD_IS_NOT_DIMENSIONAL_STANDARD",
-                field: `pipeRules[${index}].pipeDimensionalStandardId`,
-                message: `Le standard ${rule.pipeDimensionalStandardId} est de type ${std.standardType}. pipeDimensionalStandardId exige un DIMENSIONAL_STANDARD (ex: ASME-B36.10M).`,
-              });
-            }
+          } else if (std.standardType !== "DIMENSIONAL_STANDARD") {
+            errors.push({
+              code: "STANDARD_IS_NOT_DIMENSIONAL_STANDARD",
+              field: `pipeRules[${index}].pipeDimensionalStandardId`,
+              message: `Le standard ${rule.pipeDimensionalStandardId} est de type ${std.standardType}. pipeDimensionalStandardId exige un DIMENSIONAL_STANDARD (ex: ASME-B36.10M).`,
+            });
           }
         }
-        if (
+
+        // Champ obligatoire : sourceStatus
+        if (rule.sourceStatus === undefined || rule.sourceStatus === null) {
+          errors.push({
+            code: "MISSING_SOURCE_STATUS",
+            field: `pipeRules[${index}].sourceStatus`,
+            message: "sourceStatus est obligatoire pour une règle de tube.",
+          });
+          errors.push({
+            code: "INVALID_PIPE_RULE",
+            field: `pipeRules[${index}].sourceStatus`,
+            message: "sourceStatus manquant pour la règle de tube.",
+          });
+        } else if (typeof rule.sourceStatus !== "string" || !VALID_SPEC_SOURCE_STATUSES_SET.has(rule.sourceStatus)) {
+          errors.push({
+            code: "INVALID_SOURCE_STATUS",
+            field: `pipeRules[${index}].sourceStatus`,
+            message: `Le statut de source '${String(rule.sourceStatus)}' n'est pas valide.`,
+          });
+        } else if (
           (rule.sourceStatus === "VERIFIED" || rule.sourceStatus === "LICENSED") &&
           (!rule.sourceReference || typeof rule.sourceReference !== "string" || rule.sourceReference.trim() === "")
         ) {
@@ -190,6 +256,54 @@ function validatePipingSpecRules(
             message: `La règle de tube ${rule.sourceStatus} exige une référence source.`,
           });
         }
+
+        // Optionnel : nominalSizes
+        if (rule.nominalSizes !== undefined) {
+          if (!Array.isArray(rule.nominalSizes)) {
+            errors.push({
+              code: "INVALID_ARRAY",
+              field: `pipeRules[${index}].nominalSizes`,
+              message: "nominalSizes doit être un tableau de tailles nominales.",
+            });
+            errors.push({
+              code: "INVALID_PIPE_RULE",
+              field: `pipeRules[${index}].nominalSizes`,
+              message: "nominalSizes doit être un tableau.",
+            });
+          } else {
+            rule.nominalSizes.forEach((ns, nsIdx) => {
+              if (typeof ns !== "string" || ns.trim() === "") {
+                errors.push({
+                  code: "INVALID_PIPE_RULE",
+                  field: `pipeRules[${index}].nominalSizes[${nsIdx}]`,
+                  message: `La taille nominale à l'index ${nsIdx} doit être une chaîne non vide.`,
+                });
+              }
+            });
+          }
+        }
+
+        // Optionnel : schedule
+        if (rule.schedule !== undefined) {
+          if (typeof rule.schedule !== "string" || rule.schedule.trim() === "") {
+            errors.push({
+              code: "INVALID_PIPE_RULE",
+              field: `pipeRules[${index}].schedule`,
+              message: "schedule doit être une chaîne non vide.",
+            });
+          }
+        }
+
+        // Optionnel : materialId
+        if (rule.materialId !== undefined) {
+          if (typeof rule.materialId !== "string" || rule.materialId.trim() === "") {
+            errors.push({
+              code: "INVALID_MATERIAL_REFERENCE",
+              field: `pipeRules[${index}].materialId`,
+              message: "materialId doit être une chaîne non vide.",
+            });
+          }
+        }
       });
     }
   }
@@ -197,6 +311,11 @@ function validatePipingSpecRules(
   // 6. Fitting Rules
   if (record.fittingRules !== undefined) {
     if (!Array.isArray(record.fittingRules)) {
+      errors.push({
+        code: "INVALID_ARRAY",
+        field: "fittingRules",
+        message: "fittingRules doit être un tableau de règles de raccords.",
+      });
       errors.push({
         code: "INVALID_FITTING_RULES",
         field: "fittingRules",
@@ -210,55 +329,68 @@ function validatePipingSpecRules(
             field: `fittingRules[${index}]`,
             message: "Chaque règle de raccord doit être un objet.",
           });
+          errors.push({
+            code: "INVALID_FITTING_RULE",
+            field: `fittingRules[${index}]`,
+            message: "Chaque règle de raccord doit être un objet.",
+          });
           return;
         }
-        if (rule.fittingStandardId !== undefined) {
-          if (typeof rule.fittingStandardId !== "string" || rule.fittingStandardId.trim() === "") {
+
+        // Champ obligatoire : fittingStandardId
+        if (rule.fittingStandardId === undefined || rule.fittingStandardId === null) {
+          errors.push({
+            code: "MISSING_FITTING_STANDARD",
+            field: `fittingRules[${index}].fittingStandardId`,
+            message: "fittingStandardId est obligatoire pour une règle de raccord.",
+          });
+          errors.push({
+            code: "INVALID_FITTING_RULE",
+            field: `fittingRules[${index}].fittingStandardId`,
+            message: "Standard de raccord manquant.",
+          });
+        } else if (typeof rule.fittingStandardId !== "string" || rule.fittingStandardId.trim() === "") {
+          errors.push({
+            code: "INVALID_STANDARD_ID",
+            field: `fittingRules[${index}].fittingStandardId`,
+            message: "fittingStandardId doit être une chaîne non vide.",
+          });
+        } else {
+          const std = PDI_STANDARDS_REGISTRY[rule.fittingStandardId];
+          if (!std) {
             errors.push({
               code: "INVALID_STANDARD_ID",
               field: `fittingRules[${index}].fittingStandardId`,
-              message: "fittingStandardId doit être une chaîne non vide.",
+              message: `Le standard ${rule.fittingStandardId} n'est pas enregistré.`,
             });
-          } else {
-            const std = PDI_STANDARDS_REGISTRY[rule.fittingStandardId];
-            if (!std) {
-              errors.push({
-                code: "INVALID_STANDARD_ID",
-                field: `fittingRules[${index}].fittingStandardId`,
-                message: `Le standard ${rule.fittingStandardId} n'est pas enregistré.`,
-              });
-            } else if (std.standardType !== "PRODUCT_STANDARD") {
-              errors.push({
-                code: "STANDARD_IS_NOT_PRODUCT_STANDARD",
-                field: `fittingRules[${index}].fittingStandardId`,
-                message: `Le standard ${rule.fittingStandardId} est de type ${std.standardType}. fittingStandardId exige un PRODUCT_STANDARD (ex: ASME-B16.9).`,
-              });
-            }
+          } else if (std.standardType !== "PRODUCT_STANDARD") {
+            errors.push({
+              code: "STANDARD_IS_NOT_PRODUCT_STANDARD",
+              field: `fittingRules[${index}].fittingStandardId`,
+              message: `Le standard ${rule.fittingStandardId} est de type ${std.standardType}. fittingStandardId exige un PRODUCT_STANDARD (ex: ASME-B16.9).`,
+            });
           }
         }
-        if (rule.fittingTypes !== undefined && Array.isArray(rule.fittingTypes)) {
-          rule.fittingTypes.forEach((ft) => {
-            if (typeof ft !== "string" || !VALID_FITTING_TYPES_SET.has(ft)) {
-              errors.push({
-                code: "INVALID_FITTING_TYPE",
-                field: `fittingRules[${index}].fittingTypes`,
-                message: `Type de raccord invalide : ${String(ft)}`,
-              });
-            }
+
+        // Champ obligatoire : sourceStatus
+        if (rule.sourceStatus === undefined || rule.sourceStatus === null) {
+          errors.push({
+            code: "MISSING_SOURCE_STATUS",
+            field: `fittingRules[${index}].sourceStatus`,
+            message: "sourceStatus est obligatoire pour une règle de raccord.",
           });
-        }
-        if (rule.connectionTypes !== undefined && Array.isArray(rule.connectionTypes)) {
-          rule.connectionTypes.forEach((ct) => {
-            if (typeof ct !== "string" || !VALID_FITTING_CONN_TYPES_SET.has(ct)) {
-              errors.push({
-                code: "INVALID_CONNECTION_TYPE",
-                field: `fittingRules[${index}].connectionTypes`,
-                message: `Type de raccordement invalide : ${String(ct)}`,
-              });
-            }
+          errors.push({
+            code: "INVALID_FITTING_RULE",
+            field: `fittingRules[${index}].sourceStatus`,
+            message: "sourceStatus manquant pour la règle de raccord.",
           });
-        }
-        if (
+        } else if (typeof rule.sourceStatus !== "string" || !VALID_SPEC_SOURCE_STATUSES_SET.has(rule.sourceStatus)) {
+          errors.push({
+            code: "INVALID_SOURCE_STATUS",
+            field: `fittingRules[${index}].sourceStatus`,
+            message: `Le statut de source '${String(rule.sourceStatus)}' n'est pas valide.`,
+          });
+        } else if (
           (rule.sourceStatus === "VERIFIED" || rule.sourceStatus === "LICENSED") &&
           (!rule.sourceReference || typeof rule.sourceReference !== "string" || rule.sourceReference.trim() === "")
         ) {
@@ -268,6 +400,79 @@ function validatePipingSpecRules(
             message: `La règle de raccord ${rule.sourceStatus} exige une référence source.`,
           });
         }
+
+        // Optionnel : fittingTypes
+        if (rule.fittingTypes !== undefined) {
+          if (!Array.isArray(rule.fittingTypes)) {
+            errors.push({
+              code: "INVALID_ARRAY",
+              field: `fittingRules[${index}].fittingTypes`,
+              message: "fittingTypes doit être un tableau.",
+            });
+            errors.push({
+              code: "INVALID_FITTING_TYPES",
+              field: `fittingRules[${index}].fittingTypes`,
+              message: "fittingTypes doit être un tableau.",
+            });
+          } else {
+            rule.fittingTypes.forEach((ft) => {
+              if (typeof ft !== "string" || !VALID_FITTING_TYPES_SET.has(ft)) {
+                errors.push({
+                  code: "INVALID_FITTING_TYPE",
+                  field: `fittingRules[${index}].fittingTypes`,
+                  message: `Type de raccord invalide : ${String(ft)}`,
+                });
+                errors.push({
+                  code: "INVALID_FITTING_TYPES",
+                  field: `fittingRules[${index}].fittingTypes`,
+                  message: `Type de raccord invalide : ${String(ft)}`,
+                });
+              }
+            });
+          }
+        }
+
+        // Optionnel : connectionTypes
+        if (rule.connectionTypes !== undefined) {
+          if (!Array.isArray(rule.connectionTypes)) {
+            errors.push({
+              code: "INVALID_ARRAY",
+              field: `fittingRules[${index}].connectionTypes`,
+              message: "connectionTypes doit être un tableau.",
+            });
+            errors.push({
+              code: "INVALID_FITTING_CONNECTION_TYPES",
+              field: `fittingRules[${index}].connectionTypes`,
+              message: "connectionTypes doit être un tableau.",
+            });
+          } else {
+            rule.connectionTypes.forEach((ct) => {
+              if (typeof ct !== "string" || !VALID_FITTING_CONN_TYPES_SET.has(ct)) {
+                errors.push({
+                  code: "INVALID_CONNECTION_TYPE",
+                  field: `fittingRules[${index}].connectionTypes`,
+                  message: `Type de raccordement invalide : ${String(ct)}`,
+                });
+                errors.push({
+                  code: "INVALID_FITTING_CONNECTION_TYPES",
+                  field: `fittingRules[${index}].connectionTypes`,
+                  message: `Type de raccordement invalide : ${String(ct)}`,
+                });
+              }
+            });
+          }
+        }
+
+        // Optionnel : materialId
+        if (rule.materialId !== undefined) {
+          if (typeof rule.materialId !== "string" || rule.materialId.trim() === "") {
+            errors.push({
+              code: "INVALID_MATERIAL_REFERENCE",
+              field: `fittingRules[${index}].materialId`,
+              message: "materialId doit être une chaîne non vide.",
+            });
+          }
+        }
       });
     }
   }
@@ -275,6 +480,11 @@ function validatePipingSpecRules(
   // 7. Flange Rules
   if (record.flangeRules !== undefined) {
     if (!Array.isArray(record.flangeRules)) {
+      errors.push({
+        code: "INVALID_ARRAY",
+        field: "flangeRules",
+        message: "flangeRules doit être un tableau de règles de brides.",
+      });
       errors.push({
         code: "INVALID_FLANGE_RULES",
         field: "flangeRules",
@@ -288,53 +498,68 @@ function validatePipingSpecRules(
             field: `flangeRules[${index}]`,
             message: "Chaque règle de bride doit être un objet.",
           });
+          errors.push({
+            code: "INVALID_FLANGE_RULE",
+            field: `flangeRules[${index}]`,
+            message: "Chaque règle de bride doit être un objet.",
+          });
           return;
         }
-        if (rule.flangeStandardId !== undefined) {
-          if (typeof rule.flangeStandardId !== "string" || rule.flangeStandardId.trim() === "") {
+
+        // Champ obligatoire : flangeStandardId
+        if (rule.flangeStandardId === undefined || rule.flangeStandardId === null) {
+          errors.push({
+            code: "MISSING_FLANGE_STANDARD",
+            field: `flangeRules[${index}].flangeStandardId`,
+            message: "flangeStandardId est obligatoire pour une règle de bride.",
+          });
+          errors.push({
+            code: "INVALID_FLANGE_RULE",
+            field: `flangeRules[${index}].flangeStandardId`,
+            message: "Standard de bride manquant.",
+          });
+        } else if (typeof rule.flangeStandardId !== "string" || rule.flangeStandardId.trim() === "") {
+          errors.push({
+            code: "INVALID_STANDARD_ID",
+            field: `flangeRules[${index}].flangeStandardId`,
+            message: "flangeStandardId doit être une chaîne non vide.",
+          });
+        } else {
+          const std = PDI_STANDARDS_REGISTRY[rule.flangeStandardId];
+          if (!std) {
             errors.push({
               code: "INVALID_STANDARD_ID",
               field: `flangeRules[${index}].flangeStandardId`,
-              message: "flangeStandardId doit être une chaîne non vide.",
+              message: `Le standard ${rule.flangeStandardId} n'est pas enregistré.`,
             });
-          } else {
-            const std = PDI_STANDARDS_REGISTRY[rule.flangeStandardId];
-            if (!std) {
-              errors.push({
-                code: "INVALID_STANDARD_ID",
-                field: `flangeRules[${index}].flangeStandardId`,
-                message: `Le standard ${rule.flangeStandardId} n'est pas enregistré.`,
-              });
-            } else if (std.standardType !== "PRODUCT_STANDARD") {
-              errors.push({
-                code: "STANDARD_IS_NOT_PRODUCT_STANDARD",
-                field: `flangeRules[${index}].flangeStandardId`,
-                message: `Le standard ${rule.flangeStandardId} est de type ${std.standardType}. flangeStandardId exige un PRODUCT_STANDARD (ex: ASME-B16.5).`,
-              });
-            }
-          }
-        }
-        if (rule.ratingSystem !== undefined) {
-          if (typeof rule.ratingSystem !== "string" || !VALID_FLANGE_RATING_SYSTEMS_SET.has(rule.ratingSystem)) {
+          } else if (std.standardType !== "PRODUCT_STANDARD") {
             errors.push({
-              code: "INVALID_RATING_SYSTEM",
-              field: `flangeRules[${index}].ratingSystem`,
-              message: `Système de rating bride invalide : ${String(rule.ratingSystem)}`,
+              code: "STANDARD_IS_NOT_PRODUCT_STANDARD",
+              field: `flangeRules[${index}].flangeStandardId`,
+              message: `Le standard ${rule.flangeStandardId} est de type ${std.standardType}. flangeStandardId exige un PRODUCT_STANDARD (ex: ASME-B16.5).`,
             });
           }
         }
-        if (rule.flangeTypes !== undefined && Array.isArray(rule.flangeTypes)) {
-          rule.flangeTypes.forEach((flt) => {
-            if (typeof flt !== "string" || !VALID_FLANGE_TYPES_SET.has(flt)) {
-              errors.push({
-                code: "INVALID_FLANGE_TYPE",
-                field: `flangeRules[${index}].flangeTypes`,
-                message: `Type de bride invalide : ${String(flt)}`,
-              });
-            }
+
+        // Champ obligatoire : sourceStatus
+        if (rule.sourceStatus === undefined || rule.sourceStatus === null) {
+          errors.push({
+            code: "MISSING_SOURCE_STATUS",
+            field: `flangeRules[${index}].sourceStatus`,
+            message: "sourceStatus est obligatoire pour une règle de bride.",
           });
-        }
-        if (
+          errors.push({
+            code: "INVALID_FLANGE_RULE",
+            field: `flangeRules[${index}].sourceStatus`,
+            message: "sourceStatus manquant pour la règle de bride.",
+          });
+        } else if (typeof rule.sourceStatus !== "string" || !VALID_SPEC_SOURCE_STATUSES_SET.has(rule.sourceStatus)) {
+          errors.push({
+            code: "INVALID_SOURCE_STATUS",
+            field: `flangeRules[${index}].sourceStatus`,
+            message: `Le statut de source '${String(rule.sourceStatus)}' n'est pas valide.`,
+          });
+        } else if (
           (rule.sourceStatus === "VERIFIED" || rule.sourceStatus === "LICENSED") &&
           (!rule.sourceReference || typeof rule.sourceReference !== "string" || rule.sourceReference.trim() === "")
         ) {
@@ -344,6 +569,88 @@ function validatePipingSpecRules(
             message: `La règle de bride ${rule.sourceStatus} exige une référence source.`,
           });
         }
+
+        // Optionnel : ratingSystem (avec validation stricte et cohérence)
+        if (rule.ratingSystem !== undefined) {
+          if (typeof rule.ratingSystem !== "string" || !VALID_FLANGE_RATING_SYSTEMS_SET.has(rule.ratingSystem)) {
+            errors.push({
+              code: "INVALID_RATING_SYSTEM",
+              field: `flangeRules[${index}].ratingSystem`,
+              message: `Système de rating bride invalide : ${String(rule.ratingSystem)}`,
+            });
+          } else {
+            // Cohérence avec le standard
+            if (
+              (rule.flangeStandardId === "ASME-B16.5" || rule.flangeStandardId === "ASME-B16.47") &&
+              rule.ratingSystem !== "ASME_CLASS"
+            ) {
+              errors.push({
+                code: "INVALID_RATING_SYSTEM",
+                field: `flangeRules[${index}].ratingSystem`,
+                message: `Le standard ${rule.flangeStandardId} exige le ratingSystem 'ASME_CLASS'.`,
+              });
+            } else if (rule.flangeStandardId === "EN-1092-1" && rule.ratingSystem !== "EN_PN") {
+              errors.push({
+                code: "INVALID_RATING_SYSTEM",
+                field: `flangeRules[${index}].ratingSystem`,
+                message: "Le standard EN-1092-1 exige le ratingSystem 'EN_PN'.",
+              });
+            }
+          }
+        }
+
+        // Optionnel : rating
+        if (rule.rating !== undefined) {
+          if (typeof rule.rating !== "string" || rule.rating.trim() === "") {
+            errors.push({
+              code: "INVALID_FLANGE_RULE",
+              field: `flangeRules[${index}].rating`,
+              message: "rating doit être une chaîne non vide.",
+            });
+          }
+        }
+
+        // Optionnel : flangeTypes
+        if (rule.flangeTypes !== undefined) {
+          if (!Array.isArray(rule.flangeTypes)) {
+            errors.push({
+              code: "INVALID_ARRAY",
+              field: `flangeRules[${index}].flangeTypes`,
+              message: "flangeTypes doit être un tableau.",
+            });
+            errors.push({
+              code: "INVALID_FLANGE_TYPES",
+              field: `flangeRules[${index}].flangeTypes`,
+              message: "flangeTypes doit être un tableau.",
+            });
+          } else {
+            rule.flangeTypes.forEach((flt) => {
+              if (typeof flt !== "string" || !VALID_FLANGE_TYPES_SET.has(flt)) {
+                errors.push({
+                  code: "INVALID_FLANGE_TYPE",
+                  field: `flangeRules[${index}].flangeTypes`,
+                  message: `Type de bride invalide : ${String(flt)}`,
+                });
+                errors.push({
+                  code: "INVALID_FLANGE_TYPES",
+                  field: `flangeRules[${index}].flangeTypes`,
+                  message: `Type de bride invalide : ${String(flt)}`,
+                });
+              }
+            });
+          }
+        }
+
+        // Optionnel : materialId
+        if (rule.materialId !== undefined) {
+          if (typeof rule.materialId !== "string" || rule.materialId.trim() === "") {
+            errors.push({
+              code: "INVALID_MATERIAL_REFERENCE",
+              field: `flangeRules[${index}].materialId`,
+              message: "materialId doit être une chaîne non vide.",
+            });
+          }
+        }
       });
     }
   }
@@ -351,6 +658,11 @@ function validatePipingSpecRules(
   // 8. Valve Rules
   if (record.valveRules !== undefined) {
     if (!Array.isArray(record.valveRules)) {
+      errors.push({
+        code: "INVALID_ARRAY",
+        field: "valveRules",
+        message: "valveRules doit être un tableau de règles de vannes.",
+      });
       errors.push({
         code: "INVALID_VALVE_RULES",
         field: "valveRules",
@@ -364,8 +676,29 @@ function validatePipingSpecRules(
             field: `valveRules[${index}]`,
             message: "Chaque règle de vanne doit être un objet.",
           });
+          errors.push({
+            code: "INVALID_VALVE_RULE",
+            field: `valveRules[${index}]`,
+            message: "Chaque règle de vanne doit être un objet.",
+          });
           return;
         }
+
+        // Standard obligatoire : au moins productStandardId OU dimensionalStandardId
+        if (rule.productStandardId === undefined && rule.dimensionalStandardId === undefined) {
+          errors.push({
+            code: "MISSING_VALVE_STANDARD",
+            field: `valveRules[${index}]`,
+            message: "Une règle de vanne doit comporter au moins un productStandardId ou un dimensionalStandardId.",
+          });
+          errors.push({
+            code: "INVALID_VALVE_RULE",
+            field: `valveRules[${index}]`,
+            message: "Standard de vanne manquant.",
+          });
+        }
+
+        // Validation productStandardId si fourni
         if (rule.productStandardId !== undefined) {
           if (typeof rule.productStandardId !== "string" || rule.productStandardId.trim() === "") {
             errors.push({
@@ -390,6 +723,8 @@ function validatePipingSpecRules(
             }
           }
         }
+
+        // Validation dimensionalStandardId si fourni
         if (rule.dimensionalStandardId !== undefined) {
           if (typeof rule.dimensionalStandardId !== "string" || rule.dimensionalStandardId.trim() === "") {
             errors.push({
@@ -414,29 +749,26 @@ function validatePipingSpecRules(
             }
           }
         }
-        if (rule.valveTypes !== undefined && Array.isArray(rule.valveTypes)) {
-          rule.valveTypes.forEach((vt) => {
-            if (typeof vt !== "string" || !VALID_VALVE_TYPES_SET.has(vt)) {
-              errors.push({
-                code: "INVALID_VALVE_TYPE",
-                field: `valveRules[${index}].valveTypes`,
-                message: `Famille de vanne invalide : ${String(vt)}`,
-              });
-            }
+
+        // Champ obligatoire : sourceStatus
+        if (rule.sourceStatus === undefined || rule.sourceStatus === null) {
+          errors.push({
+            code: "MISSING_SOURCE_STATUS",
+            field: `valveRules[${index}].sourceStatus`,
+            message: "sourceStatus est obligatoire pour une règle de vanne.",
           });
-        }
-        if (rule.connectionTypes !== undefined && Array.isArray(rule.connectionTypes)) {
-          rule.connectionTypes.forEach((vct) => {
-            if (typeof vct !== "string" || !VALID_VALVE_CONN_TYPES_SET.has(vct)) {
-              errors.push({
-                code: "INVALID_CONNECTION_TYPE",
-                field: `valveRules[${index}].connectionTypes`,
-                message: `Raccordement de vanne invalide : ${String(vct)}`,
-              });
-            }
+          errors.push({
+            code: "INVALID_VALVE_RULE",
+            field: `valveRules[${index}].sourceStatus`,
+            message: "sourceStatus manquant pour la règle de vanne.",
           });
-        }
-        if (
+        } else if (typeof rule.sourceStatus !== "string" || !VALID_SPEC_SOURCE_STATUSES_SET.has(rule.sourceStatus)) {
+          errors.push({
+            code: "INVALID_SOURCE_STATUS",
+            field: `valveRules[${index}].sourceStatus`,
+            message: `Le statut de source '${String(rule.sourceStatus)}' n'est pas valide.`,
+          });
+        } else if (
           (rule.sourceStatus === "VERIFIED" || rule.sourceStatus === "LICENSED") &&
           (!rule.sourceReference || typeof rule.sourceReference !== "string" || rule.sourceReference.trim() === "")
         ) {
@@ -445,6 +777,79 @@ function validatePipingSpecRules(
             field: `valveRules[${index}].sourceReference`,
             message: `La règle de vanne ${rule.sourceStatus} exige une référence source.`,
           });
+        }
+
+        // Optionnel : valveTypes
+        if (rule.valveTypes !== undefined) {
+          if (!Array.isArray(rule.valveTypes)) {
+            errors.push({
+              code: "INVALID_ARRAY",
+              field: `valveRules[${index}].valveTypes`,
+              message: "valveTypes doit être un tableau.",
+            });
+            errors.push({
+              code: "INVALID_VALVE_TYPES",
+              field: `valveRules[${index}].valveTypes`,
+              message: "valveTypes doit être un tableau.",
+            });
+          } else {
+            rule.valveTypes.forEach((vt) => {
+              if (typeof vt !== "string" || !VALID_VALVE_TYPES_SET.has(vt)) {
+                errors.push({
+                  code: "INVALID_VALVE_TYPE",
+                  field: `valveRules[${index}].valveTypes`,
+                  message: `Famille de vanne invalide : ${String(vt)}`,
+                });
+                errors.push({
+                  code: "INVALID_VALVE_TYPES",
+                  field: `valveRules[${index}].valveTypes`,
+                  message: `Famille de vanne invalide : ${String(vt)}`,
+                });
+              }
+            });
+          }
+        }
+
+        // Optionnel : connectionTypes
+        if (rule.connectionTypes !== undefined) {
+          if (!Array.isArray(rule.connectionTypes)) {
+            errors.push({
+              code: "INVALID_ARRAY",
+              field: `valveRules[${index}].connectionTypes`,
+              message: "connectionTypes doit être un tableau.",
+            });
+            errors.push({
+              code: "INVALID_VALVE_CONNECTION_TYPES",
+              field: `valveRules[${index}].connectionTypes`,
+              message: "connectionTypes doit être un tableau.",
+            });
+          } else {
+            rule.connectionTypes.forEach((vct) => {
+              if (typeof vct !== "string" || !VALID_VALVE_CONN_TYPES_SET.has(vct)) {
+                errors.push({
+                  code: "INVALID_CONNECTION_TYPE",
+                  field: `valveRules[${index}].connectionTypes`,
+                  message: `Raccordement de vanne invalide : ${String(vct)}`,
+                });
+                errors.push({
+                  code: "INVALID_VALVE_CONNECTION_TYPES",
+                  field: `valveRules[${index}].connectionTypes`,
+                  message: `Raccordement de vanne invalide : ${String(vct)}`,
+                });
+              }
+            });
+          }
+        }
+
+        // Optionnel : materialId
+        if (rule.materialId !== undefined) {
+          if (typeof rule.materialId !== "string" || rule.materialId.trim() === "") {
+            errors.push({
+              code: "INVALID_MATERIAL_REFERENCE",
+              field: `valveRules[${index}].materialId`,
+              message: "materialId doit être une chaîne non vide.",
+            });
+          }
         }
       });
     }
@@ -554,6 +959,77 @@ export function validateCompletePipingSpecification(
       code: "MISSING_SOURCE_STATUS",
       field: "sourceStatus",
       message: "Le statut de source (sourceStatus) est obligatoire pour un record complet.",
+    });
+  }
+
+  // Collections structurelles obligatoires pour un record complet (doivent être des tableaux, potentiellement vides)
+  if (record.materialReferenceIds === undefined || record.materialReferenceIds === null) {
+    errors.push({
+      code: "MISSING_MATERIAL_REFERENCES",
+      field: "materialReferenceIds",
+      message: "materialReferenceIds est obligatoire pour un record complet.",
+    });
+  } else if (!Array.isArray(record.materialReferenceIds)) {
+    errors.push({
+      code: "INVALID_ARRAY",
+      field: "materialReferenceIds",
+      message: "materialReferenceIds doit être un tableau.",
+    });
+  }
+
+  if (record.pipeRules === undefined || record.pipeRules === null) {
+    errors.push({
+      code: "MISSING_PIPE_RULES",
+      field: "pipeRules",
+      message: "pipeRules est obligatoire pour un record complet.",
+    });
+  } else if (!Array.isArray(record.pipeRules)) {
+    errors.push({
+      code: "INVALID_ARRAY",
+      field: "pipeRules",
+      message: "pipeRules doit être un tableau.",
+    });
+  }
+
+  if (record.fittingRules === undefined || record.fittingRules === null) {
+    errors.push({
+      code: "MISSING_FITTING_RULES",
+      field: "fittingRules",
+      message: "fittingRules est obligatoire pour un record complet.",
+    });
+  } else if (!Array.isArray(record.fittingRules)) {
+    errors.push({
+      code: "INVALID_ARRAY",
+      field: "fittingRules",
+      message: "fittingRules doit être un tableau.",
+    });
+  }
+
+  if (record.flangeRules === undefined || record.flangeRules === null) {
+    errors.push({
+      code: "MISSING_FLANGE_RULES",
+      field: "flangeRules",
+      message: "flangeRules est obligatoire pour un record complet.",
+    });
+  } else if (!Array.isArray(record.flangeRules)) {
+    errors.push({
+      code: "INVALID_ARRAY",
+      field: "flangeRules",
+      message: "flangeRules doit être un tableau.",
+    });
+  }
+
+  if (record.valveRules === undefined || record.valveRules === null) {
+    errors.push({
+      code: "MISSING_VALVE_RULES",
+      field: "valveRules",
+      message: "valveRules est obligatoire pour un record complet.",
+    });
+  } else if (!Array.isArray(record.valveRules)) {
+    errors.push({
+      code: "INVALID_ARRAY",
+      field: "valveRules",
+      message: "valveRules doit être un tableau.",
     });
   }
 
