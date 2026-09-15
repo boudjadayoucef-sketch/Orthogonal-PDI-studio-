@@ -65,24 +65,37 @@ export type CalculationStatus =
 export type EngineeringUnitSystem = "SI" | "US_CUSTOMARY";
 
 /**
- * Traçabilité et statut d'une formule normative.
+ * Statut de qualification et de licence d'une formule normative.
  */
-export interface DesignCodeFormulaReference {
-  readonly id: string;
-  readonly designCodeId: DesignCodeId;
-  readonly clauseReference?: string;
-  readonly sourceReference?: string;
-  readonly status:
-    | "VERIFIED"
-    | "LICENSED"
-    | "UNVERIFIED"
-    | "NOT_IMPLEMENTED";
+export type DesignCodeFormulaStatus =
+  | "VERIFIED"
+  | "LICENSED"
+  | "UNVERIFIED"
+  | "NOT_IMPLEMENTED";
+
+/**
+ * Contrat d'unités explicite attendu par une formule normative.
+ */
+export interface FormulaUnitContract {
+  readonly unitSystem?: EngineeringUnitSystem;
+  readonly pressureUnit?: string;
+  readonly diameterUnit?: string;
+  readonly thicknessUnit?: string;
+  readonly temperatureUnit?: string;
+  readonly stressUnit?: string;
+  readonly outputUnit?: string;
 }
+
+/**
+ * Régime ou domaine géométrique/physique d'une formule.
+ */
+export type FormulaRegime = "THIN_WALL" | "THICK_WALL" | "HIGH_TEMP" | "ALL";
 
 /**
  * Domaine de validité et limites d'utilisation d'une formule.
  */
 export interface FormulaDomain {
+  readonly regime?: FormulaRegime;
   readonly minimumPressure?: number;
   readonly maximumPressure?: number;
   readonly minimumTemperature?: number;
@@ -91,7 +104,22 @@ export interface FormulaDomain {
   readonly maximumDiameterMm?: number;
   readonly minimumThicknessMm?: number;
   readonly maximumThicknessMm?: number;
-  readonly applicableDesignCodes: readonly DesignCodeId[];
+  readonly applicableDesignCodes?: readonly DesignCodeId[];
+}
+
+/**
+ * Traçabilité et statut d'une formule normative.
+ */
+export interface DesignCodeFormulaReference {
+  readonly id: string;
+  readonly designCodeId: DesignCodeId;
+  readonly standardEdition?: StandardEdition;
+  readonly calculationType?: EngineeringCalculationType;
+  readonly clauseReference?: string;
+  readonly sourceReference?: string;
+  readonly status: DesignCodeFormulaStatus;
+  readonly domain?: FormulaDomain;
+  readonly units?: FormulaUnitContract;
 }
 
 /**
@@ -139,6 +167,10 @@ export interface EngineeringCalculationResult {
   readonly calculationType: EngineeringCalculationType;
   readonly designCodeId: DesignCodeId;
   readonly standardEdition?: StandardEdition;
+
+  readonly formulaId?: string;
+  readonly clauseReference?: string;
+  readonly sourceReference?: string;
 
   readonly value?: number;
   readonly unit?: string;

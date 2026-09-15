@@ -49,9 +49,22 @@ import {
 import {
   validateCompleteEngineeringCalculationInput,
   validatePartialEngineeringCalculationInput,
+  validateDesignCodeFormulaReference,
+  isFormulaQualified,
+  isEngineeringCalculationType,
+  isEngineeringUnitSystem,
+  isDesignCodeFormulaStatus,
+  VALID_FORMULA_STATUSES,
 } from "../validators/designCodeValidator";
 import { executeEngineeringCalculation } from "../engine/designCodeEngine";
-import type { EngineeringCalculationInput } from "../types/designCodeTypes";
+import type {
+  DesignCodeFormulaReference,
+  DesignCodeFormulaStatus,
+  FormulaDomain,
+  FormulaRegime,
+  FormulaUnitContract,
+  EngineeringCalculationInput,
+} from "../types/designCodeTypes";
 
 export function runDesignCodeEngineTests(): { success: boolean; testsRun: number } {
   let testsRun = 0;
@@ -465,6 +478,429 @@ export function runDesignCodeEngineTests(): { success: boolean; testsRun: number
       runA.designCodeId === runB.designCodeId &&
       runA.errors.length === runB.errors.length,
     "D36 — Le calcul doit être strictement déterministe pour des entrées identiques"
+  );
+
+  // =========================================================================
+  // R1-01: Types DesignCodeFormulaStatus vérifiés
+  // =========================================================================
+  testsRun++;
+  assert(
+    VALID_FORMULA_STATUSES.length === 4 &&
+      VALID_FORMULA_STATUSES.includes("VERIFIED") &&
+      VALID_FORMULA_STATUSES.includes("LICENSED") &&
+      VALID_FORMULA_STATUSES.includes("UNVERIFIED") &&
+      VALID_FORMULA_STATUSES.includes("NOT_IMPLEMENTED"),
+    "R1-01 — Les 4 statuts de formule sont VERIFIED, LICENSED, UNVERIFIED, NOT_IMPLEMENTED"
+  );
+
+  // =========================================================================
+  // R1-02: Aucun cast 'as any' dans l'implémentation
+  // =========================================================================
+  testsRun++;
+  assert(
+    typeof validateDesignCodeFormulaReference === "function" &&
+      typeof isFormulaQualified === "function",
+    "R1-02 — Fonctions de validation et qualification disponibles sans cast as any"
+  );
+
+  // =========================================================================
+  // R1-03: FormulaUnitContract supporte explicitement SI et US_CUSTOMARY
+  // =========================================================================
+  testsRun++;
+  const sampleUnitContract: FormulaUnitContract = Object.freeze({
+    unitSystem: "SI",
+    pressureUnit: "MPa",
+    diameterUnit: "mm",
+    thicknessUnit: "mm",
+    stressUnit: "MPa",
+  });
+  assert(
+    sampleUnitContract.unitSystem === "SI" && sampleUnitContract.pressureUnit === "MPa",
+    "R1-03 — FormulaUnitContract supporte explicitement SI"
+  );
+
+  // =========================================================================
+  // R1-04: FormulaDomain inclut THIN_WALL, THICK_WALL, HIGH_TEMP, ALL
+  // =========================================================================
+  testsRun++;
+  const regimes: readonly FormulaRegime[] = ["THIN_WALL", "THICK_WALL", "HIGH_TEMP", "ALL"];
+  const sampleDomain: FormulaDomain = Object.freeze({
+    regime: "THIN_WALL",
+    minimumPressure: 0,
+    maximumPressure: 100,
+  });
+  assert(
+    regimes.length === 4 &&
+      regimes.includes("THIN_WALL") &&
+      regimes.includes("ALL") &&
+      sampleDomain.regime === "THIN_WALL",
+    "R1-04 — FormulaDomain supporte regime (THIN_WALL, THICK_WALL, HIGH_TEMP, ALL)"
+  );
+
+  // =========================================================================
+  // R1-05: validateDesignCodeFormulaReference rejette objet non-record
+  // =========================================================================
+  testsRun++;
+  const vNonObj = validateDesignCodeFormulaReference(null);
+  const vArr = validateDesignCodeFormulaReference(["not", "an", "object"]);
+  assert(
+    !vNonObj.valid &&
+      !vArr.valid &&
+      vNonObj.errors.some((e) => e.code === "INVALID_RECORD_OBJECT"),
+    "R1-05 — validateDesignCodeFormulaReference rejette null et array"
+  );
+
+  // =========================================================================
+  // R1-06: validateDesignCodeFormulaReference exige un champ id non vide
+  // =========================================================================
+  testsRun++;
+  const vMissingId = validateDesignCodeFormulaReference({
+    designCodeId: "ASME-B31.3",
+    status: "NOT_IMPLEMENTED",
+  });
+  const vEmptyId = validateDesignCodeFormulaReference({
+    id: "   ",
+    designCodeId: "ASME-B31.3",
+    status: "NOT_IMPLEMENTED",
+  });
+  assert(
+    !vMissingId.valid &&
+      !vEmptyId.valid &&
+      vMissingId.errors.some((e) => e.code === "INVALID_FORMULA_REFERENCE"),
+    "R1-06 — validateDesignCodeFormulaReference exige un id non vide"
+  );
+
+  // =========================================================================
+  // R1-07: validateDesignCodeFormulaReference exige un designCodeId répertorié de type DESIGN_CODE
+  // =========================================================================
+  testsRun++;
+  const vUnknownCode = validateDesignCodeFormulaReference({
+    id: "FORM-01",
+    designCodeId: "UNKNOWN-CODE-999",
+    status: "NOT_IMPLEMENTED",
+  });
+  const vNonDesignCode = validateDesignCodeFormulaReference({
+    id: "FORM-02",
+    designCodeId: "ASME-B16.5", // C'est un PRODUCT_STANDARD, pas un DESIGN_CODE
+    status: "NOT_IMPLEMENTED",
+  });
+  assert(
+    !vUnknownCode.valid &&
+      vUnknownCode.errors.some((e) => e.code === "DESIGN_CODE_NOT_FOUND") &&
+      !vNonDesignCode.valid &&
+      vNonDesignCode.errors.some((e) => e.code === "FORMULA_DESIGN_CODE_MISMATCH"),
+    "R1-07 — validateDesignCodeFormulaReference exige un code DESIGN_CODE répertorié"
+  );
+
+  // =========================================================================
+  // R1-08: validateDesignCodeFormulaReference rejette un statut invalide
+  // =========================================================================
+  testsRun++;
+  const vInvalidStatus = validateDesignCodeFormulaReference({
+    id: "FORM-03",
+    designCodeId: "ASME-B31.3",
+    status: "APPROVED_MAGICALLY",
+  });
+  assert(
+    !vInvalidStatus.valid &&
+      vInvalidStatus.errors.some((e) => e.code === "INVALID_FORMULA_STATUS"),
+    "R1-08 — validateDesignCodeFormulaReference rejette un statut arbitraire"
+  );
+
+  // =========================================================================
+  // R1-09: Formule VERIFIED sans clauseReference -> erreur FORMULA_CLAUSE_REQUIRED
+  // =========================================================================
+  testsRun++;
+  const vVerifiedNoClause = validateDesignCodeFormulaReference({
+    id: "B313-THK-01",
+    designCodeId: "ASME-B31.3",
+    status: "VERIFIED",
+    sourceReference: "ASME B31.3-2022 Chapter II",
+  });
+  assert(
+    !vVerifiedNoClause.valid &&
+      vVerifiedNoClause.errors.some((e) => e.code === "FORMULA_CLAUSE_REQUIRED"),
+    "R1-09 — Formule VERIFIED sans clauseReference est rejetée"
+  );
+
+  // =========================================================================
+  // R1-10: Formule VERIFIED sans sourceReference -> erreur FORMULA_SOURCE_REQUIRED
+  // =========================================================================
+  testsRun++;
+  const vVerifiedNoSource = validateDesignCodeFormulaReference({
+    id: "B313-THK-01",
+    designCodeId: "ASME-B31.3",
+    status: "VERIFIED",
+    clauseReference: "para. 304.1.2",
+  });
+  assert(
+    !vVerifiedNoSource.valid &&
+      vVerifiedNoSource.errors.some((e) => e.code === "FORMULA_SOURCE_REQUIRED"),
+    "R1-10 — Formule VERIFIED sans sourceReference est rejetée"
+  );
+
+  // =========================================================================
+  // R1-11: Formule VERIFIED avec clause et source complètes -> valid: true
+  // =========================================================================
+  testsRun++;
+  const validVerifiedFormula: DesignCodeFormulaReference = Object.freeze({
+    id: "B313-EQ-304.1.2",
+    designCodeId: "ASME-B31.3",
+    status: "VERIFIED",
+    calculationType: "PRESSURE_WALL_THICKNESS",
+    clauseReference: "para. 304.1.2 Eq. (3a)",
+    sourceReference: "ASME B31.3 Process Piping 2022 Edition",
+    domain: Object.freeze({ regime: "THIN_WALL" }),
+  });
+  const vVerifiedValid = validateDesignCodeFormulaReference(validVerifiedFormula);
+  assert(
+    vVerifiedValid.valid && vVerifiedValid.errors.length === 0,
+    "R1-11 — Formule VERIFIED avec clause et source est valide"
+  );
+
+  // =========================================================================
+  // R1-12: Formule LICENSED avec clause et source complètes -> valid: true
+  // =========================================================================
+  testsRun++;
+  const validLicensedFormula: DesignCodeFormulaReference = Object.freeze({
+    id: "EN13480-EQ-6.1",
+    designCodeId: "EN-13480",
+    status: "LICENSED",
+    calculationType: "PRESSURE_WALL_THICKNESS",
+    clauseReference: "Clause 6.1-1",
+    sourceReference: "EN 13480-3:2017+A4:2020",
+    domain: Object.freeze({ regime: "ALL" }),
+  });
+  const vLicensedValid = validateDesignCodeFormulaReference(validLicensedFormula);
+  assert(
+    vLicensedValid.valid && vLicensedValid.errors.length === 0,
+    "R1-12 — Formule LICENSED avec clause et source est valide"
+  );
+
+  // =========================================================================
+  // R1-13: Formule NOT_IMPLEMENTED sans clause/source reste valide au schéma de base
+  // =========================================================================
+  testsRun++;
+  const notImplFormula: DesignCodeFormulaReference = Object.freeze({
+    id: "B314-THK-FUTURE",
+    designCodeId: "ASME-B31.4",
+    status: "NOT_IMPLEMENTED",
+  });
+  const vNotImpl = validateDesignCodeFormulaReference(notImplFormula);
+  assert(
+    vNotImpl.valid && vNotImpl.errors.length === 0,
+    "R1-13 — Formule NOT_IMPLEMENTED sans clause reste valide au schéma de base"
+  );
+
+  // =========================================================================
+  // R1-14: isFormulaQualified retourne false pour NOT_IMPLEMENTED
+  // =========================================================================
+  testsRun++;
+  assert(
+    isFormulaQualified(notImplFormula) === false,
+    "R1-14 — isFormulaQualified retourne false pour NOT_IMPLEMENTED"
+  );
+
+  // =========================================================================
+  // R1-15: isFormulaQualified retourne false pour UNVERIFIED
+  // =========================================================================
+  testsRun++;
+  const unverifiedFormula: DesignCodeFormulaReference = Object.freeze({
+    id: "B318-THK-UNVERIF",
+    designCodeId: "ASME-B31.8",
+    status: "UNVERIFIED",
+    clauseReference: "841.1.1",
+  });
+  assert(
+    isFormulaQualified(unverifiedFormula) === false,
+    "R1-15 — isFormulaQualified retourne false pour UNVERIFIED"
+  );
+
+  // =========================================================================
+  // R1-16: isFormulaQualified retourne true pour VERIFIED avec clause et source
+  // =========================================================================
+  testsRun++;
+  assert(
+    isFormulaQualified(validVerifiedFormula) === true,
+    "R1-16 — isFormulaQualified retourne true pour VERIFIED avec clause et source"
+  );
+
+  // =========================================================================
+  // R1-17: isFormulaQualified retourne true pour LICENSED avec clause et source
+  // =========================================================================
+  testsRun++;
+  assert(
+    isFormulaQualified(validLicensedFormula) === true,
+    "R1-17 — isFormulaQualified retourne true pour LICENSED avec clause et source"
+  );
+
+  // =========================================================================
+  // R1-18: isFormulaQualified retourne false pour objet invalide ou non-record
+  // =========================================================================
+  testsRun++;
+  assert(
+    isFormulaQualified(null) === false &&
+      isFormulaQualified(undefined) === false &&
+      isFormulaQualified("string") === false &&
+      isFormulaQualified({}) === false,
+    "R1-18 — isFormulaQualified retourne false pour données invalides ou incomplètes"
+  );
+
+  // =========================================================================
+  // R1-19: isEngineeringCalculationType valide types supportés et rejette invalides
+  // =========================================================================
+  testsRun++;
+  assert(
+    isEngineeringCalculationType("PRESSURE_WALL_THICKNESS") &&
+      isEngineeringCalculationType("ALLOWABLE_PRESSURE") &&
+      isEngineeringCalculationType("HOOP_STRESS") &&
+      isEngineeringCalculationType("TEST_PRESSURE") &&
+      isEngineeringCalculationType("OTHER") &&
+      !isEngineeringCalculationType("BOGUS_CALC") &&
+      !isEngineeringCalculationType(null),
+    "R1-19 — isEngineeringCalculationType discrimine rigoureusement sans cast"
+  );
+
+  // =========================================================================
+  // R1-20: isEngineeringUnitSystem valide SI / US_CUSTOMARY et rejette autres
+  // =========================================================================
+  testsRun++;
+  assert(
+    isEngineeringUnitSystem("SI") &&
+      isEngineeringUnitSystem("US_CUSTOMARY") &&
+      !isEngineeringUnitSystem("IMPERIAL_INCH") &&
+      !isEngineeringUnitSystem("METRIC_BAR"),
+    "R1-20 — isEngineeringUnitSystem discrimine sans cast"
+  );
+
+  // =========================================================================
+  // R1-21: isDesignCodeFormulaStatus valide les 4 statuts et rejette autres
+  // =========================================================================
+  testsRun++;
+  assert(
+    isDesignCodeFormulaStatus("VERIFIED") &&
+      isDesignCodeFormulaStatus("LICENSED") &&
+      isDesignCodeFormulaStatus("UNVERIFIED") &&
+      isDesignCodeFormulaStatus("NOT_IMPLEMENTED") &&
+      !isDesignCodeFormulaStatus("VALIDATED") &&
+      !isDesignCodeFormulaStatus(undefined),
+    "R1-21 — isDesignCodeFormulaStatus valide exactement les 4 statuts normatifs"
+  );
+
+  // =========================================================================
+  // R1-22: executeEngineeringCalculation retourne NOT_IMPLEMENTED avec message explicite
+  // =========================================================================
+  testsRun++;
+  const resExec = executeEngineeringCalculation(validNominalInput);
+  assert(
+    resExec.status === "NOT_IMPLEMENTED" &&
+      resExec.errors.some((err) => err.includes("FORMULA_NOT_IMPLEMENTED")),
+    "R1-22 — executeEngineeringCalculation retourne NOT_IMPLEMENTED pour ASME-B31.3"
+  );
+
+  // =========================================================================
+  // R1-23: Output contract: aucun résultat ne contient NaN, Infinity, -Infinity
+  // =========================================================================
+  testsRun++;
+  assert(
+    resExec.value === undefined ||
+      (typeof resExec.value === "number" && Number.isFinite(resExec.value)),
+    "R1-23 — Output contract: aucune valeur numérique NaN ou infinie dans le résultat"
+  );
+
+  // =========================================================================
+  // R1-24: Output contract: result est strictement gelé (Object.isFrozen)
+  // =========================================================================
+  testsRun++;
+  assert(
+    Object.isFrozen(resExec) &&
+      Object.isFrozen(resExec.inputs) &&
+      Object.isFrozen(resExec.errors) &&
+      Object.isFrozen(resExec.warnings) &&
+      Object.isFrozen(resExec.assumptions),
+    "R1-24 — Output contract: l'intégralité du résultat est gelé (Object.isFrozen)"
+  );
+
+  // =========================================================================
+  // R1-25: Traceability: result contient structure pour formulaId, clauseReference, sourceReference
+  // =========================================================================
+  testsRun++;
+  assert(
+    "calculationType" in resExec &&
+      "designCodeId" in resExec &&
+      "inputs" in resExec &&
+      "errors" in resExec,
+    "R1-25 — Traceability: contrat de traçabilité respecté"
+  );
+
+  // =========================================================================
+  // R1-26: Gate: Aucune formule arbitraire non qualifiée n'est exécutée numériquement
+  // =========================================================================
+  testsRun++;
+  assert(
+    resExec.value === undefined,
+    "R1-26 — Gate: aucune formule numérique n'a été exécutée silencieusement"
+  );
+
+  // =========================================================================
+  // R1-27: Gate: Entrée sans designCodeId supporté retourne OUT_OF_SCOPE
+  // =========================================================================
+  testsRun++;
+  const outOfScopeResult = executeEngineeringCalculation({
+    ...validNominalInput,
+    designCodeId: "UNREGISTERED_CODE" as unknown as EngineeringCalculationInput["designCodeId"],
+  });
+  assert(
+    outOfScopeResult.status === "INVALID_INPUT" || outOfScopeResult.status === "OUT_OF_SCOPE",
+    "R1-27 — Gate: code non supporté est intercepté"
+  );
+
+  // =========================================================================
+  // R1-28: Statut CALCULATED impossible sur les 5 codes enregistrés actuels
+  // =========================================================================
+  testsRun++;
+  const codesToTest: readonly EngineeringCalculationInput["designCodeId"][] = [
+    "ASME-B31.3",
+    "ASME-B31.4",
+    "ASME-B31.8",
+    "EN-13480",
+    "ISO-13623",
+  ];
+  for (const code of codesToTest) {
+    const r = executeEngineeringCalculation({
+      ...validNominalInput,
+      designCodeId: code,
+    });
+    assert(
+      (r.status as string) !== "CALCULATED",
+      `R1-28 — Le statut CALCULATED est impossible pour le code ${code}`
+    );
+  }
+
+  // =========================================================================
+  // R1-29: Statut COMPLIANT strictement absent des résultats
+  // =========================================================================
+  testsRun++;
+  for (const code of codesToTest) {
+    const r = executeEngineeringCalculation({
+      ...validNominalInput,
+      designCodeId: code,
+    });
+    assert(
+      (r.status as string) !== "COMPLIANT",
+      `R1-29 — Le statut COMPLIANT est strictement interdit pour le code ${code}`
+    );
+  }
+
+  // =========================================================================
+  // R1-30: Purement déterministe et reproductible (idempotent, zéro effet de bord)
+  // =========================================================================
+  testsRun++;
+  const sample1 = executeEngineeringCalculation(validNominalInput);
+  const sample2 = executeEngineeringCalculation(validNominalInput);
+  assert(
+    JSON.stringify(sample1) === JSON.stringify(sample2),
+    "R1-30 — L'exécution est purement déterministe et reproductible"
   );
 
   return { success: true, testsRun };

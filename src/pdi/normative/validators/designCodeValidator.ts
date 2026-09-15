@@ -22,6 +22,8 @@
 import { PDI_STANDARDS_REGISTRY } from "../registry/standardsRegistry";
 import { isRecordObject } from "./pipeDimensionalValidator";
 import type {
+  DesignCodeFormulaReference,
+  DesignCodeFormulaStatus,
   EngineeringCalculationInput,
   EngineeringCalculationType,
   EngineeringUnitSystem,
@@ -50,7 +52,14 @@ export type DesignCodeValidationErrorCode =
   | "EDITION_REQUIRED"
   | "FORMULA_NOT_IMPLEMENTED"
   | "FORMULA_SOURCE_UNVERIFIED"
-  | "CALCULATION_OUT_OF_SCOPE";
+  | "CALCULATION_OUT_OF_SCOPE"
+  | "INVALID_FORMULA_REFERENCE"
+  | "FORMULA_CLAUSE_REQUIRED"
+  | "FORMULA_SOURCE_REQUIRED"
+  | "FORMULA_NOT_QUALIFIED"
+  | "CALCULATION_TYPE_NOT_SUPPORTED"
+  | "FORMULA_DESIGN_CODE_MISMATCH"
+  | "INVALID_FORMULA_STATUS";
 
 export interface DesignCodeValidationError {
   readonly code: DesignCodeValidationErrorCode;
@@ -76,8 +85,54 @@ export const VALID_UNIT_SYSTEMS: readonly EngineeringUnitSystem[] = Object.freez
   "US_CUSTOMARY",
 ]);
 
-const VALID_CALC_TYPES_SET = new Set<string>(VALID_CALCULATION_TYPES);
-const VALID_UNIT_SYSTEMS_SET = new Set<string>(VALID_UNIT_SYSTEMS);
+export const VALID_FORMULA_STATUSES: readonly DesignCodeFormulaStatus[] = Object.freeze([
+  "VERIFIED",
+  "LICENSED",
+  "UNVERIFIED",
+  "NOT_IMPLEMENTED",
+]);
+
+/**
+ * Type guard déterministe pour EngineeringCalculationType.
+ * Garantit qu'aucun cast artificiel (as EngineeringCalculationType) n'est nécessaire.
+ */
+export function isEngineeringCalculationType(
+  value: unknown
+): value is EngineeringCalculationType {
+  return (
+    typeof value === "string" &&
+    (value === "PRESSURE_WALL_THICKNESS" ||
+      value === "ALLOWABLE_PRESSURE" ||
+      value === "HOOP_STRESS" ||
+      value === "TEST_PRESSURE" ||
+      value === "OTHER")
+  );
+}
+
+/**
+ * Type guard déterministe pour EngineeringUnitSystem.
+ * Rejette toute valeur inconnue sans cast artificiel.
+ */
+export function isEngineeringUnitSystem(
+  value: unknown
+): value is EngineeringUnitSystem {
+  return typeof value === "string" && (value === "SI" || value === "US_CUSTOMARY");
+}
+
+/**
+ * Type guard déterministe pour DesignCodeFormulaStatus.
+ */
+export function isDesignCodeFormulaStatus(
+  value: unknown
+): value is DesignCodeFormulaStatus {
+  return (
+    typeof value === "string" &&
+    (value === "VERIFIED" ||
+      value === "LICENSED" ||
+      value === "UNVERIFIED" ||
+      value === "NOT_IMPLEMENTED")
+  );
+}
 
 /**
  * Valide les aspects sémantiques et physiques communs sur un Record non typé.
@@ -113,9 +168,9 @@ function validateSharedCalculationInput(
     }
   }
 
-  // 2. Validation de calculationType
+  // 2. Validation de calculationType via type guard strict (sans cast)
   if ("calculationType" in raw && raw.calculationType !== undefined) {
-    if (typeof raw.calculationType !== "string" || !VALID_CALC_TYPES_SET.has(raw.calculationType)) {
+    if (!isEngineeringCalculationType(raw.calculationType)) {
       errors.push({
         code: "INVALID_CALCULATION_TYPE",
         field: "calculationType",
@@ -124,9 +179,9 @@ function validateSharedCalculationInput(
     }
   }
 
-  // 3. Validation de unitSystem
+  // 3. Validation de unitSystem via type guard strict (sans cast)
   if ("unitSystem" in raw && raw.unitSystem !== undefined) {
-    if (typeof raw.unitSystem !== "string" || !VALID_UNIT_SYSTEMS_SET.has(raw.unitSystem)) {
+    if (!isEngineeringUnitSystem(raw.unitSystem)) {
       errors.push({
         code: "INVALID_UNIT_SYSTEM",
         field: "unitSystem",
@@ -347,7 +402,9 @@ export function validateCompleteEngineeringCalculationInput(
   validateSharedCalculationInput(record, errors);
 
   // Exigences contextuelles spécifiques selon le type de calcul
-  const calcType = record.calculationType as EngineeringCalculationType | undefined;
+  const calcType = isEngineeringCalculationType(record.calculationType)
+    ? record.calculationType
+    : undefined;
 
   if (calcType === "PRESSURE_WALL_THICKNESS") {
     if (record.pressure === undefined || record.pressure === null) {
@@ -439,4 +496,142 @@ export function validateCompleteEngineeringCalculationInput(
     valid: errors.length === 0,
     errors,
   };
+}
+
+/**
+ * Valide une référence de formule normative.
+ * RÈGLE DE QUALIFICATION (Section 11, R1-05 à R1-10) :
+ * - id : chaîne non vide déterministe.
+ * - designCodeId : doit être un code de conception valide et répertorié de type DESIGN_CODE.
+ * - status : VERIFIED, LICENSED, UNVERIFIED ou NOT_IMPLEMENTED.
+ * - Si status === "VERIFIED" ou "LICENSED" :
+ *   clauseReference ET sourceReference sont strictement obligatoires (chaînes non vides).
+ */
+export function validateDesignCodeFormulaReference(
+  record: unknown
+): DesignCodeValidationResult {
+  if (!isRecordObject(record)) {
+    return {
+      valid: false,
+      errors: [
+        {
+          code: "INVALID_RECORD_OBJECT",
+          message: "La référence de formule doit être un objet non-null et non-tableau.",
+        },
+      ],
+    };
+  }
+
+  const errors: DesignCodeValidationError[] = [];
+
+  // 1. Validation de l'id
+  if (!("id" in record) || typeof record.id !== "string" || record.id.trim().length === 0) {
+    errors.push({
+      code: "INVALID_FORMULA_REFERENCE",
+      field: "id",
+      message: "L'identifiant de formule (id) doit être une chaîne non vide.",
+    });
+  }
+
+  // 2. Validation du designCodeId
+  if (
+    !("designCodeId" in record) ||
+    typeof record.designCodeId !== "string" ||
+    record.designCodeId.trim().length === 0
+  ) {
+    errors.push({
+      code: "INVALID_DESIGN_CODE_ID",
+      field: "designCodeId",
+      message: "designCodeId doit être renseigné et être une chaîne non vide.",
+    });
+  } else {
+    const codeId = record.designCodeId.trim();
+    const standard = PDI_STANDARDS_REGISTRY[codeId];
+    if (!standard) {
+      errors.push({
+        code: "DESIGN_CODE_NOT_FOUND",
+        field: "designCodeId",
+        message: `Le code de conception '${codeId}' est introuvable dans PDI_STANDARDS_REGISTRY.`,
+      });
+    } else if (standard.standardType !== "DESIGN_CODE") {
+      errors.push({
+        code: "FORMULA_DESIGN_CODE_MISMATCH",
+        field: "designCodeId",
+        message: `Le standard '${codeId}' n'est pas un code de conception (type: ${standard.standardType}).`,
+      });
+    }
+  }
+
+  // 3. Validation du statut de formule
+  if (!("status" in record) || !isDesignCodeFormulaStatus(record.status)) {
+    errors.push({
+      code: "INVALID_FORMULA_STATUS",
+      field: "status",
+      message: `Statut de formule invalide. Attendu: 'VERIFIED', 'LICENSED', 'UNVERIFIED' ou 'NOT_IMPLEMENTED'.`,
+    });
+  } else {
+    // 4. Règles de qualification (Section 11) :
+    // Une formule ne peut être VERIFIED ou LICENSED que si clauseReference et sourceReference sont non vides
+    if (record.status === "VERIFIED" || record.status === "LICENSED") {
+      const hasClause =
+        "clauseReference" in record &&
+        typeof record.clauseReference === "string" &&
+        record.clauseReference.trim().length > 0;
+      if (!hasClause) {
+        errors.push({
+          code: "FORMULA_CLAUSE_REQUIRED",
+          field: "clauseReference",
+          message: `Une formule ${record.status} requiert une clauseReference non vide.`,
+        });
+      }
+
+      const hasSource =
+        "sourceReference" in record &&
+        typeof record.sourceReference === "string" &&
+        record.sourceReference.trim().length > 0;
+      if (!hasSource) {
+        errors.push({
+          code: "FORMULA_SOURCE_REQUIRED",
+          field: "sourceReference",
+          message: `Une formule ${record.status} requiert une sourceReference non vide.`,
+        });
+      }
+
+      if (!hasClause || !hasSource) {
+        errors.push({
+          code: "FORMULA_NOT_QUALIFIED",
+          message: `Formule non qualifiée: ni clause ni source ne peuvent être omises pour le statut ${record.status}.`,
+        });
+      }
+    }
+  }
+
+  // 5. Validation optionnelle de calculationType si présent
+  if ("calculationType" in record && record.calculationType !== undefined) {
+    if (!isEngineeringCalculationType(record.calculationType)) {
+      errors.push({
+        code: "INVALID_CALCULATION_TYPE",
+        field: "calculationType",
+        message: `calculationType invalide dans la formule: '${String(record.calculationType)}'.`,
+      });
+    }
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+  };
+}
+
+/**
+ * Vérifie si une formule satisfait toutes les exigences de qualification (VERIFIED ou LICENSED avec clause et source).
+ * Une formule NOT_IMPLEMENTED ou UNVERIFIED retourne systématiquement false.
+ */
+export function isFormulaQualified(
+  formula: unknown
+): formula is DesignCodeFormulaReference {
+  if (!isRecordObject(formula)) return false;
+  const validation = validateDesignCodeFormulaReference(formula);
+  if (!validation.valid) return false;
+  return formula.status === "VERIFIED" || formula.status === "LICENSED";
 }

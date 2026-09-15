@@ -16,9 +16,13 @@
 
 import type { DesignCodeId } from "../types/normativeCoreTypes";
 import type {
+  DesignCodeFormulaReference,
   DesignCodeRegistryEntry,
   EngineeringCalculationType,
 } from "../types/designCodeTypes";
+
+const EMPTY_CALCULATION_TYPES: readonly EngineeringCalculationType[] = Object.freeze([]);
+const EMPTY_FORMULA_REFERENCES: readonly DesignCodeFormulaReference[] = Object.freeze([]);
 
 /**
  * Registre immuable des codes de conception et de leurs capacités de calcul.
@@ -28,32 +32,32 @@ export const DESIGN_CODE_CALCULATION_REGISTRY: readonly DesignCodeRegistryEntry[
   Object.freeze({
     id: "ASME-B31.3",
     status: "NOT_IMPLEMENTED",
-    supportedCalculationTypes: Object.freeze([] as EngineeringCalculationType[]),
-    formulaReferences: Object.freeze([]),
+    supportedCalculationTypes: EMPTY_CALCULATION_TYPES,
+    formulaReferences: EMPTY_FORMULA_REFERENCES,
   }),
   Object.freeze({
     id: "ASME-B31.4",
     status: "NOT_IMPLEMENTED",
-    supportedCalculationTypes: Object.freeze([] as EngineeringCalculationType[]),
-    formulaReferences: Object.freeze([]),
+    supportedCalculationTypes: EMPTY_CALCULATION_TYPES,
+    formulaReferences: EMPTY_FORMULA_REFERENCES,
   }),
   Object.freeze({
     id: "ASME-B31.8",
     status: "NOT_IMPLEMENTED",
-    supportedCalculationTypes: Object.freeze([] as EngineeringCalculationType[]),
-    formulaReferences: Object.freeze([]),
+    supportedCalculationTypes: EMPTY_CALCULATION_TYPES,
+    formulaReferences: EMPTY_FORMULA_REFERENCES,
   }),
   Object.freeze({
     id: "EN-13480",
     status: "NOT_IMPLEMENTED",
-    supportedCalculationTypes: Object.freeze([] as EngineeringCalculationType[]),
-    formulaReferences: Object.freeze([]),
+    supportedCalculationTypes: EMPTY_CALCULATION_TYPES,
+    formulaReferences: EMPTY_FORMULA_REFERENCES,
   }),
   Object.freeze({
     id: "ISO-13623",
     status: "NOT_IMPLEMENTED",
-    supportedCalculationTypes: Object.freeze([] as EngineeringCalculationType[]),
-    formulaReferences: Object.freeze([]),
+    supportedCalculationTypes: EMPTY_CALCULATION_TYPES,
+    formulaReferences: EMPTY_FORMULA_REFERENCES,
   }),
 ]);
 

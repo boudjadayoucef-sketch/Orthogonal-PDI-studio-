@@ -21,6 +21,8 @@ import type {
 } from "../types/designCodeTypes";
 import {
   validateCompleteEngineeringCalculationInput,
+  validateDesignCodeFormulaReference,
+  isFormulaQualified,
 } from "../validators/designCodeValidator";
 import {
   getDesignCodeCalculationEntry,
@@ -28,7 +30,11 @@ import {
 
 /**
  * Exécute un calcul d'ingénierie selon le code de conception spécifié.
- * Garantit qu'aucune valeur par défaut ou hypothèse cachée n'est injectée.
+ * RÈGLE ARCHITECTURALE ABSOLUE (NORM-08-R1) :
+ * - Déterministe, immuable, auditable, traçable.
+ * - Aucune formule inventée ou constante arbitraire.
+ * - Le statut CALCULATED ne peut jamais être retourné tant qu'aucune formule réelle n'est activée.
+ * - Toute sortie éventuelle est strictement vérifiée par Number.isFinite.
  */
 export function executeEngineeringCalculation(
   input: EngineeringCalculationInput,
@@ -78,9 +84,7 @@ export function executeEngineeringCalculation(
     });
   }
 
-  // 3. Vérification de l'implémentation de la formule
-  // Dans NORM-08, chaque code est rigoureusement à NOT_IMPLEMENTED
-  // Aucune formule n'est exécutée avec des constantes inventées.
+  // 3. Vérification du support du type de calcul par le code
   if (
     registryEntry.status === "NOT_IMPLEMENTED" ||
     !registryEntry.supportedCalculationTypes.includes(input.calculationType)
@@ -104,17 +108,107 @@ export function executeEngineeringCalculation(
       assumptions: Object.freeze([]),
       warnings: Object.freeze([]),
       errors: Object.freeze([
-        `FORMULA_NOT_IMPLEMENTED: Aucun calcul vérifié et sourcé pour ${input.calculationType} selon ${input.designCodeId} dans NORM-08.`,
+        `FORMULA_NOT_IMPLEMENTED: Aucun calcul vérifié et sourcé pour ${input.calculationType} selon ${input.designCodeId} dans NORM-08-R1.`,
       ]),
     });
   }
 
-  // Si ultérieurement une formule vérifiée est activée, elle doit respecter la non-finitude
+  // 4. FORMULA EXECUTION GATE (Section 17)
+  // Recherche d'une formule associée dans le registre
+  const formula = registryEntry.formulaReferences.find(
+    (f) => f.calculationType === input.calculationType || !f.calculationType
+  );
+
+  if (!formula || formula.status === "NOT_IMPLEMENTED") {
+    return Object.freeze({
+      status: "NOT_IMPLEMENTED",
+      calculationType: input.calculationType,
+      designCodeId: input.designCodeId,
+      standardEdition: input.standardEdition ?? context?.standardEdition,
+      formulaId: formula?.id,
+      clauseReference: formula?.clauseReference,
+      sourceReference: formula?.sourceReference,
+      formulaReference: formula,
+      inputs: Object.freeze({
+        pressure: input.pressure,
+        temperature: input.temperature,
+        outsideDiameterMm: input.outsideDiameterMm,
+        wallThicknessMm: input.wallThicknessMm,
+        materialId: input.materialId ?? context?.materialId,
+        corrosionAllowanceMm: input.corrosionAllowanceMm,
+        weldJointFactor: input.weldJointFactor,
+        designFactor: input.designFactor,
+        unitSystem: input.unitSystem,
+      }),
+      assumptions: Object.freeze([]),
+      warnings: Object.freeze([]),
+      errors: Object.freeze([
+        `FORMULA_NOT_IMPLEMENTED: Aucune formule implémentée pour ${input.calculationType} sous ${input.designCodeId}.`,
+      ]),
+    });
+  }
+
+  // Vérification de la qualification de la formule (Section 11 & 17)
+  const formulaValidation = validateDesignCodeFormulaReference(formula);
+  if (!formulaValidation.valid || !isFormulaQualified(formula)) {
+    return Object.freeze({
+      status: "UNVERIFIED",
+      calculationType: input.calculationType,
+      designCodeId: input.designCodeId,
+      standardEdition: input.standardEdition ?? context?.standardEdition,
+      formulaId: formula.id,
+      clauseReference: formula.clauseReference,
+      sourceReference: formula.sourceReference,
+      formulaReference: formula,
+      inputs: Object.freeze({
+        pressure: input.pressure,
+        temperature: input.temperature,
+        outsideDiameterMm: input.outsideDiameterMm,
+        wallThicknessMm: input.wallThicknessMm,
+        materialId: input.materialId ?? context?.materialId,
+        corrosionAllowanceMm: input.corrosionAllowanceMm,
+        weldJointFactor: input.weldJointFactor,
+        designFactor: input.designFactor,
+        unitSystem: input.unitSystem,
+      }),
+      assumptions: Object.freeze([]),
+      warnings: Object.freeze([]),
+      errors: Object.freeze([
+        "FORMULA_SOURCE_UNVERIFIED: Formule non qualifiée ou clause/source absente.",
+      ]),
+    });
+  }
+
+  // Cohérence designCodeId (Section 17)
+  if (formula.designCodeId !== input.designCodeId) {
+    return Object.freeze({
+      status: "NOT_IMPLEMENTED",
+      calculationType: input.calculationType,
+      designCodeId: input.designCodeId,
+      standardEdition: input.standardEdition ?? context?.standardEdition,
+      inputs: Object.freeze({
+        pressure: input.pressure,
+        unitSystem: input.unitSystem,
+      }),
+      assumptions: Object.freeze([]),
+      warnings: Object.freeze([]),
+      errors: Object.freeze([
+        `FORMULA_DESIGN_CODE_MISMATCH: La formule ${formula.id} est dédiée à ${formula.designCodeId}, pas ${input.designCodeId}.`,
+      ]),
+    });
+  }
+
+  // Dans NORM-08-R1, AUCUN calcul numérique réel n'est activé (Section 18).
+  // Le moteur garantit qu'aucune valeur numérique n'est calculée arbitrairement.
   return Object.freeze({
     status: "UNVERIFIED",
     calculationType: input.calculationType,
     designCodeId: input.designCodeId,
     standardEdition: input.standardEdition ?? context?.standardEdition,
+    formulaId: formula.id,
+    clauseReference: formula.clauseReference,
+    sourceReference: formula.sourceReference,
+    formulaReference: formula,
     inputs: Object.freeze({
       pressure: input.pressure,
       temperature: input.temperature,
@@ -128,6 +222,6 @@ export function executeEngineeringCalculation(
     }),
     assumptions: Object.freeze([]),
     warnings: Object.freeze([]),
-    errors: Object.freeze(["FORMULA_SOURCE_UNVERIFIED: Formule non qualifiée."]),
+    errors: Object.freeze(["FORMULA_NOT_IMPLEMENTED: Formule qualifiée mais calcul non activé dans NORM-08-R1."]),
   });
 }
