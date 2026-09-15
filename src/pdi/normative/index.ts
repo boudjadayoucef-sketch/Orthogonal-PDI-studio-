@@ -11,6 +11,7 @@ export * from "./types/valveTypes";
 export * from "./types/materialTypes";
 export * from "./types/pipingSpecTypes";
 export * from "./types/complianceTypes";
+export * from "./types/designCodeTypes";
 
 export * from "./registry/standardsRegistry";
 export * from "./registry/pipeDimensionalRegistry";
@@ -19,6 +20,7 @@ export * from "./registry/flangeRegistry";
 export * from "./registry/valveRegistry";
 export * from "./registry/materialRegistry";
 export * from "./registry/pipingSpecRegistry";
+export * from "./registry/designCodeRegistry";
 
 export * from "./validators/pipeDimensionalValidator";
 export * from "./validators/fittingValidator";
@@ -26,6 +28,9 @@ export * from "./validators/flangeValidator";
 export * from "./validators/valveValidator";
 export * from "./validators/materialValidator";
 export * from "./validators/pipingSpecValidator";
+export * from "./validators/designCodeValidator";
+
+export * from "./engine/designCodeEngine";
 
 export * from "./tests/normativeTests";
 export * from "./tests/pipeDimensionalTests";
@@ -34,3 +39,4 @@ export * from "./tests/flangeTests";
 export * from "./tests/valveTests";
 export * from "./tests/materialTests";
 export * from "./tests/pipingSpecTests";
+export * from "./tests/designCodeTests";
