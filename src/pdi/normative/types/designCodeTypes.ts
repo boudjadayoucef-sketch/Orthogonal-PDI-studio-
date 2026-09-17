@@ -156,9 +156,25 @@ export interface NormativeQualityFactorInput {
 }
 
 /**
+ * Identifiants stricts des branches du facteur de réduction de soudure W.
+ * Conforme à ASME B31.3 Table 302.3.5-1 et rapport de qualification F01.
+ */
+export type WeldReductionBranchId =
+  | "W-01"
+  | "W-02"
+  | "W-03"
+  | "W-04"
+  | "W-05"
+  | "W-06"
+  | "W-07"
+  | "W-08"
+  | "W-09";
+
+/**
  * Métadonnées de qualification et traçabilité pour le facteur de réduction W.
  */
 export interface NormativeWeldReductionFactorInput {
+  readonly branchId?: WeldReductionBranchId | string;
   readonly factorValue: number;
   readonly materialGroup?: string;
   readonly designTemperature?: number;
@@ -167,6 +183,7 @@ export interface NormativeWeldReductionFactorInput {
   readonly sourceReference?: string;
   readonly qualificationStatus?: DesignCodeFormulaStatus;
   readonly selectionContext?: string;
+  readonly hasQualifiedContextGrid?: boolean;
 }
 
 /**
@@ -179,6 +196,7 @@ export interface NormativeYCoefficientInput {
   readonly applicableRegime?: string;
   readonly sourceReference?: string;
   readonly qualificationStatus?: DesignCodeFormulaStatus;
+  readonly branchId?: string;
 }
 
 /**

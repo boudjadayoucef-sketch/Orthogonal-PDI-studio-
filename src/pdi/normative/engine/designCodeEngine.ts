@@ -65,6 +65,25 @@ function executeAsmeB313F01Calculation(
   formula: DesignCodeFormulaReference,
   effectiveEdition: StandardEdition | undefined
 ): EngineeringCalculationResult {
+  // RÈGLE ABSOLUE F01 : Le contrat qualifié est exclusivement SI (MPa, mm, °C)
+  if (input.unitSystem !== "SI") {
+    return Object.freeze({
+      status: "UNVERIFIED",
+      calculationType: input.calculationType,
+      designCodeId: input.designCodeId,
+      standardEdition: effectiveEdition,
+      formulaId: formula.id,
+      clauseReference: formula.clauseReference,
+      sourceReference: formula.sourceReference,
+      inputs: buildInputsRecord(input),
+      assumptions: Object.freeze([]),
+      warnings: Object.freeze([]),
+      errors: Object.freeze([
+        "UNIT_CONTRACT_UNVERIFIED: Le contrat F01 qualifié ASME B31.3-2024 Eq. (3a)/(3b) est exclusivement qualifié pour le système d'unités SI (MPa, mm, °C). US_CUSTOMARY n'est pas qualifié et aucune conversion implicite n'est autorisée.",
+      ]),
+    });
+  }
+
   const P = input.pressure;
   if (typeof P !== "number" || !Number.isFinite(P) || P <= 0) {
     return Object.freeze({
@@ -152,9 +171,40 @@ function executeAsmeB313F01Calculation(
     });
   }
 
+  if (input.diameterBasis === "INSIDE" && !hasInside) {
+    return Object.freeze({
+      status: "INVALID_INPUT",
+      calculationType: input.calculationType,
+      designCodeId: input.designCodeId,
+      standardEdition: effectiveEdition,
+      diameterBasis: "INSIDE",
+      inputs: buildInputsRecord(input, "INSIDE"),
+      assumptions: Object.freeze([]),
+      warnings: Object.freeze([]),
+      errors: Object.freeze([
+        "PIPE_DIMENSION_REFERENCE_REQUIRED: diameterBasis est fixé à 'INSIDE' mais insideDiameterMm n'est pas fourni.",
+      ]),
+    });
+  }
+  if (input.diameterBasis === "OUTSIDE" && !hasOutside) {
+    return Object.freeze({
+      status: "INVALID_INPUT",
+      calculationType: input.calculationType,
+      designCodeId: input.designCodeId,
+      standardEdition: effectiveEdition,
+      diameterBasis: "OUTSIDE",
+      inputs: buildInputsRecord(input, "OUTSIDE"),
+      assumptions: Object.freeze([]),
+      warnings: Object.freeze([]),
+      errors: Object.freeze([
+        "PIPE_DIMENSION_REFERENCE_REQUIRED: diameterBasis est fixé à 'OUTSIDE' mais outsideDiameterMm n'est pas fourni.",
+      ]),
+    });
+  }
+
   let diameterBasis: DiameterBasis;
-  if (hasOutside && hasInside) {
-    diameterBasis = input.diameterBasis!;
+  if (input.diameterBasis) {
+    diameterBasis = input.diameterBasis;
   } else if (hasOutside) {
     diameterBasis = "OUTSIDE";
   } else {
@@ -167,22 +217,40 @@ function executeAsmeB313F01Calculation(
   let sValueVerified = false;
   let sSource: string | undefined;
 
-  if (isRecordObject(input.allowableStressInput) && typeof input.allowableStressInput.value === "number") {
-    S = input.allowableStressInput.value;
-    sContractVerified = Number.isFinite(S);
+  const sInput = input.allowableStressInput;
+  if (isRecordObject(sInput) && typeof sInput.value === "number") {
+    S = sInput.value;
+    sContractVerified = Number.isFinite(S) && S > 0;
+    const hasMaterial = Boolean(
+      (typeof sInput.materialReference === "string" && sInput.materialReference.trim().length > 0) ||
+      (typeof input.materialId === "string" && input.materialId.trim().length > 0)
+    );
+    const hasTemp =
+      typeof sInput.temperature === "number" &&
+      Number.isFinite(sInput.temperature);
+    const hasUnit = sInput.unit === "MPa";
+    const hasSource =
+      typeof sInput.sourceReference === "string" &&
+      sInput.sourceReference.trim().length > 0;
+    const isStatusQualified =
+      sInput.qualificationStatus === "VERIFIED" ||
+      sInput.qualificationStatus === "LICENSED";
+
     if (
-      input.allowableStressInput.qualificationStatus === "VERIFIED" &&
-      typeof input.allowableStressInput.sourceReference === "string" &&
-      input.allowableStressInput.sourceReference.trim().length > 0 &&
-      Boolean(input.allowableStressInput.materialReference || input.materialId)
+      sContractVerified &&
+      hasMaterial &&
+      hasTemp &&
+      hasUnit &&
+      hasSource &&
+      isStatusQualified
     ) {
       sValueVerified = true;
-      sSource = input.allowableStressInput.sourceReference;
+      sSource = sInput.sourceReference;
     }
   } else if (typeof input.allowableStressMpa === "number") {
     S = input.allowableStressMpa;
-    sContractVerified = Number.isFinite(S);
-    sValueVerified = false; // Une valeur numérique brute sans provenance n'est JAMAIS VALUE VERIFIED
+    sContractVerified = Number.isFinite(S) && S > 0;
+    sValueVerified = false; // Une valeur numérique brute sans qualification/provenance n'est JAMAIS VALUE VERIFIED
   }
 
   if (S === undefined) {
@@ -218,21 +286,31 @@ function executeAsmeB313F01Calculation(
   let eValueVerified = false;
   let eSource: string | undefined;
 
-  if (isRecordObject(input.qualityFactorInput) && typeof input.qualityFactorInput.factorValue === "number") {
-    E = input.qualityFactorInput.factorValue;
-    eContractVerified = Number.isFinite(E);
-    if (
-      input.qualityFactorInput.qualificationStatus === "VERIFIED" &&
-      typeof input.qualityFactorInput.sourceReference === "string" &&
-      input.qualityFactorInput.sourceReference.trim().length > 0
-    ) {
+  const eInput = input.qualityFactorInput;
+  if (isRecordObject(eInput) && typeof eInput.factorValue === "number") {
+    E = eInput.factorValue;
+    eContractVerified = Number.isFinite(E) && E > 0 && E <= 1.0;
+    const hasSource =
+      typeof eInput.sourceReference === "string" &&
+      eInput.sourceReference.trim().length > 0;
+    const hasContext = Boolean(
+      (typeof eInput.productSpecification === "string" && eInput.productSpecification.trim().length > 0) ||
+      (typeof eInput.jointType === "string" && eInput.jointType.trim().length > 0) ||
+      (typeof eInput.selectionContext === "string" && eInput.selectionContext.trim().length > 0) ||
+      (typeof eInput.examinationLevel === "string" && eInput.examinationLevel.trim().length > 0)
+    );
+    const isStatusQualified =
+      eInput.qualificationStatus === "VERIFIED" ||
+      eInput.qualificationStatus === "LICENSED";
+
+    if (eContractVerified && hasSource && hasContext && isStatusQualified) {
       eValueVerified = true;
-      eSource = input.qualityFactorInput.sourceReference;
+      eSource = eInput.sourceReference;
     }
   } else if (typeof input.weldJointFactor === "number") {
     E = input.weldJointFactor;
-    eContractVerified = Number.isFinite(E);
-    eValueVerified = false; // Valeur brute sans provenance
+    eContractVerified = Number.isFinite(E) && E > 0 && E <= 1.0;
+    eValueVerified = false; // Valeur brute sans contexte ni provenance
   }
 
   if (E === undefined) {
@@ -263,19 +341,25 @@ function executeAsmeB313F01Calculation(
   }
 
   // 3. Facteur W (Réduction de résistance du joint soudé)
+  // RÈGLE ABSOLUE F01 : Aucun fallback SEAMLESS -> 1.0 ni FERRITIC/temp -> 1.0
   let W: number | undefined;
   let wContractVerified = false;
   let wValueVerified = false;
   let wSource: string | undefined;
 
   const wInput = input.weldReductionFactorInput;
-  if (
+
+  // Interception immédiate des branches exclues/bloquées (W-08 CSEF, W-09 autres fluages non listés)
+  const isBranchBlocked =
+    wInput?.branchId === "W-08" ||
+    wInput?.branchId === "W-09" ||
     wInput?.materialGroup === "CSEF" ||
     wInput?.applicability === "W-08" ||
     wInput?.applicability === "W-09" ||
     wInput?.selectionContext?.includes("W-08") ||
-    wInput?.selectionContext?.includes("W-09")
-  ) {
+    wInput?.selectionContext?.includes("W-09");
+
+  if (isBranchBlocked) {
     return Object.freeze({
       status: "UNVERIFIED",
       calculationType: input.calculationType,
@@ -289,42 +373,70 @@ function executeAsmeB313F01Calculation(
       assumptions: Object.freeze([]),
       warnings: Object.freeze([]),
       errors: Object.freeze([
-        "BRANCH_BLOCKED: Les branches W-08 (aciers CSEF) et W-09 (matériaux hors fluage listé) sont hors périmètre F01.",
+        "BRANCH_BLOCKED: Les branches W-08 (aciers CSEF) et W-09 (matériaux hors fluage listé) sont hors périmètre qualifié F01 (non calculable).",
+      ]),
+    });
+  }
+
+  // Branches conditionnelles W-05 et W-07 : nécessitent hasQualifiedContextGrid === true
+  const isConditionalBranch =
+    wInput?.branchId === "W-05" ||
+    wInput?.branchId === "W-07" ||
+    wInput?.applicability === "W-05" ||
+    wInput?.applicability === "W-07" ||
+    wInput?.selectionContext?.includes("W-05") ||
+    wInput?.selectionContext?.includes("W-07");
+
+  if (isConditionalBranch && !wInput?.hasQualifiedContextGrid) {
+    return Object.freeze({
+      status: "UNVERIFIED",
+      calculationType: input.calculationType,
+      designCodeId: input.designCodeId,
+      standardEdition: effectiveEdition,
+      formulaId: formula.id,
+      clauseReference: formula.clauseReference,
+      sourceReference: formula.sourceReference,
+      diameterBasis,
+      inputs: buildInputsRecord(input, diameterBasis),
+      assumptions: Object.freeze([]),
+      warnings: Object.freeze([]),
+      errors: Object.freeze([
+        "W_CONDITIONAL_CONTEXT_REQUIRED: Les branches W-05 et W-07 en régime de fluage nécessitent une grille de contexte de qualification complète (hasQualifiedContextGrid).",
       ]),
     });
   }
 
   if (isRecordObject(wInput) && typeof wInput.factorValue === "number") {
     W = wInput.factorValue;
-    wContractVerified = Number.isFinite(W);
-    if (
-      wInput.qualificationStatus === "VERIFIED" &&
+    wContractVerified = Number.isFinite(W) && W > 0 && W <= 1.0;
+    const hasSource =
       typeof wInput.sourceReference === "string" &&
-      wInput.sourceReference.trim().length > 0
-    ) {
+      wInput.sourceReference.trim().length > 0;
+    const isStatusQualified =
+      wInput.qualificationStatus === "VERIFIED" ||
+      wInput.qualificationStatus === "LICENSED";
+
+    // Identification stricte de branche qualifiée
+    const branchId = wInput.branchId ?? wInput.applicability ?? wInput.selectionContext;
+    const isQualifiedBranch =
+      branchId === "W-01" ||
+      branchId === "W-02" ||
+      branchId === "W-03" ||
+      branchId === "W-04" ||
+      branchId === "W-06" ||
+      (isConditionalBranch && Boolean(wInput.hasQualifiedContextGrid));
+
+    if (wContractVerified && hasSource && isStatusQualified && isQualifiedBranch) {
       wValueVerified = true;
       wSource = wInput.sourceReference;
     }
   } else if (typeof input.weldReductionFactor === "number") {
     W = input.weldReductionFactor;
-    wContractVerified = Number.isFinite(W);
-    wValueVerified = false;
-  } else if (input.componentType === "SEAMLESS") {
-    W = 1.0;
-    wContractVerified = true;
-    wValueVerified = true;
-    wSource = "ASME B31.3-2024 para. 302.3.5(e)";
-  } else if (
-    input.materialFamily === "FERRITIC" &&
-    input.temperature !== undefined &&
-    input.temperature <= 538
-  ) {
-    W = 1.0;
-    wContractVerified = true;
-    wValueVerified = true;
-    wSource = "ASME B31.3-2024 Table 302.3.5-1 (Carbon Steel T <= 538°C)";
+    wContractVerified = Number.isFinite(W) && W > 0 && W <= 1.0;
+    wValueVerified = false; // Valeur brute sans provenance ni branche
   }
 
+  // Si W est absent ou non résolu déterministement :
   if (W === undefined) {
     return Object.freeze({
       status: "UNVERIFIED",
@@ -339,10 +451,11 @@ function executeAsmeB313F01Calculation(
       assumptions: Object.freeze([]),
       warnings: Object.freeze([]),
       errors: Object.freeze([
-        "VALUE_UNVERIFIED: Le facteur W n'a pas pu être résolu ou n'est pas qualifié.",
+        "VALUE_UNVERIFIED: Le facteur W n'a pas pu être résolu ou n'est pas qualifié. Aucun fallback implicite autorisé.",
       ]),
     });
   }
+
   if (!Number.isFinite(W) || W <= 0 || W > 1.0) {
     return Object.freeze({
       status: "INVALID_INPUT",
@@ -358,6 +471,7 @@ function executeAsmeB313F01Calculation(
   }
 
   // 4. Coefficient Y
+  // RÈGLE ABSOLUE F01 : Aucun fallback ferritic <= 482 -> 0.4 ni austenitic <= 566 -> 0.4
   let Y: number | undefined;
   let yContractVerified = false;
   let yValueVerified = false;
@@ -366,35 +480,60 @@ function executeAsmeB313F01Calculation(
   const yInput = input.yCoefficientInput;
   if (isRecordObject(yInput) && typeof yInput.factorValue === "number") {
     Y = yInput.factorValue;
-    yContractVerified = Number.isFinite(Y);
-    if (
-      yInput.qualificationStatus === "VERIFIED" &&
+    yContractVerified = Number.isFinite(Y) && Y >= 0 && Y <= 0.7;
+
+    const hasSource =
       typeof yInput.sourceReference === "string" &&
-      yInput.sourceReference.trim().length > 0
+      yInput.sourceReference.trim().length > 0;
+    const isStatusQualified =
+      yInput.qualificationStatus === "VERIFIED" ||
+      yInput.qualificationStatus === "LICENSED";
+    const materialFamily = yInput.materialFamily ?? input.materialFamily;
+    const temperature = yInput.temperature ?? input.temperature;
+
+    const hasContext =
+      typeof materialFamily === "string" &&
+      materialFamily.trim().length > 0 &&
+      typeof temperature === "number" &&
+      Number.isFinite(temperature);
+
+    // Contrôle strict d'extrapolation au-delà de la Table 304.1.1-1
+    let isExtrapolation = false;
+    if (typeof temperature === "number" && materialFamily) {
+      const famUpper = materialFamily.toUpperCase();
+      if (famUpper.includes("FERRITIC") || famUpper === "CS" || famUpper === "CARBON_STEEL") {
+        if (temperature > 538) {
+          isExtrapolation = true;
+        }
+      } else if (famUpper.includes("AUSTENITIC") || famUpper === "SS") {
+        if (temperature > 621) {
+          isExtrapolation = true;
+        }
+      } else if (famUpper.includes("CAST_IRON")) {
+        if (temperature > 482) {
+          isExtrapolation = true;
+        }
+      } else {
+        if (temperature > 482) {
+          isExtrapolation = true;
+        }
+      }
+    }
+
+    if (
+      yContractVerified &&
+      hasSource &&
+      isStatusQualified &&
+      hasContext &&
+      !isExtrapolation
     ) {
       yValueVerified = true;
       ySource = yInput.sourceReference;
     }
   } else if (typeof input.yCoefficient === "number") {
     Y = input.yCoefficient;
-    yContractVerified = Number.isFinite(Y);
-    yValueVerified = false;
-  } else if (
-    input.materialFamily === "FERRITIC" &&
-    (input.temperature === undefined || input.temperature <= 482)
-  ) {
-    Y = 0.4;
-    yContractVerified = true;
-    yValueVerified = true;
-    ySource = "ASME B31.3-2024 Table 304.1.1-1 (Ferritic steel T <= 482°C)";
-  } else if (
-    input.materialFamily === "AUSTENITIC" &&
-    (input.temperature === undefined || input.temperature <= 566)
-  ) {
-    Y = 0.4;
-    yContractVerified = true;
-    yValueVerified = true;
-    ySource = "ASME B31.3-2024 Table 304.1.1-1 (Austenitic steel T <= 566°C)";
+    yContractVerified = Number.isFinite(Y) && Y >= 0 && Y <= 0.7;
+    yValueVerified = false; // Valeur brute sans contexte ni provenance
   }
 
   if (Y === undefined) {
@@ -411,10 +550,11 @@ function executeAsmeB313F01Calculation(
       assumptions: Object.freeze([]),
       warnings: Object.freeze([]),
       errors: Object.freeze([
-        "VALUE_UNVERIFIED: Le coefficient Y n'a pas pu être résolu ou n'est pas qualifié.",
+        "VALUE_UNVERIFIED: Le coefficient Y n'a pas pu être résolu ou n'est pas qualifié. Aucun fallback implicite autorisé.",
       ]),
     });
   }
+
   if (!Number.isFinite(Y) || Y < 0 || Y > 0.7) {
     return Object.freeze({
       status: "INVALID_INPUT",
@@ -460,7 +600,7 @@ function executeAsmeB313F01Calculation(
     }),
   };
 
-  // Contrat CONTRACT VERIFIED vs VALUE VERIFIED (Section 6 & 16)
+  // Contrat CONTRACT VERIFIED vs VALUE VERIFIED (Seul un ensemble 100% Value Verified autorise CALCULATED)
   const unverifiedFactors: string[] = [];
   if (!sValueVerified) unverifiedFactors.push("S (contrainte admissible)");
   if (!eValueVerified) unverifiedFactors.push("E (facteur de joint)");
@@ -533,7 +673,7 @@ function executeAsmeB313F01Calculation(
     }
     t = (P * D) / denominator;
 
-    // Critère non-circulaire t < D/6 (équivalent à P*(3 - Y) < S*E*W)
+    // Critère non-circulaire t < D/6
     if (t >= D / 6 || !Number.isFinite(t) || t <= 0) {
       if (t >= D / 6) {
         return Object.freeze({
@@ -645,7 +785,7 @@ function executeAsmeB313F01Calculation(
     diameterBasis,
     value: t,
     minimumRequiredThicknessMm: tm,
-    unit: input.unitSystem === "SI" ? "mm" : "in",
+    unit: "mm",
     inputs: buildInputsRecord(input, diameterBasis),
     resolvedFactors: Object.freeze(resolvedFactors),
     formulaReference: formula,

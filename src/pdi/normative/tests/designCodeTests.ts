@@ -903,5 +903,836 @@ export function runDesignCodeEngineTests(): { success: boolean; testsRun: number
     "R1-30 — L'exécution est purement déterministe et reproductible"
   );
 
+  // =========================================================================
+  // SUITE QUALIFIÉE F01 : ASME B31.3-2024 para. 304.1.2(a) Eq. (3a) / Eq. (3b)
+  // Tests obligatoires F01-01 à F01-62
+  // =========================================================================
+
+  const f01Baseline: EngineeringCalculationInput = Object.freeze({
+    designCodeId: "ASME-B31.3",
+    standardEdition: Object.freeze({ year: "2024" }),
+    calculationType: "PRESSURE_WALL_THICKNESS",
+    unitSystem: "SI",
+    pressure: 2.0, // MPa
+    outsideDiameterMm: 114.3, // mm (4" pipe)
+    corrosionAllowanceMm: 1.5, // mm
+    diameterBasis: "OUTSIDE",
+    materialId: "MAT_CS_ASTM_A106_B",
+    allowableStressInput: Object.freeze({
+      value: 138.0,
+      unit: "MPa",
+      temperature: 100,
+      materialReference: "ASTM A106 Grade B",
+      qualificationStatus: "VERIFIED",
+      sourceReference: "ASME B31.3-2024 Table A-1",
+    }),
+    qualityFactorInput: Object.freeze({
+      factorValue: 1.0,
+      productSpecification: "ASTM A106 Seamless",
+      qualificationStatus: "VERIFIED",
+      sourceReference: "ASME B31.3-2024 Table 302.3.4",
+    }),
+    weldReductionFactorInput: Object.freeze({
+      factorValue: 1.0,
+      branchId: "W-01",
+      qualificationStatus: "VERIFIED",
+      sourceReference: "ASME B31.3-2024 para. 302.3.5(e) Seamless Component",
+    }),
+    yCoefficientInput: Object.freeze({
+      factorValue: 0.4,
+      materialFamily: "FERRITIC",
+      temperature: 100,
+      qualificationStatus: "VERIFIED",
+      sourceReference: "ASME B31.3-2024 Table 304.1.1-1",
+    }),
+  });
+
+  // F01-01 : identification du code + édition 2024
+  testsRun++;
+  const rF01_01 = executeEngineeringCalculation(f01Baseline);
+  assert(
+    rF01_01.designCodeId === "ASME-B31.3" && rF01_01.standardEdition?.year === "2024",
+    "F01-01 — identification du code ASME-B31.3 + édition 2024"
+  );
+
+  // F01-02 : formulaId exact
+  testsRun++;
+  const entryB313F01 = getDesignCodeCalculationEntry("ASME-B31.3");
+  const formulaF01 = entryB313F01?.formulaReferences.find(
+    (f) => f.id === "NORM-08-F01-ASME-B31.3-2024-PRESSURE-WALL-THICKNESS"
+  );
+  assert(
+    formulaF01 !== undefined &&
+      rF01_01.formulaId === "NORM-08-F01-ASME-B31.3-2024-PRESSURE-WALL-THICKNESS",
+    "F01-02 — formulaId exact NORM-08-F01-ASME-B31.3-2024-PRESSURE-WALL-THICKNESS"
+  );
+
+  // F01-03 : clause 304.1.2(a)
+  testsRun++;
+  assert(
+    rF01_01.clauseReference?.includes("304.1.2(a)") === true &&
+      formulaF01?.clauseReference?.includes("304.1.2(a)") === true,
+    "F01-03 — clause 304.1.2(a) déclarée et propagée"
+  );
+
+  // F01-04 : Eq. 3a OUTSIDE
+  testsRun++;
+  assert(
+    rF01_01.status === "CALCULATED" &&
+      rF01_01.clauseReference === "para. 304.1.2(a) Eq. (3a)" &&
+      rF01_01.diameterBasis === "OUTSIDE",
+    "F01-04 — Eq. 3a OUTSIDE sélectionnée et calculée"
+  );
+
+  // F01-05 : Eq. 3b INSIDE
+  testsRun++;
+  const rF01_05 = executeEngineeringCalculation({
+    ...f01Baseline,
+    outsideDiameterMm: undefined,
+    insideDiameterMm: 100.0,
+    diameterBasis: "INSIDE",
+  });
+  assert(
+    rF01_05.status === "CALCULATED" &&
+      rF01_05.clauseReference === "para. 304.1.2(a) Eq. (3b)" &&
+      rF01_05.diameterBasis === "INSIDE",
+    "F01-05 — Eq. 3b INSIDE sélectionnée et calculée"
+  );
+
+  // F01-06 : deux diamètres + absence de basis
+  testsRun++;
+  const rF01_06 = executeEngineeringCalculation({
+    ...f01Baseline,
+    outsideDiameterMm: 114.3,
+    insideDiameterMm: 100.0,
+    diameterBasis: undefined,
+  });
+  assert(
+    rF01_06.status === "INVALID_INPUT" &&
+      rF01_06.errors.some((e) => e.includes("DIAMETER_BASIS_REQUIRED")),
+    "F01-06 — deux diamètres fournis sans basis explicite retourne INVALID_INPUT"
+  );
+
+  // F01-07 : aucun diamètre exploitable
+  testsRun++;
+  const rF01_07 = executeEngineeringCalculation({
+    ...f01Baseline,
+    outsideDiameterMm: undefined,
+    insideDiameterMm: undefined,
+  });
+  assert(
+    rF01_07.status === "INVALID_INPUT" &&
+      rF01_07.errors.some((e) => e.includes("PIPE_DIMENSION_REFERENCE_REQUIRED")),
+    "F01-07 — aucun diamètre exploitable retourne PIPE_DIMENSION_REFERENCE_REQUIRED"
+  );
+
+  // F01-08 : SI accepté
+  testsRun++;
+  assert(
+    f01Baseline.unitSystem === "SI" && rF01_01.status === "CALCULATED",
+    "F01-08 — SI accepté et produit CALCULATED"
+  );
+
+  // F01-09 : US_CUSTOMARY bloqué pour F01
+  testsRun++;
+  const rF01_09 = executeEngineeringCalculation({
+    ...f01Baseline,
+    unitSystem: "US_CUSTOMARY",
+  });
+  assert(
+    rF01_09.status === "UNVERIFIED" &&
+      rF01_09.value === undefined &&
+      rF01_09.errors.some((e) => e.includes("UNIT_CONTRACT_UNVERIFIED")),
+    "F01-09 — US_CUSTOMARY bloqué pour F01 avec UNIT_CONTRACT_UNVERIFIED"
+  );
+
+  // F01-10 : pression invalide
+  testsRun++;
+  const rF01_10a = executeEngineeringCalculation({ ...f01Baseline, pressure: 0 });
+  const rF01_10b = executeEngineeringCalculation({ ...f01Baseline, pressure: -5.0 });
+  assert(
+    rF01_10a.status === "INVALID_INPUT" &&
+      rF01_10b.status === "INVALID_INPUT" &&
+      rF01_10a.errors.some((e) => e.includes("INVALID_PRESSURE")),
+    "F01-10 — pression invalide (<= 0) rejetée"
+  );
+
+  // F01-11 : diamètre invalide
+  testsRun++;
+  const rF01_11 = executeEngineeringCalculation({ ...f01Baseline, outsideDiameterMm: -100.0 });
+  assert(
+    rF01_11.status === "INVALID_INPUT" &&
+      rF01_11.errors.some((e) => e.includes("INVALID_DIAMETER")),
+    "F01-11 — diamètre négatif rejeté"
+  );
+
+  // F01-12 : corrosion allowance négative
+  testsRun++;
+  const rF01_12 = executeEngineeringCalculation({ ...f01Baseline, corrosionAllowanceMm: -1.0 });
+  assert(
+    rF01_12.status === "INVALID_INPUT" &&
+      rF01_12.errors.some((e) => e.includes("INVALID_CORROSION_ALLOWANCE")),
+    "F01-12 — corrosion allowance négative rejetée"
+  );
+
+  // F01-13 : S absent
+  testsRun++;
+  const rF01_13 = executeEngineeringCalculation({
+    ...f01Baseline,
+    allowableStressInput: undefined,
+    allowableStressMpa: undefined,
+  });
+  assert(
+    rF01_13.status === "INVALID_INPUT",
+    "F01-13 — S absent retourne INVALID_INPUT"
+  );
+
+  // F01-14 : S numérique mais sans provenance
+  testsRun++;
+  const rF01_14 = executeEngineeringCalculation({
+    ...f01Baseline,
+    allowableStressInput: undefined,
+    allowableStressMpa: 138.0,
+  });
+  assert(
+    rF01_14.status === "UNVERIFIED" &&
+      rF01_14.resolvedFactors?.S?.contractVerified === true &&
+      rF01_14.resolvedFactors?.S?.valueVerified === false,
+    "F01-14 — S numérique sans provenance est non qualifié (ValueVerified false)"
+  );
+
+  // F01-15 : S sans température
+  testsRun++;
+  const rF01_15 = executeEngineeringCalculation({
+    ...f01Baseline,
+    allowableStressInput: {
+      ...f01Baseline.allowableStressInput!,
+      temperature: undefined as any,
+    },
+  });
+  assert(
+    rF01_15.status === "UNVERIFIED" &&
+      rF01_15.resolvedFactors?.S?.valueVerified === false,
+    "F01-15 — S sans température ne peut pas être VALUE VERIFIED"
+  );
+
+  // F01-16 : S avec mauvaise unité
+  testsRun++;
+  const rF01_16 = executeEngineeringCalculation({
+    ...f01Baseline,
+    allowableStressInput: {
+      ...f01Baseline.allowableStressInput!,
+      unit: "psi" as any,
+    },
+  });
+  assert(
+    rF01_16.status === "UNVERIFIED" &&
+      rF01_16.resolvedFactors?.S?.valueVerified === false,
+    "F01-16 — S avec mauvaise unité n'est pas qualifié"
+  );
+
+  // F01-17 : S VALUE VERIFIED correctement qualifié
+  testsRun++;
+  assert(
+    rF01_01.resolvedFactors?.S?.valueVerified === true &&
+      rF01_01.resolvedFactors?.S?.contractVerified === true,
+    "F01-17 — S VALUE VERIFIED correctement qualifié"
+  );
+
+  // F01-18 : E absent
+  testsRun++;
+  const rF01_18 = executeEngineeringCalculation({
+    ...f01Baseline,
+    qualityFactorInput: undefined,
+    weldJointFactor: undefined,
+  });
+  assert(
+    rF01_18.status === "INVALID_INPUT",
+    "F01-18 — E absent retourne INVALID_INPUT"
+  );
+
+  // F01-19 : E numérique sans source
+  testsRun++;
+  const rF01_19 = executeEngineeringCalculation({
+    ...f01Baseline,
+    qualityFactorInput: undefined,
+    weldJointFactor: 1.0,
+  });
+  assert(
+    rF01_19.status === "UNVERIFIED" &&
+      rF01_19.resolvedFactors?.E?.contractVerified === true &&
+      rF01_19.resolvedFactors?.E?.valueVerified === false,
+    "F01-19 — E numérique sans source n'est pas VALUE VERIFIED"
+  );
+
+  // F01-20 : E correctement qualifié
+  testsRun++;
+  assert(
+    rF01_01.resolvedFactors?.E?.valueVerified === true &&
+      rF01_01.resolvedFactors?.E?.contractVerified === true,
+    "F01-20 — E correctement qualifié est VALUE VERIFIED"
+  );
+
+  // F01-21 : W absent
+  testsRun++;
+  const rF01_21 = executeEngineeringCalculation({
+    ...f01Baseline,
+    weldReductionFactorInput: undefined,
+    weldReductionFactor: undefined,
+  });
+  assert(
+    rF01_21.status === "UNVERIFIED" &&
+      rF01_21.errors.some((e) => e.includes("VALUE_UNVERIFIED")),
+    "F01-21 — W absent retourne UNVERIFIED"
+  );
+
+  // F01-22 : W = 1 par fallback SEAMLESS => doit être refusé
+  testsRun++;
+  const rF01_22 = executeEngineeringCalculation({
+    ...f01Baseline,
+    weldReductionFactorInput: undefined,
+    weldReductionFactor: undefined,
+    componentType: "SEAMLESS",
+  });
+  assert(
+    rF01_22.status === "UNVERIFIED" && rF01_22.value === undefined,
+    "F01-22 — W = 1 par fallback SEAMLESS doit être strictement refusé"
+  );
+
+  // F01-23 : W = 1 par fallback FERRITIC/temp => doit être refusé
+  testsRun++;
+  const rF01_23 = executeEngineeringCalculation({
+    ...f01Baseline,
+    weldReductionFactorInput: undefined,
+    weldReductionFactor: undefined,
+    materialFamily: "FERRITIC",
+    temperature: 200,
+  });
+  assert(
+    rF01_23.status === "UNVERIFIED" && rF01_23.value === undefined,
+    "F01-23 — W = 1 par fallback FERRITIC/temp doit être strictement refusé"
+  );
+
+  // F01-24 : W-01 explicitement qualifié
+  testsRun++;
+  const rF01_24 = executeEngineeringCalculation({
+    ...f01Baseline,
+    weldReductionFactorInput: {
+      factorValue: 1.0,
+      branchId: "W-01",
+      qualificationStatus: "VERIFIED",
+      sourceReference: "ASME B31.3 para. 302.3.5(e)",
+    },
+  });
+  assert(
+    rF01_24.status === "CALCULATED" &&
+      rF01_24.resolvedFactors?.W?.valueVerified === true,
+    "F01-24 — W-01 explicitement qualifié est accepté"
+  );
+
+  // F01-25 : W-02 explicitement qualifié
+  testsRun++;
+  const rF01_25 = executeEngineeringCalculation({
+    ...f01Baseline,
+    weldReductionFactorInput: {
+      factorValue: 1.0,
+      branchId: "W-02",
+      qualificationStatus: "VERIFIED",
+      sourceReference: "ASME B31.3 Table 302.3.5-1 W-02",
+    },
+  });
+  assert(
+    rF01_25.status === "CALCULATED" &&
+      rF01_25.resolvedFactors?.W?.valueVerified === true,
+    "F01-25 — W-02 explicitement qualifié est accepté"
+  );
+
+  // F01-26 : W-03 explicitement qualifié
+  testsRun++;
+  const rF01_26 = executeEngineeringCalculation({
+    ...f01Baseline,
+    weldReductionFactorInput: {
+      factorValue: 1.0,
+      branchId: "W-03",
+      qualificationStatus: "VERIFIED",
+      sourceReference: "ASME B31.3 Table 302.3.5-1 W-03",
+    },
+  });
+  assert(
+    rF01_26.status === "CALCULATED" &&
+      rF01_26.resolvedFactors?.W?.valueVerified === true,
+    "F01-26 — W-03 explicitement qualifié est accepté"
+  );
+
+  // F01-27 : W-04 explicitement qualifié
+  testsRun++;
+  const rF01_27 = executeEngineeringCalculation({
+    ...f01Baseline,
+    weldReductionFactorInput: {
+      factorValue: 1.0,
+      branchId: "W-04",
+      qualificationStatus: "VERIFIED",
+      sourceReference: "ASME B31.3 Table 302.3.5-1 W-04",
+    },
+  });
+  assert(
+    rF01_27.status === "CALCULATED" &&
+      rF01_27.resolvedFactors?.W?.valueVerified === true,
+    "F01-27 — W-04 explicitement qualifié est accepté"
+  );
+
+  // F01-28 : W-06 explicitement qualifié
+  testsRun++;
+  const rF01_28 = executeEngineeringCalculation({
+    ...f01Baseline,
+    weldReductionFactorInput: {
+      factorValue: 1.0,
+      branchId: "W-06",
+      qualificationStatus: "VERIFIED",
+      sourceReference: "ASME B31.3 Table 302.3.5-1 W-06",
+    },
+  });
+  assert(
+    rF01_28.status === "CALCULATED" &&
+      rF01_28.resolvedFactors?.W?.valueVerified === true,
+    "F01-28 — W-06 explicitement qualifié est accepté"
+  );
+
+  // F01-29 : W-05 sans contexte => non calculé
+  testsRun++;
+  const rF01_29 = executeEngineeringCalculation({
+    ...f01Baseline,
+    weldReductionFactorInput: {
+      factorValue: 0.8,
+      branchId: "W-05",
+      hasQualifiedContextGrid: false,
+      qualificationStatus: "VERIFIED",
+      sourceReference: "ASME B31.3 Table 302.3.5-1 W-05",
+    },
+  });
+  assert(
+    rF01_29.status === "UNVERIFIED" &&
+      rF01_29.errors.some((e) => e.includes("W_CONDITIONAL_CONTEXT_REQUIRED")),
+    "F01-29 — W-05 sans contexte de grille est non calculé"
+  );
+
+  // F01-30 : W-07 sans contexte => non calculé
+  testsRun++;
+  const rF01_30 = executeEngineeringCalculation({
+    ...f01Baseline,
+    weldReductionFactorInput: {
+      factorValue: 0.8,
+      branchId: "W-07",
+      hasQualifiedContextGrid: false,
+      qualificationStatus: "VERIFIED",
+      sourceReference: "ASME B31.3 Table 302.3.5-1 W-07",
+    },
+  });
+  assert(
+    rF01_30.status === "UNVERIFIED" &&
+      rF01_30.errors.some((e) => e.includes("W_CONDITIONAL_CONTEXT_REQUIRED")),
+    "F01-30 — W-07 sans contexte de grille est non calculé"
+  );
+
+  // F01-31 : W-08 CSEF => non calculé
+  testsRun++;
+  const rF01_31 = executeEngineeringCalculation({
+    ...f01Baseline,
+    weldReductionFactorInput: {
+      factorValue: 0.7,
+      branchId: "W-08",
+      materialGroup: "CSEF",
+      qualificationStatus: "VERIFIED",
+      sourceReference: "ASME B31.3 W-08",
+    },
+  });
+  assert(
+    rF01_31.status === "UNVERIFIED" &&
+      rF01_31.errors.some((e) => e.includes("BRANCH_BLOCKED")),
+    "F01-31 — W-08 CSEF est bloqué hors périmètre F01"
+  );
+
+  // F01-32 : W-09 => non calculé
+  testsRun++;
+  const rF01_32 = executeEngineeringCalculation({
+    ...f01Baseline,
+    weldReductionFactorInput: {
+      factorValue: 0.7,
+      branchId: "W-09",
+      qualificationStatus: "VERIFIED",
+      sourceReference: "ASME B31.3 W-09",
+    },
+  });
+  assert(
+    rF01_32.status === "UNVERIFIED" &&
+      rF01_32.errors.some((e) => e.includes("BRANCH_BLOCKED")),
+    "F01-32 — W-09 autres matériaux creep non listés est bloqué"
+  );
+
+  // F01-33 : Y absent
+  testsRun++;
+  const rF01_33 = executeEngineeringCalculation({
+    ...f01Baseline,
+    yCoefficientInput: undefined,
+    yCoefficient: undefined,
+  });
+  assert(
+    rF01_33.status === "UNVERIFIED" &&
+      rF01_33.errors.some((e) => e.includes("VALUE_UNVERIFIED")),
+    "F01-33 — Y absent retourne UNVERIFIED"
+  );
+
+  // F01-34 : Y=0.4 sans contexte => refusé
+  testsRun++;
+  const rF01_34 = executeEngineeringCalculation({
+    ...f01Baseline,
+    yCoefficientInput: undefined,
+    yCoefficient: undefined,
+    materialFamily: "FERRITIC",
+    temperature: 150,
+  });
+  assert(
+    rF01_34.status === "UNVERIFIED" && rF01_34.value === undefined,
+    "F01-34 — Y=0.4 sans contexte qualifié doit être refusé"
+  );
+
+  // F01-35 : Y qualifié avec materialFamily + temperature + source
+  testsRun++;
+  assert(
+    rF01_01.resolvedFactors?.Y?.valueVerified === true &&
+      rF01_01.resolvedFactors?.Y?.sourceReference === "ASME B31.3-2024 Table 304.1.1-1",
+    "F01-35 — Y qualifié avec materialFamily + temperature + source est VALUE VERIFIED"
+  );
+
+  // F01-36 : pas d’extrapolation Y (ferritique > 538°C)
+  testsRun++;
+  const rF01_36 = executeEngineeringCalculation({
+    ...f01Baseline,
+    yCoefficientInput: {
+      factorValue: 0.4,
+      materialFamily: "FERRITIC",
+      temperature: 650,
+      qualificationStatus: "VERIFIED",
+      sourceReference: "ASME B31.3-2024 Table 304.1.1-1",
+    },
+  });
+  assert(
+    rF01_36.status === "UNVERIFIED" &&
+      rF01_36.resolvedFactors?.Y?.valueVerified === false,
+    "F01-36 — extrapolation Y rejetée (température ferritique > 538°C)"
+  );
+
+  // F01-37 : pas d’interpolation Y hors domaine (austénitique > 621°C)
+  testsRun++;
+  const rF01_37 = executeEngineeringCalculation({
+    ...f01Baseline,
+    yCoefficientInput: {
+      factorValue: 0.4,
+      materialFamily: "AUSTENITIC",
+      temperature: 700,
+      qualificationStatus: "VERIFIED",
+      sourceReference: "ASME B31.3-2024 Table 304.1.1-1",
+    },
+  });
+  assert(
+    rF01_37.status === "UNVERIFIED" &&
+      rF01_37.resolvedFactors?.Y?.valueVerified === false,
+    "F01-37 — extrapolation Y rejetée (température austénitique > 621°C)"
+  );
+
+  // F01-38 : denominator <= 0 ou ratio extrême intercepté
+  testsRun++;
+  const rF01_38 = executeEngineeringCalculation({
+    ...f01Baseline,
+    diameterBasis: "INSIDE",
+    insideDiameterMm: 100.0,
+    outsideDiameterMm: undefined,
+    pressure: 250.0,
+    allowableStressInput: {
+      ...f01Baseline.allowableStressInput!,
+      value: 100.0,
+    },
+  });
+  assert(
+    rF01_38.status === "INVALID_INPUT" || rF01_38.status === "OUT_OF_SCOPE",
+    "F01-38 — dénominateur négatif ou ratio extrême intercepté sans crash"
+  );
+
+  // F01-39 : résultat non fini
+  testsRun++;
+  assert(
+    typeof rF01_01.value === "number" &&
+      Number.isFinite(rF01_01.value) &&
+      typeof rF01_01.minimumRequiredThicknessMm === "number" &&
+      Number.isFinite(rF01_01.minimumRequiredThicknessMm),
+    "F01-39 — résultat garanti fini et non NaN"
+  );
+
+  // F01-40 : t positif et fini sur cas qualifié
+  testsRun++;
+  assert(
+    rF01_01.value !== undefined && rF01_01.value > 0,
+    "F01-40 — t est strictement positif et fini sur cas qualifié"
+  );
+
+  // F01-41 : tm = t + c
+  testsRun++;
+  assert(
+    Math.abs(rF01_01.minimumRequiredThicknessMm! - (rF01_01.value! + 1.5)) < 1e-9,
+    "F01-41 — tm = t + c respecté exactement"
+  );
+
+  // F01-42 : domaine t >= D/6
+  testsRun++;
+  const rF01_42 = executeEngineeringCalculation({
+    ...f01Baseline,
+    pressure: 53.1,
+    allowableStressInput: {
+      ...f01Baseline.allowableStressInput!,
+      value: 138.0,
+    },
+  });
+  assert(
+    rF01_42.status === "OUT_OF_SCOPE" &&
+      rF01_42.errors.some((e) => e.includes("SPECIAL_CONSIDERATION_REQUIRED")),
+    "F01-42 — t >= D/6 retourne OUT_OF_SCOPE avec SPECIAL_CONSIDERATION_REQUIRED"
+  );
+
+  // F01-43 : stress ratio > 0.385
+  testsRun++;
+  const rF01_43 = executeEngineeringCalculation({
+    ...f01Baseline,
+    pressure: 60.0,
+    allowableStressInput: {
+      ...f01Baseline.allowableStressInput!,
+      value: 138.0,
+    },
+  });
+  assert(
+    rF01_43.status === "OUT_OF_SCOPE" &&
+      rF01_43.errors.some((e) => e.includes("SPECIAL_CONSIDERATION_REQUIRED")),
+    "F01-43 — stress ratio P/(SE) > 0.385 retourne OUT_OF_SCOPE"
+  );
+
+  // F01-44 : SPECIAL_CONSIDERATION_REQUIRED
+  testsRun++;
+  assert(
+    rF01_42.errors.some((e) => e.includes("SPECIAL_CONSIDERATION_REQUIRED")) &&
+      rF01_43.errors.some((e) => e.includes("SPECIAL_CONSIDERATION_REQUIRED")),
+    "F01-44 — message SPECIAL_CONSIDERATION_REQUIRED explicite"
+  );
+
+  // F01-45 : séparation Contract Verified / Value Verified
+  testsRun++;
+  const rF01_45 = executeEngineeringCalculation({
+    ...f01Baseline,
+    allowableStressInput: undefined,
+    allowableStressMpa: 138.0,
+  });
+  assert(
+    rF01_45.resolvedFactors?.S?.contractVerified === true &&
+      rF01_45.resolvedFactors?.S?.valueVerified === false,
+    "F01-45 — stricte séparation Contract Verified vs Value Verified"
+  );
+
+  // F01-46 : seul un résultat entièrement qualifié peut être CALCULATED
+  testsRun++;
+  assert(
+    rF01_01.status === "CALCULATED" && rF01_45.status === "UNVERIFIED",
+    "F01-46 — seul un ensemble 100% Value Verified peut obtenir le statut CALCULATED"
+  );
+
+  // F01-47 : provenance propagée dans resolvedFactors
+  testsRun++;
+  assert(
+    Boolean(rF01_01.resolvedFactors?.S?.sourceReference) &&
+      Boolean(rF01_01.resolvedFactors?.E?.sourceReference) &&
+      Boolean(rF01_01.resolvedFactors?.W?.sourceReference) &&
+      Boolean(rF01_01.resolvedFactors?.Y?.sourceReference),
+    "F01-47 — provenance propagée dans tous les resolvedFactors"
+  );
+
+  // F01-48 : édition 2024 propagée
+  testsRun++;
+  assert(
+    rF01_01.standardEdition?.year === "2024",
+    "F01-48 — édition 2024 propagée dans le résultat"
+  );
+
+  // F01-49 : unité mm propagée pour résultat SI
+  testsRun++;
+  assert(
+    rF01_01.unit === "mm",
+    "F01-49 — unité mm propagée pour résultat SI"
+  );
+
+  // F01-50 : absence de conversion US implicite
+  testsRun++;
+  const rF01_50 = executeEngineeringCalculation({
+    ...f01Baseline,
+    unitSystem: "US_CUSTOMARY",
+    pressure: 500,
+  });
+  assert(
+    rF01_50.status === "UNVERIFIED" && rF01_50.value === undefined,
+    "F01-50 — absence absolue de conversion US implicite"
+  );
+
+  // F01-51 : corrosion allowance effectivement ajoutée à tm
+  testsRun++;
+  const rF01_51 = executeEngineeringCalculation({
+    ...f01Baseline,
+    corrosionAllowanceMm: 3.0,
+  });
+  assert(
+    Math.abs(rF01_51.minimumRequiredThicknessMm! - (rF01_51.value! + 3.0)) < 1e-9,
+    "F01-51 — corrosion allowance de 3.0 mm effectivement ajoutée à tm"
+  );
+
+  // F01-52 : Eq3a avec valeurs simples auditables
+  testsRun++;
+  // P=2.0, D=100.0, c=0, S=100.0, E=1.0, W=1.0, Y=0.4
+  // t = (2 * 100) / [2 * (100 * 1 * 1 + 2 * 0.4)] = 200 / 201.6 = 0.992063492...
+  const rF01_52 = executeEngineeringCalculation({
+    ...f01Baseline,
+    pressure: 2.0,
+    outsideDiameterMm: 100.0,
+    corrosionAllowanceMm: 0,
+    allowableStressInput: {
+      ...f01Baseline.allowableStressInput!,
+      value: 100.0,
+    },
+  });
+  const expectedT3a = 200 / 201.6;
+  assert(
+    rF01_52.status === "CALCULATED" &&
+      Math.abs(rF01_52.value! - expectedT3a) < 1e-6,
+    "F01-52 — Eq3a avec valeurs simples auditables concorde exactement"
+  );
+
+  // F01-53 : Eq3b avec valeurs simples auditables
+  testsRun++;
+  // P=2.0, d=100.0, c=0, S=100.0, E=1.0, W=1.0, Y=0.4
+  // t = (2 * 100) / [2 * (100 * 1 * 1 - 2 * (1 - 0.4))] = 200 / 197.6 = 1.0121457...
+  const rF01_53 = executeEngineeringCalculation({
+    ...f01Baseline,
+    diameterBasis: "INSIDE",
+    outsideDiameterMm: undefined,
+    insideDiameterMm: 100.0,
+    corrosionAllowanceMm: 0,
+    allowableStressInput: {
+      ...f01Baseline.allowableStressInput!,
+      value: 100.0,
+    },
+  });
+  const expectedT3b = 200 / 197.6;
+  assert(
+    rF01_53.status === "CALCULATED" &&
+      Math.abs(rF01_53.value! - expectedT3b) < 1e-6,
+    "F01-53 — Eq3b avec valeurs simples auditables concorde exactement"
+  );
+
+  // F01-54 : erreur si diamètre sélectionné impossible
+  testsRun++;
+  const rF01_54 = executeEngineeringCalculation({
+    ...f01Baseline,
+    diameterBasis: "INSIDE",
+    insideDiameterMm: undefined,
+  });
+  assert(
+    rF01_54.status === "INVALID_INPUT",
+    "F01-54 — erreur si diamètre sélectionné impossible"
+  );
+
+  // F01-55 : pas de valeur normative implicite
+  testsRun++;
+  const rF01_55 = executeEngineeringCalculation({
+    ...f01Baseline,
+    allowableStressInput: undefined,
+    allowableStressMpa: undefined,
+    qualityFactorInput: undefined,
+    weldJointFactor: undefined,
+  });
+  assert(
+    rF01_55.status === "INVALID_INPUT",
+    "F01-55 — aucune valeur normative implicite n'est admise"
+  );
+
+  // F01-56 : pas de fallback W
+  testsRun++;
+  const rF01_56 = executeEngineeringCalculation({
+    ...f01Baseline,
+    weldReductionFactorInput: undefined,
+    weldReductionFactor: undefined,
+    componentType: "SEAMLESS",
+  });
+  assert(
+    rF01_56.status === "UNVERIFIED" &&
+      rF01_56.errors.some((e) => e.includes("VALUE_UNVERIFIED")),
+    "F01-56 — pas de fallback W (SEAMLESS)"
+  );
+
+  // F01-57 : pas de fallback Y
+  testsRun++;
+  const rF01_57 = executeEngineeringCalculation({
+    ...f01Baseline,
+    yCoefficientInput: undefined,
+    yCoefficient: undefined,
+    materialFamily: "FERRITIC",
+  });
+  assert(
+    rF01_57.status === "UNVERIFIED" &&
+      rF01_57.errors.some((e) => e.includes("VALUE_UNVERIFIED")),
+    "F01-57 — pas de fallback Y (FERRITIC)"
+  );
+
+  // F01-58 : provenance S suffisante
+  testsRun++;
+  assert(
+    typeof rF01_01.resolvedFactors?.S?.sourceReference === "string" &&
+      rF01_01.resolvedFactors.S.sourceReference.length > 5,
+    "F01-58 — provenance S suffisante et auditable"
+  );
+
+  // F01-59 : provenance E suffisante
+  testsRun++;
+  assert(
+    typeof rF01_01.resolvedFactors?.E?.sourceReference === "string" &&
+      rF01_01.resolvedFactors.E.sourceReference.length > 5,
+    "F01-59 — provenance E suffisante et auditable"
+  );
+
+  // F01-60 : provenance W suffisante
+  testsRun++;
+  assert(
+    typeof rF01_01.resolvedFactors?.W?.sourceReference === "string" &&
+      rF01_01.resolvedFactors.W.sourceReference.length > 5,
+    "F01-60 — provenance W suffisante et auditable"
+  );
+
+  // F01-61 : provenance Y suffisante
+  testsRun++;
+  assert(
+    typeof rF01_01.resolvedFactors?.Y?.sourceReference === "string" &&
+      rF01_01.resolvedFactors.Y.sourceReference.length > 5,
+    "F01-61 — provenance Y suffisante et auditable"
+  );
+
+  // F01-62 : non-régression des autres design codes / statuts
+  testsRun++;
+  const otherCodes = ["ASME-B31.4", "ASME-B31.8", "EN-13480", "ISO-13623"] as const;
+  const nonRegressionOk = otherCodes.every((c) => {
+    const entry = getDesignCodeCalculationEntry(c);
+    const r = executeEngineeringCalculation({
+      ...f01Baseline,
+      designCodeId: c,
+    });
+    return entry?.status === "NOT_IMPLEMENTED" && r.status === "NOT_IMPLEMENTED";
+  });
+  assert(
+    nonRegressionOk,
+    "F01-62 — non-régression stricte des autres design codes / statuts (NOT_IMPLEMENTED)"
+  );
+
   return { success: true, testsRun };
 }

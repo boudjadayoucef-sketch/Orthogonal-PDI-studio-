@@ -63,7 +63,10 @@ export type DesignCodeValidationErrorCode =
   | "INVALID_FORMULA_STATUS"
   | "DIAMETER_BASIS_REQUIRED"
   | "SPECIAL_CONSIDERATION_REQUIRED"
-  | "INVALID_DENOMINATOR";
+  | "INVALID_DENOMINATOR"
+  | "UNIT_CONTRACT_UNVERIFIED"
+  | "W_CONDITIONAL_CONTEXT_REQUIRED"
+  | "BRANCH_BLOCKED";
 
 export interface DesignCodeValidationError {
   readonly code: DesignCodeValidationErrorCode;
@@ -491,6 +494,18 @@ export function validateCompleteEngineeringCalculationInput(
         field: "diameterBasis",
         message: "Les deux diamètres (extérieur et intérieur) sont fournis sans 'diameterBasis'. Il est interdit d'appliquer un choix implicite : déclarer explicitement diameterBasis ('OUTSIDE' ou 'INSIDE').",
       });
+    } else if (record.diameterBasis === "INSIDE" && !hasInside) {
+      errors.push({
+        code: "PIPE_DIMENSION_REFERENCE_REQUIRED",
+        field: "insideDiameterMm",
+        message: "diameterBasis est fixé à 'INSIDE' mais insideDiameterMm n'est pas fourni.",
+      });
+    } else if (record.diameterBasis === "OUTSIDE" && !hasOutside) {
+      errors.push({
+        code: "PIPE_DIMENSION_REFERENCE_REQUIRED",
+        field: "outsideDiameterMm",
+        message: "diameterBasis est fixé à 'OUTSIDE' mais outsideDiameterMm n'est pas fourni.",
+      });
     }
     if (record.corrosionAllowanceMm === undefined || record.corrosionAllowanceMm === null) {
       errors.push({
@@ -499,21 +514,27 @@ export function validateCompleteEngineeringCalculationInput(
         message: "corrosionAllowanceMm est obligatoire pour le calcul de l'épaisseur sous pression (aucune valeur implicite).",
       });
     }
-    if (record.weldJointFactor === undefined || record.weldJointFactor === null) {
+    const hasE =
+      (record.weldJointFactor !== undefined && record.weldJointFactor !== null) ||
+      (isRecordObject(record.qualityFactorInput) &&
+        typeof (record.qualityFactorInput as Record<string, unknown>).factorValue === "number");
+    if (!hasE) {
       errors.push({
         code: "MISSING_REQUIRED_INPUT",
         field: "weldJointFactor",
-        message: "weldJointFactor est obligatoire (aucun coefficient E implicite).",
+        message: "weldJointFactor ou qualityFactorInput est obligatoire (aucun coefficient E implicite).",
       });
     }
-    if (
-      (record.materialId === undefined || record.materialId === null) &&
-      (record.allowableStressMpa === undefined || record.allowableStressMpa === null)
-    ) {
+    const hasS =
+      (record.materialId !== undefined && record.materialId !== null) ||
+      (record.allowableStressMpa !== undefined && record.allowableStressMpa !== null) ||
+      (isRecordObject(record.allowableStressInput) &&
+        typeof (record.allowableStressInput as Record<string, unknown>).value === "number");
+    if (!hasS) {
       errors.push({
         code: "MATERIAL_REFERENCE_REQUIRED",
         field: "materialId",
-        message: "materialId ou allowableStressMpa est requis pour le calcul d'épaisseur.",
+        message: "materialId, allowableStressMpa ou allowableStressInput est requis pour le calcul d'épaisseur.",
       });
     }
   } else if (calcType === "ALLOWABLE_PRESSURE") {

@@ -2,12 +2,6 @@ import React, { useState } from "react";
 import {
   runNormativeEngineTests,
   runPipeDimensionalEngineTests,
-  runFittingEngineTests,
-  runFlangeEngineTests,
-  runValveEngineTests,
-  runMaterialEngineTests,
-  runPipingSpecEngineTests,
-  runDesignCodeEngineTests,
 } from "../normative";
 
 export type ModalType = "legal" | "tech_ref" | "payment_terms" | null;
@@ -29,32 +23,6 @@ export default function PdiInfoModals({
 
   const normativeEngineTestRes = techTab === "normative_engine" ? runNormativeEngineTests() : null;
   const pipeDimensionalTestRes = techTab === "normative_engine" ? runPipeDimensionalEngineTests() : null;
-  const fittingTestRes = techTab === "normative_engine" ? runFittingEngineTests() : null;
-  const flangeTestRes = techTab === "normative_engine" ? runFlangeEngineTests() : null;
-  const valveTestRes = techTab === "normative_engine" ? runValveEngineTests() : null;
-  const materialTestRes = techTab === "normative_engine" ? runMaterialEngineTests() : null;
-  const pipingSpecTestRes = techTab === "normative_engine" ? runPipingSpecEngineTests() : null;
-  const designCodeTestRes = techTab === "normative_engine" ? runDesignCodeEngineTests() : null;
-
-  const totalNormativeTestsRun =
-    (normativeEngineTestRes?.results.length || 0) +
-    (pipeDimensionalTestRes?.results.length || 0) +
-    (fittingTestRes?.testsRun || 0) +
-    (flangeTestRes?.testsRun || 0) +
-    (valveTestRes?.testsRun || 0) +
-    (materialTestRes?.testsRun || 0) +
-    (pipingSpecTestRes?.testsRun || 0) +
-    (designCodeTestRes?.testsRun || 0);
-
-  const allNormativeTestsPassed =
-    (normativeEngineTestRes?.success ?? true) &&
-    (pipeDimensionalTestRes?.success ?? true) &&
-    (fittingTestRes?.success ?? true) &&
-    (flangeTestRes?.success ?? true) &&
-    (valveTestRes?.success ?? true) &&
-    (materialTestRes?.success ?? true) &&
-    (pipingSpecTestRes?.success ?? true) &&
-    (designCodeTestRes?.success ?? true);
 
   if (!activeModal) return null;
 
@@ -267,7 +235,7 @@ export default function PdiInfoModals({
                   { id: "valves", label: "Robinetterie (API/ISO)" },
                   { id: "supports_civil", label: "Génie Civil & Supports (MSS/AISC)" },
                   { id: "welding_ndt", label: "Soudures & Contrôles CND" },
-                  { id: "normative_engine", label: "⚡ Moteur Normatif (NORM-01 à 08)" }
+                  { id: "normative_engine", label: "⚡ Validateur Normatif (NORM-02-R1)" }
                 ].map((t) => (
                   <button
                     key={t.id}
@@ -470,68 +438,16 @@ export default function PdiInfoModals({
                 </div>
               )}
 
-              {/* TAB 7: ENGINE NORMATIF & VALIDATEUR (NORM-01 à NORM-08) */}
+              {/* TAB 7: ENGINE NORMATIF & VALIDATEUR (NORM-02-R1) */}
               {techTab === "normative_engine" && (
-                <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-                  {/* Executive Architecture Banner */}
-                  <div style={{ background: "rgba(16, 185, 129, 0.08)", border: "1px solid rgba(16, 185, 129, 0.3)", borderRadius: "10px", padding: "14px 16px" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
-                      <div>
-                        <div style={{ fontWeight: 800, color: "#34D399", fontSize: "13.5px" }}>
-                          🛡️ Moteur Normatif Déterministe &amp; Traçabilité Industrielle (NORM-01 à NORM-08)
-                        </div>
-                        <p style={{ margin: "4px 0 0", fontSize: "11.5px", color: "#CBD5E1", maxWidth: "600px" }}>
-                          Architecture 100% immuable : traçabilité des sources (VERIFIED / LICENSED), formules mathématiques rigoureusement qualifiées, distinction stricte entre normes dimensionnelles et codes de calcul sous pression, sans invention ni conversion silencieuse NPS ↔ DN.
-                        </p>
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "10px", background: "rgba(15, 23, 42, 0.8)", padding: "8px 14px", borderRadius: "8px", border: "1px solid rgba(52, 211, 153, 0.4)" }}>
-                        <div style={{ textAlign: "right" }}>
-                          <div style={{ fontSize: "10px", color: "#94A3B8", textTransform: "uppercase", fontWeight: 700 }}>Suite de Tests Globale</div>
-                          <div style={{ fontSize: "15px", fontWeight: 800, color: allNormativeTestsPassed ? "#34D399" : "#F87171" }}>
-                            {allNormativeTestsPassed ? `✅ ${totalNormativeTestsRun}/${totalNormativeTestsRun} PASSED` : "❌ ÉCHECS DÉTECTÉS"}
-                          </div>
-                        </div>
-                      </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                  <div style={{ background: "rgba(16, 185, 129, 0.08)", border: "1px solid rgba(16, 185, 129, 0.3)", borderRadius: "8px", padding: "12px" }}>
+                    <div style={{ fontWeight: 800, color: "#34D399", fontSize: "13px" }}>
+                      🛡️ Statut d'Exécution du Moteur Normatif Immuable (PATCH NORM-01, NORM-02, NORM-02-R1)
                     </div>
-                  </div>
-
-                  {/* 8-Engine Grid Summary */}
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "8px" }}>
-                    {[
-                      { id: "NORM-01", name: "Standards Registry", tests: normativeEngineTestRes?.results.length ?? 8, status: normativeEngineTestRes?.success ?? true, standard: "ASME, ISO, EN, API, DIN" },
-                      { id: "NORM-02", name: "Pipe Dimensional", tests: pipeDimensionalTestRes?.results.length ?? 34, status: pipeDimensionalTestRes?.success ?? true, standard: "B36.10M / B36.19M" },
-                      { id: "NORM-03", name: "Fittings Engine", tests: fittingTestRes?.testsRun ?? 38, status: fittingTestRes?.success ?? true, standard: "ASME B16.9 / B16.11" },
-                      { id: "NORM-04", name: "Flanges Engine", tests: flangeTestRes?.testsRun ?? 28, status: flangeTestRes?.success ?? true, standard: "ASME B16.5 / EN 1092-1" },
-                      { id: "NORM-05", name: "Valves Engine", tests: valveTestRes?.testsRun ?? 26, status: valveTestRes?.success ?? true, standard: "API 6D / ASME B16.34" },
-                      { id: "NORM-06", name: "Materials Engine", tests: materialTestRes?.testsRun ?? 26, status: materialTestRes?.success ?? true, standard: "ASTM / API 5L (Stresses)" },
-                      { id: "NORM-07", name: "Piping Spec Builder", tests: pipingSpecTestRes?.testsRun ?? 65, status: pipingSpecTestRes?.success ?? true, standard: "Spec Assembler & Limits" },
-                      { id: "NORM-08", name: "Design Code Engine", tests: designCodeTestRes?.testsRun ?? 66, status: designCodeTestRes?.success ?? true, standard: "ASME B31.3 Para. 304.1.2" },
-                    ].map((mod) => (
-                      <div
-                        key={mod.id}
-                        style={{
-                          background: "#0F172A",
-                          border: "1px solid rgba(148, 163, 184, 0.15)",
-                          borderRadius: "8px",
-                          padding: "10px 12px",
-                          display: "flex",
-                          flexDirection: "column",
-                          justifyContent: "space-between"
-                        }}
-                      >
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <span style={{ fontSize: "10.5px", fontWeight: 800, color: "#38BDF8", fontFamily: "monospace" }}>{mod.id}</span>
-                          <span style={{ fontSize: "10px", background: mod.status ? "rgba(52, 211, 153, 0.15)" : "rgba(248, 113, 113, 0.15)", color: mod.status ? "#34D399" : "#F87171", padding: "2px 6px", borderRadius: "4px", fontWeight: 700 }}>
-                            {mod.status ? "PASSED" : "FAILED"}
-                          </span>
-                        </div>
-                        <div style={{ fontWeight: 700, color: "#F1F5F9", fontSize: "12px", marginTop: "4px" }}>{mod.name}</div>
-                        <div style={{ fontSize: "10.5px", color: "#94A3B8", marginTop: "2px" }}>{mod.standard}</div>
-                        <div style={{ fontSize: "11px", color: "#34D399", fontWeight: 600, marginTop: "6px", fontFamily: "monospace" }}>
-                          {mod.tests} assertions validées
-                        </div>
-                      </div>
-                    ))}
+                    <p style={{ margin: "4px 0 0", fontSize: "11.5px", color: "#CBD5E1" }}>
+                      Validations déterministes actives : Traçabilité des sources (VERIFIED / LICENSED), Rejet des données calculées/artificielles, Distinction stricte entre standards de dimensionnement et codes de calcul (ASME B31.3 vs B36.10M), et vérification de non-conversion NPS ↔ DN.
+                    </p>
                   </div>
 
                   {/* RESULTS NORM-01 */}
@@ -562,25 +478,6 @@ export default function PdiInfoModals({
                             {r}
                           </div>
                         ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* RESULTS NORM-08: DESIGN CODE ENGINE */}
-                  {designCodeTestRes && (
-                    <div style={{ background: "#0F172A", border: "1px solid rgba(148, 163, 184, 0.15)", borderRadius: "8px", padding: "12px" }}>
-                      <div style={{ fontWeight: 800, color: "#38BDF8", fontSize: "12px", marginBottom: "8px" }}>
-                        Design Code Engineering Calculation Engine (NORM-08: ASME B31.3-2024 Para. 304.1.2) — {designCodeTestRes.success ? `PASSED (${designCodeTestRes.testsRun}/${designCodeTestRes.testsRun} TESTS)` : "FAILED"}
-                      </div>
-                      <div style={{ fontSize: "11.5px", color: "#CBD5E1", lineHeight: 1.5 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#34D399", fontWeight: 600 }}>
-                          <span>✅</span>
-                          <span>Exécution déterministe qualifiée : Formules Eq. (3a) &amp; Eq. (3b) actives avec vérification stricte VALUE VERIFIED sur les 4 facteurs normatifs (S, E, W, Y).</span>
-                        </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#94A3B8", marginTop: "4px" }}>
-                          <span>🛡️</span>
-                          <span>Contrôles de rupture et domaine de validité : rejet automatique si P/(SE) &gt; 0.385, si t &ge; D/6, ou si branche non qualifiée (W-08 CSEF / W-09 fluage non répertorié).</span>
-                        </div>
                       </div>
                     </div>
                   )}
