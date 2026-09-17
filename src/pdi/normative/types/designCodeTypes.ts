@@ -123,6 +123,78 @@ export interface DesignCodeFormulaReference {
 }
 
 /**
+ * Décision d'interface PDI pour l'arbitrage de la base dimensionnelle.
+ * Non issue d'une prescription textuelle ASME, mais nécessaire pour
+ * sélectionner de façon déterministe entre Eq. (3a) et Eq. (3b).
+ */
+export type DiameterBasis = "OUTSIDE" | "INSIDE";
+
+/**
+ * Métadonnées de qualification et traçabilité pour la contrainte admissible S.
+ */
+export interface NormativeStressInput {
+  readonly value: number;
+  readonly unit?: string;
+  readonly materialReference?: string;
+  readonly temperature?: number;
+  readonly sourceReference?: string;
+  readonly qualificationStatus?: DesignCodeFormulaStatus;
+}
+
+/**
+ * Métadonnées de qualification et traçabilité pour le facteur de joint E.
+ */
+export interface NormativeQualityFactorInput {
+  readonly factorValue: number;
+  readonly productSpecification?: string;
+  readonly jointType?: string;
+  readonly examinationLevel?: string;
+  readonly applicableTable?: string;
+  readonly sourceReference?: string;
+  readonly qualificationStatus?: DesignCodeFormulaStatus;
+  readonly selectionContext?: string;
+}
+
+/**
+ * Métadonnées de qualification et traçabilité pour le facteur de réduction W.
+ */
+export interface NormativeWeldReductionFactorInput {
+  readonly factorValue: number;
+  readonly materialGroup?: string;
+  readonly designTemperature?: number;
+  readonly isCreepRegime?: boolean;
+  readonly applicability?: string;
+  readonly sourceReference?: string;
+  readonly qualificationStatus?: DesignCodeFormulaStatus;
+  readonly selectionContext?: string;
+}
+
+/**
+ * Métadonnées de qualification et traçabilité pour le coefficient Y.
+ */
+export interface NormativeYCoefficientInput {
+  readonly factorValue: number;
+  readonly materialFamily?: string;
+  readonly temperature?: number;
+  readonly applicableRegime?: string;
+  readonly sourceReference?: string;
+  readonly qualificationStatus?: DesignCodeFormulaStatus;
+}
+
+/**
+ * Facteur normatif résolu et tracé dans le résultat de calcul.
+ */
+export interface ResolvedNormativeFactor {
+  readonly name: string;
+  readonly value: number;
+  readonly contractVerified: boolean;
+  readonly valueVerified: boolean;
+  readonly sourceReference?: string;
+  readonly clauseReference?: string;
+  readonly notes?: string;
+}
+
+/**
  * Paramètres d'entrée pour un calcul d'ingénierie selon code de conception.
  */
 export interface EngineeringCalculationInput {
@@ -134,14 +206,28 @@ export interface EngineeringCalculationInput {
   readonly temperature?: number;
 
   readonly outsideDiameterMm?: number;
+  readonly insideDiameterMm?: number;
   readonly wallThicknessMm?: number;
+  readonly diameterBasis?: DiameterBasis;
 
   readonly materialId?: string;
   readonly allowableStressMpa?: number;
+  readonly allowableStressInput?: NormativeStressInput;
 
   readonly corrosionAllowanceMm?: number;
 
   readonly weldJointFactor?: number;
+  readonly qualityFactorInput?: NormativeQualityFactorInput;
+
+  readonly weldReductionFactor?: number;
+  readonly weldReductionFactorInput?: NormativeWeldReductionFactorInput;
+
+  readonly yCoefficient?: number;
+  readonly yCoefficientInput?: NormativeYCoefficientInput;
+
+  readonly componentType?: "SEAMLESS" | "WELDED";
+  readonly materialFamily?: "FERRITIC" | "AUSTENITIC" | "OTHER";
+
   readonly designFactor?: number;
 
   readonly unitSystem: EngineeringUnitSystem;
@@ -171,11 +257,14 @@ export interface EngineeringCalculationResult {
   readonly formulaId?: string;
   readonly clauseReference?: string;
   readonly sourceReference?: string;
+  readonly diameterBasis?: DiameterBasis;
 
   readonly value?: number;
+  readonly minimumRequiredThicknessMm?: number;
   readonly unit?: string;
 
   readonly inputs: Readonly<Record<string, number | string | undefined>>;
+  readonly resolvedFactors?: Readonly<Record<string, ResolvedNormativeFactor>>;
 
   readonly formulaReference?: DesignCodeFormulaReference;
   readonly domain?: FormulaDomain;

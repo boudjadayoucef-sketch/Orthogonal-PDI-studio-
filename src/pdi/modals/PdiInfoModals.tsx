@@ -1,5 +1,9 @@
 import React, { useState } from "react";
-import { runNormativeEngineTests, runPipeDimensionalEngineTests } from "../normative";
+import {
+  runNormativeEngineTests,
+  runPipeDimensionalEngineTests,
+  runDesignCodeEngineTests,
+} from "../normative";
 
 export type ModalType = "legal" | "tech_ref" | "payment_terms" | null;
 
@@ -20,6 +24,7 @@ export default function PdiInfoModals({
 
   const normativeEngineTestRes = techTab === "normative_engine" ? runNormativeEngineTests() : null;
   const pipeDimensionalTestRes = techTab === "normative_engine" ? runPipeDimensionalEngineTests() : null;
+  const designCodeTestRes = techTab === "normative_engine" ? runDesignCodeEngineTests() : null;
 
   if (!activeModal) return null;
 
@@ -475,6 +480,25 @@ export default function PdiInfoModals({
                             {r}
                           </div>
                         ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* RESULTS NORM-08: DESIGN CODE ENGINE */}
+                  {designCodeTestRes && (
+                    <div style={{ background: "#0F172A", border: "1px solid rgba(148, 163, 184, 0.15)", borderRadius: "8px", padding: "12px" }}>
+                      <div style={{ fontWeight: 800, color: "#38BDF8", fontSize: "12px", marginBottom: "8px" }}>
+                        Design Code Engineering Calculation Engine (NORM-08: ASME B31.3-2024 Para. 304.1.2) — {designCodeTestRes.success ? `PASSED (${designCodeTestRes.testsRun}/${designCodeTestRes.testsRun} TESTS)` : "FAILED"}
+                      </div>
+                      <div style={{ fontSize: "11.5px", color: "#CBD5E1", lineHeight: 1.5 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#34D399", fontWeight: 600 }}>
+                          <span>✅</span>
+                          <span>Exécution déterministe qualifiée : Formules Eq. (3a) &amp; Eq. (3b) actives avec vérification stricte VALUE VERIFIED sur les 4 facteurs normatifs (S, E, W, Y).</span>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#94A3B8", marginTop: "4px" }}>
+                          <span>🛡️</span>
+                          <span>Contrôles de rupture et domaine de validité : rejet automatique si P/(SE) &gt; 0.385, si t &ge; D/6, ou si branche non qualifiée (W-08 CSEF / W-09 fluage non répertorié).</span>
+                        </div>
                       </div>
                     </div>
                   )}

@@ -31,9 +31,32 @@ const EMPTY_FORMULA_REFERENCES: readonly DesignCodeFormulaReference[] = Object.f
 export const DESIGN_CODE_CALCULATION_REGISTRY: readonly DesignCodeRegistryEntry[] = Object.freeze([
   Object.freeze({
     id: "ASME-B31.3",
-    status: "NOT_IMPLEMENTED",
-    supportedCalculationTypes: EMPTY_CALCULATION_TYPES,
-    formulaReferences: EMPTY_FORMULA_REFERENCES,
+    status: "PARTIAL",
+    supportedCalculationTypes: Object.freeze(["PRESSURE_WALL_THICKNESS" as EngineeringCalculationType]),
+    formulaReferences: Object.freeze([
+      Object.freeze({
+        id: "NORM-08-F01-ASME-B31.3-2024-PRESSURE-WALL-THICKNESS",
+        designCodeId: "ASME-B31.3",
+        standardEdition: Object.freeze({ year: "2024" }),
+        calculationType: "PRESSURE_WALL_THICKNESS",
+        clauseReference: "para. 304.1.2(a) Eq. (3a) / Eq. (3b)",
+        sourceReference: "ASME B31.3-2024 Process Piping",
+        status: "VERIFIED",
+        domain: Object.freeze({
+          regime: "THIN_WALL",
+          applicableDesignCodes: Object.freeze(["ASME-B31.3"]),
+        }),
+        units: Object.freeze({
+          unitSystem: "SI",
+          pressureUnit: "MPa",
+          diameterUnit: "mm",
+          thicknessUnit: "mm",
+          temperatureUnit: "C",
+          stressUnit: "MPa",
+          outputUnit: "mm",
+        }),
+      }),
+    ]),
   }),
   Object.freeze({
     id: "ASME-B31.4",

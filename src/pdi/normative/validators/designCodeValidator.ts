@@ -21,6 +21,7 @@
 
 import { PDI_STANDARDS_REGISTRY } from "../registry/standardsRegistry";
 import { isRecordObject } from "./pipeDimensionalValidator";
+export { isRecordObject };
 import type {
   DesignCodeFormulaReference,
   DesignCodeFormulaStatus,
@@ -59,7 +60,10 @@ export type DesignCodeValidationErrorCode =
   | "FORMULA_NOT_QUALIFIED"
   | "CALCULATION_TYPE_NOT_SUPPORTED"
   | "FORMULA_DESIGN_CODE_MISMATCH"
-  | "INVALID_FORMULA_STATUS";
+  | "INVALID_FORMULA_STATUS"
+  | "DIAMETER_BASIS_REQUIRED"
+  | "SPECIAL_CONSIDERATION_REQUIRED"
+  | "INVALID_DENOMINATOR";
 
 export interface DesignCodeValidationError {
   readonly code: DesignCodeValidationErrorCode;
@@ -219,6 +223,64 @@ function validateSharedCalculationInput(
         code: "INVALID_DIAMETER",
         field: "outsideDiameterMm",
         message: "Le diamètre extérieur doit être strictement positif (> 0).",
+      });
+    }
+  }
+
+  if ("insideDiameterMm" in raw && raw.insideDiameterMm !== undefined && raw.insideDiameterMm !== null) {
+    if (typeof raw.insideDiameterMm !== "number" || !Number.isFinite(raw.insideDiameterMm)) {
+      errors.push({
+        code: "INVALID_INPUT_VALUE",
+        field: "insideDiameterMm",
+        message: "Le diamètre intérieur doit être un nombre fini.",
+      });
+    } else if (raw.insideDiameterMm <= 0) {
+      errors.push({
+        code: "INVALID_DIAMETER",
+        field: "insideDiameterMm",
+        message: "Le diamètre intérieur doit être strictement positif (> 0).",
+      });
+    }
+  }
+
+  if ("diameterBasis" in raw && raw.diameterBasis !== undefined && raw.diameterBasis !== null) {
+    if (raw.diameterBasis !== "OUTSIDE" && raw.diameterBasis !== "INSIDE") {
+      errors.push({
+        code: "INVALID_INPUT_VALUE",
+        field: "diameterBasis",
+        message: "diameterBasis doit être 'OUTSIDE' ou 'INSIDE'.",
+      });
+    }
+  }
+
+  if ("weldReductionFactor" in raw && raw.weldReductionFactor !== undefined && raw.weldReductionFactor !== null) {
+    if (typeof raw.weldReductionFactor !== "number" || !Number.isFinite(raw.weldReductionFactor)) {
+      errors.push({
+        code: "INVALID_INPUT_VALUE",
+        field: "weldReductionFactor",
+        message: "Le facteur W doit être un nombre fini.",
+      });
+    } else if (raw.weldReductionFactor <= 0 || raw.weldReductionFactor > 1.0) {
+      errors.push({
+        code: "INVALID_COEFFICIENT",
+        field: "weldReductionFactor",
+        message: "Le facteur W doit être dans ]0, 1.0].",
+      });
+    }
+  }
+
+  if ("yCoefficient" in raw && raw.yCoefficient !== undefined && raw.yCoefficient !== null) {
+    if (typeof raw.yCoefficient !== "number" || !Number.isFinite(raw.yCoefficient)) {
+      errors.push({
+        code: "INVALID_INPUT_VALUE",
+        field: "yCoefficient",
+        message: "Le coefficient Y doit être un nombre fini.",
+      });
+    } else if (raw.yCoefficient < 0 || raw.yCoefficient > 0.7) {
+      errors.push({
+        code: "INVALID_COEFFICIENT",
+        field: "yCoefficient",
+        message: "Le coefficient Y doit être dans [0.0, 0.7].",
       });
     }
   }
@@ -414,11 +476,20 @@ export function validateCompleteEngineeringCalculationInput(
         message: "pressure est obligatoire pour le calcul de l'épaisseur sous pression (PRESSURE_WALL_THICKNESS).",
       });
     }
-    if (record.outsideDiameterMm === undefined || record.outsideDiameterMm === null) {
+    const hasOutside = record.outsideDiameterMm !== undefined && record.outsideDiameterMm !== null;
+    const hasInside = "insideDiameterMm" in record && record.insideDiameterMm !== undefined && record.insideDiameterMm !== null;
+
+    if (!hasOutside && !hasInside) {
       errors.push({
         code: "PIPE_DIMENSION_REFERENCE_REQUIRED",
         field: "outsideDiameterMm",
-        message: "outsideDiameterMm est obligatoire pour le calcul de l'épaisseur sous pression.",
+        message: "outsideDiameterMm ou insideDiameterMm est obligatoire pour le calcul de l'épaisseur sous pression.",
+      });
+    } else if (hasOutside && hasInside && (!("diameterBasis" in record) || record.diameterBasis === undefined || record.diameterBasis === null)) {
+      errors.push({
+        code: "DIAMETER_BASIS_REQUIRED",
+        field: "diameterBasis",
+        message: "Les deux diamètres (extérieur et intérieur) sont fournis sans 'diameterBasis'. Il est interdit d'appliquer un choix implicite : déclarer explicitement diameterBasis ('OUTSIDE' ou 'INSIDE').",
       });
     }
     if (record.corrosionAllowanceMm === undefined || record.corrosionAllowanceMm === null) {
