@@ -914,6 +914,7 @@ export function runDesignCodeEngineTests(): { success: boolean; testsRun: number
     calculationType: "PRESSURE_WALL_THICKNESS",
     unitSystem: "SI",
     pressure: 2.0, // MPa
+    temperature: 100, // °C
     outsideDiameterMm: 114.3, // mm (4" pipe)
     corrosionAllowanceMm: 1.5, // mm
     diameterBasis: "OUTSIDE",
@@ -1237,6 +1238,9 @@ export function runDesignCodeEngineTests(): { success: boolean; testsRun: number
     weldReductionFactorInput: {
       factorValue: 1.0,
       branchId: "W-02",
+      isCreepRegime: false,
+      designTemperature: 100,
+      selectionContext: "Below creep range T <= 510°C",
       qualificationStatus: "VERIFIED",
       sourceReference: "ASME B31.3 Table 302.3.5-1 W-02",
     },
@@ -1254,6 +1258,8 @@ export function runDesignCodeEngineTests(): { success: boolean; testsRun: number
     weldReductionFactorInput: {
       factorValue: 1.0,
       branchId: "W-03",
+      materialGroup: "AUSTENITIC_SS",
+      selectionContext: "Longitudinal seam weld in austenitic steel",
       qualificationStatus: "VERIFIED",
       sourceReference: "ASME B31.3 Table 302.3.5-1 W-03",
     },
@@ -1271,6 +1277,7 @@ export function runDesignCodeEngineTests(): { success: boolean; testsRun: number
     weldReductionFactorInput: {
       factorValue: 1.0,
       branchId: "W-04",
+      selectionContext: "Qualified SAW/ERW longitudinal weld seam",
       qualificationStatus: "VERIFIED",
       sourceReference: "ASME B31.3 Table 302.3.5-1 W-04",
     },
@@ -1288,6 +1295,7 @@ export function runDesignCodeEngineTests(): { success: boolean; testsRun: number
     weldReductionFactorInput: {
       factorValue: 1.0,
       branchId: "W-06",
+      selectionContext: "Circumferential butt weld joint under pressure",
       qualificationStatus: "VERIFIED",
       sourceReference: "ASME B31.3 Table 302.3.5-1 W-06",
     },
@@ -1732,6 +1740,269 @@ export function runDesignCodeEngineTests(): { success: boolean; testsRun: number
   assert(
     nonRegressionOk,
     "F01-62 — non-régression stricte des autres design codes / statuts (NOT_IMPLEMENTED)"
+  );
+
+  // =========================================================================
+  // SUITE PATCH F01-R5 : CORRECTION CIBLÉE S / W CONTEXT
+  // Tests obligatoires F01-R5-01 à F01-R5-14
+  // =========================================================================
+
+  // F01-R5-01 : S température identique -> nominal (CALCULATED)
+  testsRun++;
+  const rF01_R5_01 = executeEngineeringCalculation({
+    ...f01Baseline,
+    temperature: 100,
+    allowableStressInput: {
+      ...f01Baseline.allowableStressInput!,
+      temperature: 100,
+    },
+  });
+  assert(
+    rF01_R5_01.status === "CALCULATED" &&
+      rF01_R5_01.resolvedFactors?.S?.valueVerified === true &&
+      typeof rF01_R5_01.value === "number",
+    "F01-R5-01 — S température identique produit le statut nominal CALCULATED"
+  );
+
+  // F01-R5-02 : S température différente -> UNVERIFIED + S_TEMPERATURE_MISMATCH
+  testsRun++;
+  const rF01_R5_02 = executeEngineeringCalculation({
+    ...f01Baseline,
+    temperature: 100,
+    allowableStressInput: {
+      ...f01Baseline.allowableStressInput!,
+      temperature: 150,
+    },
+  });
+  assert(
+    rF01_R5_02.status === "UNVERIFIED" &&
+      rF01_R5_02.resolvedFactors?.S?.valueVerified === false &&
+      rF01_R5_02.errors.some((e) => e.includes("S_TEMPERATURE_MISMATCH")),
+    "F01-R5-02 — S température différente retourne UNVERIFIED et S_TEMPERATURE_MISMATCH"
+  );
+
+  // F01-R5-03 : température S absente -> pas de CALCULATED
+  testsRun++;
+  const rF01_R5_03 = executeEngineeringCalculation({
+    ...f01Baseline,
+    temperature: 100,
+    allowableStressInput: {
+      ...f01Baseline.allowableStressInput!,
+      temperature: undefined as any,
+    },
+  });
+  assert(
+    rF01_R5_03.status !== "CALCULATED" &&
+      rF01_R5_03.status === "UNVERIFIED" &&
+      rF01_R5_03.resolvedFactors?.S?.valueVerified === false,
+    "F01-R5-03 — température S absente interdit le statut CALCULATED"
+  );
+
+  // F01-R5-04 : température input absente -> pas de CALCULATED
+  testsRun++;
+  const rF01_R5_04 = executeEngineeringCalculation({
+    ...f01Baseline,
+    temperature: undefined,
+  });
+  assert(
+    rF01_R5_04.status !== "CALCULATED" &&
+      rF01_R5_04.status === "UNVERIFIED" &&
+      rF01_R5_04.resolvedFactors?.S?.valueVerified === false,
+    "F01-R5-04 — température input absente interdit le statut CALCULATED"
+  );
+
+  // F01-R5-05 : W-02 contexte qualifié -> comportement attendu (CALCULATED)
+  testsRun++;
+  const rF01_R5_05 = executeEngineeringCalculation({
+    ...f01Baseline,
+    weldReductionFactorInput: {
+      factorValue: 1.0,
+      branchId: "W-02",
+      isCreepRegime: false,
+      designTemperature: 100,
+      selectionContext: "Below creep range T <= 510°C",
+      qualificationStatus: "VERIFIED",
+      sourceReference: "ASME B31.3 Table 302.3.5-1 W-02",
+    },
+  });
+  assert(
+    rF01_R5_05.status === "CALCULATED" &&
+      rF01_R5_05.resolvedFactors?.W?.valueVerified === true,
+    "F01-R5-05 — W-02 avec contexte suffisant et cohérent est qualifié (CALCULATED)"
+  );
+
+  // F01-R5-06 : W-02 contexte insuffisant -> UNVERIFIED
+  testsRun++;
+  const rF01_R5_06 = executeEngineeringCalculation({
+    ...f01Baseline,
+    weldReductionFactorInput: {
+      factorValue: 1.0,
+      branchId: "W-02",
+      qualificationStatus: "VERIFIED",
+      sourceReference: "ASME B31.3 Table 302.3.5-1 W-02",
+    },
+  });
+  assert(
+    rF01_R5_06.status === "UNVERIFIED" &&
+      rF01_R5_06.resolvedFactors?.W?.valueVerified === false,
+    "F01-R5-06 — W-02 sans contexte de qualification retourne UNVERIFIED"
+  );
+
+  // F01-R5-07 : W-03 contexte insuffisant -> UNVERIFIED
+  testsRun++;
+  const rF01_R5_07 = executeEngineeringCalculation({
+    ...f01Baseline,
+    weldReductionFactorInput: {
+      factorValue: 1.0,
+      branchId: "W-03",
+      qualificationStatus: "VERIFIED",
+      sourceReference: "ASME B31.3 Table 302.3.5-1 W-03",
+    },
+  });
+  assert(
+    rF01_R5_07.status === "UNVERIFIED" &&
+      rF01_R5_07.resolvedFactors?.W?.valueVerified === false,
+    "F01-R5-07 — W-03 sans contexte matériau/sélection retourne UNVERIFIED"
+  );
+
+  // F01-R5-08 : W-04 contexte insuffisant -> UNVERIFIED
+  testsRun++;
+  const rF01_R5_08 = executeEngineeringCalculation({
+    ...f01Baseline,
+    weldReductionFactorInput: {
+      factorValue: 1.0,
+      branchId: "W-04",
+      qualificationStatus: "VERIFIED",
+      sourceReference: "ASME B31.3 Table 302.3.5-1 W-04",
+    },
+  });
+  assert(
+    rF01_R5_08.status === "UNVERIFIED" &&
+      rF01_R5_08.resolvedFactors?.W?.valueVerified === false,
+    "F01-R5-08 — W-04 sans contexte procédé/sélection retourne UNVERIFIED"
+  );
+
+  // F01-R5-09 : W-06 contexte insuffisant -> UNVERIFIED
+  testsRun++;
+  const rF01_R5_09 = executeEngineeringCalculation({
+    ...f01Baseline,
+    weldReductionFactorInput: {
+      factorValue: 1.0,
+      branchId: "W-06",
+      qualificationStatus: "VERIFIED",
+      sourceReference: "ASME B31.3 Table 302.3.5-1 W-06",
+    },
+  });
+  assert(
+    rF01_R5_09.status === "UNVERIFIED" &&
+      rF01_R5_09.resolvedFactors?.W?.valueVerified === false,
+    "F01-R5-09 — W-06 sans contexte circonférentiel retourne UNVERIFIED"
+  );
+
+  // F01-R5-10 : W-05 sans hasQualifiedContextGrid -> UNVERIFIED
+  testsRun++;
+  const rF01_R5_10 = executeEngineeringCalculation({
+    ...f01Baseline,
+    weldReductionFactorInput: {
+      factorValue: 0.8,
+      branchId: "W-05",
+      hasQualifiedContextGrid: false,
+      qualificationStatus: "VERIFIED",
+      sourceReference: "ASME B31.3 Table 302.3.5-1 W-05",
+    },
+  });
+  assert(
+    rF01_R5_10.status === "UNVERIFIED" &&
+      rF01_R5_10.errors.some((e) => e.includes("W_CONDITIONAL_CONTEXT_REQUIRED")),
+    "F01-R5-10 — W-05 sans hasQualifiedContextGrid retourne UNVERIFIED"
+  );
+
+  // F01-R5-11 : W-07 sans hasQualifiedContextGrid -> UNVERIFIED
+  testsRun++;
+  const rF01_R5_11 = executeEngineeringCalculation({
+    ...f01Baseline,
+    weldReductionFactorInput: {
+      factorValue: 0.8,
+      branchId: "W-07",
+      hasQualifiedContextGrid: false,
+      qualificationStatus: "VERIFIED",
+      sourceReference: "ASME B31.3 Table 302.3.5-1 W-07",
+    },
+  });
+  assert(
+    rF01_R5_11.status === "UNVERIFIED" &&
+      rF01_R5_11.errors.some((e) => e.includes("W_CONDITIONAL_CONTEXT_REQUIRED")),
+    "F01-R5-11 — W-07 sans hasQualifiedContextGrid retourne UNVERIFIED"
+  );
+
+  // F01-R5-12 : W-08/W-09 restent non qualifiés (BRANCH_BLOCKED)
+  testsRun++;
+  const rF01_R5_12a = executeEngineeringCalculation({
+    ...f01Baseline,
+    weldReductionFactorInput: {
+      factorValue: 0.7,
+      branchId: "W-08",
+      materialGroup: "CSEF",
+      qualificationStatus: "VERIFIED",
+      sourceReference: "ASME B31.3 Table 302.3.5-1 W-08",
+    },
+  });
+  const rF01_R5_12b = executeEngineeringCalculation({
+    ...f01Baseline,
+    weldReductionFactorInput: {
+      factorValue: 0.7,
+      branchId: "W-09",
+      qualificationStatus: "VERIFIED",
+      sourceReference: "ASME B31.3 Table 302.3.5-1 W-09",
+    },
+  });
+  assert(
+    rF01_R5_12a.status === "UNVERIFIED" &&
+      rF01_R5_12a.errors.some((e) => e.includes("BRANCH_BLOCKED")) &&
+      rF01_R5_12b.status === "UNVERIFIED" &&
+      rF01_R5_12b.errors.some((e) => e.includes("BRANCH_BLOCKED")),
+    "F01-R5-12 — W-08 et W-09 restent strictement non qualifiés et bloqués"
+  );
+
+  // F01-R5-13 : non-régression W-01 cohérence (refus si déclaré WELDED)
+  testsRun++;
+  const rF01_R5_13 = executeEngineeringCalculation({
+    ...f01Baseline,
+    componentType: "WELDED",
+    weldReductionFactorInput: {
+      factorValue: 1.0,
+      branchId: "W-01",
+      qualificationStatus: "VERIFIED",
+      sourceReference: "ASME B31.3 para. 302.3.5(e)",
+    },
+  });
+  assert(
+    rF01_R5_13.status === "UNVERIFIED" &&
+      rF01_R5_13.resolvedFactors?.W?.valueVerified === false,
+    "F01-R5-13 — non-régression W-01 : incohérence componentType WELDED vs SEAMLESS W-01 refusée"
+  );
+
+  // F01-R5-14 : non-régression W fallback / Y fallback
+  testsRun++;
+  const rF01_R5_14a = executeEngineeringCalculation({
+    ...f01Baseline,
+    componentType: "SEAMLESS",
+    weldReductionFactorInput: undefined,
+    weldReductionFactor: undefined,
+  });
+  const rF01_R5_14b = executeEngineeringCalculation({
+    ...f01Baseline,
+    materialFamily: "FERRITIC",
+    temperature: 100,
+    yCoefficientInput: undefined,
+    yCoefficient: undefined,
+  });
+  assert(
+    rF01_R5_14a.status === "UNVERIFIED" &&
+      rF01_R5_14a.value === undefined &&
+      rF01_R5_14b.status === "UNVERIFIED" &&
+      rF01_R5_14b.value === undefined,
+    "F01-R5-14 — non-régression stricte des fallbacks W et Y (aucun fallback implicite admis)"
   );
 
   return { success: true, testsRun };

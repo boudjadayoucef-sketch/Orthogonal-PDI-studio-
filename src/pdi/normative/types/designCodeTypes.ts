@@ -178,7 +178,11 @@ export interface NormativeWeldReductionFactorInput {
   readonly factorValue: number;
   readonly materialGroup?: string;
   readonly designTemperature?: number;
+  readonly temperature?: number;
   readonly isCreepRegime?: boolean;
+  readonly componentType?: "SEAMLESS" | "WELDED";
+  readonly materialFamily?: "FERRITIC" | "AUSTENITIC" | "OTHER";
+  readonly serviceHours?: number;
   readonly applicability?: string;
   readonly sourceReference?: string;
   readonly qualificationStatus?: DesignCodeFormulaStatus;

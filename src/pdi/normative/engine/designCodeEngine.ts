@@ -216,6 +216,10 @@ function executeAsmeB313F01Calculation(
   let sContractVerified = false;
   let sValueVerified = false;
   let sSource: string | undefined;
+  let sTemperatureMismatch = false;
+  let sTempMismatchDetail = "";
+  let missingDesignTemperature = false;
+  let missingStressTemp = false;
 
   const sInput = input.allowableStressInput;
   if (isRecordObject(sInput) && typeof sInput.value === "number") {
@@ -225,9 +229,30 @@ function executeAsmeB313F01Calculation(
       (typeof sInput.materialReference === "string" && sInput.materialReference.trim().length > 0) ||
       (typeof input.materialId === "string" && input.materialId.trim().length > 0)
     );
-    const hasTemp =
+    const hasStressTemp =
       typeof sInput.temperature === "number" &&
       Number.isFinite(sInput.temperature);
+    const hasInputTemp =
+      typeof input.temperature === "number" &&
+      Number.isFinite(input.temperature);
+
+    if (!hasStressTemp) {
+      missingStressTemp = true;
+    }
+    if (!hasInputTemp) {
+      missingDesignTemperature = true;
+    }
+
+    let tempMatches = false;
+    if (hasStressTemp && hasInputTemp) {
+      if (sInput.temperature === input.temperature) {
+        tempMatches = true;
+      } else {
+        sTemperatureMismatch = true;
+        sTempMismatchDetail = `S_TEMPERATURE_MISMATCH: allowableStressInput.temperature (${sInput.temperature}°C) !== input.temperature (${input.temperature}°C). Égalité numérique exacte requise.`;
+      }
+    }
+
     const hasUnit = sInput.unit === "MPa";
     const hasSource =
       typeof sInput.sourceReference === "string" &&
@@ -239,7 +264,9 @@ function executeAsmeB313F01Calculation(
     if (
       sContractVerified &&
       hasMaterial &&
-      hasTemp &&
+      hasStressTemp &&
+      hasInputTemp &&
+      tempMatches &&
       hasUnit &&
       hasSource &&
       isStatusQualified
@@ -251,6 +278,9 @@ function executeAsmeB313F01Calculation(
     S = input.allowableStressMpa;
     sContractVerified = Number.isFinite(S) && S > 0;
     sValueVerified = false; // Une valeur numérique brute sans qualification/provenance n'est JAMAIS VALUE VERIFIED
+    if (typeof input.temperature !== "number" || !Number.isFinite(input.temperature)) {
+      missingDesignTemperature = true;
+    }
   }
 
   if (S === undefined) {
@@ -418,13 +448,108 @@ function executeAsmeB313F01Calculation(
 
     // Identification stricte de branche qualifiée
     const branchId = wInput.branchId ?? wInput.applicability ?? wInput.selectionContext;
-    const isQualifiedBranch =
-      branchId === "W-01" ||
-      branchId === "W-02" ||
-      branchId === "W-03" ||
-      branchId === "W-04" ||
-      branchId === "W-06" ||
-      (isConditionalBranch && Boolean(wInput.hasQualifiedContextGrid));
+    let isQualifiedBranch = false;
+
+    if (branchId === "W-01") {
+      // W-01 : Seamless component (base metal sans soudure longitudinale ou spiralée)
+      // Cohérence : ne doit pas être déclaré comme soudé (WELDED)
+      const isW01Incoherent =
+        input.componentType === "WELDED" || wInput.componentType === "WELDED";
+      if (!isW01Incoherent) {
+        isQualifiedBranch = true;
+      }
+    } else if (branchId === "W-02") {
+      // W-02 : Table 302.3.5-1 sous régime de fluage (T <= 510°C / non-creep)
+      // Contexte suffisant : nécessite un indicateur thermique ou de régime explicite
+      const hasW02Context =
+        wInput.isCreepRegime !== undefined ||
+        (typeof wInput.designTemperature === "number" && Number.isFinite(wInput.designTemperature)) ||
+        (typeof wInput.temperature === "number" && Number.isFinite(wInput.temperature)) ||
+        (typeof wInput.selectionContext === "string" && wInput.selectionContext.trim().length > 0) ||
+        (typeof wInput.applicability === "string" && wInput.applicability.trim().length > 0);
+
+      const isW02Incoherent =
+        wInput.isCreepRegime === true ||
+        (typeof wInput.designTemperature === "number" && wInput.designTemperature > 510) ||
+        (typeof wInput.temperature === "number" && wInput.temperature > 510) ||
+        (typeof wInput.designTemperature === "number" &&
+          typeof input.temperature === "number" &&
+          wInput.designTemperature !== input.temperature) ||
+        (typeof wInput.temperature === "number" &&
+          typeof input.temperature === "number" &&
+          wInput.temperature !== input.temperature) ||
+        wInput.componentType === "SEAMLESS";
+
+      if (hasW02Context && !isW02Incoherent) {
+        isQualifiedBranch = true;
+      }
+    } else if (branchId === "W-03") {
+      // W-03 : Soudures longitudinales matériaux spécifiques (ex. aciers austénitiques)
+      const hasW03Context =
+        (typeof wInput.materialGroup === "string" && wInput.materialGroup.trim().length > 0) ||
+        (typeof wInput.materialFamily === "string" && wInput.materialFamily.trim().length > 0) ||
+        (typeof wInput.selectionContext === "string" && wInput.selectionContext.trim().length > 0) ||
+        (typeof wInput.applicability === "string" && wInput.applicability.trim().length > 0);
+
+      const isW03Incoherent =
+        input.componentType === "SEAMLESS" ||
+        wInput.componentType === "SEAMLESS" ||
+        (typeof wInput.designTemperature === "number" &&
+          typeof input.temperature === "number" &&
+          wInput.designTemperature !== input.temperature) ||
+        (typeof wInput.temperature === "number" &&
+          typeof input.temperature === "number" &&
+          wInput.temperature !== input.temperature);
+
+      if (hasW03Context && !isW03Incoherent) {
+        isQualifiedBranch = true;
+      }
+    } else if (branchId === "W-04") {
+      // W-04 : Soudures longitudinales procédé/NDE spécifique
+      const hasW04Context =
+        (typeof wInput.selectionContext === "string" && wInput.selectionContext.trim().length > 0) ||
+        (typeof wInput.applicability === "string" && wInput.applicability.trim().length > 0) ||
+        (typeof wInput.materialGroup === "string" && wInput.materialGroup.trim().length > 0) ||
+        wInput.isCreepRegime !== undefined;
+
+      const isW04Incoherent =
+        input.componentType === "SEAMLESS" ||
+        wInput.componentType === "SEAMLESS" ||
+        (typeof wInput.designTemperature === "number" &&
+          typeof input.temperature === "number" &&
+          wInput.designTemperature !== input.temperature) ||
+        (typeof wInput.temperature === "number" &&
+          typeof input.temperature === "number" &&
+          wInput.temperature !== input.temperature);
+
+      if (hasW04Context && !isW04Incoherent) {
+        isQualifiedBranch = true;
+      }
+    } else if (branchId === "W-06") {
+      // W-06 : Soudures circonférentielles
+      const hasW06Context =
+        (typeof wInput.selectionContext === "string" && wInput.selectionContext.trim().length > 0) ||
+        (typeof wInput.applicability === "string" && wInput.applicability.trim().length > 0) ||
+        wInput.isCreepRegime !== undefined;
+
+      const isW06Incoherent =
+        (typeof wInput.selectionContext === "string" &&
+          wInput.selectionContext.toUpperCase().includes("LONGITUDINAL")) ||
+        (typeof wInput.applicability === "string" &&
+          wInput.applicability.toUpperCase().includes("LONGITUDINAL")) ||
+        (typeof wInput.designTemperature === "number" &&
+          typeof input.temperature === "number" &&
+          wInput.designTemperature !== input.temperature) ||
+        (typeof wInput.temperature === "number" &&
+          typeof input.temperature === "number" &&
+          wInput.temperature !== input.temperature);
+
+      if (hasW06Context && !isW06Incoherent) {
+        isQualifiedBranch = true;
+      }
+    } else if (isConditionalBranch && Boolean(wInput.hasQualifiedContextGrid)) {
+      isQualifiedBranch = true;
+    }
 
     if (wContractVerified && hasSource && isStatusQualified && isQualifiedBranch) {
       wValueVerified = true;
@@ -608,6 +733,24 @@ function executeAsmeB313F01Calculation(
   if (!yValueVerified) unverifiedFactors.push("Y (coefficient d'épaisseur)");
 
   if (unverifiedFactors.length > 0) {
+    const errorList: string[] = [];
+    if (sTemperatureMismatch) {
+      errorList.push(sTempMismatchDetail);
+    }
+    if (missingDesignTemperature) {
+      errorList.push(
+        "MISSING_DESIGN_TEMPERATURE: input.temperature est requis pour la qualification de S et du calcul."
+      );
+    }
+    if (missingStressTemp) {
+      errorList.push(
+        "MISSING_STRESS_TEMPERATURE: allowableStressInput.temperature est requis et doit être un nombre fini."
+      );
+    }
+    errorList.push(
+      `VALUE_UNVERIFIED: Les facteurs suivants ne sont pas VALUE VERIFIED : ${unverifiedFactors.join(", ")}. Statut CALCULATED interdit sans provenance qualifiée complète.`
+    );
+
     return Object.freeze({
       status: "UNVERIFIED",
       calculationType: input.calculationType,
@@ -621,9 +764,7 @@ function executeAsmeB313F01Calculation(
       resolvedFactors: Object.freeze(resolvedFactors),
       assumptions: Object.freeze([]),
       warnings: Object.freeze([]),
-      errors: Object.freeze([
-        `VALUE_UNVERIFIED: Les facteurs suivants ne sont pas VALUE VERIFIED : ${unverifiedFactors.join(", ")}. Statut CALCULATED interdit sans provenance qualifiée complète.`,
-      ]),
+      errors: Object.freeze(errorList),
     });
   }
 
