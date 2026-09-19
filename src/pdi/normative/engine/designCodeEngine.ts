@@ -376,6 +376,7 @@ function executeAsmeB313F01Calculation(
   let wContractVerified = false;
   let wValueVerified = false;
   let wSource: string | undefined;
+  const wErrors: string[] = [];
 
   const wInput = input.weldReductionFactorInput;
 
@@ -446,112 +447,197 @@ function executeAsmeB313F01Calculation(
       wInput.qualificationStatus === "VERIFIED" ||
       wInput.qualificationStatus === "LICENSED";
 
-    // Identification stricte de branche qualifiée
-    const branchId = wInput.branchId ?? wInput.applicability ?? wInput.selectionContext;
+    // Contrôle strict de cohérence input / wInput (Section 4)
+    let hasContradiction = false;
+
+    // 1. temperature / designTemperature
+    if (
+      typeof input.temperature === "number" &&
+      typeof wInput.temperature === "number" &&
+      input.temperature !== wInput.temperature
+    ) {
+      hasContradiction = true;
+      wErrors.push(
+        `W_INPUT_CONTRADICTION: wInput.temperature (${wInput.temperature}°C) !== input.temperature (${input.temperature}°C).`
+      );
+    }
+    if (
+      typeof input.temperature === "number" &&
+      typeof wInput.designTemperature === "number" &&
+      input.temperature !== wInput.designTemperature
+    ) {
+      hasContradiction = true;
+      wErrors.push(
+        `W_INPUT_CONTRADICTION: wInput.designTemperature (${wInput.designTemperature}°C) !== input.temperature (${input.temperature}°C).`
+      );
+    }
+    if (
+      typeof wInput.temperature === "number" &&
+      typeof wInput.designTemperature === "number" &&
+      wInput.temperature !== wInput.designTemperature
+    ) {
+      hasContradiction = true;
+      wErrors.push(
+        `W_INPUT_CONTRADICTION: wInput.temperature (${wInput.temperature}°C) !== wInput.designTemperature (${wInput.designTemperature}°C).`
+      );
+    }
+
+    // 2. componentType
+    if (
+      input.componentType !== undefined &&
+      wInput.componentType !== undefined &&
+      input.componentType !== wInput.componentType
+    ) {
+      hasContradiction = true;
+      wErrors.push(
+        `W_INPUT_CONTRADICTION: input.componentType (${input.componentType}) !== wInput.componentType (${wInput.componentType}).`
+      );
+    }
+
+    // 3. materialFamily
+    if (
+      input.materialFamily !== undefined &&
+      wInput.materialFamily !== undefined &&
+      input.materialFamily !== wInput.materialFamily
+    ) {
+      hasContradiction = true;
+      wErrors.push(
+        `W_INPUT_CONTRADICTION: input.materialFamily (${input.materialFamily}) !== wInput.materialFamily (${wInput.materialFamily}).`
+      );
+    }
+    if (
+      input.materialFamily === "FERRITIC" &&
+      typeof wInput.materialGroup === "string" &&
+      wInput.materialGroup.toUpperCase().includes("AUSTENITIC")
+    ) {
+      hasContradiction = true;
+      wErrors.push(
+        `W_INPUT_CONTRADICTION: input.materialFamily FERRITIC vs wInput.materialGroup AUSTENITIC.`
+      );
+    }
+    if (
+      input.materialFamily === "AUSTENITIC" &&
+      typeof wInput.materialGroup === "string" &&
+      (wInput.materialGroup.toUpperCase().includes("FERRITIC") ||
+        wInput.materialGroup.toUpperCase().includes("CS"))
+    ) {
+      hasContradiction = true;
+      wErrors.push(
+        `W_INPUT_CONTRADICTION: input.materialFamily AUSTENITIC vs wInput.materialGroup FERRITIC/CS.`
+      );
+    }
+
+    // Identification stricte de la branche W (doit être explicitement démontrée, jamais inférée d'un texte générique seul)
+    const branchId = wInput.branchId;
     let isQualifiedBranch = false;
 
     if (branchId === "W-01") {
-      // W-01 : Seamless component (base metal sans soudure longitudinale ou spiralée)
-      // Cohérence : ne doit pas être déclaré comme soudé (WELDED)
-      const isW01Incoherent =
-        input.componentType === "WELDED" || wInput.componentType === "WELDED";
-      if (!isW01Incoherent) {
+      // W-01 : Composant sans soudure (Seamless pipe / component)
+      // Preuve POSITIVE obligatoire : componentType === "SEAMLESS"
+      // Refus strict si componentType absent, WELDED, ou contradictoire
+      const isPositiveSeamless =
+        (input.componentType === "SEAMLESS" || wInput.componentType === "SEAMLESS") &&
+        input.componentType !== "WELDED" &&
+        wInput.componentType !== "WELDED";
+
+      if (isPositiveSeamless && !hasContradiction) {
         isQualifiedBranch = true;
       }
     } else if (branchId === "W-02") {
-      // W-02 : Table 302.3.5-1 sous régime de fluage (T <= 510°C / non-creep)
-      // Contexte suffisant : nécessite un indicateur thermique ou de régime explicite
-      const hasW02Context =
-        wInput.isCreepRegime !== undefined ||
-        (typeof wInput.designTemperature === "number" && Number.isFinite(wInput.designTemperature)) ||
-        (typeof wInput.temperature === "number" && Number.isFinite(wInput.temperature)) ||
-        (typeof wInput.selectionContext === "string" && wInput.selectionContext.trim().length > 0) ||
-        (typeof wInput.applicability === "string" && wInput.applicability.trim().length > 0);
+      // W-02 : Table 302.3.5-1 sous régime de fluage (hors fluage / non-creep)
+      // Preuve POSITIVE obligatoire : isCreepRegime === false
+      // Refus strict si isCreepRegime absent/true, si componentType SEAMLESS, ou si température incohérente
+      const hasPositiveNonCreepProof = wInput.isCreepRegime === false;
+      const isNotSeamless =
+        input.componentType !== "SEAMLESS" && wInput.componentType !== "SEAMLESS";
 
-      const isW02Incoherent =
-        wInput.isCreepRegime === true ||
-        (typeof wInput.designTemperature === "number" && wInput.designTemperature > 510) ||
-        (typeof wInput.temperature === "number" && wInput.temperature > 510) ||
-        (typeof wInput.designTemperature === "number" &&
-          typeof input.temperature === "number" &&
-          wInput.designTemperature !== input.temperature) ||
-        (typeof wInput.temperature === "number" &&
-          typeof input.temperature === "number" &&
-          wInput.temperature !== input.temperature) ||
-        wInput.componentType === "SEAMLESS";
-
-      if (hasW02Context && !isW02Incoherent) {
+      if (hasPositiveNonCreepProof && isNotSeamless && !hasContradiction) {
         isQualifiedBranch = true;
       }
     } else if (branchId === "W-03") {
-      // W-03 : Soudures longitudinales matériaux spécifiques (ex. aciers austénitiques)
-      const hasW03Context =
-        (typeof wInput.materialGroup === "string" && wInput.materialGroup.trim().length > 0) ||
-        (typeof wInput.materialFamily === "string" && wInput.materialFamily.trim().length > 0) ||
-        (typeof wInput.selectionContext === "string" && wInput.selectionContext.trim().length > 0) ||
-        (typeof wInput.applicability === "string" && wInput.applicability.trim().length > 0);
+      // W-03 : Soudures longitudinales matériaux spécifiques (aciers austénitiques)
+      // Preuve POSITIVE obligatoire : matériau austénitique structuré (materialFamily === "AUSTENITIC" ou materialGroup austénitique)
+      const isAustenitic =
+        wInput.materialFamily === "AUSTENITIC" ||
+        input.materialFamily === "AUSTENITIC" ||
+        (typeof wInput.materialGroup === "string" &&
+          wInput.materialGroup.toUpperCase().includes("AUSTENITIC"));
 
-      const isW03Incoherent =
-        input.componentType === "SEAMLESS" ||
-        wInput.componentType === "SEAMLESS" ||
-        (typeof wInput.designTemperature === "number" &&
-          typeof input.temperature === "number" &&
-          wInput.designTemperature !== input.temperature) ||
-        (typeof wInput.temperature === "number" &&
-          typeof input.temperature === "number" &&
-          wInput.temperature !== input.temperature);
+      const isNotSeamless =
+        input.componentType !== "SEAMLESS" && wInput.componentType !== "SEAMLESS";
 
-      if (hasW03Context && !isW03Incoherent) {
+      const noMaterialContradiction =
+        input.materialFamily !== "FERRITIC" && wInput.materialFamily !== "FERRITIC";
+
+      if (
+        isAustenitic &&
+        isNotSeamless &&
+        noMaterialContradiction &&
+        !hasContradiction
+      ) {
         isQualifiedBranch = true;
       }
     } else if (branchId === "W-04") {
-      // W-04 : Soudures longitudinales procédé/NDE spécifique
-      const hasW04Context =
-        (typeof wInput.selectionContext === "string" && wInput.selectionContext.trim().length > 0) ||
-        (typeof wInput.applicability === "string" && wInput.applicability.trim().length > 0) ||
-        (typeof wInput.materialGroup === "string" && wInput.materialGroup.trim().length > 0) ||
-        wInput.isCreepRegime !== undefined;
+      // W-04 : Soudures longitudinales procédé/matériau qualifié
+      // Preuve structurée POSITIVE obligatoire :
+      // 1. Composant soudé (componentType === "WELDED")
+      // 2. Matériau structuré (materialGroup ou materialFamily)
+      // 3. Preuve de régime non-fluage (isCreepRegime === false)
+      const isWelded =
+        input.componentType === "WELDED" || wInput.componentType === "WELDED";
+      const hasStructuredMaterial = Boolean(
+        wInput.materialGroup || wInput.materialFamily || input.materialFamily
+      );
+      const hasNonCreepProof = wInput.isCreepRegime === false;
+      const isNotSeamless =
+        input.componentType !== "SEAMLESS" && wInput.componentType !== "SEAMLESS";
 
-      const isW04Incoherent =
-        input.componentType === "SEAMLESS" ||
-        wInput.componentType === "SEAMLESS" ||
-        (typeof wInput.designTemperature === "number" &&
-          typeof input.temperature === "number" &&
-          wInput.designTemperature !== input.temperature) ||
-        (typeof wInput.temperature === "number" &&
-          typeof input.temperature === "number" &&
-          wInput.temperature !== input.temperature);
-
-      if (hasW04Context && !isW04Incoherent) {
+      if (
+        isWelded &&
+        hasStructuredMaterial &&
+        hasNonCreepProof &&
+        isNotSeamless &&
+        !hasContradiction
+      ) {
         isQualifiedBranch = true;
       }
     } else if (branchId === "W-06") {
       // W-06 : Soudures circonférentielles
-      const hasW06Context =
-        (typeof wInput.selectionContext === "string" && wInput.selectionContext.trim().length > 0) ||
-        (typeof wInput.applicability === "string" && wInput.applicability.trim().length > 0) ||
-        wInput.isCreepRegime !== undefined;
-
-      const isW06Incoherent =
+      // Preuve structurée POSITIVE obligatoire :
+      // 1. Composant soudé (componentType === "WELDED")
+      // 2. Preuve de régime non-fluage (isCreepRegime === false)
+      // 3. Aucune contradiction longitudinale
+      const isWelded =
+        input.componentType === "WELDED" || wInput.componentType === "WELDED";
+      const hasNonCreepProof = wInput.isCreepRegime === false;
+      const isNotSeamless =
+        input.componentType !== "SEAMLESS" && wInput.componentType !== "SEAMLESS";
+      const hasLongitudinalContradiction =
         (typeof wInput.selectionContext === "string" &&
           wInput.selectionContext.toUpperCase().includes("LONGITUDINAL")) ||
         (typeof wInput.applicability === "string" &&
-          wInput.applicability.toUpperCase().includes("LONGITUDINAL")) ||
-        (typeof wInput.designTemperature === "number" &&
-          typeof input.temperature === "number" &&
-          wInput.designTemperature !== input.temperature) ||
-        (typeof wInput.temperature === "number" &&
-          typeof input.temperature === "number" &&
-          wInput.temperature !== input.temperature);
+          wInput.applicability.toUpperCase().includes("LONGITUDINAL"));
 
-      if (hasW06Context && !isW06Incoherent) {
+      if (
+        isWelded &&
+        hasNonCreepProof &&
+        isNotSeamless &&
+        !hasLongitudinalContradiction &&
+        !hasContradiction
+      ) {
         isQualifiedBranch = true;
       }
     } else if (isConditionalBranch && Boolean(wInput.hasQualifiedContextGrid)) {
       isQualifiedBranch = true;
     }
 
-    if (wContractVerified && hasSource && isStatusQualified && isQualifiedBranch) {
+    if (
+      wContractVerified &&
+      hasSource &&
+      isStatusQualified &&
+      isQualifiedBranch &&
+      !hasContradiction
+    ) {
       wValueVerified = true;
       wSource = wInput.sourceReference;
     }
@@ -746,6 +832,9 @@ function executeAsmeB313F01Calculation(
       errorList.push(
         "MISSING_STRESS_TEMPERATURE: allowableStressInput.temperature est requis et doit être un nombre fini."
       );
+    }
+    if (wErrors.length > 0) {
+      errorList.push(...wErrors);
     }
     errorList.push(
       `VALUE_UNVERIFIED: Les facteurs suivants ne sont pas VALUE VERIFIED : ${unverifiedFactors.join(", ")}. Statut CALCULATED interdit sans provenance qualifiée complète.`

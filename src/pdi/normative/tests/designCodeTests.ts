@@ -918,6 +918,7 @@ export function runDesignCodeEngineTests(): { success: boolean; testsRun: number
     outsideDiameterMm: 114.3, // mm (4" pipe)
     corrosionAllowanceMm: 1.5, // mm
     diameterBasis: "OUTSIDE",
+    componentType: "SEAMLESS",
     materialId: "MAT_CS_ASTM_A106_B",
     allowableStressInput: Object.freeze({
       value: 138.0,
@@ -936,6 +937,7 @@ export function runDesignCodeEngineTests(): { success: boolean; testsRun: number
     weldReductionFactorInput: Object.freeze({
       factorValue: 1.0,
       branchId: "W-01",
+      componentType: "SEAMLESS",
       qualificationStatus: "VERIFIED",
       sourceReference: "ASME B31.3-2024 para. 302.3.5(e) Seamless Component",
     }),
@@ -1218,9 +1220,11 @@ export function runDesignCodeEngineTests(): { success: boolean; testsRun: number
   testsRun++;
   const rF01_24 = executeEngineeringCalculation({
     ...f01Baseline,
+    componentType: "SEAMLESS",
     weldReductionFactorInput: {
       factorValue: 1.0,
       branchId: "W-01",
+      componentType: "SEAMLESS",
       qualificationStatus: "VERIFIED",
       sourceReference: "ASME B31.3 para. 302.3.5(e)",
     },
@@ -1235,10 +1239,13 @@ export function runDesignCodeEngineTests(): { success: boolean; testsRun: number
   testsRun++;
   const rF01_25 = executeEngineeringCalculation({
     ...f01Baseline,
+    componentType: "WELDED",
     weldReductionFactorInput: {
       factorValue: 1.0,
       branchId: "W-02",
+      componentType: "WELDED",
       isCreepRegime: false,
+      temperature: 100,
       designTemperature: 100,
       selectionContext: "Below creep range T <= 510°C",
       qualificationStatus: "VERIFIED",
@@ -1255,10 +1262,16 @@ export function runDesignCodeEngineTests(): { success: boolean; testsRun: number
   testsRun++;
   const rF01_26 = executeEngineeringCalculation({
     ...f01Baseline,
+    componentType: "WELDED",
+    materialFamily: "AUSTENITIC",
     weldReductionFactorInput: {
       factorValue: 1.0,
       branchId: "W-03",
+      componentType: "WELDED",
+      materialFamily: "AUSTENITIC",
       materialGroup: "AUSTENITIC_SS",
+      isCreepRegime: false,
+      temperature: 100,
       selectionContext: "Longitudinal seam weld in austenitic steel",
       qualificationStatus: "VERIFIED",
       sourceReference: "ASME B31.3 Table 302.3.5-1 W-03",
@@ -1274,9 +1287,14 @@ export function runDesignCodeEngineTests(): { success: boolean; testsRun: number
   testsRun++;
   const rF01_27 = executeEngineeringCalculation({
     ...f01Baseline,
+    componentType: "WELDED",
     weldReductionFactorInput: {
       factorValue: 1.0,
       branchId: "W-04",
+      componentType: "WELDED",
+      materialGroup: "CS_ERW",
+      isCreepRegime: false,
+      temperature: 100,
       selectionContext: "Qualified SAW/ERW longitudinal weld seam",
       qualificationStatus: "VERIFIED",
       sourceReference: "ASME B31.3 Table 302.3.5-1 W-04",
@@ -1292,9 +1310,13 @@ export function runDesignCodeEngineTests(): { success: boolean; testsRun: number
   testsRun++;
   const rF01_28 = executeEngineeringCalculation({
     ...f01Baseline,
+    componentType: "WELDED",
     weldReductionFactorInput: {
       factorValue: 1.0,
       branchId: "W-06",
+      componentType: "WELDED",
+      isCreepRegime: false,
+      temperature: 100,
       selectionContext: "Circumferential butt weld joint under pressure",
       qualificationStatus: "VERIFIED",
       sourceReference: "ASME B31.3 Table 302.3.5-1 W-06",
@@ -1815,10 +1837,13 @@ export function runDesignCodeEngineTests(): { success: boolean; testsRun: number
   testsRun++;
   const rF01_R5_05 = executeEngineeringCalculation({
     ...f01Baseline,
+    componentType: "WELDED",
     weldReductionFactorInput: {
       factorValue: 1.0,
       branchId: "W-02",
+      componentType: "WELDED",
       isCreepRegime: false,
+      temperature: 100,
       designTemperature: 100,
       selectionContext: "Below creep range T <= 510°C",
       qualificationStatus: "VERIFIED",
@@ -2003,6 +2028,400 @@ export function runDesignCodeEngineTests(): { success: boolean; testsRun: number
       rF01_R5_14b.status === "UNVERIFIED" &&
       rF01_R5_14b.value === undefined,
     "F01-R5-14 — non-régression stricte des fallbacks W et Y (aucun fallback implicite admis)"
+  );
+
+  // =========================================================================
+  // SUITE PATCH F01-R5-FIX : DURCISSEMENT FINAL DU CONTEXTE W (TESTS 1 À 20)
+  // =========================================================================
+
+  // TEST 1 : W-01 + componentType = SEAMLESS + sourceReference + VERIFIED => VALUE VERIFIED
+  testsRun++;
+  const rF01_R5_FIX_01 = executeEngineeringCalculation({
+    ...f01Baseline,
+    componentType: "SEAMLESS",
+    weldReductionFactorInput: {
+      factorValue: 1.0,
+      branchId: "W-01",
+      componentType: "SEAMLESS",
+      sourceReference: "ASME B31.3 Table 302.3.5-1 W-01",
+      qualificationStatus: "VERIFIED",
+    },
+  });
+  assert(
+    rF01_R5_FIX_01.status === "CALCULATED" &&
+      rF01_R5_FIX_01.resolvedFactors?.W?.valueVerified === true,
+    "TEST 1 — W-01 + componentType = SEAMLESS + sourceReference + VERIFIED => VALUE VERIFIED"
+  );
+
+  // TEST 2 : W-01 sans componentType => UNVERIFIED
+  testsRun++;
+  const rF01_R5_FIX_02 = executeEngineeringCalculation({
+    ...f01Baseline,
+    componentType: undefined,
+    weldReductionFactorInput: {
+      factorValue: 1.0,
+      branchId: "W-01",
+      componentType: undefined,
+      sourceReference: "ASME B31.3 Table 302.3.5-1 W-01",
+      qualificationStatus: "VERIFIED",
+    },
+  });
+  assert(
+    rF01_R5_FIX_02.status === "UNVERIFIED" &&
+      rF01_R5_FIX_02.resolvedFactors?.W?.valueVerified === false,
+    "TEST 2 — W-01 sans componentType => UNVERIFIED"
+  );
+
+  // TEST 3 : W-01 + componentType = WELDED => UNVERIFIED
+  testsRun++;
+  const rF01_R5_FIX_03 = executeEngineeringCalculation({
+    ...f01Baseline,
+    componentType: "WELDED",
+    weldReductionFactorInput: {
+      factorValue: 1.0,
+      branchId: "W-01",
+      componentType: "WELDED",
+      sourceReference: "ASME B31.3 Table 302.3.5-1 W-01",
+      qualificationStatus: "VERIFIED",
+    },
+  });
+  assert(
+    rF01_R5_FIX_03.status === "UNVERIFIED" &&
+      rF01_R5_FIX_03.resolvedFactors?.W?.valueVerified === false,
+    "TEST 3 — W-01 + componentType = WELDED => UNVERIFIED"
+  );
+
+  // TEST 4 : W-01 + selectionContext = "W-01" sans componentType => UNVERIFIED
+  testsRun++;
+  const rF01_R5_FIX_04 = executeEngineeringCalculation({
+    ...f01Baseline,
+    componentType: undefined,
+    weldReductionFactorInput: {
+      factorValue: 1.0,
+      selectionContext: "W-01",
+      sourceReference: "ASME B31.3 Table 302.3.5-1",
+      qualificationStatus: "VERIFIED",
+    },
+  });
+  assert(
+    rF01_R5_FIX_04.status === "UNVERIFIED" &&
+      rF01_R5_FIX_04.resolvedFactors?.W?.valueVerified === false,
+    "TEST 4 — W-01 + selectionContext = 'W-01' sans componentType => UNVERIFIED"
+  );
+
+  // TEST 5 : W-02 + isCreepRegime = false + contexte cohérent => VALUE VERIFIED
+  testsRun++;
+  const rF01_R5_FIX_05 = executeEngineeringCalculation({
+    ...f01Baseline,
+    componentType: "WELDED",
+    weldReductionFactorInput: {
+      factorValue: 1.0,
+      branchId: "W-02",
+      componentType: "WELDED",
+      isCreepRegime: false,
+      temperature: 100,
+      designTemperature: 100,
+      sourceReference: "ASME B31.3 Table 302.3.5-1 W-02",
+      qualificationStatus: "VERIFIED",
+    },
+  });
+  assert(
+    rF01_R5_FIX_05.status === "CALCULATED" &&
+      rF01_R5_FIX_05.resolvedFactors?.W?.valueVerified === true,
+    "TEST 5 — W-02 + isCreepRegime = false + contexte cohérent => VALUE VERIFIED"
+  );
+
+  // TEST 6 : W-02 + selectionContext uniquement => UNVERIFIED
+  testsRun++;
+  const rF01_R5_FIX_06 = executeEngineeringCalculation({
+    ...f01Baseline,
+    componentType: "WELDED",
+    weldReductionFactorInput: {
+      factorValue: 1.0,
+      branchId: "W-02",
+      selectionContext: "Below creep range T <= 510°C",
+      sourceReference: "ASME B31.3 Table 302.3.5-1 W-02",
+      qualificationStatus: "VERIFIED",
+    },
+  });
+  assert(
+    rF01_R5_FIX_06.status === "UNVERIFIED" &&
+      rF01_R5_FIX_06.resolvedFactors?.W?.valueVerified === false,
+    "TEST 6 — W-02 + selectionContext uniquement => UNVERIFIED"
+  );
+
+  // TEST 7 : W-02 + isCreepRegime = true => UNVERIFIED
+  testsRun++;
+  const rF01_R5_FIX_07 = executeEngineeringCalculation({
+    ...f01Baseline,
+    componentType: "WELDED",
+    weldReductionFactorInput: {
+      factorValue: 1.0,
+      branchId: "W-02",
+      componentType: "WELDED",
+      isCreepRegime: true,
+      temperature: 100,
+      sourceReference: "ASME B31.3 Table 302.3.5-1 W-02",
+      qualificationStatus: "VERIFIED",
+    },
+  });
+  assert(
+    rF01_R5_FIX_07.status === "UNVERIFIED" &&
+      rF01_R5_FIX_07.resolvedFactors?.W?.valueVerified === false,
+    "TEST 7 — W-02 + isCreepRegime = true => UNVERIFIED"
+  );
+
+  // TEST 8 : W-02 + température W différente de input.temperature => UNVERIFIED
+  testsRun++;
+  const rF01_R5_FIX_08 = executeEngineeringCalculation({
+    ...f01Baseline,
+    componentType: "WELDED",
+    temperature: 100,
+    weldReductionFactorInput: {
+      factorValue: 1.0,
+      branchId: "W-02",
+      componentType: "WELDED",
+      isCreepRegime: false,
+      temperature: 150,
+      sourceReference: "ASME B31.3 Table 302.3.5-1 W-02",
+      qualificationStatus: "VERIFIED",
+    },
+  });
+  assert(
+    rF01_R5_FIX_08.status === "UNVERIFIED" &&
+      rF01_R5_FIX_08.resolvedFactors?.W?.valueVerified === false,
+    "TEST 8 — W-02 + température W différente de input.temperature => UNVERIFIED"
+  );
+
+  // TEST 9 : W-03 + contexte structuré valide => VALUE VERIFIED
+  testsRun++;
+  const rF01_R5_FIX_09 = executeEngineeringCalculation({
+    ...f01Baseline,
+    componentType: "WELDED",
+    materialFamily: "AUSTENITIC",
+    weldReductionFactorInput: {
+      factorValue: 1.0,
+      branchId: "W-03",
+      componentType: "WELDED",
+      materialFamily: "AUSTENITIC",
+      materialGroup: "AUSTENITIC_SS",
+      isCreepRegime: false,
+      temperature: 100,
+      sourceReference: "ASME B31.3 Table 302.3.5-1 W-03",
+      qualificationStatus: "VERIFIED",
+    },
+  });
+  assert(
+    rF01_R5_FIX_09.status === "CALCULATED" &&
+      rF01_R5_FIX_09.resolvedFactors?.W?.valueVerified === true,
+    "TEST 9 — W-03 + contexte structuré valide => VALUE VERIFIED"
+  );
+
+  // TEST 10 : W-03 + selectionContext uniquement => UNVERIFIED
+  testsRun++;
+  const rF01_R5_FIX_10 = executeEngineeringCalculation({
+    ...f01Baseline,
+    componentType: "WELDED",
+    weldReductionFactorInput: {
+      factorValue: 1.0,
+      branchId: "W-03",
+      selectionContext: "Longitudinal seam weld in austenitic steel",
+      sourceReference: "ASME B31.3 Table 302.3.5-1 W-03",
+      qualificationStatus: "VERIFIED",
+    },
+  });
+  assert(
+    rF01_R5_FIX_10.status === "UNVERIFIED" &&
+      rF01_R5_FIX_10.resolvedFactors?.W?.valueVerified === false,
+    "TEST 10 — W-03 + selectionContext uniquement => UNVERIFIED"
+  );
+
+  // TEST 11 : W-03 + contexte contradictoire => UNVERIFIED
+  testsRun++;
+  const rF01_R5_FIX_11 = executeEngineeringCalculation({
+    ...f01Baseline,
+    componentType: "WELDED",
+    materialFamily: "FERRITIC",
+    weldReductionFactorInput: {
+      factorValue: 1.0,
+      branchId: "W-03",
+      componentType: "WELDED",
+      materialFamily: "AUSTENITIC",
+      sourceReference: "ASME B31.3 Table 302.3.5-1 W-03",
+      qualificationStatus: "VERIFIED",
+    },
+  });
+  assert(
+    rF01_R5_FIX_11.status === "UNVERIFIED" &&
+      rF01_R5_FIX_11.resolvedFactors?.W?.valueVerified === false,
+    "TEST 11 — W-03 + contexte contradictoire => UNVERIFIED"
+  );
+
+  // TEST 12 : W-04 + preuve structurée valide => VALUE VERIFIED
+  testsRun++;
+  const rF01_R5_FIX_12 = executeEngineeringCalculation({
+    ...f01Baseline,
+    componentType: "WELDED",
+    weldReductionFactorInput: {
+      factorValue: 1.0,
+      branchId: "W-04",
+      componentType: "WELDED",
+      materialGroup: "CS_ERW",
+      isCreepRegime: false,
+      temperature: 100,
+      sourceReference: "ASME B31.3 Table 302.3.5-1 W-04",
+      qualificationStatus: "VERIFIED",
+    },
+  });
+  assert(
+    rF01_R5_FIX_12.status === "CALCULATED" &&
+      rF01_R5_FIX_12.resolvedFactors?.W?.valueVerified === true,
+    "TEST 12 — W-04 + preuve structurée valide => VALUE VERIFIED"
+  );
+
+  // TEST 13 : W-04 + isCreepRegime seul => UNVERIFIED
+  testsRun++;
+  const rF01_R5_FIX_13 = executeEngineeringCalculation({
+    ...f01Baseline,
+    weldReductionFactorInput: {
+      factorValue: 1.0,
+      branchId: "W-04",
+      isCreepRegime: false,
+      sourceReference: "ASME B31.3 Table 302.3.5-1 W-04",
+      qualificationStatus: "VERIFIED",
+    },
+  });
+  assert(
+    rF01_R5_FIX_13.status === "UNVERIFIED" &&
+      rF01_R5_FIX_13.resolvedFactors?.W?.valueVerified === false,
+    "TEST 13 — W-04 + isCreepRegime seul => UNVERIFIED"
+  );
+
+  // TEST 14 : W-04 + texte générique seul => UNVERIFIED
+  testsRun++;
+  const rF01_R5_FIX_14 = executeEngineeringCalculation({
+    ...f01Baseline,
+    weldReductionFactorInput: {
+      factorValue: 1.0,
+      branchId: "W-04",
+      selectionContext: "Qualified SAW/ERW longitudinal weld seam",
+      sourceReference: "ASME B31.3 Table 302.3.5-1 W-04",
+      qualificationStatus: "VERIFIED",
+    },
+  });
+  assert(
+    rF01_R5_FIX_14.status === "UNVERIFIED" &&
+      rF01_R5_FIX_14.resolvedFactors?.W?.valueVerified === false,
+    "TEST 14 — W-04 + texte générique seul => UNVERIFIED"
+  );
+
+  // TEST 15 : W-06 + preuve structurée valide => VALUE VERIFIED
+  testsRun++;
+  const rF01_R5_FIX_15 = executeEngineeringCalculation({
+    ...f01Baseline,
+    componentType: "WELDED",
+    weldReductionFactorInput: {
+      factorValue: 1.0,
+      branchId: "W-06",
+      componentType: "WELDED",
+      isCreepRegime: false,
+      temperature: 100,
+      sourceReference: "ASME B31.3 Table 302.3.5-1 W-06",
+      qualificationStatus: "VERIFIED",
+    },
+  });
+  assert(
+    rF01_R5_FIX_15.status === "CALCULATED" &&
+      rF01_R5_FIX_15.resolvedFactors?.W?.valueVerified === true,
+    "TEST 15 — W-06 + preuve structurée valide => VALUE VERIFIED"
+  );
+
+  // TEST 16 : W-06 + selectionContext seul => UNVERIFIED
+  testsRun++;
+  const rF01_R5_FIX_16 = executeEngineeringCalculation({
+    ...f01Baseline,
+    weldReductionFactorInput: {
+      factorValue: 1.0,
+      branchId: "W-06",
+      selectionContext: "Circumferential butt weld joint under pressure",
+      sourceReference: "ASME B31.3 Table 302.3.5-1 W-06",
+      qualificationStatus: "VERIFIED",
+    },
+  });
+  assert(
+    rF01_R5_FIX_16.status === "UNVERIFIED" &&
+      rF01_R5_FIX_16.resolvedFactors?.W?.valueVerified === false,
+    "TEST 16 — W-06 + selectionContext seul => UNVERIFIED"
+  );
+
+  // TEST 17 : W-06 + contexte contradictoire => UNVERIFIED
+  testsRun++;
+  const rF01_R5_FIX_17 = executeEngineeringCalculation({
+    ...f01Baseline,
+    componentType: "SEAMLESS",
+    weldReductionFactorInput: {
+      factorValue: 1.0,
+      branchId: "W-06",
+      componentType: "SEAMLESS",
+      isCreepRegime: false,
+      sourceReference: "ASME B31.3 Table 302.3.5-1 W-06",
+      qualificationStatus: "VERIFIED",
+    },
+  });
+  assert(
+    rF01_R5_FIX_17.status === "UNVERIFIED" &&
+      rF01_R5_FIX_17.resolvedFactors?.W?.valueVerified === false,
+    "TEST 17 — W-06 + contexte contradictoire => UNVERIFIED"
+  );
+
+  // TEST 18 : W numérique sans provenance qualifiée => UNVERIFIED
+  testsRun++;
+  const rF01_R5_FIX_18 = executeEngineeringCalculation({
+    ...f01Baseline,
+    weldReductionFactor: 1.0,
+    weldReductionFactorInput: undefined,
+  });
+  assert(
+    rF01_R5_FIX_18.status === "UNVERIFIED" &&
+      rF01_R5_FIX_18.resolvedFactors?.W?.valueVerified === false,
+    "TEST 18 — W numérique sans provenance qualifiée => UNVERIFIED"
+  );
+
+  // TEST 19 : W numérique + source + VERIFIED mais sans preuve structurée de branche => UNVERIFIED
+  testsRun++;
+  const rF01_R5_FIX_19 = executeEngineeringCalculation({
+    ...f01Baseline,
+    componentType: undefined,
+    weldReductionFactorInput: {
+      factorValue: 1.0,
+      sourceReference: "ASME B31.3 Table 302.3.5-1",
+      qualificationStatus: "VERIFIED",
+    },
+  });
+  assert(
+    rF01_R5_FIX_19.status === "UNVERIFIED" &&
+      rF01_R5_FIX_19.resolvedFactors?.W?.valueVerified === false,
+    "TEST 19 — W numérique + source + VERIFIED mais sans preuve structurée de branche => UNVERIFIED"
+  );
+
+  // TEST 20 : contradiction input/W => UNVERIFIED
+  testsRun++;
+  const rF01_R5_FIX_20 = executeEngineeringCalculation({
+    ...f01Baseline,
+    temperature: 100,
+    weldReductionFactorInput: {
+      factorValue: 1.0,
+      branchId: "W-01",
+      componentType: "SEAMLESS",
+      temperature: 150,
+      sourceReference: "ASME B31.3 Table 302.3.5-1 W-01",
+      qualificationStatus: "VERIFIED",
+    },
+  });
+  assert(
+    rF01_R5_FIX_20.status === "UNVERIFIED" &&
+      rF01_R5_FIX_20.resolvedFactors?.W?.valueVerified === false,
+    "TEST 20 — contradiction input/W => UNVERIFIED"
   );
 
   return { success: true, testsRun };
