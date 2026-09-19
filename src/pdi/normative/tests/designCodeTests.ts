@@ -1258,7 +1258,7 @@ export function runDesignCodeEngineTests(): { success: boolean; testsRun: number
     "F01-25 — W-02 explicitement qualifié est accepté"
   );
 
-  // F01-26 : W-03 explicitement qualifié
+  // F01-26 : W-03 sans preuve normative complète reste UNVERIFIED
   testsRun++;
   const rF01_26 = executeEngineeringCalculation({
     ...f01Baseline,
@@ -1278,12 +1278,12 @@ export function runDesignCodeEngineTests(): { success: boolean; testsRun: number
     },
   });
   assert(
-    rF01_26.status === "CALCULATED" &&
-      rF01_26.resolvedFactors?.W?.valueVerified === true,
-    "F01-26 — W-03 explicitement qualifié est accepté"
+    rF01_26.status === "UNVERIFIED" &&
+      rF01_26.resolvedFactors?.W?.valueVerified === false,
+    "F01-26 — W-03 sans preuve normative complète (grade 3xx, autogenous, fillerless) reste UNVERIFIED"
   );
 
-  // F01-27 : W-04 explicitement qualifié
+  // F01-27 : W-04 sans preuve normative complète reste UNVERIFIED
   testsRun++;
   const rF01_27 = executeEngineeringCalculation({
     ...f01Baseline,
@@ -1301,12 +1301,12 @@ export function runDesignCodeEngineTests(): { success: boolean; testsRun: number
     },
   });
   assert(
-    rF01_27.status === "CALCULATED" &&
-      rF01_27.resolvedFactors?.W?.valueVerified === true,
-    "F01-27 — W-04 explicitement qualifié est accepté"
+    rF01_27.status === "UNVERIFIED" &&
+      rF01_27.resolvedFactors?.W?.valueVerified === false,
+    "F01-27 — W-04 sans preuve normative complète (grade 3xx, filler metal) reste UNVERIFIED"
   );
 
-  // F01-28 : W-06 explicitement qualifié
+  // F01-28 : W-06 explicitement qualifié (avec materialGroup CrMo)
   testsRun++;
   const rF01_28 = executeEngineeringCalculation({
     ...f01Baseline,
@@ -1315,6 +1315,7 @@ export function runDesignCodeEngineTests(): { success: boolean; testsRun: number
       factorValue: 1.0,
       branchId: "W-06",
       componentType: "WELDED",
+      materialGroup: "CR_MO",
       isCreepRegime: false,
       temperature: 100,
       selectionContext: "Circumferential butt weld joint under pressure",
@@ -2193,7 +2194,7 @@ export function runDesignCodeEngineTests(): { success: boolean; testsRun: number
     "TEST 8 — W-02 + température W différente de input.temperature => UNVERIFIED"
   );
 
-  // TEST 9 : W-03 + contexte structuré valide => VALUE VERIFIED
+  // TEST 9 : W-03 + conditions non prouvées par modèle => UNVERIFIED
   testsRun++;
   const rF01_R5_FIX_09 = executeEngineeringCalculation({
     ...f01Baseline,
@@ -2212,9 +2213,9 @@ export function runDesignCodeEngineTests(): { success: boolean; testsRun: number
     },
   });
   assert(
-    rF01_R5_FIX_09.status === "CALCULATED" &&
-      rF01_R5_FIX_09.resolvedFactors?.W?.valueVerified === true,
-    "TEST 9 — W-03 + contexte structuré valide => VALUE VERIFIED"
+    rF01_R5_FIX_09.status === "UNVERIFIED" &&
+      rF01_R5_FIX_09.resolvedFactors?.W?.valueVerified === false,
+    "TEST 9 — W-03 + conditions non prouvées par modèle => UNVERIFIED"
   );
 
   // TEST 10 : W-03 + selectionContext uniquement => UNVERIFIED
@@ -2257,7 +2258,7 @@ export function runDesignCodeEngineTests(): { success: boolean; testsRun: number
     "TEST 11 — W-03 + contexte contradictoire => UNVERIFIED"
   );
 
-  // TEST 12 : W-04 + preuve structurée valide => VALUE VERIFIED
+  // TEST 12 : W-04 + conditions non prouvées par modèle => UNVERIFIED
   testsRun++;
   const rF01_R5_FIX_12 = executeEngineeringCalculation({
     ...f01Baseline,
@@ -2274,9 +2275,9 @@ export function runDesignCodeEngineTests(): { success: boolean; testsRun: number
     },
   });
   assert(
-    rF01_R5_FIX_12.status === "CALCULATED" &&
-      rF01_R5_FIX_12.resolvedFactors?.W?.valueVerified === true,
-    "TEST 12 — W-04 + preuve structurée valide => VALUE VERIFIED"
+    rF01_R5_FIX_12.status === "UNVERIFIED" &&
+      rF01_R5_FIX_12.resolvedFactors?.W?.valueVerified === false,
+    "TEST 12 — W-04 + conditions non prouvées par modèle => UNVERIFIED"
   );
 
   // TEST 13 : W-04 + isCreepRegime seul => UNVERIFIED
@@ -2324,6 +2325,7 @@ export function runDesignCodeEngineTests(): { success: boolean; testsRun: number
       factorValue: 1.0,
       branchId: "W-06",
       componentType: "WELDED",
+      materialGroup: "CR_MO",
       isCreepRegime: false,
       temperature: 100,
       sourceReference: "ASME B31.3 Table 302.3.5-1 W-06",

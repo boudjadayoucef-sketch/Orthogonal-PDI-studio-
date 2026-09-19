@@ -544,69 +544,70 @@ function executeAsmeB313F01Calculation(
         isQualifiedBranch = true;
       }
     } else if (branchId === "W-02") {
-      // W-02 : Table 302.3.5-1 sous régime de fluage (hors fluage / non-creep)
-      // Preuve POSITIVE obligatoire : isCreepRegime === false
-      // Refus strict si isCreepRegime absent/true, si componentType SEAMLESS, ou si température incohérente
+      // W-02 : Carbon Steel (Table 302.3.5-1 sous régime non-fluage)
+      // Preuve POSITIVE obligatoire :
+      // 1. Carbon Steel prouvé positivement dans le modèle existant (ex: materialGroup === "CARBON_STEEL" ou "CS")
+      //    Note : materialFamily === "FERRITIC" est générique et N'EST PAS suffisant.
+      // 2. isCreepRegime === false
+      // 3. Contexte composant compatible (non SEAMLESS)
+      // 4. Aucune contradiction
+      const isPositiveCarbonSteel =
+        (typeof wInput.materialGroup === "string" &&
+          (wInput.materialGroup.toUpperCase() === "CARBON_STEEL" ||
+            wInput.materialGroup.toUpperCase() === "CS" ||
+            wInput.materialGroup.toUpperCase().startsWith("CARBON_STEEL_") ||
+            wInput.materialGroup.toUpperCase().startsWith("CS_"))) ||
+        (typeof input.materialId === "string" &&
+          (input.materialId.toUpperCase().includes("_CS_") ||
+            input.materialId.toUpperCase().startsWith("MAT_CS_")));
+
       const hasPositiveNonCreepProof = wInput.isCreepRegime === false;
       const isNotSeamless =
         input.componentType !== "SEAMLESS" && wInput.componentType !== "SEAMLESS";
 
-      if (hasPositiveNonCreepProof && isNotSeamless && !hasContradiction) {
+      if (
+        isPositiveCarbonSteel &&
+        hasPositiveNonCreepProof &&
+        isNotSeamless &&
+        !hasContradiction
+      ) {
         isQualifiedBranch = true;
       }
     } else if (branchId === "W-03") {
-      // W-03 : Soudures longitudinales matériaux spécifiques (aciers austénitiques)
-      // Preuve POSITIVE obligatoire : matériau austénitique structuré (materialFamily === "AUSTENITIC" ou materialGroup austénitique)
-      const isAustenitic =
-        wInput.materialFamily === "AUSTENITIC" ||
-        input.materialFamily === "AUSTENITIC" ||
-        (typeof wInput.materialGroup === "string" &&
-          wInput.materialGroup.toUpperCase().includes("AUSTENITIC"));
-
-      const isNotSeamless =
-        input.componentType !== "SEAMLESS" && wInput.componentType !== "SEAMLESS";
-
-      const noMaterialContradiction =
-        input.materialFamily !== "FERRITIC" && wInput.materialFamily !== "FERRITIC";
-
-      if (
-        isAustenitic &&
-        isNotSeamless &&
-        noMaterialContradiction &&
-        !hasContradiction
-      ) {
-        isQualifiedBranch = true;
-      }
+      // W-03 : Austenitic grade 3xx welded autogenous without filler metal
+      // La matrice qualifiée exige :
+      // - austenitic grade 3xx
+      // - welded autogenous
+      // - no filler metal
+      // Le modèle de données actuel ne permet pas de représenter de manière structurée
+      // "grade 3xx", "autogenous" et "no filler metal" sans inventer de nouveaux champs ou parser du texte libre.
+      // Règle normative stricte : Si les données existantes ne permettent pas de prouver
+      // positivement les conditions exactes d'une branche qualifiée -> W-03 reste UNVERIFIED.
+      isQualifiedBranch = false;
     } else if (branchId === "W-04") {
-      // W-04 : Soudures longitudinales procédé/matériau qualifié
-      // Preuve structurée POSITIVE obligatoire :
-      // 1. Composant soudé (componentType === "WELDED")
-      // 2. Matériau structuré (materialGroup ou materialFamily)
-      // 3. Preuve de régime non-fluage (isCreepRegime === false)
-      const isWelded =
-        input.componentType === "WELDED" || wInput.componentType === "WELDED";
-      const hasStructuredMaterial = Boolean(
-        wInput.materialGroup || wInput.materialFamily || input.materialFamily
-      );
-      const hasNonCreepProof = wInput.isCreepRegime === false;
-      const isNotSeamless =
-        input.componentType !== "SEAMLESS" && wInput.componentType !== "SEAMLESS";
-
-      if (
-        isWelded &&
-        hasStructuredMaterial &&
-        hasNonCreepProof &&
-        isNotSeamless &&
-        !hasContradiction
-      ) {
-        isQualifiedBranch = true;
-      }
+      // W-04 : Austenitic grade 3xx welded with filler metal
+      // La matrice qualifiée exige :
+      // - austenitic grade 3xx
+      // - welded
+      // - with filler metal
+      // Le modèle de données actuel ne permet pas de prouver de manière structurée
+      // "grade 3xx" et "with filler metal" (la présence générique d'un materialGroup/materialFamily
+      // ou du texte libre ne constitue pas une preuve normative).
+      // Règle normative stricte : W-04 reste UNVERIFIED.
+      isQualifiedBranch = false;
     } else if (branchId === "W-06") {
-      // W-06 : Soudures circonférentielles
-      // Preuve structurée POSITIVE obligatoire :
-      // 1. Composant soudé (componentType === "WELDED")
-      // 2. Preuve de régime non-fluage (isCreepRegime === false)
-      // 3. Aucune contradiction longitudinale
+      // W-06 : CrMo
+      // La matrice qualifiée exige : matériau CrMo prouvé positivement.
+      // FERRITIC générique n'est pas suffisant.
+      // Une preuve positive structurée CrMo dans les données existantes (ex: materialGroup "CR_MO" ou "CRMO")
+      // est obligatoire. Si aucune donnée structurée CrMo valide n'est présente -> UNVERIFIED.
+      const isPositiveCrMo =
+        typeof wInput.materialGroup === "string" &&
+        (wInput.materialGroup.toUpperCase() === "CR_MO" ||
+          wInput.materialGroup.toUpperCase() === "CRMO" ||
+          wInput.materialGroup.toUpperCase().startsWith("CRMO_") ||
+          wInput.materialGroup.toUpperCase().startsWith("CR_MO_"));
+
       const isWelded =
         input.componentType === "WELDED" || wInput.componentType === "WELDED";
       const hasNonCreepProof = wInput.isCreepRegime === false;
@@ -619,6 +620,7 @@ function executeAsmeB313F01Calculation(
           wInput.applicability.toUpperCase().includes("LONGITUDINAL"));
 
       if (
+        isPositiveCrMo &&
         isWelded &&
         hasNonCreepProof &&
         isNotSeamless &&
