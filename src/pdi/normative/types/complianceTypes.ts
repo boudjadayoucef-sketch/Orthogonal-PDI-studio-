@@ -40,7 +40,9 @@ export interface ComplianceResult {
   readonly status: ComplianceStatus;
   readonly standardId?: StandardId;
   readonly edition?: StandardEdition;
+  readonly editionId?: string;
   readonly ruleId?: string;
+  readonly qualificationId?: string;
   readonly clauseReference?: string;
   readonly componentId?: string;
   readonly message: string;
@@ -48,6 +50,7 @@ export interface ComplianceResult {
   readonly actualValue?: string | number;
   readonly expectedValue?: string | number;
   readonly timestamp?: string;
+  readonly evidenceIds?: readonly string[];
 }
 
 /**

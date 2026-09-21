@@ -91,6 +91,8 @@ export interface NormativeStandard {
   readonly standardType: NormativeStandardType;
   readonly status: NormativeStatus;
   readonly edition?: StandardEdition;
+  readonly editionId?: string;
+  readonly evidenceIds?: readonly string[];
 }
 
 /**
@@ -100,5 +102,7 @@ export interface NormativeStandard {
 export interface DesignCodeReference {
   readonly designCodeId: DesignCodeId;
   readonly edition?: StandardEdition;
+  readonly editionId?: string;
   readonly clauseReference?: string;
+  readonly evidenceIds?: readonly string[];
 }

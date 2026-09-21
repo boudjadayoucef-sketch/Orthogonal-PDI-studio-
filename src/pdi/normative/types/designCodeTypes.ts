@@ -18,6 +18,11 @@ import type {
   DesignCodeId,
   StandardEdition,
 } from "./normativeCoreTypes";
+import type {
+  NormativeEvidence,
+  NormativeEvidenceSourceType,
+  NormativeVerifiedValue,
+} from "./normativeEvidenceTypes";
 
 /**
  * Codes de conception initiaux enregistrés dans NORM-01.
@@ -139,6 +144,7 @@ export interface NormativeStressInput {
   readonly temperature?: number;
   readonly sourceReference?: string;
   readonly qualificationStatus?: DesignCodeFormulaStatus;
+  readonly evidenceIds?: readonly string[];
 }
 
 /**
@@ -153,6 +159,7 @@ export interface NormativeQualityFactorInput {
   readonly sourceReference?: string;
   readonly qualificationStatus?: DesignCodeFormulaStatus;
   readonly selectionContext?: string;
+  readonly evidenceIds?: readonly string[];
 }
 
 /**
@@ -188,6 +195,7 @@ export interface NormativeWeldReductionFactorInput {
   readonly qualificationStatus?: DesignCodeFormulaStatus;
   readonly selectionContext?: string;
   readonly hasQualifiedContextGrid?: boolean;
+  readonly evidenceIds?: readonly string[];
 }
 
 /**
@@ -201,6 +209,7 @@ export interface NormativeYCoefficientInput {
   readonly sourceReference?: string;
   readonly qualificationStatus?: DesignCodeFormulaStatus;
   readonly branchId?: string;
+  readonly evidenceIds?: readonly string[];
 }
 
 /**
@@ -214,6 +223,7 @@ export interface ResolvedNormativeFactor {
   readonly sourceReference?: string;
   readonly clauseReference?: string;
   readonly notes?: string;
+  readonly evidenceIds?: readonly string[];
 }
 
 /**
@@ -253,6 +263,9 @@ export interface EngineeringCalculationInput {
   readonly designFactor?: number;
 
   readonly unitSystem: EngineeringUnitSystem;
+
+  readonly evidenceIds?: readonly string[];
+  readonly evidenceItems?: readonly NormativeEvidence[];
 }
 
 /**
@@ -294,6 +307,7 @@ export interface EngineeringCalculationResult {
   readonly assumptions: readonly string[];
   readonly warnings: readonly string[];
   readonly errors: readonly string[];
+  readonly evidenceIds?: readonly string[];
 }
 
 /**

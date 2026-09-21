@@ -12,6 +12,7 @@ export * from "./types/materialTypes";
 export * from "./types/pipingSpecTypes";
 export * from "./types/complianceTypes";
 export * from "./types/designCodeTypes";
+export * from "./types/normativeEvidenceTypes";
 
 export * from "./registry/standardsRegistry";
 export * from "./registry/pipeDimensionalRegistry";
@@ -29,6 +30,7 @@ export * from "./validators/valveValidator";
 export * from "./validators/materialValidator";
 export * from "./validators/pipingSpecValidator";
 export * from "./validators/designCodeValidator";
+export * from "./validators/normativeEvidenceValidator";
 
 export * from "./engine/designCodeEngine";
 
@@ -40,3 +42,4 @@ export * from "./tests/valveTests";
 export * from "./tests/materialTests";
 export * from "./tests/pipingSpecTests";
 export * from "./tests/designCodeTests";
+export * from "./tests/normativeEvidenceTests";
