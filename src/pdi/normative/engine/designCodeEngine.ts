@@ -546,20 +546,15 @@ function executeAsmeB313F01Calculation(
     } else if (branchId === "W-02") {
       // W-02 : Carbon Steel (Table 302.3.5-1 sous régime non-fluage)
       // Preuve POSITIVE obligatoire :
-      // 1. Carbon Steel prouvé positivement dans le modèle existant (ex: materialGroup === "CARBON_STEEL" ou "CS")
-      //    Note : materialFamily === "FERRITIC" est générique et N'EST PAS suffisant.
+      // 1. Catégorie structurée CARBON_STEEL obligatoire (strictement alignée sur NORM-06 MaterialCategory).
+      //    Interdiction absolue d'utiliser comme preuve des heuristiques de nommage (MAT_CS_..., _CS_..., CS, CS_*).
+      //    Les chaînes textuelles ne constituent pas une preuve normative de catégorie métallurgique.
       // 2. isCreepRegime === false
       // 3. Contexte composant compatible (non SEAMLESS)
       // 4. Aucune contradiction
       const isPositiveCarbonSteel =
-        (typeof wInput.materialGroup === "string" &&
-          (wInput.materialGroup.toUpperCase() === "CARBON_STEEL" ||
-            wInput.materialGroup.toUpperCase() === "CS" ||
-            wInput.materialGroup.toUpperCase().startsWith("CARBON_STEEL_") ||
-            wInput.materialGroup.toUpperCase().startsWith("CS_"))) ||
-        (typeof input.materialId === "string" &&
-          (input.materialId.toUpperCase().includes("_CS_") ||
-            input.materialId.toUpperCase().startsWith("MAT_CS_")));
+        typeof wInput.materialGroup === "string" &&
+        wInput.materialGroup.toUpperCase() === "CARBON_STEEL";
 
       const hasPositiveNonCreepProof = wInput.isCreepRegime === false;
       const isNotSeamless =
@@ -597,38 +592,17 @@ function executeAsmeB313F01Calculation(
       isQualifiedBranch = false;
     } else if (branchId === "W-06") {
       // W-06 : CrMo
-      // La matrice qualifiée exige : matériau CrMo prouvé positivement.
-      // FERRITIC générique n'est pas suffisant.
-      // Une preuve positive structurée CrMo dans les données existantes (ex: materialGroup "CR_MO" ou "CRMO")
-      // est obligatoire. Si aucune donnée structurée CrMo valide n'est présente -> UNVERIFIED.
-      const isPositiveCrMo =
-        typeof wInput.materialGroup === "string" &&
-        (wInput.materialGroup.toUpperCase() === "CR_MO" ||
-          wInput.materialGroup.toUpperCase() === "CRMO" ||
-          wInput.materialGroup.toUpperCase().startsWith("CRMO_") ||
-          wInput.materialGroup.toUpperCase().startsWith("CR_MO_"));
-
-      const isWelded =
-        input.componentType === "WELDED" || wInput.componentType === "WELDED";
-      const hasNonCreepProof = wInput.isCreepRegime === false;
-      const isNotSeamless =
-        input.componentType !== "SEAMLESS" && wInput.componentType !== "SEAMLESS";
-      const hasLongitudinalContradiction =
-        (typeof wInput.selectionContext === "string" &&
-          wInput.selectionContext.toUpperCase().includes("LONGITUDINAL")) ||
-        (typeof wInput.applicability === "string" &&
-          wInput.applicability.toUpperCase().includes("LONGITUDINAL"));
-
-      if (
-        isPositiveCrMo &&
-        isWelded &&
-        hasNonCreepProof &&
-        isNotSeamless &&
-        !hasLongitudinalContradiction &&
-        !hasContradiction
-      ) {
-        isQualifiedBranch = true;
-      }
+      // La matrice ASME B31.3 exige une preuve positive de nuance / groupe CrMo.
+      // Dans le modèle normatif existant (NORM-06 MaterialEngine), les catégories métallurgiques
+      // structurées sont : CARBON_STEEL, LOW_ALLOY_STEEL, STAINLESS_STEEL, DUPLEX_STAINLESS_STEEL,
+      // NICKEL_ALLOY, OTHER.
+      // Le modèle NORM-06 ne définit ni "CR_MO", ni "CRMO" comme une catégorie normative MaterialCategory.
+      // LOW_ALLOY_STEEL ne prouve pas spécifiquement la composition CrMo requise par W-06.
+      // De plus, les heuristiques de chaînes libres (CRMO, CR_MO, CRMO_*, CR_MO_*) sont formellement
+      // interdites comme preuve normative autonome.
+      // En l'absence de contrat structuré NORM-06 prouvant positivement la sous-famille CrMo,
+      // la branche W-06 reste strictement UNVERIFIED.
+      isQualifiedBranch = false;
     } else if (isConditionalBranch && Boolean(wInput.hasQualifiedContextGrid)) {
       isQualifiedBranch = true;
     }

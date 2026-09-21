@@ -1235,7 +1235,7 @@ export function runDesignCodeEngineTests(): { success: boolean; testsRun: number
     "F01-24 — W-01 explicitement qualifié est accepté"
   );
 
-  // F01-25 : W-02 explicitement qualifié
+  // F01-25 : W-02 explicitement qualifié avec preuve structurée CARBON_STEEL
   testsRun++;
   const rF01_25 = executeEngineeringCalculation({
     ...f01Baseline,
@@ -1244,6 +1244,7 @@ export function runDesignCodeEngineTests(): { success: boolean; testsRun: number
       factorValue: 1.0,
       branchId: "W-02",
       componentType: "WELDED",
+      materialGroup: "CARBON_STEEL",
       isCreepRegime: false,
       temperature: 100,
       designTemperature: 100,
@@ -1255,7 +1256,7 @@ export function runDesignCodeEngineTests(): { success: boolean; testsRun: number
   assert(
     rF01_25.status === "CALCULATED" &&
       rF01_25.resolvedFactors?.W?.valueVerified === true,
-    "F01-25 — W-02 explicitement qualifié est accepté"
+    "F01-25 — W-02 explicitement qualifié avec preuve structurée CARBON_STEEL est accepté"
   );
 
   // F01-26 : W-03 sans preuve normative complète reste UNVERIFIED
@@ -1306,7 +1307,7 @@ export function runDesignCodeEngineTests(): { success: boolean; testsRun: number
     "F01-27 — W-04 sans preuve normative complète (grade 3xx, filler metal) reste UNVERIFIED"
   );
 
-  // F01-28 : W-06 explicitement qualifié (avec materialGroup CrMo)
+  // F01-28 : W-06 sans catégorie structurée NORM-06 reste UNVERIFIED (CRMO / CR_MO non défini dans NORM-06)
   testsRun++;
   const rF01_28 = executeEngineeringCalculation({
     ...f01Baseline,
@@ -1324,9 +1325,9 @@ export function runDesignCodeEngineTests(): { success: boolean; testsRun: number
     },
   });
   assert(
-    rF01_28.status === "CALCULATED" &&
-      rF01_28.resolvedFactors?.W?.valueVerified === true,
-    "F01-28 — W-06 explicitement qualifié est accepté"
+    rF01_28.status === "UNVERIFIED" &&
+      rF01_28.resolvedFactors?.W?.valueVerified === false,
+    "F01-28 — W-06 sans catégorie structurée NORM-06 reste strictement UNVERIFIED"
   );
 
   // F01-29 : W-05 sans contexte => non calculé
@@ -1834,7 +1835,7 @@ export function runDesignCodeEngineTests(): { success: boolean; testsRun: number
     "F01-R5-04 — température input absente interdit le statut CALCULATED"
   );
 
-  // F01-R5-05 : W-02 contexte qualifié -> comportement attendu (CALCULATED)
+  // F01-R5-05 : W-02 contexte qualifié avec preuve structurée CARBON_STEEL -> CALCULATED
   testsRun++;
   const rF01_R5_05 = executeEngineeringCalculation({
     ...f01Baseline,
@@ -1843,6 +1844,7 @@ export function runDesignCodeEngineTests(): { success: boolean; testsRun: number
       factorValue: 1.0,
       branchId: "W-02",
       componentType: "WELDED",
+      materialGroup: "CARBON_STEEL",
       isCreepRegime: false,
       temperature: 100,
       designTemperature: 100,
@@ -2110,7 +2112,7 @@ export function runDesignCodeEngineTests(): { success: boolean; testsRun: number
     "TEST 4 — W-01 + selectionContext = 'W-01' sans componentType => UNVERIFIED"
   );
 
-  // TEST 5 : W-02 + isCreepRegime = false + contexte cohérent => VALUE VERIFIED
+  // TEST 5 : W-02 + materialGroup = "CARBON_STEEL" + isCreepRegime = false => VALUE VERIFIED
   testsRun++;
   const rF01_R5_FIX_05 = executeEngineeringCalculation({
     ...f01Baseline,
@@ -2119,6 +2121,7 @@ export function runDesignCodeEngineTests(): { success: boolean; testsRun: number
       factorValue: 1.0,
       branchId: "W-02",
       componentType: "WELDED",
+      materialGroup: "CARBON_STEEL",
       isCreepRegime: false,
       temperature: 100,
       designTemperature: 100,
@@ -2129,7 +2132,95 @@ export function runDesignCodeEngineTests(): { success: boolean; testsRun: number
   assert(
     rF01_R5_FIX_05.status === "CALCULATED" &&
       rF01_R5_FIX_05.resolvedFactors?.W?.valueVerified === true,
-    "TEST 5 — W-02 + isCreepRegime = false + contexte cohérent => VALUE VERIFIED"
+    "TEST 5 — W-02 + materialGroup = 'CARBON_STEEL' + isCreepRegime = false => VALUE VERIFIED"
+  );
+
+  // TEST 5a : W-02 + materialId = "MAT_CS_..." sans catégorie structurée => UNVERIFIED
+  testsRun++;
+  const rF01_R5_FIX_05a = executeEngineeringCalculation({
+    ...f01Baseline,
+    componentType: "WELDED",
+    materialId: "MAT_CS_ASTM_A106_B",
+    weldReductionFactorInput: {
+      factorValue: 1.0,
+      branchId: "W-02",
+      componentType: "WELDED",
+      isCreepRegime: false,
+      temperature: 100,
+      sourceReference: "ASME B31.3 Table 302.3.5-1 W-02",
+      qualificationStatus: "VERIFIED",
+    },
+  });
+  assert(
+    rF01_R5_FIX_05a.status === "UNVERIFIED" &&
+      rF01_R5_FIX_05a.resolvedFactors?.W?.valueVerified === false,
+    "TEST 5a — W-02 + materialId = 'MAT_CS_...' sans catégorie structurée => UNVERIFIED"
+  );
+
+  // TEST 5b : W-02 + materialId contenant "_CS_" sans catégorie structurée => UNVERIFIED
+  testsRun++;
+  const rF01_R5_FIX_05b = executeEngineeringCalculation({
+    ...f01Baseline,
+    componentType: "WELDED",
+    materialId: "PIPE_CS_GRADE_B",
+    weldReductionFactorInput: {
+      factorValue: 1.0,
+      branchId: "W-02",
+      componentType: "WELDED",
+      isCreepRegime: false,
+      temperature: 100,
+      sourceReference: "ASME B31.3 Table 302.3.5-1 W-02",
+      qualificationStatus: "VERIFIED",
+    },
+  });
+  assert(
+    rF01_R5_FIX_05b.status === "UNVERIFIED" &&
+      rF01_R5_FIX_05b.resolvedFactors?.W?.valueVerified === false,
+    "TEST 5b — W-02 + materialId = '..._CS_...' sans catégorie structurée => UNVERIFIED"
+  );
+
+  // TEST 5c : W-02 + materialGroup = "CS" sans preuve structurée NORM-06 => UNVERIFIED
+  testsRun++;
+  const rF01_R5_FIX_05c = executeEngineeringCalculation({
+    ...f01Baseline,
+    componentType: "WELDED",
+    weldReductionFactorInput: {
+      factorValue: 1.0,
+      branchId: "W-02",
+      componentType: "WELDED",
+      materialGroup: "CS",
+      isCreepRegime: false,
+      temperature: 100,
+      sourceReference: "ASME B31.3 Table 302.3.5-1 W-02",
+      qualificationStatus: "VERIFIED",
+    },
+  });
+  assert(
+    rF01_R5_FIX_05c.status === "UNVERIFIED" &&
+      rF01_R5_FIX_05c.resolvedFactors?.W?.valueVerified === false,
+    "TEST 5c — W-02 + materialGroup = 'CS' sans preuve structurée NORM-06 => UNVERIFIED"
+  );
+
+  // TEST 5d : W-02 + LOW_ALLOY_STEEL ne doit pas être assimilé automatiquement à CARBON_STEEL
+  testsRun++;
+  const rF01_R5_FIX_05d = executeEngineeringCalculation({
+    ...f01Baseline,
+    componentType: "WELDED",
+    weldReductionFactorInput: {
+      factorValue: 1.0,
+      branchId: "W-02",
+      componentType: "WELDED",
+      materialGroup: "LOW_ALLOY_STEEL",
+      isCreepRegime: false,
+      temperature: 100,
+      sourceReference: "ASME B31.3 Table 302.3.5-1 W-02",
+      qualificationStatus: "VERIFIED",
+    },
+  });
+  assert(
+    rF01_R5_FIX_05d.status === "UNVERIFIED" &&
+      rF01_R5_FIX_05d.resolvedFactors?.W?.valueVerified === false,
+    "TEST 5d — W-02 + LOW_ALLOY_STEEL ne doit pas être assimilé automatiquement à CARBON_STEEL => UNVERIFIED"
   );
 
   // TEST 6 : W-02 + selectionContext uniquement => UNVERIFIED
@@ -2316,9 +2407,31 @@ export function runDesignCodeEngineTests(): { success: boolean; testsRun: number
     "TEST 14 — W-04 + texte générique seul => UNVERIFIED"
   );
 
-  // TEST 15 : W-06 + preuve structurée valide => VALUE VERIFIED
+  // TEST 15 : W-06 + materialGroup = "CRMO" sans catégorie structurée NORM-06 => UNVERIFIED
   testsRun++;
   const rF01_R5_FIX_15 = executeEngineeringCalculation({
+    ...f01Baseline,
+    componentType: "WELDED",
+    weldReductionFactorInput: {
+      factorValue: 1.0,
+      branchId: "W-06",
+      componentType: "WELDED",
+      materialGroup: "CRMO",
+      isCreepRegime: false,
+      temperature: 100,
+      sourceReference: "ASME B31.3 Table 302.3.5-1 W-06",
+      qualificationStatus: "VERIFIED",
+    },
+  });
+  assert(
+    rF01_R5_FIX_15.status === "UNVERIFIED" &&
+      rF01_R5_FIX_15.resolvedFactors?.W?.valueVerified === false,
+    "TEST 15 — W-06 + materialGroup = 'CRMO' sans catégorie structurée NORM-06 => UNVERIFIED"
+  );
+
+  // TEST 15a : W-06 + materialGroup = "CR_MO" sans catégorie structurée NORM-06 => UNVERIFIED
+  testsRun++;
+  const rF01_R5_FIX_15a = executeEngineeringCalculation({
     ...f01Baseline,
     componentType: "WELDED",
     weldReductionFactorInput: {
@@ -2333,9 +2446,53 @@ export function runDesignCodeEngineTests(): { success: boolean; testsRun: number
     },
   });
   assert(
-    rF01_R5_FIX_15.status === "CALCULATED" &&
-      rF01_R5_FIX_15.resolvedFactors?.W?.valueVerified === true,
-    "TEST 15 — W-06 + preuve structurée valide => VALUE VERIFIED"
+    rF01_R5_FIX_15a.status === "UNVERIFIED" &&
+      rF01_R5_FIX_15a.resolvedFactors?.W?.valueVerified === false,
+    "TEST 15a — W-06 + materialGroup = 'CR_MO' sans catégorie structurée NORM-06 => UNVERIFIED"
+  );
+
+  // TEST 15b : W-06 + materialGroup = "CRMO_..." => UNVERIFIED
+  testsRun++;
+  const rF01_R5_FIX_15b = executeEngineeringCalculation({
+    ...f01Baseline,
+    componentType: "WELDED",
+    weldReductionFactorInput: {
+      factorValue: 1.0,
+      branchId: "W-06",
+      componentType: "WELDED",
+      materialGroup: "CRMO_P22",
+      isCreepRegime: false,
+      temperature: 100,
+      sourceReference: "ASME B31.3 Table 302.3.5-1 W-06",
+      qualificationStatus: "VERIFIED",
+    },
+  });
+  assert(
+    rF01_R5_FIX_15b.status === "UNVERIFIED" &&
+      rF01_R5_FIX_15b.resolvedFactors?.W?.valueVerified === false,
+    "TEST 15b — W-06 + materialGroup = 'CRMO_...' => UNVERIFIED"
+  );
+
+  // TEST 15c : W-06 + LOW_ALLOY_STEEL ne suffit pas pour qualifier le contexte CrMo spécifique
+  testsRun++;
+  const rF01_R5_FIX_15c = executeEngineeringCalculation({
+    ...f01Baseline,
+    componentType: "WELDED",
+    weldReductionFactorInput: {
+      factorValue: 1.0,
+      branchId: "W-06",
+      componentType: "WELDED",
+      materialGroup: "LOW_ALLOY_STEEL",
+      isCreepRegime: false,
+      temperature: 100,
+      sourceReference: "ASME B31.3 Table 302.3.5-1 W-06",
+      qualificationStatus: "VERIFIED",
+    },
+  });
+  assert(
+    rF01_R5_FIX_15c.status === "UNVERIFIED" &&
+      rF01_R5_FIX_15c.resolvedFactors?.W?.valueVerified === false,
+    "TEST 15c — W-06 + LOW_ALLOY_STEEL ne suffit pas pour qualifier CrMo => UNVERIFIED"
   );
 
   // TEST 16 : W-06 + selectionContext seul => UNVERIFIED
