@@ -59,20 +59,31 @@ export function runNormativeEvidenceTests(): {
   }
 
   // =========================================================================
+  // CONSTANTES SYNTHÉTIQUES EXPLICITES POUR LES TESTS (MASTER-02-FIX-01)
+  // Ces fixtures sont strictement synthétiques et ne prétendent en aucun cas
+  // représenter une véritable preuve ou édition normative réelle.
+  // =========================================================================
+  const SYNTHETIC_STANDARD_ID = "SYNTHETIC_STANDARD_STD_001";
+  const SYNTHETIC_EDITION_ID = "SYNTHETIC_EDITION_2026_REV_A";
+  const SYNTHETIC_CLAUSE_REF = "SYNTHETIC_CLAUSE_SECTION_4_ITEM_2";
+  const SYNTHETIC_SOURCE_REF = "SYNTHETIC_LICENSED_DOCUMENT_ARCHIVE_REF_999";
+  const SYNTHETIC_VERIFIER_NAME = "SYNTHETIC_QUALIFIED_AUDITOR_SIG_77";
+
+  // =========================================================================
   // TEST 1 : Une "NormativeEvidence" structurellement valide peut être créée
   // =========================================================================
   const validVerifiedEvidence: NormativeEvidence = {
-    evidenceId: "EVID_ASME_B31_3_2024_T302_3_5_1_W02",
-    standardId: "ASME-B31.3",
-    editionId: "ED_ASME_B31_3_2024",
-    clauseReference: "Table 302.3.5-1, Item W-02",
+    evidenceId: "SYNTHETIC_EVID_RECORD_VALID_001",
+    standardId: SYNTHETIC_STANDARD_ID,
+    editionId: SYNTHETIC_EDITION_ID,
+    clauseReference: SYNTHETIC_CLAUSE_REF,
     sourceType: "LICENSED_STANDARD",
-    sourceReference: "ASME B31.3-2024 Section 302.3.5",
+    sourceReference: SYNTHETIC_SOURCE_REF,
     verificationStatus: "VERIFIED",
-    verifiedBy: "Senior Piping Engineering Reviewer #42",
+    verifiedBy: SYNTHETIC_VERIFIER_NAME,
     verifiedAt: "2026-09-21T10:00:00.000Z",
-    checksum: "sha256-abcdef1234567890",
-    notes: "Verified against authentic ASME licensed text.",
+    checksum: "sha256-syntheticchecksum1234567890",
+    notes: "Preuve synthétique pour validation unitaire du modèle Evidence.",
   };
   const val1 = validateNormativeEvidence(validVerifiedEvidence);
   assert(
@@ -84,12 +95,12 @@ export function runNormativeEvidenceTests(): {
   // TEST 2 : Une Evidence verificationStatus: "UNVERIFIED" reste "UNVERIFIED"
   // =========================================================================
   const unverifiedEvidence: NormativeEvidence = {
-    evidenceId: "EVID_UNVERIFIED_DRAFT_001",
-    standardId: "ASME-B31.3",
-    editionId: "ED_DRAFT_2026",
-    clauseReference: "Pending Clause 304.1",
+    evidenceId: "SYNTHETIC_EVID_RECORD_UNVERIFIED_002",
+    standardId: SYNTHETIC_STANDARD_ID,
+    editionId: "SYNTHETIC_EDITION_DRAFT_2026",
+    clauseReference: "SYNTHETIC_PENDING_CLAUSE_PRELIMINARY",
     sourceType: "MANUFACTURER_DATA",
-    sourceReference: "Vendor Catalog Preliminary",
+    sourceReference: "SYNTHETIC_VENDOR_PRELIMINARY_CATALOG_UNAUDITED",
     verificationStatus: "UNVERIFIED",
   };
   const val2 = validateNormativeEvidence(unverifiedEvidence);
@@ -102,12 +113,12 @@ export function runNormativeEvidenceTests(): {
   // TEST 3 : Une Evidence "VERIFIED" doit respecter les contraintes structurelles (verifiedBy & verifiedAt)
   // =========================================================================
   const invalidVerifiedEvidenceMissingBy = {
-    evidenceId: "EVID_BAD_001",
-    standardId: "ASME-B31.3",
-    editionId: "ED_ASME_2024",
-    clauseReference: "Table 302.3.5-1",
+    evidenceId: "SYNTHETIC_EVID_BAD_NO_VERIFIER",
+    standardId: SYNTHETIC_STANDARD_ID,
+    editionId: SYNTHETIC_EDITION_ID,
+    clauseReference: SYNTHETIC_CLAUSE_REF,
     sourceType: "LICENSED_STANDARD",
-    sourceReference: "ASME B31.3-2024",
+    sourceReference: SYNTHETIC_SOURCE_REF,
     verificationStatus: "VERIFIED",
     // verifiedBy et verifiedAt absents
   };
@@ -120,14 +131,14 @@ export function runNormativeEvidenceTests(): {
   );
 
   const invalidVerifiedEvidenceBadDate = {
-    evidenceId: "EVID_BAD_002",
-    standardId: "ASME-B31.3",
-    editionId: "ED_ASME_2024",
-    clauseReference: "Table 302.3.5-1",
+    evidenceId: "SYNTHETIC_EVID_BAD_INVALID_DATE",
+    standardId: SYNTHETIC_STANDARD_ID,
+    editionId: SYNTHETIC_EDITION_ID,
+    clauseReference: SYNTHETIC_CLAUSE_REF,
     sourceType: "LICENSED_STANDARD",
-    sourceReference: "ASME B31.3-2024",
+    sourceReference: SYNTHETIC_SOURCE_REF,
     verificationStatus: "VERIFIED",
-    verifiedBy: "Engineer",
+    verifiedBy: SYNTHETIC_VERIFIER_NAME,
     verifiedAt: "not-a-valid-date-string",
   };
   const val3b = validateNormativeEvidence(invalidVerifiedEvidenceBadDate);
@@ -141,12 +152,12 @@ export function runNormativeEvidenceTests(): {
   // TEST 4 : Une "NormativeQualification" sans evidence exploitable ne doit pas devenir "QUALIFIED"
   // =========================================================================
   const qualificationWithoutEvidence: NormativeQualification = {
-    qualificationId: "QUAL_W02_NO_EVID",
-    subjectId: "BRANCH_W_02",
-    ruleId: "ASME_B31_3_TABLE_302_3_5_1",
+    qualificationId: "SYNTHETIC_QUAL_NO_EVID_001",
+    subjectId: "SYNTHETIC_SUBJECT_RULE_TARGET",
+    ruleId: "SYNTHETIC_RULE_EVAL_SPEC_001",
     status: "QUALIFIED",
     evidenceIds: [], // Liste vide
-    reason: "Attempting to claim qualified status without evidence",
+    reason: "Tentative d'affirmation de statut QUALIFIED sans preuve",
   };
   const val4 = validateNormativeQualification(qualificationWithoutEvidence);
   assert(
@@ -164,12 +175,12 @@ export function runNormativeEvidenceTests(): {
   ]);
 
   const qualificationReferencingUnverified: NormativeQualification = {
-    qualificationId: "QUAL_W02_UNVERIFIED_EVID",
-    subjectId: "BRANCH_W_02",
-    ruleId: "ASME_B31_3_TABLE_302_3_5_1",
+    qualificationId: "SYNTHETIC_QUAL_UNVERIFIED_EVID_002",
+    subjectId: "SYNTHETIC_SUBJECT_RULE_TARGET",
+    ruleId: "SYNTHETIC_RULE_EVAL_SPEC_001",
     status: "QUALIFIED",
     evidenceIds: [unverifiedEvidence.evidenceId],
-    reason: "Claiming qualified using unverified evidence",
+    reason: "Tentative de qualification basée sur preuve UNVERIFIED",
   };
   const val5 = validateNormativeQualification(
     qualificationReferencingUnverified,
@@ -185,12 +196,12 @@ export function runNormativeEvidenceTests(): {
   // TEST 6 : Une qualification qui référence les Evidence nécessaires et "VERIFIED" peut être "QUALIFIED"
   // =========================================================================
   const qualificationFullyVerified: NormativeQualification = {
-    qualificationId: "QUAL_W02_VERIFIED_EVID",
-    subjectId: "BRANCH_W_02",
-    ruleId: "ASME_B31_3_TABLE_302_3_5_1",
+    qualificationId: "SYNTHETIC_QUAL_FULLY_VERIFIED_003",
+    subjectId: "SYNTHETIC_SUBJECT_RULE_TARGET",
+    ruleId: "SYNTHETIC_RULE_EVAL_SPEC_001",
     status: "QUALIFIED",
     evidenceIds: [validVerifiedEvidence.evidenceId],
-    reason: "Fully supported by licensed ASME B31.3 Table 302.3.5-1 verified evidence",
+    reason: "Qualification synthétique supportée par une preuve vérifiée et auditable",
   };
   const val6 = validateNormativeQualification(
     qualificationFullyVerified,
@@ -218,13 +229,13 @@ export function runNormativeEvidenceTests(): {
 
   const heuristicTokenEvidenceAttempt = {
     evidenceId: "MAT_CS_123", // Tentative d'utiliser un token heuristique comme evidenceId
-    standardId: "ASME-B31.3",
-    editionId: "ED_ASME_2024",
-    clauseReference: "Clause 304.1",
+    standardId: SYNTHETIC_STANDARD_ID,
+    editionId: SYNTHETIC_EDITION_ID,
+    clauseReference: SYNTHETIC_CLAUSE_REF,
     sourceType: "LICENSED_STANDARD",
-    sourceReference: "ASME B31.3",
+    sourceReference: SYNTHETIC_SOURCE_REF,
     verificationStatus: "VERIFIED",
-    verifiedBy: "Inspector",
+    verifiedBy: SYNTHETIC_VERIFIER_NAME,
     verifiedAt: "2026-09-21T00:00:00Z",
   };
   const val7a = validateNormativeEvidence(heuristicTokenEvidenceAttempt);
@@ -235,9 +246,9 @@ export function runNormativeEvidenceTests(): {
   );
 
   const qualificationUsingHeuristicToken = {
-    qualificationId: "QUAL_HEURISTIC_ATTEMPT",
-    subjectId: "SUBJECT_01",
-    ruleId: "RULE_01",
+    qualificationId: "SYNTHETIC_QUAL_HEURISTIC_REJECT",
+    subjectId: "SYNTHETIC_SUBJECT_TARGET",
+    ruleId: "SYNTHETIC_RULE_TARGET",
     status: "QUALIFIED",
     evidenceIds: ["MAT_CS_123"],
   };
@@ -348,11 +359,11 @@ export function runNormativeEvidenceTests(): {
   // TESTS SUPPLÉMENTAIRES : NormativeEdition & NormativeVerifiedValue
   // =========================================================================
   const validEdition: NormativeEdition = {
-    id: "ED_ASME_B31_3_2024",
-    standardId: "ASME-B31.3",
-    year: 2024,
+    id: SYNTHETIC_EDITION_ID,
+    standardId: SYNTHETIC_STANDARD_ID,
+    year: 2026,
     status: "CURRENT",
-    sourceReference: "ASME B31.3-2024 Process Piping Official Standard",
+    sourceReference: SYNTHETIC_SOURCE_REF,
     verificationStatus: "VERIFIED",
   };
   const valEdition = validateNormativeEdition(validEdition);
@@ -362,11 +373,11 @@ export function runNormativeEvidenceTests(): {
   );
 
   const invalidEditionBadYear = {
-    id: "ED_BAD",
-    standardId: "ASME-B31.3",
+    id: "SYNTHETIC_EDITION_BAD_YEAR",
+    standardId: SYNTHETIC_STANDARD_ID,
     year: 1750, // Année hors domaine
     status: "CURRENT",
-    sourceReference: "Ref",
+    sourceReference: "SYNTHETIC_REF_OUT_OF_BOUNDS",
     verificationStatus: "VERIFIED",
   };
   const valEditionBad = validateNormativeEdition(invalidEditionBadYear);
@@ -377,10 +388,10 @@ export function runNormativeEvidenceTests(): {
   );
 
   const verifiedValueContract: NormativeVerifiedValue<number> = {
-    value: 138,
+    value: 42.5, // Valeur synthétique pour démonstration unitaire
     verificationStatus: "VERIFIED",
     evidenceIds: [validVerifiedEvidence.evidenceId],
-    sourceReference: "ASME B31.3 Table A-1",
+    sourceReference: SYNTHETIC_SOURCE_REF,
   };
   assert(
     validateNormativeVerifiedValue(verifiedValueContract, (v) => typeof v === "number" && v > 0),
@@ -388,7 +399,7 @@ export function runNormativeEvidenceTests(): {
   );
 
   const unverifiedValueWithoutEvidence: NormativeVerifiedValue<number> = {
-    value: 138,
+    value: 42.5,
     verificationStatus: "VERIFIED",
     evidenceIds: [], // Invalide : VERIFIED sans evidenceIds
   };
