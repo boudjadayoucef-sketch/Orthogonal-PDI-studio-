@@ -110,3 +110,38 @@ export interface NormativeVerifiedValue<T> {
   readonly evidenceIds: readonly string[];
   readonly sourceReference?: string;
 }
+
+/**
+ * Statut de résolution d'une preuve normative (NORM-09).
+ */
+export type EvidenceResolutionStatus =
+  | "FOUND_VERIFIED"
+  | "FOUND_UNVERIFIED"
+  | "NOT_FOUND"
+  | "INVALID";
+
+/**
+ * Résultat de résolution d'une preuve normative individuelle (NORM-09).
+ */
+export interface EvidenceResolutionResult {
+  readonly evidenceId: string;
+  readonly status: EvidenceResolutionStatus;
+  readonly evidence?: NormativeEvidence;
+  readonly message?: string;
+}
+
+/**
+ * Résultat de résolution pour un ensemble de preuves (NORM-09).
+ */
+export interface EvidenceSetResolutionResult {
+  readonly allFound: boolean;
+  readonly allVerified: boolean;
+  readonly valid: boolean;
+  readonly totalRequested: number;
+  readonly verifiedCount: number;
+  readonly unverifiedCount: number;
+  readonly notFoundCount: number;
+  readonly invalidCount: number;
+  readonly results: readonly EvidenceResolutionResult[];
+}
+

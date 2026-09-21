@@ -22,6 +22,8 @@ export * from "./registry/valveRegistry";
 export * from "./registry/materialRegistry";
 export * from "./registry/pipingSpecRegistry";
 export * from "./registry/designCodeRegistry";
+export * from "./registry/normativeEvidenceRegistry";
+export * from "./registry/normativeEvidenceResolver";
 
 export * from "./validators/pipeDimensionalValidator";
 export * from "./validators/fittingValidator";
@@ -43,3 +45,4 @@ export * from "./tests/materialTests";
 export * from "./tests/pipingSpecTests";
 export * from "./tests/designCodeTests";
 export * from "./tests/normativeEvidenceTests";
+export * from "./tests/normativeEvidenceRegistryTests";
