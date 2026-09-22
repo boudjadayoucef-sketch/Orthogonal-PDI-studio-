@@ -32,7 +32,14 @@ export * from "./validators/valveValidator";
 export * from "./validators/materialValidator";
 export * from "./validators/pipingSpecValidator";
 export * from "./validators/designCodeValidator";
-export * from "./validators/normativeEvidenceValidator";
+export {
+  validateNormativeEvidence,
+  validateNormativeEdition,
+  validateNormativeQualification,
+  isDisallowedTokenHeuristic,
+  validateNormativeVerifiedValue as validateNormativeVerifiedValueStructural,
+} from "./validators/normativeEvidenceValidator";
+export * from "./validators/normativeVerifiedValueValidator";
 
 export * from "./engine/designCodeEngine";
 
@@ -46,3 +53,4 @@ export * from "./tests/pipingSpecTests";
 export * from "./tests/designCodeTests";
 export * from "./tests/normativeEvidenceTests";
 export * from "./tests/normativeEvidenceRegistryTests";
+export * from "./tests/normativeVerifiedValueTests";
