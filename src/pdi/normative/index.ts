@@ -40,6 +40,7 @@ export {
   validateNormativeVerifiedValue as validateNormativeVerifiedValueStructural,
 } from "./validators/normativeEvidenceValidator";
 export * from "./validators/normativeVerifiedValueValidator";
+export * from "./validators/normativeCalculationBoundary";
 
 export * from "./engine/designCodeEngine";
 
@@ -54,3 +55,4 @@ export * from "./tests/designCodeTests";
 export * from "./tests/normativeEvidenceTests";
 export * from "./tests/normativeEvidenceRegistryTests";
 export * from "./tests/normativeVerifiedValueTests";
+export * from "./tests/normativeCalculationBoundaryTests";
