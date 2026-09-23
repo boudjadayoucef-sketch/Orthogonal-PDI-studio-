@@ -40,6 +40,7 @@ import { PDI_ONGLETS_RUBAN_017M, PDI_INVITE_COMMANDE_017M, pdiGroupesOnglet017M,
 import { PDI_CLASSES_B165_017K3, PDI_DESIGNATIONS_PN_017K3, PDI_CLASSE_PAR_DEFAUT_017K3, pdiClasseDeSpec017K3, pdiMateriauDeSpec017K3, pdiClasseConforme017K3, pdiMessageDerogation017K3 } from "./pdiClassePression017K3";
 import type { PdiEntreeRuban017M } from "./pdiRegistreCommandes.v1";
 import { pdiSignExportData } from "../../core/pdiWatermark";
+import { useIsoInjection } from "./useIsoInjection";
 import { IsoPrintModal } from "../../impression/IsoPrintModal";
 import { generateIsoDrawingSvg, type BomRow } from "../../impression/isoSvgGenerator";
 import { DEFAULT_PRINT_CONFIG } from "../../impression/isoSheetStandards";
@@ -7986,9 +7987,9 @@ function IsometrieModule(props: { projectId?: string }) {
     };
   },[authReady,userUid,recoveryChecked,recoveryCandidate,recoveryFailure,projectName,lines,nodes,segments,dimensions,cad2dEntities,cad2dLayers,projectSetup,viewport]);
 
-  // ÉTAPE 5 : Passerelle d'injection Croquis/Scan A4-A3 -> Éditeur ISO via commitGraph()
-  useEffect(() => {
-    const handleInjectionPayload = (payload: any, sourceName?: string) => {
+  // ÉTAPE 5 : Passerelle d'injection Croquis/Scan A4-A3 -> Éditeur ISO via useIsoInjection
+  useIsoInjection({
+    onCommit: (payload: any, sourceName?: string) => {
       if (!payload) return;
       const nodesToCommit: IsoNode[] = payload.nodes || [];
       const segmentsToCommit: IsoSegment[] = payload.segments || [];
@@ -8029,39 +8030,8 @@ function IsometrieModule(props: { projectId?: string }) {
 
         setStatusMessage("✅ Isométrie 2D cotée & Vue 3D solide générées depuis le croquis A4/A3");
       }
-    };
-
-    // 1. Check for pending injection on load
-    try {
-      const pendingRaw = sessionStorage.getItem("pdi.pending_iso_injection") || localStorage.getItem("pdi.pending_iso_injection");
-      if (pendingRaw) {
-        const pending = JSON.parse(pendingRaw);
-        sessionStorage.removeItem("pdi.pending_iso_injection");
-        localStorage.removeItem("pdi.pending_iso_injection");
-        if (pending && pending.nodes && pending.nodes.length > 0) {
-          handleInjectionPayload(pending);
-        }
-      }
-    } catch {}
-
-    // 2. Listen to runtime injection events
-    const onCustomInject = (e: Event) => {
-      const customEv = e as CustomEvent<{
-        data: any;
-        name?: string;
-        projectId?: string;
-        open3d?: boolean;
-      }>;
-      if (customEv.detail && customEv.detail.data) {
-        handleInjectionPayload(customEv.detail.data, customEv.detail.name);
-      }
-    };
-
-    window.addEventListener("pdi:inject-iso-graph", onCustomInject as EventListener);
-    return () => {
-      window.removeEventListener("pdi:inject-iso-graph", onCustomInject as EventListener);
-    };
-  }, []);
+    },
+  });
 
   const runWorkspaceCommand=(action:()=>void,label:string)=>{action();setCommandPaletteOpen(false);setStatusMessage(label);};
 

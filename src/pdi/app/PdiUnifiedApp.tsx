@@ -731,6 +731,11 @@ export default function PdiUnifiedApp() {
   useEffect(() => { 
     try { 
       window.localStorage.setItem("pdi.activeModule.v1", activeModule);
+      window.dispatchEvent(
+        new CustomEvent("pdi:active-module-changed", {
+          detail: { activeModule },
+        })
+      );
       if (activeModule && authMode !== "guest") {
         void recordSubscriberUsage({
           userId: pdiUserProfile.email,

@@ -170,30 +170,45 @@ export const SketchToIsoModule: React.FC<SketchToIsoModuleProps> = ({
         open3d: true,
         updatedAt: new Date().toISOString()
       };
+      // 1. Écrire le payload dans localStorage ET sessionStorage avant tout changement de vue
       window.localStorage.setItem(autosaveKey, JSON.stringify(payload));
       window.localStorage.setItem("pdi.pending_iso_injection", JSON.stringify(payload));
       window.sessionStorage.setItem("pdi.pending_iso_injection", JSON.stringify(payload));
       window.localStorage.setItem("pdi.activeModule.v1", "isometric");
 
-      // Dispatch real-time injection event for active ISO editor instances
+      // 2. Émettre "pdi:active-module-changed" pour alerter tout composant ISO déjà monté
       window.dispatchEvent(
-        new CustomEvent("pdi:inject-iso-graph", {
-          detail: {
-            data: model,
-            name: projectName,
-            open3d: true
-          }
+        new CustomEvent("pdi:active-module-changed", {
+          detail: { activeModule: "isometric" }
         })
       );
     } catch (err) {
       console.warn("Storage warning:", err);
     }
 
+    // 3. Basculement de vue
     if (onLoadProjectToEditor) {
       onLoadProjectToEditor(model, projectName);
     } else {
       setStatusMessage("🚀 Modèle injecté avec succès ! Basculement vers l'éditeur ISO...");
     }
+
+    // 4. Filet de sécurité supplémentaire : retarder le dispatch de "pdi:inject-iso-graph" d'environ 120ms
+    setTimeout(() => {
+      try {
+        window.dispatchEvent(
+          new CustomEvent("pdi:inject-iso-graph", {
+            detail: {
+              data: model,
+              name: projectName,
+              open3d: true
+            }
+          })
+        );
+      } catch (err) {
+        console.warn("Dispatch warning:", err);
+      }
+    }, 120);
   };
 
   // Download JSON file
