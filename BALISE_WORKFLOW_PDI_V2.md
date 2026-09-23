@@ -1,6 +1,6 @@
-# BALISE WORKFLOW PD&I V2.0 — INDUSTRIALISATION & ÉVOLUTION LOGICIELLE
+# BALISE WORKFLOW PD&I V2.7 — INDUSTRIALISATION & ÉVOLUTION LOGICIELLE
 
-*Mise à jour officielle du **02 septembre 2026** · Éditeur : **ORTHOGONAL - ENG** · Direction Technique : **Youcef Seif Eddine Boudjada***  
+*Mise à jour officielle du **23 septembre 2026** · Éditeur : **ORTHOGONAL - ENG** · Direction Technique : **Youcef Seif Eddine Boudjada***  
 *Document de référence unique de reprise et de gouvernance technique (Règles R1 à R30)*
 
 ---
@@ -122,11 +122,13 @@
 | **Balise V2.0 & Cadrage** | `[OK - VALIDÉ]` | 02/09/2026 | Accord Direction Technique |
 | **Palier 0 : Watermark & Sécurité server.ts** | `[OK - VALIDÉ]` | 02/09/2026 | Headers nosniff/X-Engine, signatures, exports signés |
 | **Palier 0 : Découpage Modulaire (Topologie & UI)** | `[OK - VALIDÉ]` | 02/09/2026 | IsoTopologyGraph, IsoRibbonBar, IsoCommandDock, isoGraphTypes |
-| **Palier 1 : Impression Pro A5-A0 (020F)** | `[OK - VALIDÉ]` | 02/09/2026 | Formats ISO 216 (A5-A0), ISO 7200, ISO 5457, Légende adaptative, Export SVG |
+| **Palier 1 : Impression Pro A5-A0 (020F)** | `[OK - VALIDÉ]` | 04/09/2026 | Formats ISO 216 (A5-A0), ISO 7200, ISO 5457, Légende adaptative, Export SVG |
 | **Palier 2A : Moteur d'Unités Bi-Système (019U)** | `[OK - VALIDÉ]` | 02/09/2026 | Moteur NIST SP 811, Commutateur SI ↔ US, Cotations fractionnaires ft-in, BOM, Cartouche, Persistance .pdi |
-| **Palier 2B : Outils 2D Transactionnels (019B)** | `[EN COURS]` | 02/09/2026 | TRIM, EXTEND, OFFSET, FILLET, SCALE, Primitives libres |
-| **Palier 2C : Supports MSS SP-58 & GC (019S)** | `[EN ATTENTE]` | - | Guides, pendards, points fixes, patins, quantitatifs béton/acier |
-| **Palier 3 : Croquis vers ISO V1 (020I)** | `[PROGRAMMÉ]` | - | Prévu Palier 3 |
+| **Palier 2B : Outils 2D Transactionnels (019B)** | `[OK - VALIDÉ]` | 03/09/2026 | TRIM, EXTEND, OFFSET, FILLET, SCALE, HATCH, Primitives libres |
+| **Palier 2C : Supports MSS SP-58 & GC (019S)** | `[OK - VALIDÉ]` | 03/09/2026 | Guides, pendards, points fixes, patins, quantitatifs béton/acier |
+| **Palier 2D : Moteur Normatif Déterministe (NORM-01 à NORM-11)** | `[OK - VALIDÉ]` | 23/09/2026 | Evidence Model, Evidence Registry/Resolver, Verified Values, Calculation Boundary |
+| **Palier 3A : Passerelle Croquis vers ISO (SKETCH-ISO-01)** | `[OK - VALIDÉ]` | 23/09/2026 | useIsoInjection, Triple détection, Idempotence, tests INJ-01 à INJ-06 |
+| **Palier 3B : Croquis vers ISO V1 (020I)** | `[PROGRAMMÉ]` | - | Pipeline ingestion OpenCV & tolérances métier |
 | **Palier 4 : Desktop Tauri & Licences Ed25519** | `[PROGRAMMÉ]` | - | Prévu Palier 4 |
 
 ---
@@ -161,21 +163,32 @@ Chaque palier fait l'objet d'un protocole d'essais strict devant être exécuté
 - [x] **Test 2A.6 - Cartouche et impression** : Les valeurs de cartouche et de légende reflètent le système d'unités actif avec indication explicite de l'unité.
 
 ### 📋 Tests du Palier 2B (Outils 2D CAD Transactionnels - Patch 019B)
-- [ ] **Test 2B.1 - Commande TRIM (Ajuster)** : Découpe d'un segment de tuyauterie ou ligne 2D à l'intersection avec une frontière de coupe.
-- [ ] **Test 2B.2 - Commande EXTEND (Prolonger)** : Prolongation d'un élément jusqu'à une arête de référence.
-- [ ] **Test 2B.3 - Commande OFFSET (Décaler)** : Création d'une parallèle équidistante à une distance spécifiée en mm ou pouces.
-- [ ] **Test 2B.4 - Primitives libres & hachures** : Dessin de lignes, polylignes, rectangles, cercles et textes d'annotation MTEXT.
+- [x] **Test 2B.1 - Commande TRIM (Ajuster)** : Découpe d'un segment de tuyauterie ou ligne 2D à l'intersection avec une frontière de coupe.
+- [x] **Test 2B.2 - Commande EXTEND (Prolonger)** : Prolongation d'un élément jusqu'à une arête de référence.
+- [x] **Test 2B.3 - Commande OFFSET (Décaler)** : Création d'une parallèle équidistante à une distance spécifiée en mm ou pouces.
+- [x] **Test 2B.4 - Primitives libres & hachures** : Dessin de lignes, polylignes, rectangles, cercles et textes d'annotation MTEXT.
 
 ### 📋 Tests du Palier 2C (Supports Industriels MSS SP-58 & Génie Civil - Patch 019S)
-- [ ] **Test 2C.1 - Bibliothèque normalisée MSS SP-58** : Insertion de supports types (Guide Type 35, Pendard Type 1, Point fixe Type 57, Patin Type 39, Ressort Type 51).
-- [ ] **Test 2C.2 - Accrochage automatique sur tube** : Détection du segment porteur, orientation normale et calcul de la coordonnée kilométrique du support.
-- [ ] **Test 2C.3 - Calcul de charge admissible** : Vérification des portées maximales recommandées selon ASME B31.3 / B31.8 pour chaque diamètre nominal.
-- [ ] **Test 2C.4 - Quantitatifs Génie Civil** : Métrés de platines acier (kg), tiges d'ancrage (unités) et volumes de massifs béton (m3).
+- [x] **Test 2C.1 - Bibliothèque normalisée MSS SP-58** : Insertion de supports types (Guide Type 35, Pendard Type 1, Point fixe Type 57, Patin Type 39, Ressort Type 51).
+- [x] **Test 2C.2 - Accrochage automatique sur tube** : Détection du segment porteur, orientation normale et calcul de la coordonnée kilométrique du support.
+- [x] **Test 2C.3 - Calcul de charge admissible** : Vérification des portées maximales recommandées selon ASME B31.3 / B31.8 pour chaque diamètre nominal.
+- [x] **Test 2C.4 - Quantitatifs Génie Civil** : Métrés de platines acier (kg), tiges d'ancrage (unités) et volumes de massifs béton (m3).
 
-### 📋 Tests du Palier 3 (Croquis vers ISO V1 - OpenCV / Patch 020I)
-- [ ] **Test 3.1 - Ingestion d'image de croquis** : Import PNG/JPG d'un croquis tracé à main levée ou scanné.
-- [ ] **Test 3.2 - Vectorisation du squelette** : Détection des lignes isométriques à 30°, des nœuds et des embranchements.
-- [ ] **Test 3.3 - Génération du graphe SchemaGraph** : Conversion déterministe vers la structure `IsoNode[]` et `IsoSegment[]`.
+### 📋 Tests du Palier 2D (Moteur Normatif & Modèle d'Évidence - NORM-01 à NORM-11)
+- [x] **Test 2D.1 - Intégrité de la chaîne** : `IDENTIFICATION → QUALIFICATION → EVIDENCE → VERIFIED VALUE → CALCULATION BOUNDARY`.
+- [x] **Test 2D.2 - Moteur de composants & calculs sous pression** : Validation des 8 modules analytiques (413 tests, 100% PASS).
+- [x] **Test 2D.3 - Registre & Résolveur d'Évidence** : `NormativeEvidenceRegistry` déterministe et `NormativeEvidenceResolver`.
+- [x] **Test 2D.4 - Gardes stricts de valeurs vérifiées** : Rejet de toute élévation de statut sans preuve auditable.
+- [x] **Test 2D.5 - Frontière de calcul** : `NormativeCalculationBoundary` hermétique, interdiction d'injection de valeurs non vérifiées.
+
+### 📋 Tests du Palier 3A (Passerelle Croquis vers ISO - Patch SKETCH-ISO-01)
+- [x] **Test 3A.1 - useIsoInjection & Idempotence** : Consommation unique, suppression immédiate du storage (`INJ-01` à `INJ-06`).
+- [x] **Test 3A.2 - Triple canal de détection** : Événement direct + montage initial + bascule de module actif sans démontage.
+
+### 📋 Tests du Palier 3B (Croquis vers ISO V1 - OpenCV / Patch 020I)
+- [ ] **Test 3B.1 - Ingestion d'image de croquis** : Import PNG/JPG d'un croquis tracé à main levée ou scanné.
+- [ ] **Test 3B.2 - Vectorisation du squelette** : Détection des lignes isométriques à 30°, des nœuds et des embranchements.
+- [ ] **Test 3B.3 - Génération du graphe SchemaGraph** : Conversion déterministe vers la structure `IsoNode[]` et `IsoSegment[]`.
 
 ### 📋 Tests du Palier 4 (Packaging Desktop & Licence Ed25519 - Patchs 020K & 020L)
 - [ ] **Test 4.1 - Compilation Desktop** : Exécution de l'application hors ligne complète.

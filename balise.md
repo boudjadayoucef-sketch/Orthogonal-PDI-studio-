@@ -1,4 +1,4 @@
-# BALISE TECHNIQUE & WORKFLOW PD&I — V2.6 (04 SEPTEMBRE 2026)
+# BALISE TECHNIQUE & WORKFLOW PD&I — V2.7 (23 SEPTEMBRE 2026)
 *Document de référence unique de gouvernance, d'architecture et de feuille de route industrielle.*  
 *Éditeur : **ORTHOGONAL - ENG** · Direction Technique : **Youcef Seif Eddine Boudjada***
 
@@ -60,6 +60,19 @@
   - Panneau interactif d'ingénierie et d'inspection dédié (`PdiSupportCivilPanel.tsx`) intégré au panneau latéral droit et accessible via raccourcis `SUP`, `ANCHOR`, `GUIDE`, `HANGER`, `SHOE`, `SPRING`.
   - Exportation MTO Supportage & Génie Civil en CSV tabulaire industriel.
   - Sérialisation et persistance complètes dans le schéma de projet `IsoProjectFileV474` avec historisation Undo/Redo.
+- **Palier 2D — Moteur Normatif Calculatoire Déterministe & Modèle d'Évidence (NORM-01 à NORM-11)** :
+  - Architecture étanche : `IDENTIFICATION → QUALIFICATION → EVIDENCE → VERIFIED VALUE → CALCULATION BOUNDARY`.
+  - Modules de calculs d'ingénierie normés : Tuyauterie dimensionnelle (`NORM-02`), Raccords B16.9 (`NORM-03`), Brides B16.5 (`NORM-04`), Robinetterie (`NORM-05`), Matériaux métalliques (`NORM-06`), Spécifications de tuyauterie (`NORM-07`), Moteur de calculs sous pression (`NORM-08`).
+  - Modèle de preuves documentaires auditables (`MASTER-02`, `NORM-09`) : Registre déterministe `NormativeEvidenceRegistry` et résolveur d'intégrité `NormativeEvidenceResolver`.
+  - Gardes stricts de valeurs vérifiées (`NORM-10`) : Interdiction formelle d'élévation non justifiée d'une valeur sans preuve auditable.
+  - Frontière de calcul hermétique (`NORM-11`) : `NormativeCalculationBoundary` interdisant à toute valeur non vérifiée de franchir la frontière d'un calcul de conception.
+  - 12 suites de tests automatisées (413 tests unitaires, 100% PASS, 0 heuristique, fixtures synthétiques strictes sans injection illégale de normes sous copyright).
+- **Palier 3A — Passerelle Robuste Croquis vers Éditeur ISO (Patch SKETCH-ISO-01)** :
+  - Résolution de la race condition d'injection lors du transfert Croquis A4/A3 vers le canevas d'édition ISO.
+  - Extraction modulaire du hook dédié `useIsoInjection.ts` (< 150 lignes).
+  - Triple mécanisme de détection temps réel + montage initial + changement de module actif (`pdi:active-module-changed`).
+  - Idempotence absolue et nettoyage immédiat du storage (`localStorage` & `sessionStorage`).
+  - Validation complète par suite de tests `INJ-01` à `INJ-06` (100% PASS).
 
 ---
 
@@ -155,5 +168,7 @@
 | **Palier 2A** | Moteur Bi-Système Métrique (SI) ↔ Impérial (US Cust) NIST | `[VALIDÉ]` | 02/09/2026 |
 | **Palier 2B** | Outils 2D Transactionnels (TRIM, EXTEND, OFFSET, FILLET, SCALE, HATCH) | `[VALIDÉ]` | 03/09/2026 |
 | **Palier 2C** | Supports Normalisés MSS SP-58 & Quantitatifs Génie Civil | `[VALIDÉ]` | 03/09/2026 |
-| **Palier 3** | Atelier Croquis vers ISO V1 (Ingestion, vectorisation, tolérances) | `[PROCHAINE ÉTAPE ACTIVE]` | *Prêt au lancement* |
+| **Palier 2D** | Moteur Normatif Déterministe & Modèle d'Évidence (NORM-01 à NORM-11) | `[VALIDÉ]` | 23/09/2026 |
+| **Palier 3A** | Passerelle Robuste Croquis vers ISO (useIsoInjection / Patch SKETCH-ISO-01) | `[VALIDÉ]` | 23/09/2026 |
+| **Palier 3B** | Atelier Croquis vers ISO V1 (Ingestion, vectorisation, tolérances) | `[PROCHAINE ÉTAPE ACTIVE]` | *Prêt au lancement* |
 | **Palier 4** | Packaging Desktop Tauri v2 & Système de Licences Ed25519 | `[PROGRAMMÉ]` | *Étape finale* |
