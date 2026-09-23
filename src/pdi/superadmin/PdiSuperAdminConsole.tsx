@@ -1590,6 +1590,49 @@ export function PdiSuperAdminConsole({
                   </button>
                 </div>
               </form>
+
+              {/* Webhook URLs for Slick-Pay & Paddle */}
+              <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid rgba(148,163,184,0.15)", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 12 }}>
+                <div style={{ background: "#070E17", padding: "10px 12px", borderRadius: 8, border: "1px solid rgba(16,185,129,0.3)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                    <span style={{ fontSize: 11, fontWeight: 900, color: "#34D399" }}>⚡ Webhook URL Slick-Pay (BaridiMob IPN)</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const url = `${window.location.origin}/api/webhooks/slickpay`;
+                        navigator.clipboard.writeText(url);
+                        pdiAlert(`URL Webhook copiée :\n${url}`);
+                      }}
+                      style={{ background: "#10B981", color: "white", border: 0, padding: "2px 8px", borderRadius: 4, fontSize: 10, fontWeight: 800, cursor: "pointer" }}
+                    >
+                      Copier
+                    </button>
+                  </div>
+                  <code style={{ fontSize: 10, color: "#94A3B8", wordBreak: "break-all" }}>
+                    {typeof window !== "undefined" ? `${window.location.origin}/api/webhooks/slickpay` : "/api/webhooks/slickpay"}
+                  </code>
+                </div>
+
+                <div style={{ background: "#070E17", padding: "10px 12px", borderRadius: 8, border: "1px solid rgba(56,189,248,0.3)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                    <span style={{ fontSize: 11, fontWeight: 900, color: "#38BDF8" }}>🌐 Webhook URL Paddle (International IPN)</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const url = `${window.location.origin}/api/webhooks/paddle`;
+                        navigator.clipboard.writeText(url);
+                        pdiAlert(`URL Webhook copiée :\n${url}`);
+                      }}
+                      style={{ background: "#0284C7", color: "white", border: 0, padding: "2px 8px", borderRadius: 4, fontSize: 10, fontWeight: 800, cursor: "pointer" }}
+                    >
+                      Copier
+                    </button>
+                  </div>
+                  <code style={{ fontSize: 10, color: "#94A3B8", wordBreak: "break-all" }}>
+                    {typeof window !== "undefined" ? `${window.location.origin}/api/webhooks/paddle` : "/api/webhooks/paddle"}
+                  </code>
+                </div>
+              </div>
             </div>
           )}
 

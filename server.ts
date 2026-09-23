@@ -12,7 +12,7 @@ import fs from "fs";
 import dotenv from "dotenv";
 import { createServer as createViteServer } from "vite";
 import { requireAuth, requireSuperAdmin, AuthRequest } from "./src/middleware/auth.ts";
-import { adminAuth } from "./src/lib/firebase-admin.ts";
+import { adminAuth, adminDb } from "./src/lib/firebase-admin.ts";
 import { 
   getUserProjects, 
   createOrUpdateProject, 
@@ -157,6 +157,101 @@ app.post("/api/admin/set-user-role", requireAuth, requireSuperAdmin, async (req:
   } catch (err: any) {
     console.error("Error setting custom user claim:", err);
     res.status(500).json({ error: err.message || "Échec de l'attribution du rôle utilisateur." });
+  }
+});
+
+// ==========================================
+// Slick-Pay & Paddle Webhook IPN Endpoints
+// ==========================================
+
+// Slick-Pay Webhook (Algeria - BaridiMob / Edahabia)
+app.post("/api/webhooks/slickpay", async (req, res) => {
+  try {
+    const payload = req.body;
+    console.log("[Webhook Slick-Pay] Received payload:", JSON.stringify(payload));
+
+    // Expected Slick-Pay event parameters
+    const invoiceId = payload?.invoice_id || payload?.id || payload?.order_id || payload?.data?.id;
+    const paymentStatus = payload?.status || payload?.event || payload?.data?.status;
+    const amount = payload?.amount || payload?.data?.amount;
+    const customerEmail = payload?.user?.email || payload?.customer_email || payload?.data?.user?.email;
+
+    if (!invoiceId) {
+      return res.status(400).json({ received: true, error: "Missing invoice_id in payload" });
+    }
+
+    const isPaid = paymentStatus === "completed" || paymentStatus === "paid" || paymentStatus === "success" || paymentStatus === "COMPLETED";
+
+    // Update or insert transaction record in Firestore
+    const txRef = adminDb.collection("pdi_payment_transactions").doc(String(invoiceId));
+    await txRef.set({
+      id: `TX_SLICKPAY_${invoiceId}`,
+      provider: "slickpay_baridimob",
+      status: isPaid ? "completed" : "pending",
+      amount: Number(amount) || 49000,
+      currency: "DZD",
+      userEmail: customerEmail || "client@pdi-pipeline.dz",
+      updatedAt: new Date().toISOString(),
+      slickPayDetails: {
+        invoiceId: String(invoiceId),
+        rawWebhook: payload,
+      }
+    }, { merge: true });
+
+    // If payment succeeded, automatically activate subscription for customer
+    if (isPaid && customerEmail) {
+      try {
+        const userRecord = await adminAuth.getUserByEmail(customerEmail);
+        if (userRecord?.uid) {
+          await adminAuth.setCustomUserClaims(userRecord.uid, { role: "client", plan: "pro", activeUntil: new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString() });
+          await adminDb.collection("pdi_user_profiles").doc(userRecord.uid).set({
+            plan: "pro",
+            status: "active",
+            activatedAt: new Date().toISOString(),
+            expiresAt: new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString(),
+            subscriptionProvider: "slickpay"
+          }, { merge: true });
+          console.log(`[Webhook Slick-Pay] Auto-activated Pro subscription for: ${customerEmail}`);
+        }
+      } catch (userErr) {
+        console.warn(`[Webhook Slick-Pay] User ${customerEmail} not registered yet in Auth, saved pending activation.`);
+      }
+    }
+
+    return res.status(200).json({ received: true, status: isPaid ? "completed" : "pending" });
+  } catch (err: any) {
+    console.error("[Webhook Slick-Pay Error]:", err);
+    return res.status(500).json({ error: err?.message || "Webhook processing failed" });
+  }
+});
+
+// Paddle Webhook (International EUR/USD)
+app.post("/api/webhooks/paddle", async (req, res) => {
+  try {
+    const payload = req.body;
+    console.log("[Webhook Paddle] Received event:", payload?.alert_name || payload?.event_type);
+
+    const eventType = payload?.alert_name || payload?.event_type || payload?.type;
+    const checkoutId = payload?.checkout_id || payload?.data?.id || payload?.order_id;
+    const customerEmail = payload?.email || payload?.data?.customer?.email || payload?.data?.user?.email;
+
+    if (checkoutId) {
+      const isSuccess = eventType === "payment_succeeded" || eventType === "transaction.completed" || eventType === "subscription_created";
+      const txRef = adminDb.collection("pdi_payment_transactions").doc(String(checkoutId));
+      await txRef.set({
+        id: `TX_PADDLE_${checkoutId}`,
+        provider: "paddle_international",
+        status: isSuccess ? "completed" : "pending",
+        userEmail: customerEmail || "international@client.com",
+        updatedAt: new Date().toISOString(),
+        rawEvent: payload
+      }, { merge: true });
+    }
+
+    return res.status(200).json({ received: true });
+  } catch (err: any) {
+    console.error("[Webhook Paddle Error]:", err);
+    return res.status(500).json({ error: err?.message || "Paddle webhook processing failed" });
   }
 });
 

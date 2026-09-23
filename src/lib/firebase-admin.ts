@@ -1,5 +1,6 @@
 import { initializeApp, getApps } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
+import { getFirestore } from 'firebase-admin/firestore';
 
 const metaEnv = (typeof import.meta !== 'undefined' && (import.meta as any)?.env) || {};
 const envProjectId = metaEnv.VITE_FIREBASE_PROJECT_ID || (typeof process !== 'undefined' ? (process.env?.VITE_FIREBASE_PROJECT_ID || process.env?.FIREBASE_PROJECT_ID || process.env?.GCLOUD_PROJECT) : '') || 'graphical-router-x18qq';
@@ -24,3 +25,4 @@ if (!getApps().length) {
 }
 
 export const adminAuth = getAuth();
+export const adminDb = getFirestore();
