@@ -33,6 +33,9 @@ export type PipingSpecSourceStatus =
  * Règle de sélection et d'encadrement des tubes (Pipes).
  */
 export interface PipingSpecPipeRule {
+  /** Identifiant unique de la règle (optionnel) */
+  readonly ruleId?: string;
+
   /** Standard dimensionnel obligatoire (ex: ASME-B36.10M, ASME-B36.19M) */
   readonly pipeDimensionalStandardId: DimensionalStandardId;
 
@@ -50,12 +53,18 @@ export interface PipingSpecPipeRule {
 
   /** Référence source documentaire */
   readonly sourceReference?: string;
+
+  /** Identifiants de preuves normatives (NORM-09) */
+  readonly evidenceIds?: readonly string[];
 }
 
 /**
  * Règle de sélection et d'encadrement des raccords de tuyauterie (Fittings).
  */
 export interface PipingSpecFittingRule {
+  /** Identifiant unique de la règle (optionnel) */
+  readonly ruleId?: string;
+
   /** Standard produit obligatoire (ex: ASME-B16.9, ASME-B16.11) */
   readonly fittingStandardId: ProductStandardId;
 
@@ -73,12 +82,18 @@ export interface PipingSpecFittingRule {
 
   /** Référence source documentaire */
   readonly sourceReference?: string;
+
+  /** Identifiants de preuves normatives (NORM-09) */
+  readonly evidenceIds?: readonly string[];
 }
 
 /**
  * Règle de sélection et d'encadrement des brides (Flanges).
  */
 export interface PipingSpecFlangeRule {
+  /** Identifiant unique de la règle (optionnel) */
+  readonly ruleId?: string;
+
   /** Standard produit de bride obligatoire (ex: ASME-B16.5, ASME-B16.47, EN-1092-1) */
   readonly flangeStandardId: ProductStandardId;
 
@@ -99,12 +114,18 @@ export interface PipingSpecFlangeRule {
 
   /** Référence source documentaire */
   readonly sourceReference?: string;
+
+  /** Identifiants de preuves normatives (NORM-09) */
+  readonly evidenceIds?: readonly string[];
 }
 
 /**
  * Règle de sélection et d'encadrement des vannes (Valves).
  */
 export interface PipingSpecValveRule {
+  /** Identifiant unique de la règle (optionnel) */
+  readonly ruleId?: string;
+
   /** Standard produit de vanne (ex: API-6D, API-600, API-602, API-609) */
   readonly productStandardId?: ProductStandardId;
 
@@ -125,6 +146,9 @@ export interface PipingSpecValveRule {
 
   /** Référence source documentaire */
   readonly sourceReference?: string;
+
+  /** Identifiants de preuves normatives (NORM-09) */
+  readonly evidenceIds?: readonly string[];
 }
 
 /**
@@ -170,4 +194,7 @@ export interface PipingSpecification {
 
   /** Référence source documentaire (obligatoire si VERIFIED ou LICENSED) */
   readonly sourceReference?: string;
+
+  /** Identifiants de preuves normatives au niveau de la spec (NORM-09) */
+  readonly evidenceIds?: readonly string[];
 }

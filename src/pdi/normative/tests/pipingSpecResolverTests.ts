@@ -1,8 +1,9 @@
 /**
- * PDI NORMATIVE ENGINE — PIPING SPECIFICATION RESOLVER TESTS (SPEC-01)
+ * PDI NORMATIVE ENGINE — PIPING SPECIFICATION RESOLVER TESTS (SPEC-01 / SPEC-01-FIX-01)
  * 
  * Suite de tests unitaires et d'intégration pour le Piping Specification Resolver.
- * Validation déterministe avec données 100% synthétiques (aucun contenu inventé en prod).
+ * Couvre l'autorité des règles Piping Spec, la traçabilité des preuves (NORM-09)
+ * et la précédence stricte des matériaux de composant.
  */
 
 import { NormativeEvidenceRegistry } from "../registry/normativeEvidenceRegistry";
@@ -11,7 +12,6 @@ import { NormativeCompatibilityRegistry } from "../registry/normativeCompatibili
 import { NormativeCompatibilityEngine } from "../engine/normativeCompatibilityEngine";
 import { PipingSpecResolver } from "../engine/pipingSpecResolver";
 import type { PipingSpecification } from "../types/pipingSpecTypes";
-import type { PipingSpecResolutionContext } from "../types/pipingSpecResolverTypes";
 
 export interface Spec01TestResult {
   readonly success: boolean;
@@ -26,7 +26,7 @@ function assert(condition: boolean, message: string): void {
 }
 
 /**
- * Exécute l'ensemble des tests SPEC-01.
+ * Exécute l'ensemble des tests SPEC-01 et SPEC-01-FIX-01.
  */
 export function runPipingSpecResolverTests(): Spec01TestResult {
   const results: string[] = [];
@@ -46,12 +46,23 @@ export function runPipingSpecResolverTests(): Spec01TestResult {
     verifiedAt: "2026-01-01T00:00:00.000Z",
   });
   evRegistry.register({
-    evidenceId: "SYNTHETIC_EV_SPEC01_UNVERIFIED_01",
+    evidenceId: "SYNTHETIC_EV_SPEC01_VERIFIED_02",
     standardId: "SYNTHETIC_STANDARD_SPEC01" as any,
     editionId: "SYNTHETIC_EDITION_2026",
     clauseReference: "CLAUSE_SPEC_02",
-    sourceType: "LEGACY_REFERENCE",
+    sourceType: "VERIFIED_INTERNAL_REFERENCE",
     sourceReference: "SYNTHETIC_DOC_REF_02",
+    verificationStatus: "VERIFIED",
+    verifiedBy: "SYNTHETIC_AUDITOR",
+    verifiedAt: "2026-01-01T00:00:00.000Z",
+  });
+  evRegistry.register({
+    evidenceId: "SYNTHETIC_EV_SPEC01_UNVERIFIED_01",
+    standardId: "SYNTHETIC_STANDARD_SPEC01" as any,
+    editionId: "SYNTHETIC_EDITION_2026",
+    clauseReference: "CLAUSE_SPEC_03",
+    sourceType: "LEGACY_REFERENCE",
+    sourceReference: "SYNTHETIC_DOC_REF_03",
     verificationStatus: "UNVERIFIED",
   });
 
@@ -70,7 +81,7 @@ export function runPipingSpecResolverTests(): Spec01TestResult {
     evidenceIds: ["SYNTHETIC_EV_SPEC01_VERIFIED_01"],
   });
 
-  // Règle 1b : Règle tuyau compatible générique (sans contrainte matériau au niveau compatibilité)
+  // Règle 1b : Règle tuyau compatible générique
   compatRegistry.register({
     ruleId: "SYNTHETIC_COMPAT_RULE_PIPE_GENERIC",
     description: "Synthetic generic pipe compatibility rule",
@@ -154,7 +165,7 @@ export function runPipingSpecResolverTests(): Spec01TestResult {
 
   const compatEngine = new NormativeCompatibilityEngine(compatRegistry, evidenceResolver);
 
-  // Spécification de tuyauterie synthétique de test
+  // Spécification de tuyauterie synthétique standard
   const syntheticSpec: PipingSpecification = {
     id: "SYNTHETIC_SPEC_001",
     code: "SYNTH_CS150",
@@ -165,45 +176,54 @@ export function runPipingSpecResolverTests(): Spec01TestResult {
     materialReferenceIds: ["SYNTHETIC_MAT_CARBON_STEEL", "SYNTHETIC_MAT_STAINLESS_STEEL"],
     pipeRules: [
       {
+        ruleId: "SPEC_PIPE_RULE_01",
         pipeDimensionalStandardId: "ASME-B36.10M",
         schedule: "SCH 40",
         nominalSizes: ["2", "3", "4", "6", "8", "10"],
         materialId: "SYNTHETIC_MAT_CARBON_STEEL",
         sourceStatus: "VERIFIED",
         sourceReference: "SYNTHETIC_SPEC_DOC_P01",
+        evidenceIds: ["SYNTHETIC_EV_SPEC01_VERIFIED_01"],
       },
     ],
     fittingRules: [
       {
+        ruleId: "SPEC_FITTING_RULE_01",
         fittingStandardId: "ASME-B16.9",
         fittingTypes: ["ELBOW", "TEE", "REDUCER"],
         connectionTypes: ["BUTT_WELD"],
         materialId: "SYNTHETIC_MAT_CARBON_STEEL",
         sourceStatus: "VERIFIED",
+        evidenceIds: ["SYNTHETIC_EV_SPEC01_VERIFIED_01"],
       },
     ],
     flangeRules: [
       {
+        ruleId: "SPEC_FLANGE_RULE_01",
         flangeStandardId: "ASME-B16.5",
         flangeTypes: ["WELD_NECK", "BLIND"],
         ratingSystem: "ASME_CLASS",
         rating: "Class 150",
         materialId: "SYNTHETIC_MAT_CARBON_STEEL",
         sourceStatus: "VERIFIED",
+        evidenceIds: ["SYNTHETIC_EV_SPEC01_VERIFIED_01"],
       },
     ],
     valveRules: [
       {
+        ruleId: "SPEC_VALVE_RULE_01",
         productStandardId: "API-600",
         dimensionalStandardId: "ASME-B16.10",
         valveTypes: ["GATE", "GLOBE", "CHECK"],
         connectionTypes: ["FLANGED"],
         materialId: "SYNTHETIC_MAT_CARBON_STEEL",
         sourceStatus: "VERIFIED",
+        evidenceIds: ["SYNTHETIC_EV_SPEC01_VERIFIED_01"],
       },
     ],
     sourceStatus: "VERIFIED",
     sourceReference: "SYNTHETIC_MASTER_SPEC_DOC",
+    evidenceIds: ["SYNTHETIC_EV_SPEC01_VERIFIED_01"],
   };
 
   const syntheticSpecEmptyRules: PipingSpecification = {
@@ -218,13 +238,131 @@ export function runPipingSpecResolverTests(): Spec01TestResult {
     sourceStatus: "UNVERIFIED",
   };
 
-  const specLookup = (id: string): PipingSpecification | undefined => {
-    if (id === "SYNTHETIC_SPEC_001") return syntheticSpec;
-    if (id === "SYNTHETIC_SPEC_EMPTY_RULES") return syntheticSpecEmptyRules;
-    return undefined;
+  // Spec avec règle de composant UNVERIFIED
+  const syntheticSpecUnverifiedRule: PipingSpecification = {
+    id: "SYNTHETIC_SPEC_UNVERIFIED_RULE",
+    code: "SYNTH_UNVERIF",
+    name: "Synthetic Spec with Unverified Rule",
+    materialReferenceIds: ["SYNTHETIC_MAT_CARBON_STEEL"],
+    pipeRules: [
+      {
+        ruleId: "SPEC_PIPE_RULE_UNVERIF",
+        pipeDimensionalStandardId: "ASME-B36.10M",
+        schedule: "SCH 40",
+        nominalSizes: ["2"],
+        materialId: "SYNTHETIC_MAT_CARBON_STEEL",
+        sourceStatus: "UNVERIFIED",
+        evidenceIds: ["SYNTHETIC_EV_SPEC01_UNVERIFIED_01"],
+      },
+    ],
+    fittingRules: [],
+    flangeRules: [],
+    valveRules: [],
+    sourceStatus: "UNVERIFIED",
   };
 
-  const resolver = new PipingSpecResolver(specLookup, compatEngine);
+  // Spec avec règle ayant une preuve inexistante
+  const syntheticSpecMissingEvidenceRule: PipingSpecification = {
+    id: "SYNTHETIC_SPEC_MISSING_EV_RULE",
+    code: "SYNTH_MISSING_EV",
+    name: "Synthetic Spec with Missing Evidence Rule",
+    materialReferenceIds: ["SYNTHETIC_MAT_CARBON_STEEL"],
+    pipeRules: [
+      {
+        ruleId: "SPEC_PIPE_RULE_MISSING_EV",
+        pipeDimensionalStandardId: "ASME-B36.10M",
+        schedule: "SCH 40",
+        nominalSizes: ["2"],
+        materialId: "SYNTHETIC_MAT_CARBON_STEEL",
+        sourceStatus: "VERIFIED",
+        evidenceIds: ["NON_EXISTENT_EV_999"],
+      },
+    ],
+    fittingRules: [],
+    flangeRules: [],
+    valveRules: [],
+    sourceStatus: "VERIFIED",
+    sourceReference: "SYNTHETIC_DOC",
+  };
+
+  // Spec avec deux règles contradictoires
+  const syntheticSpecConflictingRules: PipingSpecification = {
+    id: "SYNTHETIC_SPEC_CONFLICT_RULES",
+    code: "SYNTH_CONFLICT",
+    name: "Synthetic Spec with Conflicting Rules",
+    materialReferenceIds: ["SYNTHETIC_MAT_A", "SYNTHETIC_MAT_B"],
+    pipeRules: [
+      {
+        ruleId: "RULE_CONFLICT_A",
+        pipeDimensionalStandardId: "ASME-B36.10M",
+        schedule: "SCH 40",
+        nominalSizes: ["2"],
+        materialId: "SYNTHETIC_MAT_A",
+        sourceStatus: "VERIFIED",
+        evidenceIds: ["SYNTHETIC_EV_SPEC01_VERIFIED_01"],
+      },
+      {
+        ruleId: "RULE_CONFLICT_B",
+        pipeDimensionalStandardId: "ASME-B36.10M",
+        schedule: "SCH 40",
+        nominalSizes: ["2"],
+        materialId: "SYNTHETIC_MAT_B",
+        sourceStatus: "VERIFIED",
+        evidenceIds: ["SYNTHETIC_EV_SPEC01_VERIFIED_02"],
+      },
+    ],
+    fittingRules: [],
+    flangeRules: [],
+    valveRules: [],
+    sourceStatus: "VERIFIED",
+    sourceReference: "SYNTHETIC_DOC",
+  };
+
+  // Spec avec deux règles contradictoires dans l'ordre inverse
+  const syntheticSpecConflictingRulesReversed: PipingSpecification = {
+    id: "SYNTHETIC_SPEC_CONFLICT_RULES_REV",
+    code: "SYNTH_CONFLICT_REV",
+    name: "Synthetic Spec with Conflicting Rules Reversed",
+    materialReferenceIds: ["SYNTHETIC_MAT_A", "SYNTHETIC_MAT_B"],
+    pipeRules: [
+      {
+        ruleId: "RULE_CONFLICT_B",
+        pipeDimensionalStandardId: "ASME-B36.10M",
+        schedule: "SCH 40",
+        nominalSizes: ["2"],
+        materialId: "SYNTHETIC_MAT_B",
+        sourceStatus: "VERIFIED",
+        evidenceIds: ["SYNTHETIC_EV_SPEC01_VERIFIED_02"],
+      },
+      {
+        ruleId: "RULE_CONFLICT_A",
+        pipeDimensionalStandardId: "ASME-B36.10M",
+        schedule: "SCH 40",
+        nominalSizes: ["2"],
+        materialId: "SYNTHETIC_MAT_A",
+        sourceStatus: "VERIFIED",
+        evidenceIds: ["SYNTHETIC_EV_SPEC01_VERIFIED_01"],
+      },
+    ],
+    fittingRules: [],
+    flangeRules: [],
+    valveRules: [],
+    sourceStatus: "VERIFIED",
+    sourceReference: "SYNTHETIC_DOC",
+  };
+
+  const specsMap = new Map<string, PipingSpecification>([
+    ["SYNTHETIC_SPEC_001", syntheticSpec],
+    ["SYNTHETIC_SPEC_EMPTY_RULES", syntheticSpecEmptyRules],
+    ["SYNTHETIC_SPEC_UNVERIFIED_RULE", syntheticSpecUnverifiedRule],
+    ["SYNTHETIC_SPEC_MISSING_EV_RULE", syntheticSpecMissingEvidenceRule],
+    ["SYNTHETIC_SPEC_CONFLICT_RULES", syntheticSpecConflictingRules],
+    ["SYNTHETIC_SPEC_CONFLICT_RULES_REV", syntheticSpecConflictingRulesReversed],
+  ]);
+
+  const specLookup = (id: string): PipingSpecification | undefined => specsMap.get(id);
+
+  const resolver = new PipingSpecResolver(specLookup, compatEngine, evidenceResolver);
 
   // =========================================================================
   // TEST 1 : Contexte valide + règle compatible -> COMPATIBLE
@@ -369,20 +507,20 @@ export function runPipingSpecResolverTests(): Spec01TestResult {
   const res11 = resolver.resolve({
     specificationId: "SYNTHETIC_SPEC_001",
     componentType: "PIPE",
-    nominalSize: "48", // Pas dans ["2", "3", "4", "6", "8", "10"]
+    nominalSize: "48",
     dimensionalStandardId: "ASME-B36.10M",
   });
   assert(res11.status === "INCOMPATIBLE", `TEST 11: expected INCOMPATIBLE for unsupported size, got ${res11.status}`);
   results.push("✅ PASS: TEST 11 — Nominal size non couvert par la spécification → INCOMPATIBLE");
 
   // =========================================================================
-  // TEST 12 : Schedule manquant ou absent de la règle -> UNVERIFIED / INCOMPATIBLE
+  // TEST 12 : Schedule non autorisé dans la spec -> INCOMPATIBLE
   // =========================================================================
   testsRun++;
   const res12 = resolver.resolve({
     specificationId: "SYNTHETIC_SPEC_001",
     componentType: "PIPE",
-    schedule: "SCH 10", // Spécifié SCH 40 dans spec
+    schedule: "SCH 10",
     dimensionalStandardId: "ASME-B36.10M",
   });
   assert(res12.status === "INCOMPATIBLE", `TEST 12: expected INCOMPATIBLE for mismatch schedule, got ${res12.status}`);
@@ -396,7 +534,7 @@ export function runPipingSpecResolverTests(): Spec01TestResult {
     specificationId: "SYNTHETIC_SPEC_001",
     componentType: "FITTING",
     productStandardId: "ASME-B16.9",
-    connectionType: "SOCKET_WELD", // Seul BUTT_WELD est autorisé
+    connectionType: "SOCKET_WELD",
   });
   assert(res13.status === "INCOMPATIBLE", `TEST 13: expected INCOMPATIBLE for connection mismatch, got ${res13.status}`);
   results.push("✅ PASS: TEST 13 — Connection type mismatch → INCOMPATIBLE");
@@ -408,7 +546,7 @@ export function runPipingSpecResolverTests(): Spec01TestResult {
   const res14 = resolver.resolve({
     specificationId: "SYNTHETIC_SPEC_001",
     componentType: "FITTING",
-    productStandardId: "ASME-B16.11", // Spec a ASME-B16.9
+    productStandardId: "ASME-B16.11",
   });
   assert(res14.status === "INCOMPATIBLE", `TEST 14: expected INCOMPATIBLE for product standard mismatch, got ${res14.status}`);
   results.push("✅ PASS: TEST 14 — Product standard mismatch → INCOMPATIBLE");
@@ -420,7 +558,7 @@ export function runPipingSpecResolverTests(): Spec01TestResult {
   const res15 = resolver.resolve({
     specificationId: "SYNTHETIC_SPEC_001",
     componentType: "PIPE",
-    dimensionalStandardId: "ASME-B36.19M", // Spec a ASME-B36.10M
+    dimensionalStandardId: "ASME-B36.19M",
   });
   assert(res15.status === "INCOMPATIBLE", `TEST 15: expected INCOMPATIBLE for dimensional std mismatch, got ${res15.status}`);
   results.push("✅ PASS: TEST 15 — Dimensional standard mismatch → INCOMPATIBLE");
@@ -433,7 +571,7 @@ export function runPipingSpecResolverTests(): Spec01TestResult {
     specificationId: "SYNTHETIC_SPEC_001",
     componentType: "FLANGE",
     productStandardId: "ASME-B16.5",
-    ratingSystem: "EN_PN", // Spec a ASME_CLASS
+    ratingSystem: "EN_PN",
   });
   assert(res16.status === "INCOMPATIBLE", `TEST 16: expected INCOMPATIBLE for rating system mismatch, got ${res16.status}`);
   results.push("✅ PASS: TEST 16 — Rating system mismatch → INCOMPATIBLE");
@@ -482,24 +620,206 @@ export function runPipingSpecResolverTests(): Spec01TestResult {
   // TEST 20 : Aucune conversion implicite (NPS != DN, Class != PN)
   // =========================================================================
   testsRun++;
-  // 20.a : "NPS 2" ne doit JAMAIS correspondre automatiquement à "DN 50"
   const res20a = resolver.resolve({
     specificationId: "SYNTHETIC_SPEC_001",
     componentType: "SYNTHETIC_EXACT",
-    nominalSize: "DN 50", // Règle exige "NPS 2"
+    nominalSize: "DN 50",
     ratingValue: "Class 150",
   });
   assert(res20a.status === "UNVERIFIED", `TEST 20a: expected UNVERIFIED without implicit conversion, got ${res20a.status}`);
 
-  // 20.b : "Class 150" ne doit JAMAIS correspondre automatiquement à "PN 20"
   const res20b = resolver.resolve({
     specificationId: "SYNTHETIC_SPEC_001",
     componentType: "SYNTHETIC_EXACT",
     nominalSize: "NPS 2",
-    ratingValue: "PN 20", // Règle exige "Class 150"
+    ratingValue: "PN 20",
   });
   assert(res20b.status === "UNVERIFIED", `TEST 20b: expected UNVERIFIED without implicit conversion, got ${res20b.status}`);
   results.push("✅ PASS: TEST 20 — Aucune conversion implicite (NPS != DN, Class != PN)");
+
+  // =========================================================================
+  // TEST 21 (SPEC-01-FIX-01 - 1) : Spec rule UNVERIFIED + Compatibility VERIFIED -> UNVERIFIED (Jamais COMPATIBLE)
+  // =========================================================================
+  testsRun++;
+  const res21 = resolver.resolve({
+    specificationId: "SYNTHETIC_SPEC_UNVERIFIED_RULE",
+    componentType: "PIPE",
+    nominalSize: "2",
+    schedule: "SCH 40",
+    dimensionalStandardId: "ASME-B36.10M",
+    materialId: "SYNTHETIC_MAT_CARBON_STEEL",
+  });
+  assert(
+    res21.status !== "COMPATIBLE",
+    `TEST 21 (FIX-01): UNVERIFIED spec rule must NEVER produce COMPATIBLE, got ${res21.status}`
+  );
+  assert(res21.status === "UNVERIFIED", `TEST 21 (FIX-01): expected UNVERIFIED, got ${res21.status}`);
+  results.push("✅ PASS: TEST 21 (FIX-01-1) — Règle Spec UNVERIFIED + compatibilité VERIFIED → UNVERIFIED (autorité spec préservée)");
+
+  // =========================================================================
+  // TEST 22 (SPEC-01-FIX-01 - 2) : Spec rule VERIFIED + Compatibility VERIFIED -> COMPATIBLE
+  // =========================================================================
+  testsRun++;
+  const res22 = resolver.resolve({
+    specificationId: "SYNTHETIC_SPEC_001",
+    componentType: "PIPE",
+    nominalSize: "2",
+    schedule: "SCH 40",
+    dimensionalStandardId: "ASME-B36.10M",
+    materialId: "SYNTHETIC_MAT_CARBON_STEEL",
+  });
+  assert(res22.status === "COMPATIBLE", `TEST 22 (FIX-01): expected COMPATIBLE, got ${res22.status}`);
+  results.push("✅ PASS: TEST 22 (FIX-01-2) — Règle Spec VERIFIED + compatibilité VERIFIED → COMPATIBLE");
+
+  // =========================================================================
+  // TEST 23 (SPEC-01-FIX-01 - 3) : Material globalement autorisé mais interdit par component rule -> INCOMPATIBLE
+  // =========================================================================
+  testsRun++;
+  // Dans SYNTHETIC_SPEC_001: materialReferenceIds = [CARBON_STEEL, STAINLESS_STEEL], mais pipeRule impose CARBON_STEEL
+  const res23 = resolver.resolve({
+    specificationId: "SYNTHETIC_SPEC_001",
+    componentType: "PIPE",
+    nominalSize: "2",
+    schedule: "SCH 40",
+    dimensionalStandardId: "ASME-B36.10M",
+    materialId: "SYNTHETIC_MAT_STAINLESS_STEEL",
+  });
+  assert(
+    res23.status === "INCOMPATIBLE",
+    `TEST 23 (FIX-01): component rule material restriction must override global spec list, expected INCOMPATIBLE, got ${res23.status}`
+  );
+  results.push("✅ PASS: TEST 23 (FIX-01-3) — Matériau globalement listé mais interdit par component rule → INCOMPATIBLE (précédence stricte)");
+
+  // =========================================================================
+  // TEST 24 (SPEC-01-FIX-01 - 4) : Material globalement autorisé et autorisé par component rule -> COMPATIBLE
+  // =========================================================================
+  testsRun++;
+  const res24 = resolver.resolve({
+    specificationId: "SYNTHETIC_SPEC_001",
+    componentType: "PIPE",
+    nominalSize: "2",
+    schedule: "SCH 40",
+    dimensionalStandardId: "ASME-B36.10M",
+    materialId: "SYNTHETIC_MAT_CARBON_STEEL",
+  });
+  assert(res24.status === "COMPATIBLE", `TEST 24 (FIX-01): expected COMPATIBLE, got ${res24.status}`);
+  results.push("✅ PASS: TEST 24 (FIX-01-4) — Matériau autorisé globalement ET par component rule → COMPATIBLE");
+
+  // =========================================================================
+  // TEST 25 (SPEC-01-FIX-01 - 5) : Component rule sans evidence vérifiée -> UNVERIFIED
+  // =========================================================================
+  testsRun++;
+  const res25 = resolver.resolve({
+    specificationId: "SYNTHETIC_SPEC_UNVERIFIED_RULE",
+    componentType: "PIPE",
+    nominalSize: "2",
+    schedule: "SCH 40",
+    dimensionalStandardId: "ASME-B36.10M",
+    materialId: "SYNTHETIC_MAT_CARBON_STEEL",
+  });
+  assert(res25.status === "UNVERIFIED", `TEST 25 (FIX-01): expected UNVERIFIED, got ${res25.status}`);
+  results.push("✅ PASS: TEST 25 (FIX-01-5) — Règle de composant sans preuve vérifiée → UNVERIFIED");
+
+  // =========================================================================
+  // TEST 26 (SPEC-01-FIX-01 - 6) : Component rule avec evidence ID inexistante -> UNVERIFIED
+  // =========================================================================
+  testsRun++;
+  const res26 = resolver.resolve({
+    specificationId: "SYNTHETIC_SPEC_MISSING_EV_RULE",
+    componentType: "PIPE",
+    nominalSize: "2",
+    schedule: "SCH 40",
+    dimensionalStandardId: "ASME-B36.10M",
+    materialId: "SYNTHETIC_MAT_CARBON_STEEL",
+  });
+  assert(res26.status === "UNVERIFIED", `TEST 26 (FIX-01): expected UNVERIFIED for missing evidence ID, got ${res26.status}`);
+  results.push("✅ PASS: TEST 26 (FIX-01-6) — Règle de composant avec evidence ID inexistante → UNVERIFIED");
+
+  // =========================================================================
+  // TEST 27 (SPEC-01-FIX-01 - 7) : Deux règles contradictoires applicables -> INVALID
+  // =========================================================================
+  testsRun++;
+  const res27 = resolver.resolve({
+    specificationId: "SYNTHETIC_SPEC_CONFLICT_RULES",
+    componentType: "PIPE",
+    nominalSize: "2",
+    schedule: "SCH 40",
+    dimensionalStandardId: "ASME-B36.10M",
+  });
+  assert(res27.status === "INVALID", `TEST 27 (FIX-01): contradictory rules must yield INVALID, got ${res27.status}`);
+  assert(
+    res27.message !== undefined && res27.message.includes("NORMATIVE_RULE_CONFLICT"),
+    "TEST 27 (FIX-01): message must explain conflict"
+  );
+  results.push("✅ PASS: TEST 27 (FIX-01-7) — Deux règles contradictoires applicables → INVALID avec diagnostic explicite");
+
+  // =========================================================================
+  // TEST 28 (SPEC-01-FIX-01 - 8) : Ordre inversé des règles contradictoires -> INVALID (indépendance de l'ordre)
+  // =========================================================================
+  testsRun++;
+  const res28 = resolver.resolve({
+    specificationId: "SYNTHETIC_SPEC_CONFLICT_RULES_REV",
+    componentType: "PIPE",
+    nominalSize: "2",
+    schedule: "SCH 40",
+    dimensionalStandardId: "ASME-B36.10M",
+  });
+  assert(
+    res28.status === "INVALID",
+    `TEST 28 (FIX-01): order inversion must maintain INVALID, got ${res28.status}`
+  );
+  results.push("✅ PASS: TEST 28 (FIX-01-8) — Ordre inversé des règles contradictoires → INVALID (indépendance prouvée)");
+
+  // =========================================================================
+  // TEST 29 (SPEC-01-FIX-01 - 9) : Aucune règle applicable -> UNVERIFIED
+  // =========================================================================
+  testsRun++;
+  const res29 = resolver.resolve({
+    specificationId: "SYNTHETIC_SPEC_EMPTY_RULES",
+    componentType: "PIPE",
+  });
+  assert(res29.status === "UNVERIFIED", `TEST 29 (FIX-01): expected UNVERIFIED for 0 rules, got ${res29.status}`);
+  results.push("✅ PASS: TEST 29 (FIX-01-9) — Aucune règle applicable → UNVERIFIED");
+
+  // =========================================================================
+  // TEST 30 (SPEC-01-FIX-01 - 10) : Non-régression complète PIPE / FITTING / FLANGE / VALVE
+  // =========================================================================
+  testsRun++;
+  const pipeOk = resolver.resolve({
+    specificationId: "SYNTHETIC_SPEC_001",
+    componentType: "PIPE",
+    nominalSize: "2",
+    schedule: "SCH 40",
+    dimensionalStandardId: "ASME-B36.10M",
+    materialId: "SYNTHETIC_MAT_CARBON_STEEL",
+  }).status === "COMPATIBLE";
+
+  const fittingOk = resolver.resolve({
+    specificationId: "SYNTHETIC_SPEC_001",
+    componentType: "FITTING",
+    productStandardId: "ASME-B16.9",
+    fittingType: "ELBOW",
+    connectionType: "BUTT_WELD",
+  }).status === "COMPATIBLE";
+
+  const flangeOk = resolver.resolve({
+    specificationId: "SYNTHETIC_SPEC_001",
+    componentType: "FLANGE",
+    productStandardId: "ASME-B16.5",
+    ratingSystem: "ASME_CLASS",
+    ratingValue: "Class 150",
+  }).status === "COMPATIBLE";
+
+  const valveOk = resolver.resolve({
+    specificationId: "SYNTHETIC_SPEC_001",
+    componentType: "VALVE",
+    productStandardId: "API-600",
+    dimensionalStandardId: "ASME-B16.10",
+    connectionType: "FLANGED",
+  }).status === "COMPATIBLE";
+
+  assert(pipeOk && fittingOk && flangeOk && valveOk, "TEST 30: all 4 component families must resolve cleanly");
+  results.push("✅ PASS: TEST 30 (FIX-01-10) — Non-régression validée sur les 4 familles (PIPE, FITTING, FLANGE, VALVE)");
 
   return {
     success: true,
