@@ -125,11 +125,20 @@ export class NormativeCompatibilityEngine implements INormativeCompatibilityEngi
     // B. Toutes les règles vérifiées sont INCOMPATIBLE
     if (hasVerifiedIncompatible) {
       const primaryIncompat = verifiedIncompatibleRules[0];
+      const allIncompatRuleIds = verifiedIncompatibleRules
+        .map((r) => r.rule.ruleId)
+        .slice()
+        .sort();
+      const allIncompatEvIds = Array.from(
+        new Set(verifiedIncompatibleRules.flatMap((r) => r.evidenceIds))
+      ).sort();
       return {
         status: "INCOMPATIBLE",
         ruleId: primaryIncompat.rule.ruleId,
         matchedRule: primaryIncompat.rule,
-        evidenceIds: primaryIncompat.evidenceIds,
+        matchedRuleIds: allIncompatRuleIds,
+        matchedRules: verifiedIncompatibleRules.map((r) => r.rule),
+        evidenceIds: allIncompatEvIds,
         message: primaryIncompat.rule.description,
       };
     }
@@ -137,22 +146,40 @@ export class NormativeCompatibilityEngine implements INormativeCompatibilityEngi
     // C. Toutes les règles vérifiées sont COMPATIBLE (une règle non vérifiée ne masque pas une règle vérifiée)
     if (hasVerifiedCompatible) {
       const primaryCompat = verifiedCompatibleRules[0];
+      const allCompatRuleIds = verifiedCompatibleRules
+        .map((r) => r.rule.ruleId)
+        .slice()
+        .sort();
+      const allCompatEvIds = Array.from(
+        new Set(verifiedCompatibleRules.flatMap((r) => r.evidenceIds))
+      ).sort();
       return {
         status: "COMPATIBLE",
         ruleId: primaryCompat.rule.ruleId,
         matchedRule: primaryCompat.rule,
-        evidenceIds: primaryCompat.evidenceIds,
+        matchedRuleIds: allCompatRuleIds,
+        matchedRules: verifiedCompatibleRules.map((r) => r.rule),
+        evidenceIds: allCompatEvIds,
         message: primaryCompat.rule.description,
       };
     }
 
     // D. Si des règles correspondent mais qu'aucune n'a de preuve vérifiée complète → UNVERIFIED
     const firstMatch = evaluatedRules[0];
+    const allUnverifiedRuleIds = evaluatedRules
+      .map((r) => r.rule.ruleId)
+      .slice()
+      .sort();
+    const allUnverifiedEvIds = Array.from(
+      new Set(evaluatedRules.flatMap((r) => r.evidenceIds))
+    ).sort();
     return {
       status: "UNVERIFIED",
       ruleId: firstMatch.rule.ruleId,
       matchedRule: firstMatch.rule,
-      evidenceIds: firstMatch.evidenceIds,
+      matchedRuleIds: allUnverifiedRuleIds,
+      matchedRules: evaluatedRules.map((r) => r.rule),
+      evidenceIds: allUnverifiedEvIds,
       message: `Matching rule '${firstMatch.rule.ruleId}' lacks valid VERIFIED normative evidence.`,
     };
   }

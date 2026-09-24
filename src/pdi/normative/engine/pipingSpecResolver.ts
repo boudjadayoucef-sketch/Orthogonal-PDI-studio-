@@ -99,6 +99,7 @@ export class PipingSpecResolver implements IPipingSpecResolver {
         specificationId: typeof context?.specificationId === "string" ? context.specificationId : "",
         componentType: typeof context?.componentType === "string" ? context.componentType : "",
         matchedRuleIds: [],
+        compatibilityRuleIds: [],
         evidenceIds: [],
         message: `INVALID_CONTEXT: ${validation.errors.join("; ")}`,
       };
@@ -112,6 +113,7 @@ export class PipingSpecResolver implements IPipingSpecResolver {
         specificationId: context.specificationId,
         componentType: context.componentType,
         matchedRuleIds: [],
+        compatibilityRuleIds: [],
         evidenceIds: [],
         message: `SPEC_NOT_FOUND: Specification with id '${context.specificationId}' was not found.`,
       };
@@ -128,6 +130,7 @@ export class PipingSpecResolver implements IPipingSpecResolver {
           specificationId: spec.id,
           componentType: context.componentType,
           matchedRuleIds: [],
+          compatibilityRuleIds: [],
           evidenceIds: [],
           message: `MATERIAL_NOT_AUTHORIZED: Material '${context.materialId}' is not authorized in specification '${spec.id}'.`,
         };
@@ -144,55 +147,86 @@ export class PipingSpecResolver implements IPipingSpecResolver {
         specificationId: spec.id,
         componentType: context.componentType,
         matchedRuleIds: evaluation.matchedRuleIds,
+        compatibilityRuleIds: [],
         evidenceIds: evaluation.evidenceIds,
         message: evaluation.message,
       };
     }
 
     const ruleEvidenceIds = evaluation.evidenceIds;
-    const matchedRuleIds = evaluation.matchedRuleIds;
+    const specMatchedRuleIds = evaluation.matchedRuleIds;
+    const matchedSpecRule = evaluation.matchedRule;
 
     // 5. Délégation déterministe à NORM-13 (NormativeCompatibilityEngine)
-    const combinedEvidenceIds = Array.from(
-      new Set([...ruleEvidenceIds, ...(context.evidenceIds ?? [])])
-    ).sort();
+    // Extraction des contraintes de la règle Piping Spec pour garantir la relation explicite et déterministe
+    const standardId =
+      context.productStandardId ||
+      context.dimensionalStandardId ||
+      (matchedSpecRule as any)?.productStandardId ||
+      (matchedSpecRule as any)?.dimensionalStandardId ||
+      (matchedSpecRule as any)?.pipeDimensionalStandardId ||
+      (matchedSpecRule as any)?.fittingStandardId ||
+      (matchedSpecRule as any)?.flangeStandardId;
+
+    const connectionType =
+      context.connectionType ||
+      ((matchedSpecRule as any)?.connectionTypes?.length === 1
+        ? (matchedSpecRule as any).connectionTypes[0]
+        : undefined);
+
+    const schedule =
+      context.schedule ||
+      (matchedSpecRule as any)?.schedule;
+
+    const pressureRating =
+      context.ratingValue ||
+      (matchedSpecRule as any)?.rating;
+
+    const materialId =
+      context.materialId ||
+      (matchedSpecRule as any)?.materialId ||
+      (spec.materialReferenceIds.length === 1 ? spec.materialReferenceIds[0] : undefined);
 
     const compatContext: NormativeCompatibilityContext = {
-      standardId: (context.productStandardId || context.dimensionalStandardId) as any,
+      standardId: standardId as any,
       componentType: context.componentType,
-      connectionType: context.connectionType,
+      connectionType: connectionType as any,
       nominalSize: context.nominalSize,
-      schedule: context.schedule,
-      pressureRating: context.ratingValue,
-      materialId: context.materialId,
+      schedule: schedule,
+      pressureRating: pressureRating,
+      materialId: materialId,
       designCodeId: (context.designCodeId || spec.designCodeId) as any,
       pipingSpecId: spec.id,
-      evidenceIds: combinedEvidenceIds,
+      evidenceIds: ruleEvidenceIds,
     };
 
     const compatDecision = this.compatibilityEngine.evaluate(compatContext);
 
-    const finalMatchedRuleIds = Array.from(
-      new Set([
-        ...matchedRuleIds,
-        ...(compatDecision.ruleId ? [compatDecision.ruleId] : []),
-        ...(compatDecision.matchedRule?.ruleId ? [compatDecision.matchedRule.ruleId] : []),
-      ])
-    ).sort();
+    // Extraction des règles de compatibilité NORM-13 (Fix 03)
+    const compatibilityRuleIds = (
+      compatDecision.matchedRuleIds ??
+      (compatDecision.ruleId ? [compatDecision.ruleId] : [])
+    )
+      .slice()
+      .sort();
 
-    const finalEvidenceIds = Array.from(
-      new Set([
-        ...ruleEvidenceIds,
-        ...(compatDecision.evidenceIds ?? []),
-        ...(context.evidenceIds ?? []),
-      ])
-    ).sort();
+    // Agrégation déterministe des preuves vérifiées des deux niveaux (Piping Spec + NORM-13)
+    const finalEvidenceIds =
+      compatDecision.status === "INVALID"
+        ? []
+        : Array.from(
+            new Set([
+              ...ruleEvidenceIds,
+              ...(compatDecision.evidenceIds ?? []),
+            ])
+          ).sort();
 
     return {
       status: compatDecision.status,
       specificationId: spec.id,
       componentType: context.componentType,
-      matchedRuleIds: finalMatchedRuleIds,
+      matchedRuleIds: specMatchedRuleIds,
+      compatibilityRuleIds: compatibilityRuleIds,
       evidenceIds: finalEvidenceIds,
       message: compatDecision.message,
     };

@@ -72,8 +72,11 @@ export interface PipingSpecResolutionResult {
   /** Famille de composant évaluée */
   readonly componentType: string;
 
-  /** Identifiants des règles (PipingSpec et/ou Compatibility) ayant correspondu */
+  /** Identifiants des règles Piping Spec ayant correspondu */
   readonly matchedRuleIds: readonly string[];
+
+  /** Identifiants des règles de compatibilité (NORM-13) ayant correspondu */
+  readonly compatibilityRuleIds: readonly string[];
 
   /** Identifiants des preuves normatives auditées */
   readonly evidenceIds: readonly string[];

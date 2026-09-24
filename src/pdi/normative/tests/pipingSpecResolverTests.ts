@@ -153,6 +153,74 @@ export function runPipingSpecResolverTests(): Spec01TestResult {
     evidenceIds: ["SYNTHETIC_SPEC_EVIDENCE"],
   });
 
+  // Compat FIX-03 Test 1 : Règle tuyau INCOMPATIBLE pour NPS 10 SCH 40
+  compatRegistry.register({
+    ruleId: "SYNTHETIC_COMPAT_PIPE_INCOMPAT_FIX03",
+    description: "Synthetic pipe compatibility rule marked INCOMPATIBLE for FIX-03 Test 1",
+    componentType: "PIPE",
+    nominalSize: "10",
+    schedule: "SCH 40",
+    materialId: "SYNTHETIC_MAT_CARBON_STEEL",
+    status: "INCOMPATIBLE",
+    evidenceIds: ["SYNTHETIC_EV_SPEC01_VERIFIED_01"],
+  });
+
+  // Compat FIX-03 Test 4 : Règle tuyau avec preuve non vérifiée
+  compatRegistry.register({
+    ruleId: "SYNTHETIC_COMPAT_PIPE_UNVERIFIED_EV_FIX03",
+    description: "Synthetic pipe compatibility rule with unverified evidence for FIX-03",
+    componentType: "PIPE",
+    nominalSize: "8",
+    schedule: "SCH 40",
+    materialId: "SYNTHETIC_MAT_CARBON_STEEL",
+    status: "COMPATIBLE",
+    evidenceIds: ["SYNTHETIC_EV_SPEC01_UNVERIFIED_01"],
+  });
+
+  // Compat FIX-03 Test 5 : Règles contradictoires (COMPATIBLE vs INCOMPATIBLE sur NPS 3)
+  compatRegistry.register({
+    ruleId: "SYNTHETIC_COMPAT_CONFLICT_COMPAT_FIX03",
+    description: "Synthetic conflicting compatible rule on NPS 3",
+    componentType: "PIPE",
+    nominalSize: "3",
+    schedule: "SCH 40",
+    materialId: "SYNTHETIC_MAT_CARBON_STEEL",
+    status: "COMPATIBLE",
+    evidenceIds: ["SYNTHETIC_EV_SPEC01_VERIFIED_01"],
+  });
+  compatRegistry.register({
+    ruleId: "SYNTHETIC_COMPAT_CONFLICT_INCOMPAT_FIX03",
+    description: "Synthetic conflicting incompatible rule on NPS 3",
+    componentType: "PIPE",
+    nominalSize: "3",
+    schedule: "SCH 40",
+    materialId: "SYNTHETIC_MAT_CARBON_STEEL",
+    status: "INCOMPATIBLE",
+    evidenceIds: ["SYNTHETIC_EV_SPEC01_VERIFIED_02"],
+  });
+
+  // Compat FIX-03 Test 6 : Deux règles équivalentes compatibles sur NPS 4
+  compatRegistry.register({
+    ruleId: "SYNTHETIC_COMPAT_EQUIV_A_FIX03",
+    description: "Synthetic equivalent compatible rule A on NPS 4",
+    componentType: "PIPE",
+    nominalSize: "4",
+    schedule: "SCH 40",
+    materialId: "SYNTHETIC_MAT_CARBON_STEEL",
+    status: "COMPATIBLE",
+    evidenceIds: ["SYNTHETIC_RULE_EVIDENCE_A"],
+  });
+  compatRegistry.register({
+    ruleId: "SYNTHETIC_COMPAT_EQUIV_B_FIX03",
+    description: "Synthetic equivalent compatible rule B on NPS 4",
+    componentType: "PIPE",
+    nominalSize: "4",
+    schedule: "SCH 40",
+    materialId: "SYNTHETIC_MAT_CARBON_STEEL",
+    status: "COMPATIBLE",
+    evidenceIds: ["SYNTHETIC_RULE_EVIDENCE_B"],
+  });
+
   // Compat 2 : Règle incompatible explicite
   compatRegistry.register({
     ruleId: "SYNTHETIC_COMPAT_RULE_INCOMPAT",
@@ -742,7 +810,8 @@ export function runPipingSpecResolverTests(): Spec01TestResult {
     materialId: "SYNTHETIC_MAT_CARBON_STEEL",
   });
   assert(res1.status === "COMPATIBLE", `TEST 1: expected COMPATIBLE, got ${res1.status}`);
-  assert(res1.matchedRuleIds.includes("SYNTHETIC_COMPAT_RULE_PIPE_OK"), "TEST 1: ruleId mismatch");
+  assert(res1.matchedRuleIds.includes("SPEC_PIPE_RULE_01"), "TEST 1: spec ruleId mismatch");
+  assert(res1.compatibilityRuleIds.includes("SYNTHETIC_COMPAT_RULE_PIPE_OK"), "TEST 1: compat ruleId mismatch");
   results.push("✅ PASS: TEST 1 — Contexte valide + règle compatible → COMPATIBLE");
 
   testsRun++;
@@ -1321,6 +1390,157 @@ export function runPipingSpecResolverTests(): Spec01TestResult {
     `SPEC-01-FIX-02 TEST 43: Une preuve de Rule A ne doit pas qualifier Rule B. Reçu: ${resFix02OneUnverified.status}`
   );
   results.push("✅ PASS: FIX-02 TEST 43 — Règles multiples dont une sans preuve → UNVERIFIED (isolation stricte inter-règles)");
+
+  // =========================================================================
+  // TESTS SPEC-01-FIX-03 (LIAISON DETERMINISTE SPEC RULE -> COMPAT RULE -> EVIDENCE)
+  // =========================================================================
+
+  // FIX-03 TEST 1 : Piping Spec Rule VERIFIED + Compatibility Rule VERIFIED mais incompatible -> INCOMPATIBLE avec traçabilité
+  testsRun++;
+  const resFix03T1 = resolver.resolve({
+    specificationId: "SYNTHETIC_SPEC_001",
+    componentType: "PIPE",
+    nominalSize: "10",
+    schedule: "SCH 40",
+    dimensionalStandardId: "ASME-B36.10M",
+    materialId: "SYNTHETIC_MAT_CARBON_STEEL",
+  });
+  assert(
+    resFix03T1.status === "INCOMPATIBLE",
+    `SPEC-01-FIX-03 TEST 1: expected INCOMPATIBLE, got ${resFix03T1.status}`
+  );
+  assert(
+    resFix03T1.matchedRuleIds.includes("SPEC_PIPE_RULE_01"),
+    `SPEC-01-FIX-03 TEST 1: matchedRuleIds doit contenir la règle spec SPEC_PIPE_RULE_01. Reçu: ${JSON.stringify(resFix03T1.matchedRuleIds)}`
+  );
+  assert(
+    resFix03T1.compatibilityRuleIds.includes("SYNTHETIC_COMPAT_PIPE_INCOMPAT_FIX03"),
+    `SPEC-01-FIX-03 TEST 1: compatibilityRuleIds doit tracer SYNTHETIC_COMPAT_PIPE_INCOMPAT_FIX03. Reçu: ${JSON.stringify(resFix03T1.compatibilityRuleIds)}`
+  );
+  results.push("✅ PASS: FIX-03 TEST 1 — Spec Rule VERIFIED + Compat Rule INCOMPATIBLE → INCOMPATIBLE avec traçabilité explicite");
+
+  // FIX-03 TEST 2 : Piping Spec Rule VERIFIED + Compatibility Rule VERIFIED cohérente -> COMPATIBLE avec traçabilité 2 niveaux
+  testsRun++;
+  const resFix03T2 = resolver.resolve({
+    specificationId: "SYNTHETIC_SPEC_001",
+    componentType: "PIPE",
+    nominalSize: "2",
+    schedule: "SCH 40",
+    dimensionalStandardId: "ASME-B36.10M",
+    materialId: "SYNTHETIC_MAT_CARBON_STEEL",
+  });
+  assert(
+    resFix03T2.status === "COMPATIBLE",
+    `SPEC-01-FIX-03 TEST 2: expected COMPATIBLE, got ${resFix03T2.status}`
+  );
+  assert(
+    resFix03T2.matchedRuleIds.includes("SPEC_PIPE_RULE_01"),
+    `SPEC-01-FIX-03 TEST 2: matchedRuleIds doit contenir SPEC_PIPE_RULE_01. Reçu: ${JSON.stringify(resFix03T2.matchedRuleIds)}`
+  );
+  assert(
+    resFix03T2.compatibilityRuleIds.includes("SYNTHETIC_COMPAT_RULE_PIPE_OK"),
+    `SPEC-01-FIX-03 TEST 2: compatibilityRuleIds doit contenir SYNTHETIC_COMPAT_RULE_PIPE_OK. Reçu: ${JSON.stringify(resFix03T2.compatibilityRuleIds)}`
+  );
+  assert(
+    resFix03T2.evidenceIds.includes("SYNTHETIC_EV_SPEC01_VERIFIED_01"),
+    `SPEC-01-FIX-03 TEST 2: evidenceIds doit agréger les preuves des deux niveaux. Reçu: ${JSON.stringify(resFix03T2.evidenceIds)}`
+  );
+  results.push("✅ PASS: FIX-03 TEST 2 — Spec Rule VERIFIED + Compat Rule VERIFIED cohérente → COMPATIBLE (traçabilité matchedRuleIds / compatibilityRuleIds / evidenceIds)");
+
+  // FIX-03 TEST 3 : Piping Spec Rule VERIFIED mais aucune Compatibility Rule applicable -> UNVERIFIED
+  testsRun++;
+  const resFix03T3 = resolver.resolve({
+    specificationId: "SYNTHETIC_SPEC_001",
+    componentType: "PIPE",
+    nominalSize: "6",
+    schedule: "SCH 40",
+    dimensionalStandardId: "ASME-B36.10M",
+    materialId: "SYNTHETIC_MAT_CARBON_STEEL",
+  });
+  assert(
+    resFix03T3.status === "UNVERIFIED",
+    `SPEC-01-FIX-03 TEST 3: expected UNVERIFIED for missing compat rule, got ${resFix03T3.status}`
+  );
+  assert(
+    resFix03T3.matchedRuleIds.includes("SPEC_PIPE_RULE_01"),
+    `SPEC-01-FIX-03 TEST 3: matchedRuleIds doit contenir la règle spec. Reçu: ${JSON.stringify(resFix03T3.matchedRuleIds)}`
+  );
+  assert(
+    resFix03T3.compatibilityRuleIds.length === 0,
+    `SPEC-01-FIX-03 TEST 3: compatibilityRuleIds doit être vide. Reçu: ${JSON.stringify(resFix03T3.compatibilityRuleIds)}`
+  );
+  results.push("✅ PASS: FIX-03 TEST 3 — Spec Rule VERIFIED mais absence de Compat Rule → UNVERIFIED");
+
+  // FIX-03 TEST 4 : Piping Spec Rule VERIFIED mais Compatibility Rule applicable UNVERIFIED -> UNVERIFIED
+  testsRun++;
+  const resFix03T4 = resolver.resolve({
+    specificationId: "SYNTHETIC_SPEC_001",
+    componentType: "PIPE",
+    nominalSize: "8",
+    schedule: "SCH 40",
+    dimensionalStandardId: "ASME-B36.10M",
+    materialId: "SYNTHETIC_MAT_CARBON_STEEL",
+  });
+  assert(
+    resFix03T4.status === "UNVERIFIED",
+    `SPEC-01-FIX-03 TEST 4: expected UNVERIFIED for unverified compat rule evidence, got ${resFix03T4.status}`
+  );
+  assert(
+    resFix03T4.compatibilityRuleIds.includes("SYNTHETIC_COMPAT_PIPE_UNVERIFIED_EV_FIX03"),
+    `SPEC-01-FIX-03 TEST 4: compatibilityRuleIds doit tracer la règle non vérifiée. Reçu: ${JSON.stringify(resFix03T4.compatibilityRuleIds)}`
+  );
+  results.push("✅ PASS: FIX-03 TEST 4 — Spec Rule VERIFIED mais Compat Rule UNVERIFIED → UNVERIFIED");
+
+  // FIX-03 TEST 5 : Deux Compatibility Rules applicables contradictoires (COMPATIBLE vs INCOMPATIBLE) -> INVALID avec NORMATIVE_RULE_CONFLICT
+  testsRun++;
+  const resFix03T5 = resolver.resolve({
+    specificationId: "SYNTHETIC_SPEC_001",
+    componentType: "PIPE",
+    nominalSize: "3",
+    schedule: "SCH 40",
+    dimensionalStandardId: "ASME-B36.10M",
+    materialId: "SYNTHETIC_MAT_CARBON_STEEL",
+  });
+  assert(
+    resFix03T5.status === "INVALID",
+    `SPEC-01-FIX-03 TEST 5: Contradiction entre règles de compatibilité doit être INVALID. Reçu: ${resFix03T5.status}`
+  );
+  assert(
+    resFix03T5.message !== undefined && resFix03T5.message.includes("NORMATIVE_RULE_CONFLICT"),
+    `SPEC-01-FIX-03 TEST 5: message doit contenir NORMATIVE_RULE_CONFLICT. Reçu: ${resFix03T5.message}`
+  );
+  results.push("✅ PASS: FIX-03 TEST 5 — Deux Compat Rules contradictoires → INVALID avec diagnostic NORMATIVE_RULE_CONFLICT");
+
+  // FIX-03 TEST 6 : Deux Compatibility Rules applicables équivalentes -> COMPATIBLE avec compatibilityRuleIds = [A, B] (trié)
+  testsRun++;
+  const resFix03T6 = resolver.resolve({
+    specificationId: "SYNTHETIC_SPEC_001",
+    componentType: "PIPE",
+    nominalSize: "4",
+    schedule: "SCH 40",
+    dimensionalStandardId: "ASME-B36.10M",
+    materialId: "SYNTHETIC_MAT_CARBON_STEEL",
+  });
+  assert(
+    resFix03T6.status === "COMPATIBLE",
+    `SPEC-01-FIX-03 TEST 6: Deux règles compat équivalentes doivent donner COMPATIBLE. Reçu: ${resFix03T6.status}`
+  );
+  assert(
+    resFix03T6.compatibilityRuleIds.includes("SYNTHETIC_COMPAT_EQUIV_A_FIX03") &&
+    resFix03T6.compatibilityRuleIds.includes("SYNTHETIC_COMPAT_EQUIV_B_FIX03"),
+    `SPEC-01-FIX-03 TEST 6: compatibilityRuleIds doit contenir [A, B]. Reçu: ${JSON.stringify(resFix03T6.compatibilityRuleIds)}`
+  );
+  assert(
+    resFix03T6.compatibilityRuleIds[0] === "SYNTHETIC_COMPAT_EQUIV_A_FIX03" &&
+    resFix03T6.compatibilityRuleIds[1] === "SYNTHETIC_COMPAT_EQUIV_B_FIX03",
+    `SPEC-01-FIX-03 TEST 6: compatibilityRuleIds doit être trié par ordre alphabétique. Reçu: ${JSON.stringify(resFix03T6.compatibilityRuleIds)}`
+  );
+  assert(
+    resFix03T6.evidenceIds.includes("SYNTHETIC_RULE_EVIDENCE_A") &&
+    resFix03T6.evidenceIds.includes("SYNTHETIC_RULE_EVIDENCE_B"),
+    `SPEC-01-FIX-03 TEST 6: evidenceIds doit agréger les preuves vérifiées. Reçu: ${JSON.stringify(resFix03T6.evidenceIds)}`
+  );
+  results.push("✅ PASS: FIX-03 TEST 6 — Deux Compat Rules équivalentes → COMPATIBLE avec compatibilityRuleIds = [A, B] trié");
 
   return {
     success: true,

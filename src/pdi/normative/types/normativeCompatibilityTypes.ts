@@ -69,9 +69,13 @@ export interface NormativeCompatibilityResult {
 
   readonly ruleId?: string;
 
+  readonly matchedRuleIds?: readonly string[];
+
   readonly message?: string;
 
   readonly matchedRule?: NormativeCompatibilityRule;
+
+  readonly matchedRules?: readonly NormativeCompatibilityRule[];
 
   readonly evidenceIds?: readonly string[];
 }
