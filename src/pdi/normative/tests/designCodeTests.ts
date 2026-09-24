@@ -909,6 +909,52 @@ export function runDesignCodeEngineTests(): { success: boolean; testsRun: number
   // =========================================================================
 
   const f01Baseline: EngineeringCalculationInput = Object.freeze({
+    evidenceItems: Object.freeze([
+      {
+        evidenceId: "SYNTHETIC_NORM12_EVIDENCE_S_001",
+        standardId: "SYNTHETIC_STANDARD_NORM12" as any,
+        editionId: "SYNTHETIC_EDITION_NORM12",
+        clauseReference: "SYNTHETIC_CLAUSE_S",
+        sourceType: "VERIFIED_INTERNAL_REFERENCE" as const,
+        sourceReference: "SYNTHETIC_SOURCE_S",
+        verificationStatus: "VERIFIED" as const,
+        verifiedBy: "SYSTEM_VALIDATOR",
+        verifiedAt: "2026-01-01T00:00:00.000Z",
+      },
+      {
+        evidenceId: "SYNTHETIC_NORM12_EVIDENCE_E_002",
+        standardId: "SYNTHETIC_STANDARD_NORM12" as any,
+        editionId: "SYNTHETIC_EDITION_NORM12",
+        clauseReference: "SYNTHETIC_CLAUSE_E",
+        sourceType: "VERIFIED_INTERNAL_REFERENCE" as const,
+        sourceReference: "SYNTHETIC_SOURCE_E",
+        verificationStatus: "VERIFIED" as const,
+        verifiedBy: "SYSTEM_VALIDATOR",
+        verifiedAt: "2026-01-01T00:00:00.000Z",
+      },
+      {
+        evidenceId: "SYNTHETIC_NORM12_EVIDENCE_W_003",
+        standardId: "SYNTHETIC_STANDARD_NORM12" as any,
+        editionId: "SYNTHETIC_EDITION_NORM12",
+        clauseReference: "SYNTHETIC_CLAUSE_W",
+        sourceType: "VERIFIED_INTERNAL_REFERENCE" as const,
+        sourceReference: "SYNTHETIC_SOURCE_W",
+        verificationStatus: "VERIFIED" as const,
+        verifiedBy: "SYSTEM_VALIDATOR",
+        verifiedAt: "2026-01-01T00:00:00.000Z",
+      },
+      {
+        evidenceId: "SYNTHETIC_NORM12_EVIDENCE_Y_004",
+        standardId: "SYNTHETIC_STANDARD_NORM12" as any,
+        editionId: "SYNTHETIC_EDITION_NORM12",
+        clauseReference: "SYNTHETIC_CLAUSE_Y",
+        sourceType: "VERIFIED_INTERNAL_REFERENCE" as const,
+        sourceReference: "SYNTHETIC_SOURCE_Y",
+        verificationStatus: "VERIFIED" as const,
+        verifiedBy: "SYSTEM_VALIDATOR",
+        verifiedAt: "2026-01-01T00:00:00.000Z",
+      },
+    ]),
     designCodeId: "ASME-B31.3",
     standardEdition: Object.freeze({ year: "2024" }),
     calculationType: "PRESSURE_WALL_THICKNESS",
@@ -921,6 +967,11 @@ export function runDesignCodeEngineTests(): { success: boolean; testsRun: number
     componentType: "SEAMLESS",
     materialId: "MAT_CS_ASTM_A106_B",
     allowableStressInput: Object.freeze({
+      verifiedValue: Object.freeze({
+        value: 138.0,
+        verificationStatus: "VERIFIED",
+        evidenceIds: Object.freeze(["SYNTHETIC_NORM12_EVIDENCE_S_001"]),
+      }),
       value: 138.0,
       unit: "MPa",
       temperature: 100,
@@ -929,12 +980,22 @@ export function runDesignCodeEngineTests(): { success: boolean; testsRun: number
       sourceReference: "ASME B31.3-2024 Table A-1",
     }),
     qualityFactorInput: Object.freeze({
+      verifiedValue: Object.freeze({
+        value: 1.0,
+        verificationStatus: "VERIFIED",
+        evidenceIds: Object.freeze(["SYNTHETIC_NORM12_EVIDENCE_E_002"]),
+      }),
       factorValue: 1.0,
       productSpecification: "ASTM A106 Seamless",
       qualificationStatus: "VERIFIED",
       sourceReference: "ASME B31.3-2024 Table 302.3.4",
     }),
     weldReductionFactorInput: Object.freeze({
+      verifiedValue: Object.freeze({
+        value: 1.0,
+        verificationStatus: "VERIFIED",
+        evidenceIds: Object.freeze(["SYNTHETIC_NORM12_EVIDENCE_W_003"]),
+      }),
       factorValue: 1.0,
       branchId: "W-01",
       componentType: "SEAMLESS",
@@ -942,6 +1003,11 @@ export function runDesignCodeEngineTests(): { success: boolean; testsRun: number
       sourceReference: "ASME B31.3-2024 para. 302.3.5(e) Seamless Component",
     }),
     yCoefficientInput: Object.freeze({
+      verifiedValue: Object.freeze({
+        value: 0.4,
+        verificationStatus: "VERIFIED",
+        evidenceIds: Object.freeze(["SYNTHETIC_NORM12_EVIDENCE_Y_004"]),
+      }),
       factorValue: 0.4,
       materialFamily: "FERRITIC",
       temperature: 100,
@@ -1222,6 +1288,7 @@ export function runDesignCodeEngineTests(): { success: boolean; testsRun: number
     ...f01Baseline,
     componentType: "SEAMLESS",
     weldReductionFactorInput: {
+      ...f01Baseline.weldReductionFactorInput!,
       factorValue: 1.0,
       branchId: "W-01",
       componentType: "SEAMLESS",
@@ -1241,6 +1308,7 @@ export function runDesignCodeEngineTests(): { success: boolean; testsRun: number
     ...f01Baseline,
     componentType: "WELDED",
     weldReductionFactorInput: {
+      ...f01Baseline.weldReductionFactorInput!,
       factorValue: 1.0,
       branchId: "W-02",
       componentType: "WELDED",
@@ -1483,6 +1551,11 @@ export function runDesignCodeEngineTests(): { success: boolean; testsRun: number
     allowableStressInput: {
       ...f01Baseline.allowableStressInput!,
       value: 100.0,
+      verifiedValue: {
+        value: 100.0,
+        verificationStatus: "VERIFIED",
+        evidenceIds: ["SYNTHETIC_NORM12_EVIDENCE_S_001"],
+      },
     },
   });
   assert(
@@ -1633,6 +1706,11 @@ export function runDesignCodeEngineTests(): { success: boolean; testsRun: number
     allowableStressInput: {
       ...f01Baseline.allowableStressInput!,
       value: 100.0,
+      verifiedValue: {
+        value: 100.0,
+        verificationStatus: "VERIFIED",
+        evidenceIds: ["SYNTHETIC_NORM12_EVIDENCE_S_001"],
+      },
     },
   });
   const expectedT3a = 200 / 201.6;
@@ -1655,6 +1733,11 @@ export function runDesignCodeEngineTests(): { success: boolean; testsRun: number
     allowableStressInput: {
       ...f01Baseline.allowableStressInput!,
       value: 100.0,
+      verifiedValue: {
+        value: 100.0,
+        verificationStatus: "VERIFIED",
+        evidenceIds: ["SYNTHETIC_NORM12_EVIDENCE_S_001"],
+      },
     },
   });
   const expectedT3b = 200 / 197.6;
@@ -1841,6 +1924,7 @@ export function runDesignCodeEngineTests(): { success: boolean; testsRun: number
     ...f01Baseline,
     componentType: "WELDED",
     weldReductionFactorInput: {
+      ...f01Baseline.weldReductionFactorInput!,
       factorValue: 1.0,
       branchId: "W-02",
       componentType: "WELDED",
@@ -2043,6 +2127,7 @@ export function runDesignCodeEngineTests(): { success: boolean; testsRun: number
     ...f01Baseline,
     componentType: "SEAMLESS",
     weldReductionFactorInput: {
+      ...f01Baseline.weldReductionFactorInput!,
       factorValue: 1.0,
       branchId: "W-01",
       componentType: "SEAMLESS",
@@ -2118,6 +2203,7 @@ export function runDesignCodeEngineTests(): { success: boolean; testsRun: number
     ...f01Baseline,
     componentType: "WELDED",
     weldReductionFactorInput: {
+      ...f01Baseline.weldReductionFactorInput!,
       factorValue: 1.0,
       branchId: "W-02",
       componentType: "WELDED",

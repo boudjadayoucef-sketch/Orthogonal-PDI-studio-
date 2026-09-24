@@ -298,10 +298,55 @@ export function runNormativeEvidenceRegistryTests(): {
   );
 
   // =========================================================================
-  // TEST 12 : Vérifier qu'aucun changement F01 n'est nécessaire
-  //           Le moteur designCodeEngine.ts fonctionne sans modification
+  // TEST 12 : Vérifier que le calcul F01 pleinement prouvé produit CALCULATED
   // =========================================================================
   const f01Baseline: EngineeringCalculationInput = {
+    evidenceItems: [
+      {
+        evidenceId: "SYNTHETIC_REG_EV_S_001",
+        standardId: "SYNTHETIC_STANDARD" as any,
+        editionId: "SYNTHETIC_EDITION",
+        clauseReference: "SYNTHETIC_CLAUSE_S",
+        sourceType: "VERIFIED_INTERNAL_REFERENCE" as const,
+        sourceReference: "SYNTHETIC_SOURCE_S",
+        verificationStatus: "VERIFIED" as const,
+        verifiedBy: "SYSTEM_VALIDATOR",
+        verifiedAt: "2026-01-01T00:00:00.000Z",
+      },
+      {
+        evidenceId: "SYNTHETIC_REG_EV_E_002",
+        standardId: "SYNTHETIC_STANDARD" as any,
+        editionId: "SYNTHETIC_EDITION",
+        clauseReference: "SYNTHETIC_CLAUSE_E",
+        sourceType: "VERIFIED_INTERNAL_REFERENCE" as const,
+        sourceReference: "SYNTHETIC_SOURCE_E",
+        verificationStatus: "VERIFIED" as const,
+        verifiedBy: "SYSTEM_VALIDATOR",
+        verifiedAt: "2026-01-01T00:00:00.000Z",
+      },
+      {
+        evidenceId: "SYNTHETIC_REG_EV_W_003",
+        standardId: "SYNTHETIC_STANDARD" as any,
+        editionId: "SYNTHETIC_EDITION",
+        clauseReference: "SYNTHETIC_CLAUSE_W",
+        sourceType: "VERIFIED_INTERNAL_REFERENCE" as const,
+        sourceReference: "SYNTHETIC_SOURCE_W",
+        verificationStatus: "VERIFIED" as const,
+        verifiedBy: "SYSTEM_VALIDATOR",
+        verifiedAt: "2026-01-01T00:00:00.000Z",
+      },
+      {
+        evidenceId: "SYNTHETIC_REG_EV_Y_004",
+        standardId: "SYNTHETIC_STANDARD" as any,
+        editionId: "SYNTHETIC_EDITION",
+        clauseReference: "SYNTHETIC_CLAUSE_Y",
+        sourceType: "VERIFIED_INTERNAL_REFERENCE" as const,
+        sourceReference: "SYNTHETIC_SOURCE_Y",
+        verificationStatus: "VERIFIED" as const,
+        verifiedBy: "SYSTEM_VALIDATOR",
+        verifiedAt: "2026-01-01T00:00:00.000Z",
+      },
+    ],
     designCodeId: "ASME-B31.3",
     standardEdition: { year: "2024" },
     calculationType: "PRESSURE_WALL_THICKNESS",
@@ -312,8 +357,13 @@ export function runNormativeEvidenceRegistryTests(): {
     corrosionAllowanceMm: 1.5,
     diameterBasis: "OUTSIDE",
     componentType: "SEAMLESS",
-    materialId: "MAT_CS_ASTM_A106_B",
+    materialId: "SYNTHETIC_MATERIAL",
     allowableStressInput: {
+      verifiedValue: {
+        value: 138.0,
+        verificationStatus: "VERIFIED",
+        evidenceIds: ["SYNTHETIC_REG_EV_S_001"],
+      },
       value: 138.0,
       unit: "MPa",
       temperature: 100,
@@ -322,12 +372,22 @@ export function runNormativeEvidenceRegistryTests(): {
       sourceReference: "ASME B31.3-2024 Table A-1",
     },
     qualityFactorInput: {
+      verifiedValue: {
+        value: 1.0,
+        verificationStatus: "VERIFIED",
+        evidenceIds: ["SYNTHETIC_REG_EV_E_002"],
+      },
       factorValue: 1.0,
       productSpecification: "ASTM A106 Seamless",
       qualificationStatus: "VERIFIED",
       sourceReference: "ASME B31.3-2024 Table 302.3.4",
     },
     weldReductionFactorInput: {
+      verifiedValue: {
+        value: 1.0,
+        verificationStatus: "VERIFIED",
+        evidenceIds: ["SYNTHETIC_REG_EV_W_003"],
+      },
       factorValue: 1.0,
       branchId: "W-01",
       componentType: "SEAMLESS",
@@ -335,6 +395,11 @@ export function runNormativeEvidenceRegistryTests(): {
       sourceReference: "ASME B31.3-2024 para. 302.3.5(e)",
     },
     yCoefficientInput: {
+      verifiedValue: {
+        value: 0.4,
+        verificationStatus: "VERIFIED",
+        evidenceIds: ["SYNTHETIC_REG_EV_Y_004"],
+      },
       factorValue: 0.4,
       materialFamily: "FERRITIC",
       temperature: 100,

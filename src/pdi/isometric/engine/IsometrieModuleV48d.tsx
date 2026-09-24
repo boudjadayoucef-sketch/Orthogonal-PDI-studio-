@@ -1114,6 +1114,7 @@ const PDI_ISO_SIN_017I2 = Math.sin(PDI_ISO_ANGLE_017I2);
 let globalCurrentViewMode = "iso";
 let globalCurrentYaw = -Math.PI / 4;
 let globalCurrentPitch = Math.PI / 6;
+let globalModelCenter = { x: 0, y: 0, z: 0 };
 
 const getInitialYawPitchForMode = (mode: string, currentYaw?: number, currentPitch?: number) => {
   if (mode === "top") return { yaw: 0, pitch: Math.PI / 2 - 0.01 };
@@ -1181,12 +1182,28 @@ const getProjectionAxes = (mode: string = globalCurrentViewMode, yaw: number = g
   };
 };
 
-const isoProjectV4 = (x:number,y:number,z:number,zoom:number,panX:number,panY:number, mode?: string, yaw?: number, pitch?: number) => {
+const isoProjectV4 = (x: number, y: number, z: number = 0, zoom: number = 1, panX: number = 0, panY: number = 0, mode?: string, yaw?: number, pitch?: number) => {
+  const safeX = typeof x === "number" && !isNaN(x) ? x : 0;
+  const safeY = typeof y === "number" && !isNaN(y) ? y : 0;
+  const safeZ = typeof z === "number" && !isNaN(z) ? z : 0;
   const scale = 28 * zoom;
-  const axes = getProjectionAxes(mode ?? globalCurrentViewMode, yaw ?? globalCurrentYaw, pitch ?? globalCurrentPitch);
+  const currentMode = mode ?? globalCurrentViewMode;
+  const currentYaw = yaw ?? globalCurrentYaw;
+  const currentPitch = pitch ?? globalCurrentPitch;
+  const axes = getProjectionAxes(currentMode, currentYaw, currentPitch);
+
+  let rx = safeX;
+  let ry = safeY;
+  let rz = safeZ;
+  if (currentMode === "free") {
+    rx = safeX - (globalModelCenter.x || 0);
+    ry = safeY - (globalModelCenter.y || 0);
+    rz = safeZ - (globalModelCenter.z || 0);
+  }
+
   return {
-    x: 310 + panX + (x * axes.dx_x + y * axes.dx_y + z * axes.dx_z) * scale,
-    y: 210 + panY + (x * axes.dy_x + y * axes.dy_y + z * axes.dy_z) * scale
+    x: 310 + panX + (rx * axes.dx_x + ry * axes.dx_y + rz * axes.dx_z) * scale,
+    y: 210 + panY + (rx * axes.dy_x + ry * axes.dy_y + rz * axes.dy_z) * scale
   };
 };
 
@@ -1266,13 +1283,13 @@ const bendOffsetV4=(t:IsoFittingType,dn:number)=>{
   return base*.4;
 };
 
-const isoPolylineV4=(s:IsoSegment,a:IsoNode,b:IsoNode,zoom:number,panX:number,panY:number)=>{
+const isoPolylineV4=(s:IsoSegment,a:IsoNode,b:IsoNode,zoom:number,panX:number,panY:number, mode?: string, yaw?: number, pitch?: number)=>{
   // V4.6.1_NATIVE_POLYLINE : tube droit entre les faces des ports.
   const endpoints=segmentEndpoints(s,[a,b],[s]);
   const from=endpoints?.from||a,to=endpoints?.to||b;
   return [
-    isoProjectV4(from.x,from.y,from.z,zoom,panX,panY),
-    isoProjectV4(to.x,to.y,to.z,zoom,panX,panY)
+    isoProjectV4(from.x,from.y,from.z || 0,zoom,panX,panY, mode, yaw, pitch),
+    isoProjectV4(to.x,to.y,to.z || 0,zoom,panX,panY, mode, yaw, pitch)
   ];
 };
 
@@ -1341,7 +1358,7 @@ function buildIsoAnnotationLayout(nodes:IsoNode[],segments:IsoSegment[],joints:P
     const placement={id,x:chosen.x,y:chosen.y,anchorX,anchorY,width,height};
     occupied.push(placement);result.set(id,placement);
   };
-  const project=(point:{x:number;y:number;z:number})=>isoProjectV4(point.x,point.y,point.z,viewport.zoom,viewport.panX,viewport.panY,viewport.viewMode,viewport.yaw,viewport.pitch);
+  const project=(point:{x:number;y:number;z?:number})=>isoProjectV4(point.x,point.y,point.z || 0,viewport.zoom,viewport.panX,viewport.panY,viewport.viewMode,viewport.yaw,viewport.pitch);
   // Réserver le cœur des équipements avant de placer les textes.
   nodes.forEach((node)=>{
     const p=project(node);
@@ -1648,6 +1665,8 @@ function IsometrieModule(props: { projectId?: string }) {
   const [lines,setLinesRaw]=useState<PipingLine[]>([{id:DEFAULT_LINE_ID,lineNumber:"",service:"",dn:100,nps:'4"',material:"",pressureClass:PDI_CLASSE_PAR_DEFAUT_017K3,schedule:"40",designPressure:40,color:"#9CA3AF"}]);
   const importProjectRef=useRef<HTMLInputElement>(null);
   const [dimensions, setDimensionsRaw] = useState<IsoDimension[]>([]);
+  const [isSpaceDown, setIsSpaceDown] = useState(false);
+  const isSpacePressedRef = useRef(false);
 
   // PATCH 007 — real 2D geometry foundation.
   const [cad2dEntities, setCad2dEntitiesRaw] = useState<Cad2dEntity[]>([]);
@@ -2534,6 +2553,22 @@ function IsometrieModule(props: { projectId?: string }) {
   globalCurrentYaw = viewport.yaw ?? -Math.PI / 4;
   globalCurrentPitch = viewport.pitch ?? Math.PI / 6;
 
+  if (nodes.length > 0) {
+    let sumX = 0, sumY = 0, sumZ = 0;
+    for (let i = 0; i < nodes.length; i++) {
+      sumX += nodes[i].x;
+      sumY += nodes[i].y;
+      sumZ += nodes[i].z || 0;
+    }
+    globalModelCenter = {
+      x: sumX / nodes.length,
+      y: sumY / nodes.length,
+      z: sumZ / nodes.length
+    };
+  } else {
+    globalModelCenter = { x: 0, y: 0, z: 0 };
+  }
+
   const orbitDrag = useRef<{ x: number; y: number; startYaw: number; startPitch: number } | null>(null);
   const drag=useRef<{x:number;y:number;px:number;py:number}|null>(null);
   const rightClickStartRef = useRef<{ x: number; y: number } | null>(null);
@@ -2805,7 +2840,7 @@ function IsometrieModule(props: { projectId?: string }) {
     const index = new Map<string, number>();
     for (let i = 0; i < nodes.length; i += 1) {
       const n = nodes[i];
-      const p = isoProjectV4(n.x, n.y, n.z || 0, viewport.zoom, viewport.panX, viewport.panY);
+      const p = isoProjectV4(n.x, n.y, n.z || 0, viewport.zoom, viewport.panX, viewport.panY, viewport.viewMode, viewport.yaw, viewport.pitch);
       buffer[i * 2] = p.x;
       buffer[i * 2 + 1] = p.y;
       index.set(n.id, i);
@@ -2848,15 +2883,43 @@ function IsometrieModule(props: { projectId?: string }) {
     const activeCad2d = Array.isArray(overrideCad2d) ? overrideCad2d : cad2dEntities;
 
     const targetMode = overrideViewMode || viewport.viewMode || "iso";
-    const currentAxes = getProjectionAxes(targetMode, viewport.yaw, viewport.pitch);
+    const initialYP = getInitialYawPitchForMode(targetMode, viewport.yaw, viewport.pitch);
+    const targetYaw = targetMode === "iso" ? -Math.PI / 4 : (targetMode === "top" ? 0 : (targetMode === "front" ? 0 : (targetMode === "side" ? Math.PI / 2 : (viewport.yaw ?? initialYP.yaw))));
+    const targetPitch = targetMode === "iso" ? Math.PI / 6 : (targetMode === "top" ? Math.PI / 2 - 0.01 : (targetMode === "front" ? 0.02 : (targetMode === "side" ? 0.02 : (viewport.pitch ?? initialYP.pitch))));
+    const currentAxes = getProjectionAxes(targetMode, targetYaw, targetPitch);
+
+    let sumX = 0, sumY = 0, sumZ = 0;
+    if (activeNodes.length > 0) {
+      for (let i = 0; i < activeNodes.length; i++) {
+        sumX += activeNodes[i].x;
+        sumY += activeNodes[i].y;
+        sumZ += activeNodes[i].z || 0;
+      }
+      globalModelCenter = {
+        x: sumX / activeNodes.length,
+        y: sumY / activeNodes.length,
+        z: sumZ / activeNodes.length
+      };
+    }
 
     // Collect all base world projection points from nodes, segments, cad2d, dimensions
     const basePoints: Array<{ x: number; y: number }> = [];
 
     const projectPointBase = (x: number, y: number, z: number = 0) => {
+      const sz = typeof z === "number" && !isNaN(z) ? z : 0;
+      const sx = typeof x === "number" && !isNaN(x) ? x : 0;
+      const sy = typeof y === "number" && !isNaN(y) ? y : 0;
+      let rx = sx;
+      let ry = sy;
+      let rz = sz;
+      if (targetMode === "free") {
+        rx = sx - globalModelCenter.x;
+        ry = sy - globalModelCenter.y;
+        rz = sz - globalModelCenter.z;
+      }
       return {
-        x: (x * currentAxes.dx_x + y * currentAxes.dx_y + z * currentAxes.dx_z) * 28,
-        y: (x * currentAxes.dy_x + y * currentAxes.dy_y + z * currentAxes.dy_z) * 28
+        x: (rx * currentAxes.dx_x + ry * currentAxes.dx_y + rz * currentAxes.dx_z) * 28,
+        y: (rx * currentAxes.dy_x + ry * currentAxes.dy_y + rz * currentAxes.dy_z) * 28
       };
     };
 
@@ -2900,7 +2963,7 @@ function IsometrieModule(props: { projectId?: string }) {
     }
 
     if (basePoints.length === 0) {
-      setViewport({ zoom: 1, panX: 0, panY: 0, viewMode: targetMode });
+      setViewport({ zoom: 1, panX: 0, panY: 0, viewMode: targetMode, yaw: targetYaw, pitch: targetPitch });
       setStatusMessage("Vue recentrée (origine 0,0,0)");
       return;
     }
@@ -2935,8 +2998,8 @@ function IsometrieModule(props: { projectId?: string }) {
       panX,
       panY,
       viewMode: targetMode,
-      yaw: targetMode === "iso" ? -Math.PI / 4 : viewport.yaw,
-      pitch: targetMode === "iso" ? Math.PI / 6 : viewport.pitch
+      yaw: targetYaw,
+      pitch: targetPitch
     });
     setStatusMessage(`Vue ajustée au modèle (${Math.round(fitZoom * 100)}%)`);
   };
@@ -5549,6 +5612,20 @@ function IsometrieModule(props: { projectId?: string }) {
         return;
       }
 
+      // Space pour navigation panoramique instantanée
+      if (e.code === "Space") {
+        const activeEl = document.activeElement;
+        const isInput = activeEl && (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA" || (activeEl as HTMLElement).isContentEditable);
+        if (!isInput && (!cadDraftSession || cadDraftSession.tool !== "polyline")) {
+          e.preventDefault();
+          if (!isSpacePressedRef.current) {
+            isSpacePressedRef.current = true;
+            setIsSpaceDown(true);
+          }
+          return;
+        }
+      }
+
       // 7. Focus rapide sur la ligne de commande (':' ou '/')
       if (e.key === ":" || e.key === "/") {
         e.preventDefault();
@@ -5587,7 +5664,7 @@ function IsometrieModule(props: { projectId?: string }) {
       // 9. Raccourcis outils 1 touche (quand keyboardShortcutsEnabled === true)
       if (keyboardShortcutsEnabled) {
         if (key === "v") { setInteractionMode("select"); setIsoDrawMode("select"); setStatusMessage("Outil Sélection"); return; }
-        if (key === "h" || e.code === "Space") { e.preventDefault(); setInteractionMode("main"); setStatusMessage("Outil Main"); return; }
+        if (key === "h") { e.preventDefault(); setInteractionMode("main"); setStatusMessage("Outil Main (Déplacement)"); return; }
         if (key === "o") { setInteractionMode("orbit"); setStatusMessage("Outil Orbite 3D Libres (Glissez le clic gauche)"); return; }
         if (key === "n") { setIsoDrawMode("node"); setInteractionMode("select"); setStatusMessage("Création de nœud"); return; }
         if (key === "t") { e.preventDefault(); createTubeFromSelection(); return; }
@@ -5616,8 +5693,19 @@ function IsometrieModule(props: { projectId?: string }) {
       }
     };
 
+    const onGlobalKeyUp = (e: KeyboardEvent) => {
+      if (e.code === "Space") {
+        isSpacePressedRef.current = false;
+        setIsSpaceDown(false);
+      }
+    };
+
     window.addEventListener("keydown", onGlobalKeyDown, true);
-    return () => window.removeEventListener("keydown", onGlobalKeyDown, true);
+    window.addEventListener("keyup", onGlobalKeyUp, true);
+    return () => {
+      window.removeEventListener("keydown", onGlobalKeyDown, true);
+      window.removeEventListener("keyup", onGlobalKeyUp, true);
+    };
   }, [
     solid3dViewerOpen, weldSpoolModalOpen, printModalOpen, keyboardShortcutsEnabled, autocadCmdInput,
     guidedCmd, cad2dModifySession, activeSupportTypeToPlace, cadDraftSession,
@@ -5720,17 +5808,31 @@ function IsometrieModule(props: { projectId?: string }) {
     }
 
     const target=e.target as Element;
+    if (target.closest("[data-pdi-viewcube='true']")) {
+      // Let ViewCube handle its own click events directly
+      return;
+    }
+
     const isOrbitModeActive = interactionMode === "orbit";
-    const isViewCubeClick = Boolean(target.closest("[data-pdi-viewcube='true']"));
-    const isModifierOrbit = e.shiftKey || e.altKey;
+    const isModifierOrbit = (e.shiftKey || e.altKey) && interactionMode !== "main" && !isSpacePressedRef.current;
     const isNodeOrSegment = target.closest(".pdi-node") || target.closest(".pdi-segment") || target.closest(".pdi-fitting") || target.closest("[data-iso-port='true']");
 
+    // Pan gestures: Hand tool, Space held down, Middle click (1), Right click (2), or Shift/Ctrl drag in orbit mode
+    const isPanMode = interactionMode === "main" || isSpacePressedRef.current;
+    const isModifierPan = (e.button === 1) || (e.button === 2) || (isOrbitModeActive && (e.shiftKey || e.ctrlKey));
+
+    if (isPanMode || isModifierPan) {
+      if (e.button === 2) {
+        rightClickStartRef.current = { x: e.clientX, y: e.clientY };
+      }
+      e.currentTarget.setPointerCapture(e.pointerId);
+      drag.current = { x: e.clientX, y: e.clientY, px: viewport.panX, py: viewport.panY };
+      return;
+    }
+
     const isOrbitStart = 
-      isOrbitModeActive ||
-      isViewCubeClick ||
-      (e.button === 0 && isModifierOrbit && !isNodeOrSegment) ||
-      (e.button === 1 && isModifierOrbit) ||
-      (e.button === 2 && isModifierOrbit);
+      (isOrbitModeActive && e.button === 0) ||
+      (e.button === 0 && isModifierOrbit && !isNodeOrSegment);
 
     if (isOrbitStart) {
       e.preventDefault();
@@ -5743,16 +5845,6 @@ function IsometrieModule(props: { projectId?: string }) {
         startPitch: initAngles.pitch
       };
       setViewport(v => ({ ...v, viewMode: "free", yaw: initAngles.yaw, pitch: initAngles.pitch }));
-      return;
-    }
-
-    // Middle click (wheel button) or Right click = Universal CAD pan
-    if (e.button === 1 || e.button === 2) {
-      if (e.button === 2) {
-        rightClickStartRef.current = { x: e.clientX, y: e.clientY };
-      }
-      e.currentTarget.setPointerCapture(e.pointerId);
-      drag.current = { x: e.clientX, y: e.clientY, px: viewport.panX, py: viewport.panY };
       return;
     }
 
@@ -5776,13 +5868,6 @@ function IsometrieModule(props: { projectId?: string }) {
         e.stopPropagation();
         return;
       }
-    }
-
-    // MODE MAIN : uniquement déplacement de la feuille.
-    if(interactionMode==="main"){
-      e.currentTarget.setPointerCapture(e.pointerId);
-      drag.current={x:e.clientX,y:e.clientY,px:viewport.panX,py:viewport.panY};
-      return;
     }
 
     if (isoDrawMode === "dimension") {
@@ -6365,13 +6450,20 @@ function IsometrieModule(props: { projectId?: string }) {
       const dx = e.clientX - cur.x;
       const dy = e.clientY - cur.y;
       const nextYaw = cur.startYaw + dx * 0.007;
-      const nextPitch = clamp(cur.startPitch - dy * 0.007, 0.01, Math.PI / 2 - 0.01);
+      const nextPitch = clamp(cur.startPitch - dy * 0.007, -Math.PI / 2 + 0.02, Math.PI / 2 - 0.02);
       setViewport(v => ({
         ...v,
         viewMode: "free",
         yaw: nextYaw,
         pitch: nextPitch
       }));
+      return;
+    }
+
+    if (drag.current && (interactionMode === "main" || isSpacePressedRef.current || e.buttons === 4 || e.buttons === 2 || interactionMode === "orbit")) {
+      const cur = drag.current;
+      const dx = e.clientX - cur.x, dy = e.clientY - cur.y;
+      setViewport(v => ({ ...v, panX: cur.px + dx, panY: cur.py + dy }));
       return;
     }
 
@@ -7004,7 +7096,7 @@ function IsometrieModule(props: { projectId?: string }) {
     setEdit(null);
   };
 
-  const iso=(n:IsoNode)=>isoProjectV4(n.x,n.y,n.z,viewport.zoom,viewport.panX,viewport.panY);
+  const iso=(n:IsoNode)=>isoProjectV4(n.x,n.y,n.z || 0,viewport.zoom,viewport.panX,viewport.panY,viewport.viewMode,viewport.yaw,viewport.pitch);
 
   const screenToIsoWorld=(e:React.PointerEvent<any>, targetZ:number = nodeZ || 0)=>{
     const { sx, sy } = getSvgCoordinates(e.clientX, e.clientY, svgRef.current || (e.currentTarget as unknown as SVGSVGElement));
@@ -7074,7 +7166,7 @@ function IsometrieModule(props: { projectId?: string }) {
     const node = nodes.find((n) => n.id === anchor.nodeId);
     if (!node) return null;
     if (anchor.kind === "port" && anchor.portId) return portWorldPosition(node, anchor.portId, nodes, segments);
-    return { x: node.x, y: node.y, z: node.z };
+    return { x: node.x, y: node.y, z: node.z || 0 };
   };
 
   const dimensionRenderItems = useMemo(
@@ -7084,8 +7176,8 @@ function IsometrieModule(props: { projectId?: string }) {
           const a = resolveDimensionAnchor(dimension.a);
           const b = resolveDimensionAnchor(dimension.b);
           if (!a || !b) return null;
-          const p1 = isoProjectV4(a.x, a.y, a.z, viewport.zoom, viewport.panX, viewport.panY, viewport.viewMode, viewport.yaw, viewport.pitch);
-          const p2 = isoProjectV4(b.x, b.y, b.z, viewport.zoom, viewport.panX, viewport.panY, viewport.viewMode, viewport.yaw, viewport.pitch);
+          const p1 = isoProjectV4(a.x, a.y, a.z || 0, viewport.zoom, viewport.panX, viewport.panY, viewport.viewMode, viewport.yaw, viewport.pitch);
+          const p2 = isoProjectV4(b.x, b.y, b.z || 0, viewport.zoom, viewport.panX, viewport.panY, viewport.viewMode, viewport.yaw, viewport.pitch);
           const rawOffset = dimension.offset || { x: 0, y: -24 };
 
           const dx2d = p2.x - p1.x;
@@ -10800,7 +10892,7 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
               </div>
             )}
 
-            <svg ref={svgRef} viewBox="0 0 620 400" className={`${workspaceFullscreen ? "h-full w-full flex-1" : (commandPromptHidden ? "h-[clamp(600px,88vh,1400px)]" : "h-[clamp(560px,78vh,1000px)]")} w-full select-none touch-none cursor-crosshair`}
+            <svg ref={svgRef} viewBox="0 0 620 400" className={`${workspaceFullscreen ? "h-full w-full flex-1" : (commandPromptHidden ? "h-[clamp(600px,88vh,1400px)]" : "h-[clamp(560px,78vh,1000px)]")} w-full select-none touch-none ${isSpaceDown || interactionMode === "main" ? "cursor-grab active:cursor-grabbing" : (interactionMode === "orbit" || viewport.viewMode === "free" ? "cursor-move" : (isoDrawMode === "select" ? "cursor-default" : "cursor-crosshair"))}`}
               onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerUp}
               onContextMenu={openIsoContextMenu}
               onDragOver={e=>{e.preventDefault();e.dataTransfer.dropEffect="copy"}} onDrop={dropEquipmentOnCanvas}>
@@ -10890,8 +10982,8 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                   const a=nodes.find(n=>n.id===s.fromNodeId),b=nodes.find(n=>n.id===s.toNodeId);
                   if(!a||!b)return null;
                   const endpoints=segmentEndpoints(s,nodes,segments);
-                  const p1=endpoints?isoProjectV4(endpoints.from.x,endpoints.from.y,endpoints.from.z,viewport.zoom,viewport.panX,viewport.panY):iso(a);
-                  const p2=endpoints?isoProjectV4(endpoints.to.x,endpoints.to.y,endpoints.to.z,viewport.zoom,viewport.panX,viewport.panY):iso(b),sel=s.id===selectedSegmentId||selectedSegmentIds.includes(s.id);
+                  const p1=endpoints?isoProjectV4(endpoints.from.x,endpoints.from.y,endpoints.from.z || 0,viewport.zoom,viewport.panX,viewport.panY,viewport.viewMode,viewport.yaw,viewport.pitch):iso(a);
+                  const p2=endpoints?isoProjectV4(endpoints.to.x,endpoints.to.y,endpoints.to.z || 0,viewport.zoom,viewport.panX,viewport.panY,viewport.viewMode,viewport.yaw,viewport.pitch):iso(b),sel=s.id===selectedSegmentId||selectedSegmentIds.includes(s.id);
                   const width=clamp((s.dn/25)*pipeStrokeScale,2,24),mx=(p1.x+p2.x)/2,my=(p1.y+p2.y)/2;
                   const dimensionAnnotation=editorAnnotationMap.get(`segment:${s.id}`);
                   return <g key={s.id} data-iso-object="true" data-iso-segment="true" data-segment-id={s.id} style={{isolation:"isolate"}}
@@ -10911,7 +11003,7 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                     }}
                     onPointerEnter={()=>setHoveredEntity({ type: "segment", id: s.id })}
                     onPointerLeave={()=>setHoveredEntity(null)}>
-                    {(() => { const pts=isoPolylineV4(s,a,b,viewport.zoom,viewport.panX,viewport.panY); const path=isoPathV4(pts); return <>
+                    {(() => { const pts=isoPolylineV4(s,a,b,viewport.zoom,viewport.panX,viewport.panY,viewport.viewMode,viewport.yaw,viewport.pitch); const path=isoPathV4(pts); return <>
                       {/* Zone de clic élargie invisible pour sélection sans faille */}
                       <path d={path} stroke="#000000" strokeOpacity="0.001" strokeWidth={Math.max(width + 16, 20)} strokeLinecap="round" fill="none" pointerEvents="all" className="cursor-pointer" />
                       {sel&&<path d={path} stroke="#38bdf8" strokeWidth={width+5} strokeOpacity=".16" strokeLinecap="round" strokeLinejoin="round" fill="none"/>}
@@ -10974,7 +11066,7 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                   const isSel = selectedNodeIds.includes(n.id) || n.id === selectedNodeId;
                   const isHov = hoveredEntity?.type === "node" && hoveredEntity.id === n.id;
                   const fill = n.type==="entree_poste"?"#22c55e":n.type==="sortie_poste"?"#ef4444":isTee?"#8b5cf6":"#0284c7";
-                  const nativePorts=(n.ports||[]).map(port=>{const w=portWorldPosition(n,port.id,nodes,segments),sp=isoProjectV4(w.x,w.y,w.z,viewport.zoom,viewport.panX,viewport.panY);return {...port,sx:sp.x-p.x,sy:sp.y-p.y};});
+                  const nativePorts=(n.ports||[]).map(port=>{const w=portWorldPosition(n,port.id,nodes,segments),sp=isoProjectV4(w.x,w.y,w.z || 0,viewport.zoom,viewport.panX,viewport.panY,viewport.viewMode,viewport.yaw,viewport.pitch);return {...port,sx:sp.x-p.x,sy:sp.y-p.y};});
                   const p0=nativePorts.find(port=>port.index===0),p1=nativePorts.find(port=>port.index===1);
 
                   // Calcul topologique rigoureux de l'alignement axial et de l'orientation des coudes

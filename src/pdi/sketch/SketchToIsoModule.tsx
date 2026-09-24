@@ -24,6 +24,7 @@ import {
   DEMO_INITIAL_SEGMENTS,
   DEMO_INITIAL_FITTINGS
 } from "./demoSketchTemplate";
+import { detectSketchTopologyLocal } from "./localSketchDetector";
 
 export interface SketchToIsoModuleProps {
   onLoadProjectToEditor?: (isoJson: any, name: string) => void;
@@ -67,6 +68,12 @@ export const SketchToIsoModule: React.FC<SketchToIsoModuleProps> = ({
   // Calligraphy Learning Profile
   const [profile, setProfile] = useState<SketchLearningProfile>(() => getLocalLearningProfile());
 
+  // AI Vision Detection State
+  const [isDetectingAI, setIsDetectingAI] = useState<boolean>(false);
+  const [autoDetectOnImport, setAutoDetectOnImport] = useState<boolean>(true);
+  const [aiDetectionSummary, setAiDetectionSummary] = useState<string | null>(null);
+  const [aiDetectedEquipment, setAiDetectedEquipment] = useState<any[]>([]);
+
   // Show live compiled JSON modal
   const [showJsonModal, setShowJsonModal] = useState<boolean>(false);
   const [compiledJsonPreview, setCompiledJsonPreview] = useState<CompiledIsoModel | null>(null);
@@ -102,6 +109,86 @@ export const SketchToIsoModule: React.FC<SketchToIsoModuleProps> = ({
     setStatusMessage("✅ Croquis de démonstration A4 chargé avec succès.");
   };
 
+  // AI Vision & OCR Detection Function
+  const [ocrDimensions, setOcrDimensions] = useState<Array<{ text: string; valueMm: number }>>([]);
+
+  const handleRunAiDetection = async (overrideDataUrl?: string, overrideDims?: { width: number; height: number }) => {
+    const targetImg = overrideDataUrl || imageDataUrl;
+    if (!targetImg) {
+      setStatusMessage("⚠️ Veuillez d'abord importer un scan ou charger un croquis.");
+      return;
+    }
+
+    const dims = overrideDims || imageDimensions;
+    setIsDetectingAI(true);
+    setStatusMessage("🔍 Analyse OCR & Vision : Lecture du cartouche, reconnaissance des cotes mm, pompe et segmentation de la table BOM...");
+
+    try {
+      let data: any = null;
+
+      // 1. Tenter l'analyse OCR avancée sur le serveur
+      try {
+        const res = await fetch("/api/sketch/detect-iso", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            imageBase64: targetImg,
+            imageWidth: dims.width,
+            imageHeight: dims.height,
+            format: format
+          })
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (json?.data) {
+            data = json.data;
+          }
+        }
+      } catch (netErr) {
+        console.warn("[OCR Client] Serveur non joignable, bascule locale :", netErr);
+      }
+
+      // 2. Fallback local avec segmentation de feuille si serveur absent
+      if (!data) {
+        data = await detectSketchTopologyLocal(targetImg, dims.width, dims.height);
+      }
+
+      if (data.detectedTitle) setProjectName(data.detectedTitle);
+      if (data.service) setService(data.service);
+
+      // Calibrage automatique de l'échelle à partir de l'OCR des cotes
+      if (data.calibrationScale && typeof data.calibrationScale === "number" && data.calibrationScale > 0) {
+        setCalibrationScale(data.calibrationScale);
+      }
+
+      if (Array.isArray(data.ocrDimensions)) {
+        setOcrDimensions(data.ocrDimensions);
+      }
+
+      if (Array.isArray(data.nodes) && data.nodes.length > 0) {
+        setNodes(data.nodes);
+      }
+      if (Array.isArray(data.segments)) {
+        setSegments(data.segments);
+      }
+      if (Array.isArray(data.fittings)) {
+        setFittings(data.fittings);
+      }
+      if (Array.isArray(data.equipment)) {
+        setAiDetectedEquipment(data.equipment);
+      }
+
+      const summaryText = data.summary || `Détection OCR terminée : ${data.nodes?.length || 0} nœuds, ${data.segments?.length || 0} tronçons, échelle calibrée à ${data.calibrationScale || calibrationScale} px/mm. Table BOM exclue.`;
+      setAiDetectionSummary(summaryText);
+      setStatusMessage(`🎯 ${summaryText} Ajustez la position des éléments si nécessaire puis validez.`);
+    } catch (err: any) {
+      console.error("OCR Vision Detection Error:", err);
+      setStatusMessage(`⚠️ Échec de l'analyse OCR : ${err.message || "Erreur"}`);
+    } finally {
+      setIsDetectingAI(false);
+    }
+  };
+
   // Handle File Upload
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -113,12 +200,17 @@ export const SketchToIsoModule: React.FC<SketchToIsoModuleProps> = ({
       if (result) {
         const img = new Image();
         img.onload = () => {
-          setImageDimensions({ width: img.width, height: img.height });
+          const dims = { width: img.width, height: img.height };
+          setImageDimensions(dims);
           setImageDataUrl(result);
-          setNodes([]);
-          setSegments([]);
-          setFittings([]);
-          setStatusMessage(`📸 Image "${file.name}" importée (${img.width}x${img.height}px).`);
+          if (autoDetectOnImport) {
+            handleRunAiDetection(result, dims);
+          } else {
+            setNodes([]);
+            setSegments([]);
+            setFittings([]);
+            setStatusMessage(`📸 Image "${file.name}" importée. Cliquez sur "✨ Détecter par IA" pour générer automatiquement le tracé.`);
+          }
         };
         img.src = result;
       }
@@ -270,6 +362,7 @@ export const SketchToIsoModule: React.FC<SketchToIsoModuleProps> = ({
             activeTool={activeTool}
             selectedFittingType={selectedFittingType}
             recenterTrigger={recenterTrigger}
+            isDetectingAI={isDetectingAI}
             onNodesChange={setNodes}
             onSegmentsChange={setSegments}
             onFittingsChange={setFittings}
@@ -574,7 +667,105 @@ export const SketchToIsoModule: React.FC<SketchToIsoModuleProps> = ({
                 )}
               </div>
 
-            {/* SECTION 2: ACTIONS & FICHIERS */}
+            {/* SECTION 2: DÉTECTION OCR & CALIBRAGE AUTOMATIQUE DU PLAN */}
+            <div style={{ background: "linear-gradient(135deg, rgba(14, 116, 144, 0.25), rgba(15, 23, 42, 0.6))", border: "1px solid #0284C7", borderRadius: 8, padding: 8, display: "flex", flexDirection: "column", gap: 7 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span style={{ fontSize: 10, fontWeight: 900, color: "#38BDF8", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                  🔍 OCR &amp; Calibrage Plan
+                </span>
+                <span style={{ fontSize: 9, background: "#0369A1", color: "#E0F2FE", padding: "1px 5px", borderRadius: 4, fontWeight: 800 }}>
+                  Étalonnage OCR
+                </span>
+              </div>
+
+              {/* Bouton de Détection Principale */}
+              <button
+                type="button"
+                disabled={isDetectingAI || !imageDataUrl}
+                onClick={() => handleRunAiDetection()}
+                title="Détecter automatiquement le matériel (pompe, vannes, ligne), lire les cotes OCR et calibrer l'échelle en excluant la table BOM"
+                style={{
+                  width: "100%",
+                  padding: "9px 10px",
+                  background: isDetectingAI
+                    ? "linear-gradient(135deg, #075985, #0C4A6E)"
+                    : "linear-gradient(135deg, #0284C7 0%, #059669 100%)",
+                  border: "1px solid #38BDF8",
+                  borderRadius: 6,
+                  color: "#FFFFFF",
+                  fontSize: 11,
+                  fontWeight: 800,
+                  cursor: isDetectingAI || !imageDataUrl ? "not-allowed" : "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6,
+                  boxShadow: "0 4px 12px rgba(2, 132, 199, 0.35)",
+                  transition: "transform 0.1s ease"
+                }}
+              >
+                <span style={{ fontSize: 14 }}>{isDetectingAI ? "⏳" : "⚡"}</span>
+                <span>{isDetectingAI ? "Analyse OCR en cours..." : "Détecter par OCR & Calibrer le Plan"}</span>
+              </button>
+
+              {/* Option Détection Auto à l'import */}
+              <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10.5, color: "#BAE6FD", cursor: "pointer", userSelect: "none" }}>
+                <input
+                  type="checkbox"
+                  checked={autoDetectOnImport}
+                  onChange={(e) => setAutoDetectOnImport(e.target.checked)}
+                  style={{ accentColor: "#0284C7", cursor: "pointer" }}
+                />
+                <span>Auto-détecter à l'import d'image</span>
+              </label>
+
+              {/* Carte Résumé si éléments détectés */}
+              {aiDetectionSummary && (
+                <div style={{ background: "rgba(15, 23, 42, 0.85)", border: "1px solid #38BDF8", borderRadius: 6, padding: 6, display: "flex", flexDirection: "column", gap: 4 }}>
+                  <div style={{ fontSize: 9.5, color: "#38BDF8", fontWeight: 800, display: "flex", alignItems: "center", gap: 4 }}>
+                    <span>✓</span> <span>RÉSULTAT OCR &amp; CALIBRAGE :</span>
+                  </div>
+                  <div style={{ fontSize: 10, color: "#E2E8F0", lineHeight: 1.3 }}>
+                    {aiDetectionSummary}
+                  </div>
+
+                  {/* Affichage des cotes OCR détectées */}
+                  {ocrDimensions.length > 0 && (
+                    <div style={{ marginTop: 2, display: "flex", flexDirection: "column", gap: 2 }}>
+                      <span style={{ fontSize: 9, color: "#94A3B8", fontWeight: 700 }}>Cotes millimétriques reconnues (OCR) :</span>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
+                        {ocrDimensions.map((dim, i) => (
+                          <span key={i} style={{ background: "rgba(2, 132, 199, 0.3)", border: "1px solid #38BDF8", color: "#BAE6FD", fontSize: 8.5, fontWeight: 700, padding: "1px 4px", borderRadius: 3 }}>
+                            {dim.text || `${dim.valueMm} mm`}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Tags matériel détecté */}
+                  {aiDetectedEquipment.length > 0 && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 3, marginTop: 2 }}>
+                      {aiDetectedEquipment.map((eq, i) => (
+                        <span key={i} style={{ background: "#0369A1", color: "#FFFFFF", fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 3 }}>
+                          {eq.tag || eq.type}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Indicateur d'échelle calibrée */}
+                  <div style={{ fontSize: 9, color: "#34D399", fontWeight: 700, marginTop: 2, display: "flex", alignItems: "center", gap: 4 }}>
+                    <span>🎯</span> <span>Échelle : {calibrationScale > 0 ? `${calibrationScale.toFixed(3)} px/mm` : "Non étalonné"} (Zone BOM exclue)</span>
+                  </div>
+                  <div style={{ fontSize: 9, color: "#94A3B8", marginTop: 2 }}>
+                    💡 Cliquez &amp; glissez les nœuds pour ajuster la position, puis validez.
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* SECTION 2B: ACTIONS & FICHIERS */}
             <div>
               <div style={{ fontSize: 10, fontWeight: 800, color: "#38BDF8", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>
                 Fichiers &amp; Données

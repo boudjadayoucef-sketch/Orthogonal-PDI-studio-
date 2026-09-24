@@ -34,6 +34,23 @@ import {
 import {
   getDesignCodeCalculationEntry,
 } from "../registry/designCodeRegistry";
+import { NormativeEvidenceRegistry } from "../registry/normativeEvidenceRegistry";
+import { NormativeEvidenceResolver } from "../registry/normativeEvidenceResolver";
+import { resolveVerifiedNormativeValue } from "../validators/normativeVerifiedValueValidator";
+
+function buildCalculationEvidenceResolver(
+  input: EngineeringCalculationInput
+): NormativeEvidenceResolver {
+  const registry = new NormativeEvidenceRegistry();
+  for (const evidence of input.evidenceItems ?? []) {
+    try {
+      registry.register(evidence);
+    } catch {
+      // Ignore invalid evidence items at registration stage
+    }
+  }
+  return new NormativeEvidenceResolver(registry);
+}
 
 function buildInputsRecord(
   input: EngineeringCalculationInput,
@@ -65,6 +82,7 @@ function executeAsmeB313F01Calculation(
   formula: DesignCodeFormulaReference,
   effectiveEdition: StandardEdition | undefined
 ): EngineeringCalculationResult {
+  const calculationEvidenceResolver = buildCalculationEvidenceResolver(input);
   // RÈGLE ABSOLUE F01 : Le contrat qualifié est exclusivement SI (MPa, mm, °C)
   if (input.unitSystem !== "SI") {
     return Object.freeze({
@@ -261,6 +279,12 @@ function executeAsmeB313F01Calculation(
       sInput.qualificationStatus === "VERIFIED" ||
       sInput.qualificationStatus === "LICENSED";
 
+    const sVerifiedValue = resolveVerifiedNormativeValue<number>(
+      sInput.verifiedValue,
+      calculationEvidenceResolver,
+      (value) => typeof value === "number" && Number.isFinite(value) && value > 0,
+    );
+
     if (
       sContractVerified &&
       hasMaterial &&
@@ -269,8 +293,11 @@ function executeAsmeB313F01Calculation(
       tempMatches &&
       hasUnit &&
       hasSource &&
-      isStatusQualified
+      isStatusQualified &&
+      Boolean(sVerifiedValue) &&
+      sVerifiedValue!.value === sInput.value
     ) {
+      S = sVerifiedValue!.value;
       sValueVerified = true;
       sSource = sInput.sourceReference;
     }
@@ -333,7 +360,21 @@ function executeAsmeB313F01Calculation(
       eInput.qualificationStatus === "VERIFIED" ||
       eInput.qualificationStatus === "LICENSED";
 
-    if (eContractVerified && hasSource && hasContext && isStatusQualified) {
+    const eVerifiedValue = resolveVerifiedNormativeValue<number>(
+      eInput.verifiedValue,
+      calculationEvidenceResolver,
+      (value) => typeof value === "number" && Number.isFinite(value) && value > 0 && value <= 1,
+    );
+
+    if (
+      eContractVerified &&
+      hasSource &&
+      hasContext &&
+      isStatusQualified &&
+      Boolean(eVerifiedValue) &&
+      eVerifiedValue!.value === eInput.factorValue
+    ) {
+      E = eVerifiedValue!.value;
       eValueVerified = true;
       eSource = eInput.sourceReference;
     }
@@ -607,13 +648,22 @@ function executeAsmeB313F01Calculation(
       isQualifiedBranch = true;
     }
 
+    const wVerifiedValue = resolveVerifiedNormativeValue<number>(
+      wInput.verifiedValue,
+      calculationEvidenceResolver,
+      (value) => typeof value === "number" && Number.isFinite(value) && value > 0 && value <= 1,
+    );
+
     if (
       wContractVerified &&
       hasSource &&
       isStatusQualified &&
       isQualifiedBranch &&
-      !hasContradiction
+      !hasContradiction &&
+      Boolean(wVerifiedValue) &&
+      wVerifiedValue!.value === wInput.factorValue
     ) {
+      W = wVerifiedValue!.value;
       wValueVerified = true;
       wSource = wInput.sourceReference;
     }
@@ -707,13 +757,22 @@ function executeAsmeB313F01Calculation(
       }
     }
 
+    const yVerifiedValue = resolveVerifiedNormativeValue<number>(
+      yInput.verifiedValue,
+      calculationEvidenceResolver,
+      (value) => typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 0.7,
+    );
+
     if (
       yContractVerified &&
       hasSource &&
       isStatusQualified &&
       hasContext &&
-      !isExtrapolation
+      !isExtrapolation &&
+      Boolean(yVerifiedValue) &&
+      yVerifiedValue!.value === yInput.factorValue
     ) {
+      Y = yVerifiedValue!.value;
       yValueVerified = true;
       ySource = yInput.sourceReference;
     }
@@ -763,6 +822,7 @@ function executeAsmeB313F01Calculation(
       contractVerified: sContractVerified,
       valueVerified: sValueVerified,
       sourceReference: sSource,
+      evidenceIds: sInput?.verifiedValue?.evidenceIds,
     }),
     E: Object.freeze({
       name: "Quality Factor",
@@ -770,6 +830,7 @@ function executeAsmeB313F01Calculation(
       contractVerified: eContractVerified,
       valueVerified: eValueVerified,
       sourceReference: eSource,
+      evidenceIds: eInput?.verifiedValue?.evidenceIds,
     }),
     W: Object.freeze({
       name: "Weld Joint Strength Reduction Factor",
@@ -777,6 +838,7 @@ function executeAsmeB313F01Calculation(
       contractVerified: wContractVerified,
       valueVerified: wValueVerified,
       sourceReference: wSource,
+      evidenceIds: wInput?.verifiedValue?.evidenceIds,
     }),
     Y: Object.freeze({
       name: "Wall Thickness Coefficient Y",
@@ -784,6 +846,7 @@ function executeAsmeB313F01Calculation(
       contractVerified: yContractVerified,
       valueVerified: yValueVerified,
       sourceReference: ySource,
+      evidenceIds: yInput?.verifiedValue?.evidenceIds,
     }),
   };
 

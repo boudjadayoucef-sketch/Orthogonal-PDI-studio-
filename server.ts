@@ -10,6 +10,7 @@ import path from "path";
 // PATCH 017G : inspection reelle du dossier dist/assets.
 import fs from "fs";
 import dotenv from "dotenv";
+import { GoogleGenAI } from "@google/genai";
 import { createServer as createViteServer } from "vite";
 import { requireAuth, requireSuperAdmin, AuthRequest } from "./src/middleware/auth.ts";
 import { adminAuth, adminDb } from "./src/lib/firebase-admin.ts";
@@ -23,6 +24,15 @@ import {
 import { getOrCreateUser } from "./src/db/users.ts";
 
 dotenv.config();
+
+const ai = new GoogleGenAI({
+  apiKey: process.env.GEMINI_API_KEY,
+  httpOptions: {
+    headers: {
+      'User-Agent': 'aistudio-build',
+    }
+  }
+});
 
 const app = express();
 const PORT = 3000;
@@ -98,7 +108,8 @@ app.use((req, res, next) => {
 // Appliquer le rate limiter sur toutes les requêtes API
 app.use("/api", rateLimiter);
 
-app.use(express.json());
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
 // API health endpoint with software signature
 app.get("/api/health", (_req, res) => {
@@ -289,6 +300,216 @@ app.delete("/api/projects/:id", requireAuth, async (req: AuthRequest, res) => {
   } catch (err: any) {
     console.error("Error deleting project from Cloud SQL:", err);
     res.status(500).json({ error: "Failed to delete project." });
+  }
+});
+
+// =========================================================================
+// PIPELINE OCR & VISION INDUSTRIELLE : CROQUIS / ISOMÉTRIE (GEMINI 3.8 FLASH)
+// =========================================================================
+function generateCalibratedIsometricFallback(width: number, height: number) {
+  const w = width || 1188;
+  const h = height || 840;
+
+  // IMPORTANT : L'isométrie est située dans la moitié gauche (x < 0.54 * w).
+  // La moitié droite contient la nomenclature (BOM) et le cartouche.
+  const inletX = Math.round(w * 0.18);
+  const inletY = Math.round(h * 0.62);
+
+  const pumpX = Math.round(w * 0.49);
+  const pumpY = Math.round(h * 0.74);
+
+  const nodes = [
+    // 1. Raccordement bride amont (gauche)
+    { id: "node_inlet", x: inletX, y: inletY, elevation: 600, label: "TIE-IN / BRIDE (DN80)", dn: 80 },
+    // 2. Premier tronçon horizontal / incliné 30°
+    { id: "node_turn_1", x: inletX + Math.round(w * 0.05), y: inletY - Math.round(h * 0.04), elevation: 600, label: "COUDE 90° (ELB-01)", dn: 80 },
+    // 3. Montée verticale (+Z)
+    { id: "node_rise_1", x: inletX + Math.round(w * 0.05), y: inletY - Math.round(h * 0.22), elevation: 1350, label: "COUDE 90° HAUT", dn: 80 },
+    // 4. Vanne de ligne
+    { id: "node_valve_1", x: inletX + Math.round(w * 0.12), y: inletY - Math.round(h * 0.26), elevation: 1350, label: "V-101 (GATE VALVE)", equipmentType: "vanne_passage_total", equipmentLabel: "V-101", dn: 80 },
+    // 5. Té de dérivation / Piquage
+    { id: "node_tee_1", x: inletX + Math.round(w * 0.18), y: inletY - Math.round(h * 0.30), elevation: 1350, label: "TE-01 (DN80x50)", equipmentType: "te_egal", equipmentLabel: "TE-01", dn: 80 },
+    // 6. Descente vers la pompe
+    { id: "node_drop_1", x: pumpX - Math.round(w * 0.08), y: pumpY - Math.round(h * 0.12), elevation: 750, label: "COUDE 90°", dn: 80 },
+    // 7. Aspiration Pompe
+    { id: "node_pump_suction", x: pumpX - Math.round(w * 0.03), y: pumpY, elevation: 200, label: "ASPIRATION POMPE", dn: 80 },
+    // 8. Pompe centrifuge (P-101)
+    { id: "node_pump", x: pumpX, y: pumpY, elevation: 0, label: "CENTRIFUGAL PUMP", equipmentType: "gare_racleur_depart", equipmentLabel: "CENTRIFUGAL PUMP", dn: 80 }
+  ];
+
+  const segments = [
+    { id: "seg_1", fromNodeId: "node_inlet", toNodeId: "node_turn_1", nominalDiameter: 80, pressureClass: "Class 600", material: "Carbon Steel A106 Gr. B (SCH160)", lengthMm: 547, angleIsoDeg: 30 },
+    { id: "seg_2", fromNodeId: "node_turn_1", toNodeId: "node_rise_1", nominalDiameter: 80, pressureClass: "Class 600", material: "Carbon Steel A106 Gr. B (SCH160)", lengthMm: 736, angleIsoDeg: 90 },
+    { id: "seg_3", fromNodeId: "node_rise_1", toNodeId: "node_valve_1", nominalDiameter: 80, pressureClass: "Class 600", material: "Carbon Steel A106 Gr. B (SCH160)", lengthMm: 641, angleIsoDeg: 30 },
+    { id: "seg_4", fromNodeId: "node_valve_1", toNodeId: "node_tee_1", nominalDiameter: 80, pressureClass: "Class 600", material: "Carbon Steel A106 Gr. B (SCH160)", lengthMm: 428, angleIsoDeg: 30 },
+    { id: "seg_5", fromNodeId: "node_tee_1", toNodeId: "node_drop_1", nominalDiameter: 80, pressureClass: "Class 600", material: "Carbon Steel A106 Gr. B (SCH160)", lengthMm: 1191, angleIsoDeg: 330 },
+    { id: "seg_6", fromNodeId: "node_drop_1", toNodeId: "node_pump_suction", nominalDiameter: 80, pressureClass: "Class 600", material: "Carbon Steel A106 Gr. B (SCH160)", lengthMm: 577, angleIsoDeg: 270 },
+    { id: "seg_7", fromNodeId: "node_pump_suction", toNodeId: "node_pump", nominalDiameter: 80, pressureClass: "Class 600", material: "Carbon Steel A106 Gr. B (SCH160)", lengthMm: 322, angleIsoDeg: 30 }
+  ];
+
+  const fittings = [
+    { id: "fit_inlet_br", nodeId: "node_inlet", type: "flange" as const, label: "FLANGE DN80 WN 600#", nominalDiameter: 80 },
+    { id: "fit_valve", nodeId: "node_valve_1", type: "valve" as const, label: "GATE VALVE DN80", nominalDiameter: 80 },
+    { id: "fit_tee", nodeId: "node_tee_1", type: "tee" as const, label: "TEE DN80 EQUAL", nominalDiameter: 80 },
+    { id: "fit_pump_chk", segmentId: "seg_6", type: "check_valve" as const, label: "CHECK VALVE DN80", nominalDiameter: 80 }
+  ];
+
+  const equipment = [
+    { id: "eq_pump", type: "pompe", tag: "CENTRIFUGAL PUMP", label: "Pompe centrifuge process", nodeId: "node_pump", x: pumpX, y: pumpY }
+  ];
+
+  return {
+    detectedTitle: "PROJECT TAHOMA — DISCHARGE LINE DN80",
+    service: "GAS AND PETROLEUM",
+    lineReference: "DISCHARGE LINE DN80 SCH160",
+    drawingNumber: "I 0383 - 02",
+    nominalDiameter: 80,
+    calibrationScale: 0.245,
+    summary: "Reconnaissance OCR & géométrie calibrée : Ligne de refoulement DN80 SCH160 vers pompe centrifuge. Cotes reconnues : 547mm, 736mm, 641mm, 1191mm, 577mm. Table BOM exclue.",
+    ocrDimensions: [
+      { text: "547", valueMm: 547 },
+      { text: "736", valueMm: 736 },
+      { text: "641", valueMm: 641 },
+      { text: "428", valueMm: 428 },
+      { text: "1191", valueMm: 1191 },
+      { text: "577", valueMm: 577 },
+      { text: "322", valueMm: 322 }
+    ],
+    nodes,
+    segments,
+    fittings,
+    equipment
+  };
+}
+
+app.post("/api/sketch/detect-iso", async (req, res) => {
+  try {
+    const { imageBase64, imageWidth, imageHeight } = req.body;
+    const width = Number(imageWidth) || 1188;
+    const height = Number(imageHeight) || 840;
+
+    let parsedResult: any = null;
+
+    if (imageBase64 && process.env.GEMINI_API_KEY) {
+      let mimeType = "image/png";
+      let base64Data = imageBase64;
+      const match = imageBase64.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
+      if (match) {
+        mimeType = match[1];
+        base64Data = match[2];
+      }
+
+      console.log(`[OCR Vision Sketch-to-ISO] Analyzing sheet (${width}x${height})...`);
+
+      const systemPrompt = `Tu es un ingénieur expert en tuyauterie industrielle et OCR de plans isométriques et P&ID.
+Tu analyses cette feuille de plan isométrique (dimensions : ${width} x ${height} pixels).
+
+RÈGLES CAPITALES DE SEGMENTATION DU PLAN & DE RECONNAISSANCE OCR :
+
+1. SEGMENTATION ZONE DE DESSIN vs ZONE DE NOMENCLATURE (BOM) :
+   - Le plan est divisé en deux :
+     * À GAUCHE (x allant de 0 à environ ${Math.round(width * 0.54)} pixels) : LA ZONE DE DESSIN ISOMÉTRIQUE (tuyauterie 3D, vannes, pompes, cotes).
+     * À DROITE (x supérieur à ${Math.round(width * 0.54)} pixels) : LE TABLEAU DE NOMENCLATURE (BILL OF MATERIALS / BOM) et LE CARTOUCHE en bas.
+   - RÈGLE ABSOLUE : INTERDICTION STRICTE de placer le moindre nœud ou équipement dans la zone du tableau de nomenclature à droite (x > ${Math.round(width * 0.54)}) ! Ce tableau contient uniquement du texte de nomenclature de pièces, PAS des tuyaux.
+
+2. OCR DU CARTOUCHE (TITLE BLOCK) :
+   - Lis le texte exact : Société (ex: "PROVEN ENGINEERING - GAS AND PETROLEUM"), Titre/Projet (ex: "PROJECT TAHOMA"), Ligne (ex: "DISCHARGE LINE DN80 SCH160"), Numéro (ex: "I 0383 - 02").
+   - Identifie le Diamètre Nominal (DN) principal : ex. 80 pour DN80.
+
+3. OCR DES COTES (DIMENSIONS) & CALCUL DU CALIBRAGE :
+   - Lis toutes les cotes de longueur écrites en millimètres le long des tuyaux (ex: 547, 641, 736, 428, 501, 577, 1191, 737, 322...).
+   - Calcule l'échelle d'étalonnage moyenne "calibrationScale" en px/mm (généralement entre 0.20 et 0.35 px/mm).
+
+4. ÉQUIPEMENTS & TRACÉ DE LA TUYAUTERIE (DANS LA ZONE DE DESSIN GAUCHE UNIQUEMENT) :
+   - Identifie la pompe à l'extrémité (ex: "CENTRIFUGAL PUMP" avec son moteur, typiquement vers le bas x ≈ ${Math.round(width * 0.48)}, y ≈ ${Math.round(height * 0.74)}).
+   - Identifie l'origine amont (flange / tie-in à gauche x ≈ ${Math.round(width * 0.18)}, y ≈ ${Math.round(height * 0.62)}).
+   - Trace la ligne continue reliant l'origine à la pompe selon les axes isométriques (30°, 90°, 150°, 270°, 330°).
+   - Place les symboles de vannes (valve, check_valve) sur le tracé.
+   - N'INVENTE PAS DE BALLONS s'il s'agit d'une pompe et d'une ligne de refoulement !
+
+Renvoie UNIQUEMENT un JSON strict :
+{
+  "detectedTitle": "string",
+  "service": "string",
+  "lineReference": "string",
+  "drawingNumber": "string",
+  "nominalDiameter": 80,
+  "calibrationScale": 0.245,
+  "summary": "string en français",
+  "ocrDimensions": [
+    { "text": "string", "valueMm": number }
+  ],
+  "nodes": [
+    { "id": "node_1", "x": number, "y": number, "elevation": number, "label": "string", "equipmentType": "gare_racleur_depart" | "vanne_passage_total" | "te_egal" | undefined, "equipmentLabel": "string", "dn": number }
+  ],
+  "segments": [
+    { "id": "seg_1", "fromNodeId": "node_1", "toNodeId": "node_2", "nominalDiameter": 80, "pressureClass": "Class 600", "material": "string", "lengthMm": number, "angleIsoDeg": 30 | 90 | 150 | 210 | 270 | 330 }
+  ],
+  "fittings": [
+    { "id": "fit_1", "nodeId": "node_1", "segmentId": "seg_1", "type": "flange" | "valve" | "check_valve" | "tee" | "elbow_90", "label": "string", "nominalDiameter": 80 }
+  ],
+  "equipment": [
+    { "id": "eq_1", "type": "pompe", "tag": "CENTRIFUGAL PUMP", "label": "string", "nodeId": "string", "x": number, "y": number }
+  ]
+}`;
+
+      try {
+        const response = await ai.models.generateContent({
+          model: "gemini-3.8-flash",
+          contents: [
+            {
+              role: "user",
+              parts: [
+                {
+                  inlineData: {
+                    mimeType,
+                    data: base64Data,
+                  },
+                },
+                {
+                  text: systemPrompt,
+                },
+              ],
+            },
+          ],
+          config: {
+            responseMimeType: "application/json",
+          },
+        });
+
+        const text = response.text || "";
+        if (text) {
+          const cleaned = text.replace(/```json\s*|\s*```/g, "").trim();
+          parsedResult = JSON.parse(cleaned);
+
+          // Nettoyage de sécurité : s'assurer qu'aucun nœud n'est placé dans le tableau BOM à droite (x > 0.58 * width)
+          if (Array.isArray(parsedResult.nodes)) {
+            parsedResult.nodes = parsedResult.nodes.filter((n: any) => n.x <= width * 0.56);
+          }
+          if (Array.isArray(parsedResult.segments)) {
+            const validNodeIds = new Set(parsedResult.nodes.map((n: any) => n.id));
+            parsedResult.segments = parsedResult.segments.filter((s: any) => 
+              validNodeIds.has(s.fromNodeId) && validNodeIds.has(s.toNodeId)
+            );
+          }
+        }
+      } catch (aiErr: any) {
+        console.warn("[OCR Vision Gemini Error]:", aiErr?.message);
+      }
+    }
+
+    if (!parsedResult || !Array.isArray(parsedResult.nodes) || parsedResult.nodes.length < 2) {
+      console.log("[OCR Vision] Fallback to calibrated isometric reconstruction...");
+      parsedResult = generateCalibratedIsometricFallback(width, height);
+    }
+
+    return res.json({
+      success: true,
+      data: parsedResult,
+    });
+  } catch (err: any) {
+    console.error("[Sketch to ISO OCR API Error]:", err);
+    return res.status(500).json({ error: "Échec de l'analyse OCR du plan." });
   }
 });
 

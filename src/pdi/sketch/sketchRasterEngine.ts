@@ -14,6 +14,9 @@ export interface SketchVectorNode {
   y: number;
   elevation: number; // Z coord in mm
   label?: string;
+  equipmentType?: string;
+  equipmentLabel?: string;
+  dn?: number;
   isLocked?: boolean;
 }
 
@@ -28,13 +31,41 @@ export interface SketchVectorSegment {
   angleIsoDeg?: number; // 30, 90, 150, 210, 270, 330
 }
 
+export type SketchFittingType =
+  | "valve"
+  | "check_valve"
+  | "flange"
+  | "elbow_90"
+  | "elbow_45"
+  | "tee"
+  | "reducer"
+  | "instrument"
+  | "support"
+  | "ballon_horizontal"
+  | "ballon_vertical"
+  | "pompe"
+  | "echangeur"
+  | string;
+
 export interface SketchVectorFitting {
   id: string;
   nodeId?: string;
   segmentId?: string;
-  type: "valve" | "check_valve" | "flange" | "elbow_90" | "elbow_45" | "tee" | "reducer" | "instrument" | "support";
+  type: SketchFittingType;
   label?: string;
   nominalDiameter?: number;
+}
+
+export interface SketchVectorEquipment {
+  id: string;
+  type: "ballon_horizontal" | "ballon_vertical" | "pompe" | "echangeur" | string;
+  tag: string;
+  label: string;
+  nodeId?: string;
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
 }
 
 export type PaperFormat = "A4_landscape" | "A4_portrait" | "A3_landscape" | "A3_portrait";

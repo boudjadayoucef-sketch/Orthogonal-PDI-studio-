@@ -36,26 +36,60 @@ export interface CompiledIsoModel {
 }
 
 // Convert sketch fitting type to official IsoFittingType
-export function mapSketchFittingTypeToIso(type: SketchVectorFitting["type"]): IsoFittingType {
+export function mapSketchFittingTypeToIso(type: string): IsoFittingType {
   switch (type) {
     case "valve":
+    case "vanne":
+    case "vanne_passage_total":
       return "vanne_passage_total";
+    case "vanne_opercule":
+      return "vanne_opercule";
+    case "vanne_soupape":
+      return "vanne_soupape";
+    case "vanne_boisseau":
+      return "vanne_boisseau";
+    case "vanne_papillon":
+      return "vanne_papillon";
     case "check_valve":
+    case "clapet":
       return "clapet";
     case "flange":
+    case "bride":
+    case "bride_wn":
       return "bride_wn";
+    case "bride_so":
+      return "bride_so";
     case "elbow_90":
+    case "coude_90":
       return "coude_90";
     case "elbow_45":
+    case "coude_45":
       return "coude_45";
     case "tee":
+    case "te_egal":
       return "te_egal";
     case "reducer":
+    case "reduction_concentrique":
       return "reduction_concentrique";
+    case "reduction_excentrique":
+      return "reduction_excentrique";
     case "instrument":
+    case "manometre":
       return "manometre";
     case "support":
-      return "purge"; // or generic fitting
+    case "purge":
+      return "purge";
+    case "ballon_horizontal":
+    case "vessel_horizontal":
+      return "poste_sectionnement";
+    case "ballon_vertical":
+    case "vessel_vertical":
+      return "poste_detente";
+    case "pompe":
+    case "pompe_centrifuge":
+      return "gare_racleur_depart";
+    case "echangeur":
+      return "poste_coupure";
     default:
       return "vanne_passage_total";
   }
@@ -110,6 +144,81 @@ export function compileSketchToIsoModel(params: {
   // Default calibration scale is ~0.25 px/mm = 250 px/m, or if uncalibrated, 100 px ≈ 1 m.
   const pxPerMeter = scale > 0 ? (scale >= 1 ? scale : scale * 1000) : 100;
 
+  // 2. Map Nodes using isometric 3D pipe routing
+  // Convert sketch segments and angles to true 3D orthogonal coordinates (in meters)
+  const nodeCoords3D = new Map<string, { x: number; y: number; z: number }>();
+
+  if (nodes.length > 0) {
+    // Initialize starting node
+    const firstNode = nodes[0];
+    nodeCoords3D.set(firstNode.id, {
+      x: 0,
+      y: 0,
+      z: Number(((firstNode.elevation || 0) / 1000).toFixed(3))
+    });
+
+    // BFS propagation along segments to establish 3D coordinates aligned with isometric axes
+    const visited = new Set<string>([firstNode.id]);
+    const queue = [firstNode.id];
+
+    while (queue.length > 0) {
+      const currId = queue.shift()!;
+      const currCoord = nodeCoords3D.get(currId)!;
+
+      const outgoing = segments.filter((s) => s.fromNodeId === currId || s.toNodeId === currId);
+      for (const seg of outgoing) {
+        const isForward = seg.fromNodeId === currId;
+        const nextId = isForward ? seg.toNodeId : seg.fromNodeId;
+
+        if (!visited.has(nextId)) {
+          visited.add(nextId);
+          queue.push(nextId);
+
+          const fromN = nodes.find((n) => n.id === currId);
+          const nextN = nodes.find((n) => n.id === nextId);
+
+          const lenM = seg.lengthMm 
+            ? seg.lengthMm / 1000 
+            : (fromN && nextN ? Math.hypot(nextN.x - fromN.x, nextN.y - fromN.y) / pxPerMeter : 1.0);
+
+          const ang = seg.angleIsoDeg !== undefined 
+            ? (isForward ? seg.angleIsoDeg : (seg.angleIsoDeg + 180) % 360) 
+            : 30;
+
+          let dx = 0, dy = 0, dz = 0;
+          if (ang === 90) {
+            dz = lenM;
+          } else if (ang === 270) {
+            dz = -lenM;
+          } else if (ang === 30) {
+            dx = lenM;
+          } else if (ang === 210) {
+            dx = -lenM;
+          } else if (ang === 150) {
+            dy = -lenM;
+          } else if (ang === 330) {
+            dy = lenM;
+          } else {
+            // Décomposition d'angle général
+            const rad = (ang * Math.PI) / 180;
+            dx = lenM * Math.cos(rad);
+            dy = lenM * Math.sin(rad);
+          }
+
+          const targetZ = nextN?.elevation !== undefined 
+            ? nextN.elevation / 1000 
+            : currCoord.z + dz;
+
+          nodeCoords3D.set(nextId, {
+            x: Number((currCoord.x + dx).toFixed(3)),
+            y: Number((currCoord.y + dy).toFixed(3)),
+            z: Number(targetZ.toFixed(3))
+          });
+        }
+      }
+    }
+  }
+
   const isoNodes: IsoNode[] = nodes.map((node, index) => {
     // Check if node is an elbow or tee based on connectivity
     const connectedSegs = segments.filter(
@@ -123,23 +232,22 @@ export function compileSketchToIsoModel(params: {
 
     // Check if any fitting is assigned directly to this node
     const nodeFitting = fittings.find((f) => f.nodeId === node.id);
-
-    // Compute isometric 3D offsets in meters (rounded to 3 decimals)
-    const normX = Number(((node.x - minX) / pxPerMeter).toFixed(3));
-    const normY = Number(((node.y - minY) / pxPerMeter).toFixed(3));
-    // Elevation in meters
-    const normZ = Number(((node.elevation || 0) / 1000).toFixed(3));
+    const coords = nodeCoords3D.get(node.id) || {
+      x: Number(((node.x - minX) / pxPerMeter).toFixed(3)),
+      y: Number(((node.y - minY) / pxPerMeter).toFixed(3)),
+      z: Number(((node.elevation || 0) / 1000).toFixed(3))
+    };
 
     return {
       id: node.id,
       name: `N-${index + 1}`,
-      x: normX,
-      y: normY,
-      z: normZ,
+      x: coords.x,
+      y: coords.y,
+      z: coords.z,
       type: nodeType,
-      dn: segments[0]?.nominalDiameter || 150,
-      equipmentType: nodeFitting ? mapSketchFittingTypeToIso(nodeFitting.type) : undefined,
-      equipmentLabel: nodeFitting?.label || undefined,
+      dn: node.dn || segments[0]?.nominalDiameter || 150,
+      equipmentType: nodeFitting ? mapSketchFittingTypeToIso(nodeFitting.type) : (node.equipmentType ? mapSketchFittingTypeToIso(node.equipmentType) : undefined),
+      equipmentLabel: nodeFitting?.label || node.equipmentLabel || (node.equipmentType ? (node.label || node.equipmentType) : undefined),
       material: defaultLine.material,
       pn: defaultLine.pressureClass,
       lineId: lineId

@@ -32,6 +32,7 @@ export interface SketchCanvasOverlayProps {
   activeTool: "select" | "pipe" | "fitting" | "calibrate" | "erase" | "pan";
   selectedFittingType: SketchVectorFitting["type"];
   recenterTrigger?: number;
+  isDetectingAI?: boolean;
   onNodesChange: (nodes: SketchVectorNode[]) => void;
   onSegmentsChange: (segments: SketchVectorSegment[]) => void;
   onFittingsChange: (fittings: SketchVectorFitting[]) => void;
@@ -55,6 +56,7 @@ export const SketchCanvasOverlay: React.FC<SketchCanvasOverlayProps> = ({
   activeTool,
   selectedFittingType,
   recenterTrigger,
+  isDetectingAI = false,
   onNodesChange,
   onSegmentsChange,
   onFittingsChange,
@@ -260,6 +262,94 @@ export const SketchCanvasOverlay: React.FC<SketchCanvasOverlayProps> = ({
       }
     }
 
+    // Draw Equipment Bodies (Ballons, Pompes, Cuves)
+    nodes.forEach((n) => {
+      if (n.equipmentType) {
+        const isEqSelected = selectedNodeId === n.id;
+        const eqLabel = n.equipmentLabel || n.label || n.equipmentType.toUpperCase();
+
+        if (n.equipmentType.includes("ballon_horizontal") || n.equipmentType.includes("vessel_horizontal")) {
+          // Horizontal Vessel (Cylinder with 2 hemispherical caps)
+          const bw = 96;
+          const bh = 42;
+          ctx.save();
+          ctx.translate(n.x, n.y);
+          // Vessel Body fill
+          ctx.fillStyle = isEqSelected ? "rgba(245, 158, 11, 0.25)" : "rgba(2, 132, 199, 0.22)";
+          ctx.strokeStyle = isEqSelected ? "#F59E0B" : "#0284C7";
+          ctx.lineWidth = isEqSelected ? 2.5 : 2;
+
+          // Main body rect
+          ctx.beginPath();
+          ctx.roundRect(-bw / 2, -bh / 2, bw, bh, 18);
+          ctx.fill();
+          ctx.stroke();
+
+          // Welded seams lines
+          ctx.strokeStyle = "rgba(56, 189, 248, 0.5)";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(-bw / 2 + 18, -bh / 2);
+          ctx.lineTo(-bw / 2 + 18, bh / 2);
+          ctx.moveTo(bw / 2 - 18, -bh / 2);
+          ctx.lineTo(bw / 2 - 18, bh / 2);
+          ctx.stroke();
+
+          // Label
+          ctx.fillStyle = "#0F172A";
+          ctx.font = "bold 10px Inter, sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(eqLabel, 0, 3);
+          ctx.restore();
+        } else if (n.equipmentType.includes("ballon_vertical") || n.equipmentType.includes("vessel_vertical")) {
+          // Vertical Vessel
+          const bw = 44;
+          const bh = 96;
+          ctx.save();
+          ctx.translate(n.x, n.y);
+          ctx.fillStyle = isEqSelected ? "rgba(245, 158, 11, 0.25)" : "rgba(2, 132, 199, 0.22)";
+          ctx.strokeStyle = isEqSelected ? "#F59E0B" : "#0284C7";
+          ctx.lineWidth = isEqSelected ? 2.5 : 2;
+
+          ctx.beginPath();
+          ctx.roundRect(-bw / 2, -bh / 2, bw, bh, 18);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = "#0F172A";
+          ctx.font = "bold 9px Inter, sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(eqLabel, 0, 3);
+          ctx.restore();
+        } else if (n.equipmentType.includes("pompe") || n.equipmentType.includes("pump")) {
+          // Centrifugal Pump Symbol
+          ctx.save();
+          ctx.translate(n.x, n.y);
+          ctx.fillStyle = isEqSelected ? "rgba(245, 158, 11, 0.25)" : "rgba(217, 119, 6, 0.22)";
+          ctx.strokeStyle = isEqSelected ? "#F59E0B" : "#D97706";
+          ctx.lineWidth = 2;
+
+          // Casing Circle
+          ctx.beginPath();
+          ctx.arc(0, 0, 18, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          // Tangential discharge nozzle
+          ctx.beginPath();
+          ctx.moveTo(14, -12);
+          ctx.lineTo(24, -20);
+          ctx.stroke();
+
+          ctx.fillStyle = "#78350F";
+          ctx.font = "bold 9px Inter, sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(eqLabel, 0, 28);
+          ctx.restore();
+        }
+      }
+    });
+
     // Draw Nodes
     nodes.forEach((n) => {
       const isSelected = selectedNodeId === n.id;
@@ -274,7 +364,7 @@ export const SketchCanvasOverlay: React.FC<SketchCanvasOverlayProps> = ({
       ctx.stroke();
     });
 
-    // Draw Fittings
+    // Draw Fittings (Valves, flanges, check valves, etc.)
     fittings.forEach((fit) => {
       let posX = 0;
       let posY = 0;
@@ -298,18 +388,80 @@ export const SketchCanvasOverlay: React.FC<SketchCanvasOverlayProps> = ({
       }
 
       if (posX && posY) {
-        ctx.fillStyle = "#E11D48";
-        ctx.strokeStyle = "#FFFFFF";
-        ctx.lineWidth = 1.5;
+        const isValve = fit.type.includes("valve") || fit.type.includes("vanne");
+        const isFlange = fit.type.includes("flange") || fit.type.includes("bride");
 
-        ctx.beginPath();
-        ctx.arc(posX, posY, 5, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
+        ctx.save();
+        ctx.translate(posX, posY);
 
-        ctx.fillStyle = "#9F1239";
-        ctx.font = "bold 9px Inter, sans-serif";
-        ctx.fillText(fit.type.toUpperCase().slice(0, 4), posX + 8, posY + 3);
+        if (isValve) {
+          // Industrial Gate / Ball Valve Symbol: two opposing triangles
+          ctx.fillStyle = "#E11D48";
+          ctx.strokeStyle = "#FFFFFF";
+          ctx.lineWidth = 1.5;
+
+          ctx.beginPath();
+          ctx.moveTo(-9, -6);
+          ctx.lineTo(0, 0);
+          ctx.lineTo(-9, 6);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.moveTo(9, -6);
+          ctx.lineTo(0, 0);
+          ctx.lineTo(9, 6);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+
+          // Valve stem
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(0, -9);
+          ctx.moveTo(-4, -9);
+          ctx.lineTo(4, -9);
+          ctx.stroke();
+
+          // Label
+          ctx.fillStyle = "#9F1239";
+          ctx.font = "bold 9px Inter, sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(fit.label || "VANNE", 0, 15);
+        } else if (isFlange) {
+          // Flange: two parallel vertical bars
+          ctx.strokeStyle = "#059669";
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.moveTo(-3, -8);
+          ctx.lineTo(-3, 8);
+          ctx.moveTo(3, -8);
+          ctx.lineTo(3, 8);
+          ctx.stroke();
+
+          ctx.fillStyle = "#065F46";
+          ctx.font = "bold 9px Inter, sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(fit.label || "BRIDE", 0, 17);
+        } else {
+          // Generic fitting circle badge
+          ctx.fillStyle = "#8B5CF6";
+          ctx.strokeStyle = "#FFFFFF";
+          ctx.lineWidth = 1.5;
+
+          ctx.beginPath();
+          ctx.arc(0, 0, 6, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = "#5B21B6";
+          ctx.font = "bold 9px Inter, sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(fit.label || fit.type.toUpperCase().slice(0, 4), 0, 15);
+        }
+
+        ctx.restore();
       }
     });
 
@@ -607,6 +759,68 @@ export const SketchCanvasOverlay: React.FC<SketchCanvasOverlayProps> = ({
           }}
         />
       </div>
+
+      {/* Indicateur d'analyse locale en cours (0 API, 0 IA) */}
+      {isDetectingAI && (
+        <div
+          style={{
+            position: "absolute",
+            top: 14,
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: "linear-gradient(135deg, rgba(14, 116, 144, 0.95), rgba(15, 23, 42, 0.95))",
+            backdropFilter: "blur(12px)",
+            border: "1px solid #38BDF8",
+            borderRadius: 10,
+            padding: "10px 20px",
+            color: "#F8FAFC",
+            fontSize: 13,
+            fontWeight: 600,
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            zIndex: 30,
+            boxShadow: "0 10px 30px rgba(2, 132, 199, 0.4)",
+            maxWidth: "92%"
+          }}
+        >
+          <span style={{ fontSize: 18 }}>⚡</span>
+          <span>
+            <strong style={{ color: "#38BDF8" }}>Moteur Local Autonome (0 API, 0 IA) :</strong> Analyse matricielle déterministe en cours... Reconnaissance du matériel (ballons, pompes, vannes) et tracé du réseau.
+          </span>
+        </div>
+      )}
+
+      {/* Guide interactif lorsque le calque est vide et pas de scan en cours */}
+      {!isDetectingAI && nodes.length === 0 && (
+        <div
+          style={{
+            position: "absolute",
+            top: 14,
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: "rgba(15, 23, 42, 0.95)",
+            backdropFilter: "blur(8px)",
+            border: "1px solid #0284C7",
+            borderRadius: 8,
+            padding: "8px 16px",
+            color: "#F8FAFC",
+            fontSize: 12,
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            zIndex: 20,
+            boxShadow: "0 6px 20px rgba(0,0,0,0.6)",
+            maxWidth: "92%",
+            pointerEvents: "none"
+          }}
+        >
+          <span style={{ fontSize: 16 }}>⚡</span>
+          <span>
+            <strong style={{ color: "#38BDF8" }}>Détection 100% Locale (0 API, 0 IA) :</strong> Cliquez sur <b>⚡ Détecter &amp; Insérer le Matériel</b> pour insérer automatiquement le matériel (ballons, vannes, etc.) et le tracé ISO, puis ajustez et validez !
+          </span>
+        </div>
+      )}
 
       {/* Floating Canvas Info & Quick Actions HUD */}
       <div

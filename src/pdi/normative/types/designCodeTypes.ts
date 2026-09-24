@@ -138,6 +138,7 @@ export type DiameterBasis = "OUTSIDE" | "INSIDE";
  * Métadonnées de qualification et traçabilité pour la contrainte admissible S.
  */
 export interface NormativeStressInput {
+  readonly verifiedValue?: NormativeVerifiedValue<number>;
   readonly value: number;
   readonly unit?: string;
   readonly materialReference?: string;
@@ -151,6 +152,7 @@ export interface NormativeStressInput {
  * Métadonnées de qualification et traçabilité pour le facteur de joint E.
  */
 export interface NormativeQualityFactorInput {
+  readonly verifiedValue?: NormativeVerifiedValue<number>;
   readonly factorValue: number;
   readonly productSpecification?: string;
   readonly jointType?: string;
@@ -181,6 +183,7 @@ export type WeldReductionBranchId =
  * Métadonnées de qualification et traçabilité pour le facteur de réduction W.
  */
 export interface NormativeWeldReductionFactorInput {
+  readonly verifiedValue?: NormativeVerifiedValue<number>;
   readonly branchId?: WeldReductionBranchId | string;
   readonly factorValue: number;
   readonly materialGroup?: string;
@@ -202,6 +205,7 @@ export interface NormativeWeldReductionFactorInput {
  * Métadonnées de qualification et traçabilité pour le coefficient Y.
  */
 export interface NormativeYCoefficientInput {
+  readonly verifiedValue?: NormativeVerifiedValue<number>;
   readonly factorValue: number;
   readonly materialFamily?: string;
   readonly temperature?: number;

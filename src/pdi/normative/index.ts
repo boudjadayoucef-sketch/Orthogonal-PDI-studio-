@@ -56,3 +56,4 @@ export * from "./tests/normativeEvidenceTests";
 export * from "./tests/normativeEvidenceRegistryTests";
 export * from "./tests/normativeVerifiedValueTests";
 export * from "./tests/normativeCalculationBoundaryTests";
+export * from "./tests/normativeCalculationIntegrationTests";

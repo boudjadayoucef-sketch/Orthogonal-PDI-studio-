@@ -80,12 +80,12 @@ export function generateDemoSketchImageDataUrl(): string {
 }
 
 export const DEMO_INITIAL_NODES: SketchVectorNode[] = [
-  { id: "node_1", x: 180, y: 520, elevation: 0 },
-  { id: "node_2", x: 420, y: 380, elevation: 0 },
-  { id: "node_3", x: 720, y: 380, elevation: 0 },
-  { id: "node_4", x: 920, y: 260, elevation: 0 },
-  { id: "node_5", x: 920, y: 120, elevation: 1200 },
-  { id: "node_6", x: 720, y: 560, elevation: -600 }
+  { id: "node_1", x: 180, y: 520, elevation: 0, dn: 150, equipmentType: "bride_wn", equipmentLabel: "BR-01 (WN 300#)", label: "ENTRÉE BRIDE" },
+  { id: "node_2", x: 420, y: 380, elevation: 0, dn: 150, equipmentType: "vanne_passage_total", equipmentLabel: "V-101", label: "VANNE V-101" },
+  { id: "node_3", x: 720, y: 380, elevation: 0, dn: 150, equipmentType: "te_egal", equipmentLabel: "TE-01", label: "TÉ ÉGAL" },
+  { id: "node_4", x: 920, y: 260, elevation: 0, dn: 150, equipmentType: "coude_90", equipmentLabel: "COUDE 90°", label: "COUDE 90°" },
+  { id: "node_5", x: 920, y: 120, elevation: 1200, dn: 150, equipmentType: "poste_sectionnement", equipmentLabel: "BALLON V-201", label: "BALLON V-201" },
+  { id: "node_6", x: 720, y: 560, elevation: -600, dn: 80, equipmentType: "purge", equipmentLabel: "PURGE 1/2\"", label: "PURGE 1/2\"" }
 ];
 
 export const DEMO_INITIAL_SEGMENTS: SketchVectorSegment[] = [
