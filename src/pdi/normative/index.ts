@@ -13,6 +13,7 @@ export * from "./types/pipingSpecTypes";
 export * from "./types/complianceTypes";
 export * from "./types/designCodeTypes";
 export * from "./types/normativeEvidenceTypes";
+export * from "./types/normativeCompatibilityTypes";
 
 export * from "./registry/standardsRegistry";
 export * from "./registry/pipeDimensionalRegistry";
@@ -24,6 +25,7 @@ export * from "./registry/pipingSpecRegistry";
 export * from "./registry/designCodeRegistry";
 export * from "./registry/normativeEvidenceRegistry";
 export * from "./registry/normativeEvidenceResolver";
+export * from "./registry/normativeCompatibilityRegistry";
 
 export * from "./validators/pipeDimensionalValidator";
 export * from "./validators/fittingValidator";
@@ -41,8 +43,10 @@ export {
 } from "./validators/normativeEvidenceValidator";
 export * from "./validators/normativeVerifiedValueValidator";
 export * from "./validators/normativeCalculationBoundary";
+export * from "./validators/normativeCompatibilityValidator";
 
 export * from "./engine/designCodeEngine";
+export * from "./engine/normativeCompatibilityEngine";
 
 export * from "./tests/normativeTests";
 export * from "./tests/pipeDimensionalTests";
@@ -57,3 +61,4 @@ export * from "./tests/normativeEvidenceRegistryTests";
 export * from "./tests/normativeVerifiedValueTests";
 export * from "./tests/normativeCalculationBoundaryTests";
 export * from "./tests/normativeCalculationIntegrationTests";
+export * from "./tests/normativeCompatibilityTests";
