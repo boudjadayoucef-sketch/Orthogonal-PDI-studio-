@@ -1115,6 +1115,14 @@ let globalCurrentViewMode = "iso";
 let globalCurrentYaw = -Math.PI / 4;
 let globalCurrentPitch = Math.PI / 6;
 
+const getInitialYawPitchForMode = (mode: string, currentYaw?: number, currentPitch?: number) => {
+  if (mode === "top") return { yaw: 0, pitch: Math.PI / 2 - 0.01 };
+  if (mode === "front") return { yaw: 0, pitch: 0.02 };
+  if (mode === "side") return { yaw: Math.PI / 2, pitch: 0.02 };
+  if (mode === "iso") return { yaw: -Math.PI / 4, pitch: Math.PI / 6 };
+  return { yaw: currentYaw ?? -Math.PI / 4, pitch: currentPitch ?? Math.PI / 6 };
+};
+
 const getProjectionAxes = (mode: string = globalCurrentViewMode, yaw: number = globalCurrentYaw, pitch: number = globalCurrentPitch) => {
   if (mode === "iso") {
     return {
@@ -1173,9 +1181,9 @@ const getProjectionAxes = (mode: string = globalCurrentViewMode, yaw: number = g
   };
 };
 
-const isoProjectV4 = (x:number,y:number,z:number,zoom:number,panX:number,panY:number) => {
+const isoProjectV4 = (x:number,y:number,z:number,zoom:number,panX:number,panY:number, mode?: string, yaw?: number, pitch?: number) => {
   const scale = 28 * zoom;
-  const axes = getProjectionAxes();
+  const axes = getProjectionAxes(mode ?? globalCurrentViewMode, yaw ?? globalCurrentYaw, pitch ?? globalCurrentPitch);
   return {
     x: 310 + panX + (x * axes.dx_x + y * axes.dx_y + z * axes.dx_z) * scale,
     y: 210 + panY + (x * axes.dy_x + y * axes.dy_y + z * axes.dy_z) * scale
@@ -1314,7 +1322,7 @@ function lineSegmentIntersectsBox(
 // V4.8b_VERTICAL_TOOLBAR_DECLUTTER : annotations compactes et collision renforcée.
 const compactIsoLabel=(value:string,maxLength=30)=>value.length>maxLength?`${value.slice(0,maxLength-1)}…`:value;
 type IsoAnnotationPlacement={id:string;x:number;y:number;anchorX:number;anchorY:number;width:number;height:number};
-function buildIsoAnnotationLayout(nodes:IsoNode[],segments:IsoSegment[],joints:PipingJoint[],viewport:{zoom:number;panX:number;panY:number}){
+function buildIsoAnnotationLayout(nodes:IsoNode[],segments:IsoSegment[],joints:PipingJoint[],viewport:{zoom:number;panX:number;panY:number;viewMode?:string;yaw?:number;pitch?:number}){
   const result=new Map<string,IsoAnnotationPlacement>();
   const occupied:Array<{x:number;y:number;width:number;height:number}>=[];
   const overlaps=(a:{x:number;y:number;width:number;height:number},b:{x:number;y:number;width:number;height:number})=>Math.abs(a.x-b.x)<(a.width+b.width)/2+3&&Math.abs(a.y-b.y)<(a.height+b.height)/2+3;
@@ -1333,7 +1341,7 @@ function buildIsoAnnotationLayout(nodes:IsoNode[],segments:IsoSegment[],joints:P
     const placement={id,x:chosen.x,y:chosen.y,anchorX,anchorY,width,height};
     occupied.push(placement);result.set(id,placement);
   };
-  const project=(point:{x:number;y:number;z:number})=>isoProjectV4(point.x,point.y,point.z,viewport.zoom,viewport.panX,viewport.panY);
+  const project=(point:{x:number;y:number;z:number})=>isoProjectV4(point.x,point.y,point.z,viewport.zoom,viewport.panX,viewport.panY,viewport.viewMode,viewport.yaw,viewport.pitch);
   // Réserver le cœur des équipements avant de placer les textes.
   nodes.forEach((node)=>{
     const p=project(node);
@@ -2355,7 +2363,7 @@ function IsometrieModule(props: { projectId?: string }) {
   };
   const [selectedSegmentId,setSelectedSegmentId]=useState<string|null>(null);
   const [selectedNodeId,setSelectedNodeId]=useState<string|null>(null);
-  const [interactionMode,setInteractionMode]=useState<"main"|"select">("select");
+  const [interactionMode,setInteractionMode]=useState<"main"|"select"|"orbit">("select");
   // V4.6 — poste de travail
   // PATCH 017F1B : plus d ouverture automatique des panneaux a l ouverture
   // d une session. L etat choisi par l utilisateur est memorise.
@@ -2521,14 +2529,14 @@ function IsometrieModule(props: { projectId?: string }) {
     });
   };
 
-  useEffect(() => {
-    globalCurrentViewMode = viewport.viewMode || "iso";
-    globalCurrentYaw = viewport.yaw ?? -Math.PI / 4;
-    globalCurrentPitch = viewport.pitch ?? Math.PI / 6;
-  }, [viewport.viewMode, viewport.yaw, viewport.pitch]);
+  // Synchronously update projection globals during render for real-time camera updates
+  globalCurrentViewMode = viewport.viewMode || "iso";
+  globalCurrentYaw = viewport.yaw ?? -Math.PI / 4;
+  globalCurrentPitch = viewport.pitch ?? Math.PI / 6;
 
   const orbitDrag = useRef<{ x: number; y: number; startYaw: number; startPitch: number } | null>(null);
   const drag=useRef<{x:number;y:number;px:number;py:number}|null>(null);
+  const rightClickStartRef = useRef<{ x: number; y: number } | null>(null);
   const activePointersRef = useRef<Map<number, { clientX: number; clientY: number }>>(new Map());
   const touchPinchStateRef = useRef<{
     initialDist: number;
@@ -2810,13 +2818,16 @@ function IsometrieModule(props: { projectId?: string }) {
       builds: projCacheStats017I2.current.builds + 1,
     };
     return { buffer, index };
-  }, [nodes, viewport]);
+  }, [nodes, viewport.zoom, viewport.panX, viewport.panY, viewport.yaw, viewport.pitch, viewport.viewMode]);
   const projectNodeCached017I2 = (node: IsoNode) => {
     const i = nodeProjection017I2.index.get(node.id);
-    if (i === undefined) return isoProjectV4(node.x, node.y, node.z || 0, viewport.zoom, viewport.panX, viewport.panY);
+    if (i === undefined) return isoProjectV4(node.x, node.y, node.z || 0, viewport.zoom, viewport.panX, viewport.panY, viewport.viewMode, viewport.yaw, viewport.pitch);
     return { x: nodeProjection017I2.buffer[i * 2], y: nodeProjection017I2.buffer[i * 2 + 1] };
   };
-  const editorAnnotationMap=useMemo(()=>buildIsoAnnotationLayout(nodes,segments,projectJoints,viewport),[nodes,segments,projectJoints,viewport]);
+  const editorAnnotationMap = useMemo(
+    () => buildIsoAnnotationLayout(nodes, segments, projectJoints, viewport),
+    [nodes, segments, projectJoints, viewport.zoom, viewport.panX, viewport.panY, viewport.yaw, viewport.pitch, viewport.viewMode]
+  );
   // PATCH 017P9 : le graphe d anomalies est desormais l union des deux jeux
   // de regles. Bandeau, panneau Controle du reseau, volet Anomalies et barre
   // d etat lisent tous cette seule liste.
@@ -2828,38 +2839,38 @@ function IsometrieModule(props: { projectId?: string }) {
     overrideNodes?: IsoNode[] | unknown,
     overrideSegments?: IsoSegment[],
     overrideDimensions?: IsoDimension[],
-    overrideCad2d?: Cad2dEntity[]
+    overrideCad2d?: Cad2dEntity[],
+    overrideViewMode?: string
   ) => {
     const activeNodes = Array.isArray(overrideNodes) ? overrideNodes : nodes;
     const activeSegments = Array.isArray(overrideSegments) ? overrideSegments : segments;
     const activeDimensions = Array.isArray(overrideDimensions) ? overrideDimensions : dimensions;
     const activeCad2d = Array.isArray(overrideCad2d) ? overrideCad2d : cad2dEntities;
 
+    const targetMode = overrideViewMode || viewport.viewMode || "iso";
+    const currentAxes = getProjectionAxes(targetMode, viewport.yaw, viewport.pitch);
+
     // Collect all base world projection points from nodes, segments, cad2d, dimensions
     const basePoints: Array<{ x: number; y: number }> = [];
-    const a = Math.PI / 6;
-    const cosA = Math.cos(a) * 28;
-    const sinA = Math.sin(a) * 28;
+
+    const projectPointBase = (x: number, y: number, z: number = 0) => {
+      return {
+        x: (x * currentAxes.dx_x + y * currentAxes.dx_y + z * currentAxes.dx_z) * 28,
+        y: (x * currentAxes.dy_x + y * currentAxes.dy_y + z * currentAxes.dy_z) * 28
+      };
+    };
 
     // 1) Graph Nodes
     for (const n of activeNodes) {
-      const bx = (n.x - n.y) * cosA;
-      const by = (n.x + n.y) * sinA - (n.z || 0) * 28;
-      basePoints.push({ x: bx, y: by });
+      basePoints.push(projectPointBase(n.x, n.y, n.z || 0));
     }
 
     // 2) Segments endpoints
     for (const s of activeSegments) {
       const ep = segmentEndpoints(s, activeNodes, activeSegments);
       if (ep) {
-        basePoints.push({
-          x: (ep.from.x - ep.from.y) * cosA,
-          y: (ep.from.x + ep.from.y) * sinA - (ep.from.z || 0) * 28,
-        });
-        basePoints.push({
-          x: (ep.to.x - ep.to.y) * cosA,
-          y: (ep.to.x + ep.to.y) * sinA - (ep.to.z || 0) * 28,
-        });
+        basePoints.push(projectPointBase(ep.from.x, ep.from.y, ep.from.z || 0));
+        basePoints.push(projectPointBase(ep.to.x, ep.to.y, ep.to.z || 0));
       }
     }
 
@@ -2869,18 +2880,14 @@ function IsometrieModule(props: { projectId?: string }) {
       const z = entity.metadata?.elevationZ || 0;
       if (entity.points) {
         for (const p of entity.points) {
-          basePoints.push({
-            x: (p.x - p.y) * cosA,
-            y: (p.x + p.y) * sinA - z * 28,
-          });
+          basePoints.push(projectPointBase(p.x, p.y, z));
         }
       }
       if (entity.center) {
-        const cx = (entity.center.x - entity.center.y) * cosA;
-        const cy = (entity.center.x + entity.center.y) * sinA - z * 28;
+        const c = projectPointBase(entity.center.x, entity.center.y, z);
         const r = (entity.radius || 1) * 18;
-        basePoints.push({ x: cx - r, y: cy - r });
-        basePoints.push({ x: cx + r, y: cy + r });
+        basePoints.push({ x: c.x - r, y: c.y - r });
+        basePoints.push({ x: c.x + r, y: c.y + r });
       }
     }
 
@@ -2888,22 +2895,12 @@ function IsometrieModule(props: { projectId?: string }) {
     for (const d of activeDimensions) {
       const aw = resolveDimensionAnchor(d.a);
       const bw = resolveDimensionAnchor(d.b);
-      if (aw) {
-        basePoints.push({
-          x: (aw.x - aw.y) * cosA,
-          y: (aw.x + aw.y) * sinA - (aw.z || 0) * 28,
-        });
-      }
-      if (bw) {
-        basePoints.push({
-          x: (bw.x - bw.y) * cosA,
-          y: (bw.x + bw.y) * sinA - (bw.z || 0) * 28,
-        });
-      }
+      if (aw) basePoints.push(projectPointBase(aw.x, aw.y, aw.z || 0));
+      if (bw) basePoints.push(projectPointBase(bw.x, bw.y, bw.z || 0));
     }
 
     if (basePoints.length === 0) {
-      setViewport({ zoom: 1, panX: 0, panY: -10 });
+      setViewport({ zoom: 1, panX: 0, panY: 0, viewMode: targetMode });
       setStatusMessage("Vue recentrée (origine 0,0,0)");
       return;
     }
@@ -2931,12 +2928,15 @@ function IsometrieModule(props: { projectId?: string }) {
     }
 
     const panX = Math.round(-midBaseX * fitZoom);
-    const panY = Math.round(-10 - midBaseY * fitZoom);
+    const panY = Math.round(-midBaseY * fitZoom);
 
     setViewport({
       zoom: Number(fitZoom.toFixed(3)),
       panX,
       panY,
+      viewMode: targetMode,
+      yaw: targetMode === "iso" ? -Math.PI / 4 : viewport.yaw,
+      pitch: targetMode === "iso" ? Math.PI / 6 : viewport.pitch
     });
     setStatusMessage(`Vue ajustée au modèle (${Math.round(fitZoom * 100)}%)`);
   };
@@ -5280,6 +5280,11 @@ function IsometrieModule(props: { projectId?: string }) {
   // Menu contextuel : la cible sous le curseur devient la selection courante.
   const openIsoContextMenu=(e:React.MouseEvent<SVGSVGElement>)=>{
     e.preventDefault();
+    if (rightClickStartRef.current) {
+      const dist = Math.hypot(e.clientX - rightClickStartRef.current.x, e.clientY - rightClickStartRef.current.y);
+      rightClickStartRef.current = null;
+      if (dist > 5) return;
+    }
     const target=e.target as Element;
     const fitEl=target.closest("[data-iso-fitting='true']");
     const nodeEl=target.closest("[data-iso-node='true']");
@@ -5583,6 +5588,7 @@ function IsometrieModule(props: { projectId?: string }) {
       if (keyboardShortcutsEnabled) {
         if (key === "v") { setInteractionMode("select"); setIsoDrawMode("select"); setStatusMessage("Outil Sélection"); return; }
         if (key === "h" || e.code === "Space") { e.preventDefault(); setInteractionMode("main"); setStatusMessage("Outil Main"); return; }
+        if (key === "o") { setInteractionMode("orbit"); setStatusMessage("Outil Orbite 3D Libres (Glissez le clic gauche)"); return; }
         if (key === "n") { setIsoDrawMode("node"); setInteractionMode("select"); setStatusMessage("Création de nœud"); return; }
         if (key === "t") { e.preventDefault(); createTubeFromSelection(); return; }
         if (key === "e") { setIsoDrawMode("te"); setInteractionMode("select"); setStatusMessage("Création de Té"); return; }
@@ -5714,25 +5720,37 @@ function IsometrieModule(props: { projectId?: string }) {
     }
 
     const target=e.target as Element;
-    const isOrbitStart = (e.button === 1 && e.shiftKey) || 
-                          (e.button === 0 && e.shiftKey && interactionMode === "select" && !target.closest(".pdi-node") && !target.closest(".pdi-segment") && !target.closest(".pdi-fitting") && !target.closest("[data-iso-port='true']"));
-                          
+    const isOrbitModeActive = interactionMode === "orbit";
+    const isViewCubeClick = Boolean(target.closest("[data-pdi-viewcube='true']"));
+    const isModifierOrbit = e.shiftKey || e.altKey;
+    const isNodeOrSegment = target.closest(".pdi-node") || target.closest(".pdi-segment") || target.closest(".pdi-fitting") || target.closest("[data-iso-port='true']");
+
+    const isOrbitStart = 
+      isOrbitModeActive ||
+      isViewCubeClick ||
+      (e.button === 0 && isModifierOrbit && !isNodeOrSegment) ||
+      (e.button === 1 && isModifierOrbit) ||
+      (e.button === 2 && isModifierOrbit);
+
     if (isOrbitStart) {
       e.preventDefault();
       e.currentTarget.setPointerCapture(e.pointerId);
+      const initAngles = getInitialYawPitchForMode(viewport.viewMode, viewport.yaw, viewport.pitch);
       orbitDrag.current = {
         x: e.clientX,
         y: e.clientY,
-        startYaw: viewport.yaw ?? -Math.PI / 4,
-        startPitch: viewport.pitch ?? Math.PI / 6
+        startYaw: initAngles.yaw,
+        startPitch: initAngles.pitch
       };
-      setViewport(v => ({ ...v, viewMode: "free" }));
+      setViewport(v => ({ ...v, viewMode: "free", yaw: initAngles.yaw, pitch: initAngles.pitch }));
       return;
     }
 
-    // Middle click (wheel button) = Universal CAD pan
-    if (e.button === 1) {
-      e.preventDefault();
+    // Middle click (wheel button) or Right click = Universal CAD pan
+    if (e.button === 1 || e.button === 2) {
+      if (e.button === 2) {
+        rightClickStartRef.current = { x: e.clientX, y: e.clientY };
+      }
       e.currentTarget.setPointerCapture(e.pointerId);
       drag.current = { x: e.clientX, y: e.clientY, px: viewport.panX, py: viewport.panY };
       return;
@@ -7066,9 +7084,47 @@ function IsometrieModule(props: { projectId?: string }) {
           const a = resolveDimensionAnchor(dimension.a);
           const b = resolveDimensionAnchor(dimension.b);
           if (!a || !b) return null;
-          const p1 = isoProjectV4(a.x, a.y, a.z, viewport.zoom, viewport.panX, viewport.panY);
-          const p2 = isoProjectV4(b.x, b.y, b.z, viewport.zoom, viewport.panX, viewport.panY);
-          const offset = dimension.offset || { x: 0, y: -24 };
+          const p1 = isoProjectV4(a.x, a.y, a.z, viewport.zoom, viewport.panX, viewport.panY, viewport.viewMode, viewport.yaw, viewport.pitch);
+          const p2 = isoProjectV4(b.x, b.y, b.z, viewport.zoom, viewport.panX, viewport.panY, viewport.viewMode, viewport.yaw, viewport.pitch);
+          const rawOffset = dimension.offset || { x: 0, y: -24 };
+
+          const dx2d = p2.x - p1.x;
+          const dy2d = p2.y - p1.y;
+          const segLen2d = Math.hypot(dx2d, dy2d);
+
+          let offX = rawOffset.x;
+          let offY = rawOffset.y;
+
+          if (segLen2d > 1) {
+            // Screen-space perpendicular normal vector
+            let nx = -dy2d / segLen2d;
+            let ny = dx2d / segLen2d;
+
+            const dist = Math.hypot(rawOffset.x, rawOffset.y) || 24;
+
+            if (rawOffset.x === 0) {
+              const sign = rawOffset.y < 0 ? -1 : 1;
+              if (ny * sign < 0) {
+                nx = -nx;
+                ny = -ny;
+              }
+              offX = nx * Math.abs(rawOffset.y);
+              offY = ny * Math.abs(rawOffset.y);
+            } else {
+              const dot = nx * rawOffset.x + ny * rawOffset.y;
+              if (dot < 0) {
+                nx = -nx;
+                ny = -ny;
+              }
+              offX = nx * dist;
+              offY = ny * dist;
+            }
+          }
+
+          const q1 = { x: p1.x + offX, y: p1.y + offY };
+          const q2 = { x: p2.x + offX, y: p2.y + offY };
+          const mid = { x: (q1.x + q2.x) / 2, y: (q1.y + q2.y) / 2 };
+
           const dx = b.x - a.x;
           const dy = b.y - a.y;
           const dz = b.z - a.z;
@@ -7090,9 +7146,9 @@ function IsometrieModule(props: { projectId?: string }) {
             ...dimension,
             p1,
             p2,
-            q1: { x: p1.x + offset.x, y: p1.y + offset.y },
-            q2: { x: p2.x + offset.x, y: p2.y + offset.y },
-            mid: { x: (p1.x + p2.x) / 2 + offset.x, y: (p1.y + p2.y) / 2 + offset.y },
+            q1,
+            q2,
+            mid,
             displayValue: dimension.label || displayValue,
           };
         })
@@ -7106,7 +7162,7 @@ function IsometrieModule(props: { projectId?: string }) {
           displayValue: string;
         }
       >,
-    [dimensions, nodes, viewport.zoom, viewport.panX, viewport.panY],
+    [dimensions, nodes, cad2dEntities, viewport.zoom, viewport.panX, viewport.panY, viewport.yaw, viewport.pitch, viewport.viewMode, unitSystem],
   );
 
   const handleDimensionAnchorPick = (anchor: IsoDimensionAnchor) => {
@@ -9050,6 +9106,15 @@ function IsometrieModule(props: { projectId?: string }) {
             </button>
             <button
               type="button"
+              title="Rotation Caméra 3D Libres (O / Shift+Glisser)"
+              onClick={() => { setInteractionMode("orbit"); setStatusMessage("Outil Orbite 3D : Glissez le clic gauche pour faire tourner la caméra autour du modèle"); }}
+              className={`pdi-rail-tool-btn ${railCollapsed ? "justify-center p-1" : ""} ${interactionMode === "orbit" ? "active" : ""}`}
+            >
+              <Compass className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+              {!railCollapsed && <span className="truncate">Orbite</span>}
+            </button>
+            <button
+              type="button"
               title="Copier sélection (Ctrl+D)"
               onClick={() => selectedCad2dIds.length ? duplicateSelectedCad2d() : duplicateSelection()}
               className={`pdi-rail-tool-btn ${railCollapsed ? "justify-center p-1" : ""}`}
@@ -10475,10 +10540,7 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
             <div className="flex shrink-0 items-center gap-0.5 border border-slate-800 rounded-lg p-0.5 bg-slate-950">
               <button 
                 type="button" 
-                onClick={() => {
-                  setViewport({ viewMode: "iso", zoom: viewport.zoom });
-                  setStatusMessage("Vue Isométrique Standard");
-                }} 
+                onClick={() => resetView(undefined, undefined, undefined, undefined, "iso")} 
                 className={`px-2 py-0.5 rounded text-[9px] font-black transition-all ${viewport.viewMode === "iso" ? "bg-indigo-600 text-white" : "bg-slate-800 text-slate-400 hover:text-white"}`} 
                 title="Projection Isométrique standard (3D)"
               >
@@ -10486,10 +10548,7 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
               </button>
               <button 
                 type="button" 
-                onClick={() => {
-                  setViewport({ viewMode: "top", zoom: viewport.zoom });
-                  setStatusMessage("Vue de Dessus (Plan X-Y)");
-                }} 
+                onClick={() => resetView(undefined, undefined, undefined, undefined, "top")} 
                 className={`px-2 py-0.5 rounded text-[9px] font-black transition-all ${viewport.viewMode === "top" ? "bg-indigo-600 text-white" : "bg-slate-800 text-slate-400 hover:text-white"}`} 
                 title="Vue de Dessus (Plan horizontal X-Y)"
               >
@@ -10497,10 +10556,7 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
               </button>
               <button 
                 type="button" 
-                onClick={() => {
-                  setViewport({ viewMode: "front", zoom: viewport.zoom });
-                  setStatusMessage("Vue de Face (Plan X-Z)");
-                }} 
+                onClick={() => resetView(undefined, undefined, undefined, undefined, "front")} 
                 className={`px-2 py-0.5 rounded text-[9px] font-black transition-all ${viewport.viewMode === "front" ? "bg-indigo-600 text-white" : "bg-slate-800 text-slate-400 hover:text-white"}`} 
                 title="Vue de Face / Élévation (Plan X-Z)"
               >
@@ -10508,14 +10564,24 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
               </button>
               <button 
                 type="button" 
-                onClick={() => {
-                  setViewport({ viewMode: "side", zoom: viewport.zoom });
-                  setStatusMessage("Vue Latérale (Plan Y-Z)");
-                }} 
+                onClick={() => resetView(undefined, undefined, undefined, undefined, "side")} 
                 className={`px-2 py-0.5 rounded text-[9px] font-black transition-all ${viewport.viewMode === "side" ? "bg-indigo-600 text-white" : "bg-slate-800 text-slate-400 hover:text-white"}`} 
                 title="Vue de Profil / Côté (Plan Y-Z)"
               >
                 CÔTÉ
+              </button>
+              <button 
+                type="button" 
+                onClick={() => {
+                  setInteractionMode("orbit");
+                  setViewport(v => ({ ...v, viewMode: "free" }));
+                  setStatusMessage("Mode Orbite 3D activé (Glissez avec le clic gauche)");
+                }} 
+                className={`px-2 py-0.5 rounded text-[9px] font-black transition-all flex items-center gap-1 ${interactionMode === "orbit" || viewport.viewMode === "free" ? "bg-purple-600 text-white" : "bg-slate-800 text-slate-400 hover:text-white"}`} 
+                title="Activer la rotation 3D libre autour du modèle (Raccourci: O / Shift+Glisser)"
+              >
+                <Compass className="w-2.5 h-2.5 text-purple-300" />
+                ORBITE
               </button>
               {viewport.viewMode === "free" && (
                 <span className="px-1.5 py-0.5 text-[8px] font-black text-amber-400 bg-amber-400/10 border border-amber-400/30 rounded font-mono uppercase">
@@ -10859,7 +10925,33 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                         {s.tag}
                       </text>
                     )}
-                    {false&&showDimensions&&showPipeLabels&&s.length>=.5&&<g />}
+                    {showPipeLabels && s.length >= 0.25 && viewport.zoom >= 0.35 && (
+                      <g pointerEvents="none" transform={`translate(${mx} ${my})`}>
+                        <rect
+                          x="-26"
+                          y="-7.5"
+                          width="52"
+                          height="15"
+                          rx="3"
+                          fill="#020617"
+                          fillOpacity="0.9"
+                          stroke="#0891b2"
+                          strokeWidth="0.8"
+                          className="shadow-sm"
+                        />
+                        <text
+                          x="0"
+                          y="3"
+                          fill="#38bdf8"
+                          fontSize="7"
+                          fontWeight="900"
+                          fontFamily="monospace"
+                          textAnchor="middle"
+                        >
+                          DN{s.dn} ({Math.round(s.length * 1000)}mm)
+                        </text>
+                      </g>
+                    )}
                     {isoDrawMode==="coude"&&<g data-iso-object="true" transform={`translate(${mx} ${my})`} onClick={e=>{e.stopPropagation();insertGraphicFitting(s.id,fitType.startsWith("coude")?fitType:"coude_90",.5)}} style={{cursor:"crosshair"}}><circle r="14" fill="#f59e0b" fillOpacity=".18" stroke="#fbbf24" strokeDasharray="3 2"/><path d="M-7 7 Q-7 -7 7 -7" stroke="#fbbf24" strokeWidth="2.5" fill="none"/></g>}
                     {false&&s.fittings.map(f=>{
                       const x=p1.x+(p2.x-p1.x)*f.localPosition,y=p1.y+(p2.y-p1.y)*f.localPosition;
@@ -11650,7 +11742,7 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                   { key: "Z", sx: axes.dx_z, sy: axes.dy_z, color: "#3b82f6" },
                 ];
                 return (
-                  <g transform="translate(566 44)" style={{ cursor: "pointer", userSelect: "none" }}>
+                  <g transform="translate(566 44)" style={{ cursor: "pointer", userSelect: "none" }} data-pdi-viewcube="true">
                     {/* Ring helper */}
                     <circle r="32" fill="#0f172a" fillOpacity="0.5" stroke="#475569" strokeWidth="1" strokeDasharray="2 2" />
                     {dynamicAxisDirs.map(a => {
@@ -11663,14 +11755,11 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                           onClick={(e) => {
                             e.stopPropagation();
                             if (a.key === "X") {
-                              setViewport({ viewMode: "front", zoom: viewport.zoom });
-                              setStatusMessage("Vue de Face (Plan X-Z)");
+                              resetView(undefined, undefined, undefined, undefined, "front");
                             } else if (a.key === "Y") {
-                              setViewport({ viewMode: "side", zoom: viewport.zoom });
-                              setStatusMessage("Vue de Profil (Plan Y-Z)");
+                              resetView(undefined, undefined, undefined, undefined, "side");
                             } else if (a.key === "Z") {
-                              setViewport({ viewMode: "top", zoom: viewport.zoom });
-                              setStatusMessage("Vue de Dessus (Plan X-Y)");
+                              resetView(undefined, undefined, undefined, undefined, "top");
                             }
                           }}
                           className="group"
@@ -11706,8 +11795,7 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                       strokeWidth="1.2"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setViewport({ viewMode: "iso", zoom: viewport.zoom });
-                        setStatusMessage("Vue Isométrique Standard");
+                        resetView(undefined, undefined, undefined, undefined, "iso");
                       }}
                     />
                   </g>
