@@ -1719,7 +1719,30 @@ export function PdiSuperAdminConsole({
                         </span>
                       </td>
                       <td style={{ padding: "10px 14px", textAlign: "right" }}>
-                        <div style={{ display: "inline-flex", gap: 6 }}>
+                        <div style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveTab("accounts");
+                              pdiAlert(`Redirection vers la Gestion des Comptes.\nRecherchez l'abonné : ${tx.userEmail}`);
+                            }}
+                            title={`Voir le profil utilisateur ${tx.userEmail}`}
+                            style={{
+                              background: "#0E1B2C",
+                              border: "1px solid rgba(56,189,248,0.35)",
+                              color: "#38BDF8",
+                              borderRadius: 6,
+                              padding: "5px 9px",
+                              fontSize: 11,
+                              fontWeight: 800,
+                              cursor: "pointer",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 4
+                            }}
+                          >
+                            <span>👥 Compte</span>
+                          </button>
                           {tx.status !== "completed" && (
                             <button
                               type="button"

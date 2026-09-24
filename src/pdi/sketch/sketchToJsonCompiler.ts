@@ -100,10 +100,15 @@ export function compileSketchToIsoModel(params: {
     color: "#0284C7"
   };
 
-  // 2. Map Nodes (Convert pixel coordinates to millimeter model coordinates)
-  // Center the coordinate origin around node 0 if possible
+  // 2. Map Nodes (Convert pixel coordinates to isometric world coordinate system in meters)
+  // In the PD&I isometric engine, 1 world unit = 1 meter, and projection scale is 28 px/m * zoom.
+  // Standard sketch canvas coordinates (typically 0-1200px) are mapped to meters (~0-10m).
   const minX = nodes.length > 0 ? Math.min(...nodes.map((n) => n.x)) : 0;
   const minY = nodes.length > 0 ? Math.min(...nodes.map((n) => n.y)) : 0;
+
+  // Conversion factor from sketch px to world meters:
+  // Default calibration scale is ~0.25 px/mm = 250 px/m, or if uncalibrated, 100 px ≈ 1 m.
+  const pxPerMeter = scale > 0 ? (scale >= 1 ? scale : scale * 1000) : 100;
 
   const isoNodes: IsoNode[] = nodes.map((node, index) => {
     // Check if node is an elbow or tee based on connectivity
@@ -119,10 +124,11 @@ export function compileSketchToIsoModel(params: {
     // Check if any fitting is assigned directly to this node
     const nodeFitting = fittings.find((f) => f.nodeId === node.id);
 
-    // Compute isometric 3D offsets from 2D sketch coordinates (scaled to mm)
-    const normX = Math.round((node.x - minX) / scale);
-    const normY = Math.round((node.y - minY) / scale);
-    const normZ = node.elevation || 0;
+    // Compute isometric 3D offsets in meters (rounded to 3 decimals)
+    const normX = Number(((node.x - minX) / pxPerMeter).toFixed(3));
+    const normY = Number(((node.y - minY) / pxPerMeter).toFixed(3));
+    // Elevation in meters
+    const normZ = Number(((node.elevation || 0) / 1000).toFixed(3));
 
     return {
       id: node.id,
@@ -147,12 +153,12 @@ export function compileSketchToIsoModel(params: {
     const fromN = nodes.find((n) => n.id === seg.fromNodeId);
     const toN = nodes.find((n) => n.id === seg.toNodeId);
 
-    let computedLength = seg.lengthMm;
+    let computedLength = seg.lengthMm ? seg.lengthMm / 1000 : 0;
     if (!computedLength && fromN && toN) {
       const distPx = Math.hypot(toN.x - fromN.x, toN.y - fromN.y);
-      computedLength = Math.max(50, Math.round(distPx / scale));
+      computedLength = Number((distPx / pxPerMeter).toFixed(3));
     }
-    if (!computedLength) computedLength = 1000;
+    if (!computedLength || computedLength <= 0) computedLength = 1.0;
 
     // Find fittings attached to this segment
     const segFittings = fittings.filter((f) => f.segmentId === seg.id);
@@ -162,7 +168,7 @@ export function compileSketchToIsoModel(params: {
         type: mapSketchFittingTypeToIso(fit.type),
         label: fit.label || `ACC-${index + 1}.${fitIdx + 1}`,
         localPosition: 0.5,
-        cumulativePosition: computedLength * 0.5,
+        cumulativePosition: Number((computedLength * 0.5).toFixed(3)),
         dn: fit.nominalDiameter || seg.nominalDiameter || 150,
         pn: seg.pressureClass || defaultLine.pressureClass,
         material: seg.material || defaultLine.material
@@ -171,13 +177,14 @@ export function compileSketchToIsoModel(params: {
 
     // Add dimension annotation conforming to IsoDimension
     if (fromN && toN) {
+      const displayMm = Math.round(computedLength * 1000);
       dimensions.push({
         id: `dim_${seg.id}`,
         type: "distance",
         a: { kind: "node", nodeId: seg.fromNodeId },
         b: { kind: "node", nodeId: seg.toNodeId },
         unit: "mm",
-        label: `${computedLength}`,
+        label: `${displayMm}`,
         offset: { x: 0, y: -20 },
         locked: false
       });

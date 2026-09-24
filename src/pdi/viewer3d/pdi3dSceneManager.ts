@@ -562,35 +562,49 @@ export class Pdi3dSceneManager {
       const nodeName = (node.name || "").toLowerCase();
       const rot = node.rotation || 0;
 
-      const isPump = eqType.includes("pompe") || eqType.includes("pump") || nodeName.startsWith("p-") || nodeName.includes("pompe");
+      const isPump =
+        eqType.includes("pompe") ||
+        eqType.includes("pump") ||
+        nodeName.startsWith("pompe") ||
+        nodeName.startsWith("pump_") ||
+        nodeName.includes("pompe");
+
       const isVessel =
         eqType.includes("ballon") ||
         eqType.includes("cuve") ||
         eqType.includes("reservoir") ||
         eqType.includes("vessel") ||
-        nodeName.startsWith("v-") ||
-        nodeName.startsWith("c-") ||
-        nodeName.includes("ballon");
+        eqType.includes("capacite") ||
+        nodeName.startsWith("ballon") ||
+        nodeName.startsWith("cuve") ||
+        nodeName.startsWith("reservoir") ||
+        nodeName.startsWith("vessel") ||
+        nodeName.includes("ballon") ||
+        nodeName.includes("cuve") ||
+        nodeName.includes("reservoir");
+
       const isExchanger =
         eqType.includes("echangeur") ||
         eqType.includes("condenseur") ||
         eqType.includes("reboiler") ||
         eqType.includes("exchanger") ||
-        nodeName.startsWith("e-") ||
+        nodeName.startsWith("echangeur") ||
         nodeName.includes("echangeur");
+
       const isFilter =
         eqType.includes("filtre") ||
         eqType.includes("tamis") ||
         eqType.includes("strainer") ||
-        nodeName.startsWith("f-") ||
+        nodeName.startsWith("filtre") ||
         nodeName.includes("filtre");
+
       const isPigTrap =
         eqType.includes("gare") ||
         eqType.includes("trap") ||
         nodeType === "gare_depart" ||
         nodeType === "gare_arrivee" ||
-        nodeName.startsWith("g-") ||
-        nodeName.includes("gare");
+        nodeName.startsWith("gare") ||
+        nodeName.includes("gare_");
 
       if (node.type === "tee" || eqType.startsWith("te_") || eqType.includes("tee")) {
         // Té 3D

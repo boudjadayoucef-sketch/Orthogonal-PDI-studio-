@@ -1111,19 +1111,121 @@ const PDI_ISO_ANGLE_017I2 = Math.PI / 6;
 const PDI_ISO_COS_017I2 = Math.cos(PDI_ISO_ANGLE_017I2);
 const PDI_ISO_SIN_017I2 = Math.sin(PDI_ISO_ANGLE_017I2);
 
-const isoProjectV4 = (x:number,y:number,z:number,zoom:number,panX:number,panY:number) => {
-  const scale=28*zoom;
+let globalCurrentViewMode = "iso";
+let globalCurrentYaw = -Math.PI / 4;
+let globalCurrentPitch = Math.PI / 6;
+
+const getProjectionAxes = (mode: string = globalCurrentViewMode, yaw: number = globalCurrentYaw, pitch: number = globalCurrentPitch) => {
+  if (mode === "iso") {
+    return {
+      dx_x: PDI_ISO_COS_017I2,
+      dy_x: PDI_ISO_SIN_017I2,
+      dx_y: -PDI_ISO_COS_017I2,
+      dy_y: PDI_ISO_SIN_017I2,
+      dx_z: 0,
+      dy_z: -1
+    };
+  }
+  if (mode === "top") {
+    return {
+      dx_x: 1,
+      dy_x: 0,
+      dx_y: 0,
+      dy_y: 1,
+      dx_z: 0,
+      dy_z: 0
+    };
+  }
+  if (mode === "front") {
+    return {
+      dx_x: 1,
+      dy_x: 0,
+      dx_y: 0,
+      dy_y: 0,
+      dx_z: 0,
+      dy_z: -1
+    };
+  }
+  if (mode === "side") {
+    return {
+      dx_x: 0,
+      dy_x: 0,
+      dx_y: 1,
+      dy_y: 0,
+      dx_z: 0,
+      dy_z: -1
+    };
+  }
+  
+  // "free" mode: standard orthographic projection from yaw & pitch
+  const cosY = Math.cos(yaw);
+  const sinY = Math.sin(yaw);
+  const cosP = Math.cos(pitch);
+  const sinP = Math.sin(pitch);
+  
   return {
-    x:310+panX+(x-y)*PDI_ISO_COS_017I2*scale,
-    y:210+panY+(x+y)*PDI_ISO_SIN_017I2*scale-z*scale
+    dx_x: cosY,
+    dy_x: sinY * sinP,
+    dx_y: -sinY,
+    dy_y: cosY * sinP,
+    dx_z: 0,
+    dy_z: -cosP
+  };
+};
+
+const isoProjectV4 = (x:number,y:number,z:number,zoom:number,panX:number,panY:number) => {
+  const scale = 28 * zoom;
+  const axes = getProjectionAxes();
+  return {
+    x: 310 + panX + (x * axes.dx_x + y * axes.dx_y + z * axes.dx_z) * scale,
+    y: 210 + panY + (x * axes.dy_x + y * axes.dy_y + z * axes.dy_z) * scale
   };
 };
 
 const isoUnprojectV4 = (sx:number,sy:number,zoom:number,panX:number,panY:number,targetZ:number=0) => {
-  const scale=Math.max(1,28*zoom);
-  const u=(sx-310-panX)/(PDI_ISO_COS_017I2*scale);
-  const v=(sy+targetZ*scale-210-panY)/(PDI_ISO_SIN_017I2*scale);
-  return {x:(u+v)/2,y:(v-u)/2,z:targetZ};
+  const scale = Math.max(1, 28 * zoom);
+  const mode = globalCurrentViewMode;
+  
+  if (mode === "top") {
+    return {
+      x: (sx - 310 - panX) / scale,
+      y: (sy - 210 - panY) / scale,
+      z: targetZ
+    };
+  }
+  if (mode === "front") {
+    return {
+      x: (sx - 310 - panX) / scale,
+      y: 0,
+      z: -(sy - 210 - panY) / scale
+    };
+  }
+  if (mode === "side") {
+    return {
+      x: 0,
+      y: (sx - 310 - panX) / scale,
+      z: -(sy - 210 - panY) / scale
+    };
+  }
+
+  // ISO or FREE mode
+  const axes = getProjectionAxes();
+  const U = (sx - 310 - panX) / scale - targetZ * axes.dx_z;
+  const V = (sy - 210 - panY) / scale - targetZ * axes.dy_z;
+  
+  const det = axes.dx_x * axes.dy_y - axes.dx_y * axes.dy_x;
+  if (Math.abs(det) > 1e-4) {
+    return {
+      x: (U * axes.dy_y - V * axes.dx_y) / det,
+      y: (V * axes.dx_x - U * axes.dy_x) / det,
+      z: targetZ
+    };
+  }
+  
+  // Fallback to standard ISO unprojection math
+  const u = (sx - 310 - panX) / (PDI_ISO_COS_017I2 * scale);
+  const v = (sy + targetZ * scale - 210 - panY) / (PDI_ISO_SIN_017I2 * scale);
+  return { x: (u + v) / 2, y: (v - u) / 2, z: targetZ };
 };
 
 const getSvgCoordinates = (clientX:number, clientY:number, svg:SVGSVGElement|null) => {
@@ -2396,7 +2498,36 @@ function IsometrieModule(props: { projectId?: string }) {
   const [lastSavedAt,setLastSavedAt]=useState<string|null>(null);
   const [topbarProfileOpen, setTopbarProfileOpen] = useState(false);
 
-  const [viewport,setViewport]=useState({zoom:1,panX:0,panY:0});
+  const [viewportRaw, setViewportRaw] = useState({
+    zoom: 1,
+    panX: 0,
+    panY: 0,
+    viewMode: "iso",
+    yaw: -Math.PI / 4,
+    pitch: Math.PI / 6
+  });
+
+  const viewport = viewportRaw;
+
+  const setViewport = (next: any | ((prev: any) => any)) => {
+    setViewportRaw(prev => {
+      const computed = typeof next === "function" ? next(prev) : next;
+      return {
+        viewMode: prev.viewMode || "iso",
+        yaw: prev.yaw ?? -Math.PI / 4,
+        pitch: prev.pitch ?? Math.PI / 6,
+        ...computed
+      };
+    });
+  };
+
+  useEffect(() => {
+    globalCurrentViewMode = viewport.viewMode || "iso";
+    globalCurrentYaw = viewport.yaw ?? -Math.PI / 4;
+    globalCurrentPitch = viewport.pitch ?? Math.PI / 6;
+  }, [viewport.viewMode, viewport.yaw, viewport.pitch]);
+
+  const orbitDrag = useRef<{ x: number; y: number; startYaw: number; startPitch: number } | null>(null);
   const drag=useRef<{x:number;y:number;px:number;py:number}|null>(null);
   const activePointersRef = useRef<Map<number, { clientX: number; clientY: number }>>(new Map());
   const touchPinchStateRef = useRef<{
@@ -2693,7 +2824,17 @@ function IsometrieModule(props: { projectId?: string }) {
   const graphErrorCount=graphIssues.filter(i=>i.severity==="error").length;
   const graphWarningCount=graphIssues.filter(i=>i.severity==="warning").length;
 
-  const resetView=()=>{
+  const resetView = (
+    overrideNodes?: IsoNode[] | unknown,
+    overrideSegments?: IsoSegment[],
+    overrideDimensions?: IsoDimension[],
+    overrideCad2d?: Cad2dEntity[]
+  ) => {
+    const activeNodes = Array.isArray(overrideNodes) ? overrideNodes : nodes;
+    const activeSegments = Array.isArray(overrideSegments) ? overrideSegments : segments;
+    const activeDimensions = Array.isArray(overrideDimensions) ? overrideDimensions : dimensions;
+    const activeCad2d = Array.isArray(overrideCad2d) ? overrideCad2d : cad2dEntities;
+
     // Collect all base world projection points from nodes, segments, cad2d, dimensions
     const basePoints: Array<{ x: number; y: number }> = [];
     const a = Math.PI / 6;
@@ -2701,15 +2842,15 @@ function IsometrieModule(props: { projectId?: string }) {
     const sinA = Math.sin(a) * 28;
 
     // 1) Graph Nodes
-    for (const n of nodes) {
+    for (const n of activeNodes) {
       const bx = (n.x - n.y) * cosA;
       const by = (n.x + n.y) * sinA - (n.z || 0) * 28;
       basePoints.push({ x: bx, y: by });
     }
 
     // 2) Segments endpoints
-    for (const s of segments) {
-      const ep = segmentEndpoints(s, nodes, segments);
+    for (const s of activeSegments) {
+      const ep = segmentEndpoints(s, activeNodes, activeSegments);
       if (ep) {
         basePoints.push({
           x: (ep.from.x - ep.from.y) * cosA,
@@ -2723,7 +2864,7 @@ function IsometrieModule(props: { projectId?: string }) {
     }
 
     // 3) CAD 2D Entities
-    for (const entity of cad2dEntities) {
+    for (const entity of activeCad2d) {
       if (entity.visible === false) continue;
       const z = entity.metadata?.elevationZ || 0;
       if (entity.points) {
@@ -2744,7 +2885,7 @@ function IsometrieModule(props: { projectId?: string }) {
     }
 
     // 4) Dimensions
-    for (const d of dimensions) {
+    for (const d of activeDimensions) {
       const aw = resolveDimensionAnchor(d.a);
       const bw = resolveDimensionAnchor(d.b);
       if (aw) {
@@ -5572,6 +5713,23 @@ function IsometrieModule(props: { projectId?: string }) {
       return;
     }
 
+    const target=e.target as Element;
+    const isOrbitStart = (e.button === 1 && e.shiftKey) || 
+                          (e.button === 0 && e.shiftKey && interactionMode === "select" && !target.closest(".pdi-node") && !target.closest(".pdi-segment") && !target.closest(".pdi-fitting") && !target.closest("[data-iso-port='true']"));
+                          
+    if (isOrbitStart) {
+      e.preventDefault();
+      e.currentTarget.setPointerCapture(e.pointerId);
+      orbitDrag.current = {
+        x: e.clientX,
+        y: e.clientY,
+        startYaw: viewport.yaw ?? -Math.PI / 4,
+        startPitch: viewport.pitch ?? Math.PI / 6
+      };
+      setViewport(v => ({ ...v, viewMode: "free" }));
+      return;
+    }
+
     // Middle click (wheel button) = Universal CAD pan
     if (e.button === 1) {
       e.preventDefault();
@@ -5580,7 +5738,6 @@ function IsometrieModule(props: { projectId?: string }) {
       return;
     }
 
-    const target=e.target as Element;
     const additive=e.ctrlKey||e.metaKey||e.shiftKey;
     const { sx, sy } = getSvgCoordinates(e.clientX, e.clientY, svgRef.current || (e.currentTarget as unknown as SVGSVGElement));
 
@@ -6185,6 +6342,21 @@ function IsometrieModule(props: { projectId?: string }) {
   };
 
   const pointerMove=(e:React.PointerEvent<SVGSVGElement>)=>{
+    if (orbitDrag.current) {
+      const cur = orbitDrag.current;
+      const dx = e.clientX - cur.x;
+      const dy = e.clientY - cur.y;
+      const nextYaw = cur.startYaw + dx * 0.007;
+      const nextPitch = clamp(cur.startPitch - dy * 0.007, 0.01, Math.PI / 2 - 0.01);
+      setViewport(v => ({
+        ...v,
+        viewMode: "free",
+        yaw: nextYaw,
+        pitch: nextPitch
+      }));
+      return;
+    }
+
     if (activePointersRef.current.has(e.pointerId)) {
       activePointersRef.current.set(e.pointerId, { clientX: e.clientX, clientY: e.clientY });
     }
@@ -6469,6 +6641,9 @@ function IsometrieModule(props: { projectId?: string }) {
   };
 
   const pointerUp=(e?:React.PointerEvent<SVGSVGElement>)=>{
+    if (orbitDrag.current) {
+      orbitDrag.current = null;
+    }
     if (e) {
       activePointersRef.current.delete(e.pointerId);
     } else {
@@ -8019,8 +8194,12 @@ function IsometrieModule(props: { projectId?: string }) {
         setShowGrid(true);
 
         setTimeout(() => {
-          resetView();
-        }, 150);
+          resetView(nodesToCommit, segmentsToCommit, dimensionsToCommit, cadEntities);
+        }, 50);
+
+        setTimeout(() => {
+          resetView(nodesToCommit, segmentsToCommit, dimensionsToCommit, cadEntities);
+        }, 250);
 
         if (payload.open3d !== false) {
           setTimeout(() => {
@@ -10292,6 +10471,59 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
               </button>
             </div>
 
+            {/* View Mode Buttons */}
+            <div className="flex shrink-0 items-center gap-0.5 border border-slate-800 rounded-lg p-0.5 bg-slate-950">
+              <button 
+                type="button" 
+                onClick={() => {
+                  setViewport({ viewMode: "iso", zoom: viewport.zoom });
+                  setStatusMessage("Vue Isométrique Standard");
+                }} 
+                className={`px-2 py-0.5 rounded text-[9px] font-black transition-all ${viewport.viewMode === "iso" ? "bg-indigo-600 text-white" : "bg-slate-800 text-slate-400 hover:text-white"}`} 
+                title="Projection Isométrique standard (3D)"
+              >
+                ISO
+              </button>
+              <button 
+                type="button" 
+                onClick={() => {
+                  setViewport({ viewMode: "top", zoom: viewport.zoom });
+                  setStatusMessage("Vue de Dessus (Plan X-Y)");
+                }} 
+                className={`px-2 py-0.5 rounded text-[9px] font-black transition-all ${viewport.viewMode === "top" ? "bg-indigo-600 text-white" : "bg-slate-800 text-slate-400 hover:text-white"}`} 
+                title="Vue de Dessus (Plan horizontal X-Y)"
+              >
+                TOP
+              </button>
+              <button 
+                type="button" 
+                onClick={() => {
+                  setViewport({ viewMode: "front", zoom: viewport.zoom });
+                  setStatusMessage("Vue de Face (Plan X-Z)");
+                }} 
+                className={`px-2 py-0.5 rounded text-[9px] font-black transition-all ${viewport.viewMode === "front" ? "bg-indigo-600 text-white" : "bg-slate-800 text-slate-400 hover:text-white"}`} 
+                title="Vue de Face / Élévation (Plan X-Z)"
+              >
+                FACE
+              </button>
+              <button 
+                type="button" 
+                onClick={() => {
+                  setViewport({ viewMode: "side", zoom: viewport.zoom });
+                  setStatusMessage("Vue Latérale (Plan Y-Z)");
+                }} 
+                className={`px-2 py-0.5 rounded text-[9px] font-black transition-all ${viewport.viewMode === "side" ? "bg-indigo-600 text-white" : "bg-slate-800 text-slate-400 hover:text-white"}`} 
+                title="Vue de Profil / Côté (Plan Y-Z)"
+              >
+                CÔTÉ
+              </button>
+              {viewport.viewMode === "free" && (
+                <span className="px-1.5 py-0.5 text-[8px] font-black text-amber-400 bg-amber-400/10 border border-amber-400/30 rounded font-mono uppercase">
+                  ORBIT
+                </span>
+              )}
+            </div>
+
               <select value={isoSnapStep} onChange={e=>setIsoSnapStep(Number(e.target.value))} className="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-[10px] text-zinc-300 font-mono" title="Pas d'accrochage">
                 <option value=".25">Snap 0,25 m</option><option value=".5">Snap 0,50 m</option><option value="1">Snap 1,00 m</option>
               </select>
@@ -11410,7 +11642,77 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                 )}
               </g>
 
-              <g transform="translate(566 44)">{pdiIsoAxisDirs017P3(PDI_ISO_COS_017I2,PDI_ISO_SIN_017I2).map(a=>(<g key={a.key}><line x1="0" y1="0" x2={a.sx*24} y2={a.sy*24} stroke={a.color} strokeWidth="1.8" strokeLinecap="round"/><text x={a.sx*34} y={a.sy*34+3} fill={a.color} fontSize="9" fontWeight="bold" textAnchor="middle">{a.key}</text></g>))}<circle r="2.2" fill="#e2e8f0"/></g>
+              {(() => {
+                const axes = getProjectionAxes(viewport.viewMode, viewport.yaw, viewport.pitch);
+                const dynamicAxisDirs = [
+                  { key: "X", sx: axes.dx_x, sy: axes.dy_x, color: "#ef4444" },
+                  { key: "Y", sx: axes.dx_y, sy: axes.dy_y, color: "#22c55e" },
+                  { key: "Z", sx: axes.dx_z, sy: axes.dy_z, color: "#3b82f6" },
+                ];
+                return (
+                  <g transform="translate(566 44)" style={{ cursor: "pointer", userSelect: "none" }}>
+                    {/* Ring helper */}
+                    <circle r="32" fill="#0f172a" fillOpacity="0.5" stroke="#475569" strokeWidth="1" strokeDasharray="2 2" />
+                    {dynamicAxisDirs.map(a => {
+                      const len = Math.hypot(a.sx, a.sy);
+                      const lx = len > 0.05 ? (a.sx / len) * 32 : 0;
+                      const ly = len > 0.05 ? (a.sy / len) * 32 : 0;
+                      return (
+                        <g 
+                          key={a.key} 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (a.key === "X") {
+                              setViewport({ viewMode: "front", zoom: viewport.zoom });
+                              setStatusMessage("Vue de Face (Plan X-Z)");
+                            } else if (a.key === "Y") {
+                              setViewport({ viewMode: "side", zoom: viewport.zoom });
+                              setStatusMessage("Vue de Profil (Plan Y-Z)");
+                            } else if (a.key === "Z") {
+                              setViewport({ viewMode: "top", zoom: viewport.zoom });
+                              setStatusMessage("Vue de Dessus (Plan X-Y)");
+                            }
+                          }}
+                          className="group"
+                        >
+                          <circle cx={a.sx * 22} cy={a.sy * 22} r="8" fill="transparent" />
+                          <line 
+                            x1="0" 
+                            y1="0" 
+                            x2={a.sx * 22} 
+                            y2={a.sy * 22} 
+                            stroke={a.color} 
+                            strokeWidth={viewport.viewMode === "free" ? "2.5" : "1.8"} 
+                            strokeLinecap="round" 
+                          />
+                          <text 
+                            x={lx} 
+                            y={ly + 3} 
+                            fill={a.color} 
+                            fontSize="9" 
+                            fontWeight="bold" 
+                            textAnchor="middle"
+                          >
+                            {a.key}
+                          </text>
+                        </g>
+                      );
+                    })}
+                    {/* Center point to reset view */}
+                    <circle 
+                      r="3.5" 
+                      fill="#e2e8f0" 
+                      stroke="#475569" 
+                      strokeWidth="1.2"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setViewport({ viewMode: "iso", zoom: viewport.zoom });
+                        setStatusMessage("Vue Isométrique Standard");
+                      }}
+                    />
+                  </g>
+                );
+              })()}
             </svg>
 
             {/* Interactive CAD Context Menu & Floating PROPS */}
