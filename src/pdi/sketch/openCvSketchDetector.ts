@@ -61,6 +61,45 @@ export async function getOpenCv(): Promise<any> {
 /**
  * Exécute l'amincissement morphologique de Zhang-Suen sur un buffer binaire 2D (0 = fond, 255 = trait)
  */
+function filterHatchingDensity(
+  binary: Uint8Array,
+  width: number,
+  height: number,
+  windowSize = 20,
+  maxRatio = 0.60
+): Uint8Array {
+  const filtered = new Uint8Array(binary);
+  const winPixels = windowSize * windowSize;
+  const maxActive = winPixels * maxRatio;
+  const step = Math.max(10, Math.floor(windowSize / 2));
+
+  for (let y = 0; y <= height - windowSize; y += step) {
+    for (let x = 0; x <= width - windowSize; x += step) {
+      let activeCount = 0;
+      for (let wy = 0; wy < windowSize; wy++) {
+        const rowOffset = (y + wy) * width + x;
+        for (let wx = 0; wx < windowSize; wx++) {
+          if (binary[rowOffset + wx] === 255) {
+            activeCount++;
+          }
+        }
+      }
+
+      if (activeCount > maxActive) {
+        // Effacer la fenêtre trop dense (hachure / bloc de cartouche)
+        for (let wy = 0; wy < windowSize; wy++) {
+          const rowOffset = (y + wy) * width + x;
+          for (let wx = 0; wx < windowSize; wx++) {
+            filtered[rowOffset + wx] = 0;
+          }
+        }
+      }
+    }
+  }
+
+  return filtered;
+}
+
 function zhangSuenThinning(
   binary: Uint8Array,
   width: number,
@@ -285,14 +324,17 @@ export async function detectSketchTopologyOpenCv(
           4
         );
 
-        // d) Squelettisation morphologique par amincissement de Zhang-Suen
+        // c2) Filtre de pré-traitement de densité anti-hachures / blocs parasites (fenêtre 20x20px)
         const binaryBuffer = threshMat.data;
-        const skeletonBuffer = zhangSuenThinning(binaryBuffer, sampleW, sampleH);
+        const cleanedBinaryBuffer = filterHatchingDensity(binaryBuffer, sampleW, sampleH, 20, 0.60);
+
+        // d) Squelettisation morphologique par amincissement de Zhang-Suen
+        const skeletonBuffer = zhangSuenThinning(cleanedBinaryBuffer, sampleW, sampleH);
         skeletonMat.data.set(skeletonBuffer);
 
         // e) Détection de segments par transformée de Hough probabiliste (HoughLinesP)
-        // Seuil ajusté pour traits de croquis
-        cv.HoughLinesP(skeletonMat, linesMat, 1, Math.PI / 180, 20, 25, 12);
+        // minLineLength ajusté à 32 (entre 30 et 40) pour écarter les résidus de hachures
+        cv.HoughLinesP(skeletonMat, linesMat, 1, Math.PI / 180, 20, 32, 12);
 
         // f) Détection des cercles (vannes, brides, piquages, symboles)
         try {
@@ -351,17 +393,20 @@ export async function detectSketchTopologyOpenCv(
         }
 
         // =========================================================================
-        // PARTIE C — CRITÈRES DE CONFIANCE STRICTS (AUCUN RÉSULTAT INVENTÉ)
+        // PARTIE C — CRITÈRES DE CONFIANCE STRICTS (PONDÉRATION PAR LONGUEUR)
         // =========================================================================
         // Seuil 1: Au moins 2 segments détectés
-        // Seuil 2: Au moins 35% des segments alignés sur un angle isométrique
+        // Seuil 2: Au moins 35% de la longueur cumulée alignée sur un angle isométrique
         // Si ces critères ne sont pas remplis, la détection est considérée non fiable -> return null.
-        const isoAlignedCount = rawLines.filter((l) => l.isIsoAligned).length;
-        const isoRatio = rawLines.length > 0 ? isoAlignedCount / rawLines.length : 0;
+        const totalLength = rawLines.reduce((acc, l) => acc + l.length, 0);
+        const isoAlignedLength = rawLines
+          .filter((l) => l.isIsoAligned)
+          .reduce((acc, l) => acc + l.length, 0);
+        const isoRatio = totalLength > 0 ? isoAlignedLength / totalLength : 0;
 
         if (rawLines.length < 2 || (rawLines.length >= 3 && isoRatio < 0.35)) {
           console.warn(
-            `[OpenCV Sketch Detector] Confiance insuffisante : ${rawLines.length} segments, ratio isométrique ${(isoRatio * 100).toFixed(1)}%. Bascule en pointage manuel assisté.`
+            `[OpenCV Sketch Detector] Confiance insuffisante : ${rawLines.length} segments, ratio isométrique pondéré ${(isoRatio * 100).toFixed(1)}%. Bascule en pointage manuel assisté.`
           );
           resolve(null);
           return;

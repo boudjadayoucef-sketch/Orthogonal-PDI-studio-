@@ -77,14 +77,14 @@ export function GuidesTabContent({ isAdmin, userProfile }: GuidesTabContentProps
       ]
     },
     {
-      title: "5. Conseiller IA & Recommandations",
+      title: "5. Référentiel Technique & Normes PD&I",
       icon: Sparkles,
       color: "text-purple-600 bg-purple-50 border-purple-100",
-      intro: "Posez vos questions techniques à notre assistant intelligent entraîné sur les clauses réglementaires du transport de gaz.",
+      intro: "Consultez le référentiel normatif et les abaques techniques du calcul de tuyauterie et transport de gaz.",
       steps: [
-        "Questions directes : Demandez conseil sur les distances de sécurité, le type d'enrobage pour terrain rocheux, ou les normes d'épreuves hydrauliques.",
-        "Grounding documentaire : L'IA formule des réponses précises en citant directement les articles correspondants de votre espace documentaire.",
-        "Contextes de projets : L'IA peut analyser un projet sélectionné pour vous recommander des fiches de contrôle spécifiques à réaliser."
+        "Normes & Codes : Accédez directement aux exigences ASME B31.3, ASME B31.8, EN 13480 et CODETI.",
+        "Abaques & Dimensions : Vérifiez les diamètres nominaux, épaisseurs de paroi (Schedules) et classes de pression standardisées.",
+        "Procédures d'épreuve : Consultez les méthodologies réglementaires d'épreuve hydrostatique (notamment la méthode GAUVIN)."
       ]
     }
   ];
@@ -235,10 +235,10 @@ export function GuidesTabContent({ isAdmin, userProfile }: GuidesTabContentProps
           <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-4 space-y-2">
             <div className="flex items-center gap-1.5 text-xs font-bold text-blue-800">
               <Info className="w-4 h-4 shrink-0 text-blue-600" />
-              <span>Assistance Intégrée</span>
+              <span>Référentiel Intégré</span>
             </div>
             <p className="text-[10px] text-blue-700 leading-relaxed font-medium">
-              Si vous rencontrez des difficultés lors de l'étude ou de l'épreuve de raccordement, sollicitez à tout moment le <strong>Conseiller IA</strong> pour obtenir des instructions pas à pas.
+              Consultez à tout moment la documentation technique et les guides de calcul pour obtenir des instructions pas à pas sur les épreuves et raccordements.
             </p>
           </div>
         </div>

@@ -25,6 +25,7 @@ import {
   DEMO_INITIAL_FITTINGS
 } from "./demoSketchTemplate";
 import { detectSketchTopologyOpenCv } from "./openCvSketchDetector";
+import { SketchCropTool } from "./SketchCropTool";
 
 export interface SketchToIsoModuleProps {
   onLoadProjectToEditor?: (isoJson: any, name: string) => void;
@@ -202,6 +203,10 @@ export const SketchToIsoModule: React.FC<SketchToIsoModuleProps> = ({
     }
   };
 
+  // Manual Image Cropping State (PARTIE A - SKETCH-CROP-TOOL)
+  const [showCropModal, setShowCropModal] = useState<boolean>(false);
+  const [cropPendingImage, setCropPendingImage] = useState<{ dataUrl: string; dims: { width: number; height: number } } | null>(null);
+
   // Handle File Upload
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -216,19 +221,44 @@ export const SketchToIsoModule: React.FC<SketchToIsoModuleProps> = ({
           const dims = { width: img.width, height: img.height };
           setImageDimensions(dims);
           setImageDataUrl(result);
-          if (autoDetectOnImport) {
-            handleRunAiDetection(result, dims);
-          } else {
-            setNodes([]);
-            setSegments([]);
-            setFittings([]);
-            setStatusMessage(`📸 Image "${file.name}" importée. Cliquez sur "✨ Détecter par IA" pour générer automatiquement le tracé.`);
-          }
+          setCropPendingImage({ dataUrl: result, dims });
+          setShowCropModal(true);
         };
         img.src = result;
       }
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleCropConfirmed = (croppedDataUrl: string, croppedWidth: number, croppedHeight: number) => {
+    const newDims = { width: croppedWidth, height: croppedHeight };
+    setImageDataUrl(croppedDataUrl);
+    setImageDimensions(newDims);
+    setShowCropModal(false);
+    setCropPendingImage(null);
+    if (autoDetectOnImport) {
+      handleRunAiDetection(croppedDataUrl, newDims);
+    } else {
+      setNodes([]);
+      setSegments([]);
+      setFittings([]);
+      setStatusMessage("📸 Image recadrée appliquée. Cliquez sur '✨ Détecter la topologie' pour lancer la détection.");
+    }
+  };
+
+  const handleSkipCrop = () => {
+    if (!cropPendingImage) return;
+    const { dataUrl, dims } = cropPendingImage;
+    setShowCropModal(false);
+    setCropPendingImage(null);
+    if (autoDetectOnImport) {
+      handleRunAiDetection(dataUrl, dims);
+    } else {
+      setNodes([]);
+      setSegments([]);
+      setFittings([]);
+      setStatusMessage("📸 Image entière conservée.");
+    }
   };
 
   // Compile JSON
@@ -1086,6 +1116,24 @@ export const SketchToIsoModule: React.FC<SketchToIsoModuleProps> = ({
                 Fermer
               </button>
             </div>
+          </div>
+        </div>
+      )}
+      {/* Modal de Recadrage Manuel d'Image (PARTIE A - SKETCH-CROP-TOOL) */}
+      {showCropModal && cropPendingImage && (
+        <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="w-full max-w-5xl">
+            <SketchCropTool
+              imageDataUrl={cropPendingImage.dataUrl}
+              imageWidth={cropPendingImage.dims.width}
+              imageHeight={cropPendingImage.dims.height}
+              onCropConfirmed={handleCropConfirmed}
+              onSkipCrop={handleSkipCrop}
+              onCancel={() => {
+                setShowCropModal(false);
+                setCropPendingImage(null);
+              }}
+            />
           </div>
         </div>
       )}
