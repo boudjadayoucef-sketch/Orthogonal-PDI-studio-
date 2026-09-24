@@ -221,6 +221,10 @@ export async function detectSketchTopologyOpenCv(
   canvasWidth = 1188,
   canvasHeight = 840
 ): Promise<LocalDetectionResult | null> {
+  if (typeof window === "undefined" || typeof Image === "undefined" || !imageDataUrl) {
+    return null;
+  }
+
   const cv = await getOpenCv();
 
   return new Promise((resolve) => {

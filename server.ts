@@ -306,82 +306,6 @@ app.delete("/api/projects/:id", requireAuth, async (req: AuthRequest, res) => {
 // =========================================================================
 // PIPELINE OCR & VISION INDUSTRIELLE : CROQUIS / ISOMÉTRIE (GEMINI 3.8 FLASH)
 // =========================================================================
-function generateCalibratedIsometricFallback(width: number, height: number) {
-  const w = width || 1188;
-  const h = height || 840;
-
-  // IMPORTANT : L'isométrie est située dans la moitié gauche (x < 0.54 * w).
-  // La moitié droite contient la nomenclature (BOM) et le cartouche.
-  const inletX = Math.round(w * 0.18);
-  const inletY = Math.round(h * 0.62);
-
-  const pumpX = Math.round(w * 0.49);
-  const pumpY = Math.round(h * 0.74);
-
-  const nodes = [
-    // 1. Raccordement bride amont (gauche)
-    { id: "node_inlet", x: inletX, y: inletY, elevation: 600, label: "TIE-IN / BRIDE (DN80)", dn: 80 },
-    // 2. Premier tronçon horizontal / incliné 30°
-    { id: "node_turn_1", x: inletX + Math.round(w * 0.05), y: inletY - Math.round(h * 0.04), elevation: 600, label: "COUDE 90° (ELB-01)", dn: 80 },
-    // 3. Montée verticale (+Z)
-    { id: "node_rise_1", x: inletX + Math.round(w * 0.05), y: inletY - Math.round(h * 0.22), elevation: 1350, label: "COUDE 90° HAUT", dn: 80 },
-    // 4. Vanne de ligne
-    { id: "node_valve_1", x: inletX + Math.round(w * 0.12), y: inletY - Math.round(h * 0.26), elevation: 1350, label: "V-101 (GATE VALVE)", equipmentType: "vanne_passage_total", equipmentLabel: "V-101", dn: 80 },
-    // 5. Té de dérivation / Piquage
-    { id: "node_tee_1", x: inletX + Math.round(w * 0.18), y: inletY - Math.round(h * 0.30), elevation: 1350, label: "TE-01 (DN80x50)", equipmentType: "te_egal", equipmentLabel: "TE-01", dn: 80 },
-    // 6. Descente vers la pompe
-    { id: "node_drop_1", x: pumpX - Math.round(w * 0.08), y: pumpY - Math.round(h * 0.12), elevation: 750, label: "COUDE 90°", dn: 80 },
-    // 7. Aspiration Pompe
-    { id: "node_pump_suction", x: pumpX - Math.round(w * 0.03), y: pumpY, elevation: 200, label: "ASPIRATION POMPE", dn: 80 },
-    // 8. Pompe centrifuge (P-101)
-    { id: "node_pump", x: pumpX, y: pumpY, elevation: 0, label: "CENTRIFUGAL PUMP", equipmentType: "gare_racleur_depart", equipmentLabel: "CENTRIFUGAL PUMP", dn: 80 }
-  ];
-
-  const segments = [
-    { id: "seg_1", fromNodeId: "node_inlet", toNodeId: "node_turn_1", nominalDiameter: 80, pressureClass: "Class 600", material: "Carbon Steel A106 Gr. B (SCH160)", lengthMm: 547, angleIsoDeg: 30 },
-    { id: "seg_2", fromNodeId: "node_turn_1", toNodeId: "node_rise_1", nominalDiameter: 80, pressureClass: "Class 600", material: "Carbon Steel A106 Gr. B (SCH160)", lengthMm: 736, angleIsoDeg: 90 },
-    { id: "seg_3", fromNodeId: "node_rise_1", toNodeId: "node_valve_1", nominalDiameter: 80, pressureClass: "Class 600", material: "Carbon Steel A106 Gr. B (SCH160)", lengthMm: 641, angleIsoDeg: 30 },
-    { id: "seg_4", fromNodeId: "node_valve_1", toNodeId: "node_tee_1", nominalDiameter: 80, pressureClass: "Class 600", material: "Carbon Steel A106 Gr. B (SCH160)", lengthMm: 428, angleIsoDeg: 30 },
-    { id: "seg_5", fromNodeId: "node_tee_1", toNodeId: "node_drop_1", nominalDiameter: 80, pressureClass: "Class 600", material: "Carbon Steel A106 Gr. B (SCH160)", lengthMm: 1191, angleIsoDeg: 330 },
-    { id: "seg_6", fromNodeId: "node_drop_1", toNodeId: "node_pump_suction", nominalDiameter: 80, pressureClass: "Class 600", material: "Carbon Steel A106 Gr. B (SCH160)", lengthMm: 577, angleIsoDeg: 270 },
-    { id: "seg_7", fromNodeId: "node_pump_suction", toNodeId: "node_pump", nominalDiameter: 80, pressureClass: "Class 600", material: "Carbon Steel A106 Gr. B (SCH160)", lengthMm: 322, angleIsoDeg: 30 }
-  ];
-
-  const fittings = [
-    { id: "fit_inlet_br", nodeId: "node_inlet", type: "flange" as const, label: "FLANGE DN80 WN 600#", nominalDiameter: 80 },
-    { id: "fit_valve", nodeId: "node_valve_1", type: "valve" as const, label: "GATE VALVE DN80", nominalDiameter: 80 },
-    { id: "fit_tee", nodeId: "node_tee_1", type: "tee" as const, label: "TEE DN80 EQUAL", nominalDiameter: 80 },
-    { id: "fit_pump_chk", segmentId: "seg_6", type: "check_valve" as const, label: "CHECK VALVE DN80", nominalDiameter: 80 }
-  ];
-
-  const equipment = [
-    { id: "eq_pump", type: "pompe", tag: "CENTRIFUGAL PUMP", label: "Pompe centrifuge process", nodeId: "node_pump", x: pumpX, y: pumpY }
-  ];
-
-  return {
-    detectedTitle: "PROJECT TAHOMA — DISCHARGE LINE DN80",
-    service: "GAS AND PETROLEUM",
-    lineReference: "DISCHARGE LINE DN80 SCH160",
-    drawingNumber: "I 0383 - 02",
-    nominalDiameter: 80,
-    calibrationScale: 0.245,
-    summary: "Reconnaissance OCR & géométrie calibrée : Ligne de refoulement DN80 SCH160 vers pompe centrifuge. Cotes reconnues : 547mm, 736mm, 641mm, 1191mm, 577mm. Table BOM exclue.",
-    ocrDimensions: [
-      { text: "547", valueMm: 547 },
-      { text: "736", valueMm: 736 },
-      { text: "641", valueMm: 641 },
-      { text: "428", valueMm: 428 },
-      { text: "1191", valueMm: 1191 },
-      { text: "577", valueMm: 577 },
-      { text: "322", valueMm: 322 }
-    ],
-    nodes,
-    segments,
-    fittings,
-    equipment
-  };
-}
-
 app.post("/api/sketch/detect-iso", async (req, res) => {
   try {
     const { imageBase64, imageWidth, imageHeight } = req.body;
@@ -499,8 +423,8 @@ Renvoie UNIQUEMENT un JSON strict :
     }
 
     if (!parsedResult || !Array.isArray(parsedResult.nodes) || parsedResult.nodes.length < 2) {
-      console.log("[OCR Vision] Fallback to calibrated isometric reconstruction...");
-      parsedResult = generateCalibratedIsometricFallback(width, height);
+      console.log("[OCR Vision] Détection automatique non concluante (aucun réseau inventé).");
+      parsedResult = null;
     }
 
     return res.json({
