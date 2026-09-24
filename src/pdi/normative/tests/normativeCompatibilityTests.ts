@@ -472,6 +472,204 @@ export function runNormativeCompatibilityTests(): {
   assert(cleanReg.count() === 0, "TEST 20: count must remain 0 after clear");
   results.push("✅ PASS: TEST 20 — Registry reste vide si aucune règle n'est enregistrée");
 
+  // =========================================================================
+  // TEST 21 (NORM-13-FIX-01 - 1) : Deux règles VERIFIED compatibles -> COMPATIBLE
+  // =========================================================================
+  testsRun++;
+  const regTwoCompat = new NormativeCompatibilityRegistry();
+  regTwoCompat.register({
+    ruleId: "SYNTHETIC_RULE_COMPAT_1",
+    description: "First verified compatible rule",
+    componentType: "SYNTHETIC_VALVE",
+    status: "COMPATIBLE",
+    evidenceIds: ["SYNTHETIC_EV_NORM13_VERIFIED_01"],
+  });
+  regTwoCompat.register({
+    ruleId: "SYNTHETIC_RULE_COMPAT_2",
+    description: "Second verified compatible rule",
+    componentType: "SYNTHETIC_VALVE",
+    status: "COMPATIBLE",
+    evidenceIds: ["SYNTHETIC_EV_NORM13_VERIFIED_02"],
+  });
+  const engineTwoCompat = new NormativeCompatibilityEngine(regTwoCompat, evidenceResolver);
+  const res21 = engineTwoCompat.evaluate({ componentType: "SYNTHETIC_VALVE" });
+  assert(res21.status === "COMPATIBLE", `TEST 21: expected COMPATIBLE, got ${res21.status}`);
+  results.push("✅ PASS: TEST 21 (FIX-01) — Deux règles VERIFIED compatibles → COMPATIBLE");
+
+  // =========================================================================
+  // TEST 22 (NORM-13-FIX-01 - 2) : Deux règles VERIFIED incompatibles -> INCOMPATIBLE
+  // =========================================================================
+  testsRun++;
+  const regTwoIncompat = new NormativeCompatibilityRegistry();
+  regTwoIncompat.register({
+    ruleId: "SYNTHETIC_RULE_INCOMPAT_1",
+    description: "First verified incompatible rule",
+    componentType: "SYNTHETIC_REDUCER",
+    status: "INCOMPATIBLE",
+    evidenceIds: ["SYNTHETIC_EV_NORM13_VERIFIED_01"],
+  });
+  regTwoIncompat.register({
+    ruleId: "SYNTHETIC_RULE_INCOMPAT_2",
+    description: "Second verified incompatible rule",
+    componentType: "SYNTHETIC_REDUCER",
+    status: "INCOMPATIBLE",
+    evidenceIds: ["SYNTHETIC_EV_NORM13_VERIFIED_02"],
+  });
+  const engineTwoIncompat = new NormativeCompatibilityEngine(regTwoIncompat, evidenceResolver);
+  const res22 = engineTwoIncompat.evaluate({ componentType: "SYNTHETIC_REDUCER" });
+  assert(res22.status === "INCOMPATIBLE", `TEST 22: expected INCOMPATIBLE, got ${res22.status}`);
+  results.push("✅ PASS: TEST 22 (FIX-01) — Deux règles VERIFIED incompatibles → INCOMPATIBLE");
+
+  // =========================================================================
+  // TEST 23 (NORM-13-FIX-01 - 3) : Conflit VERIFIED (COMPATIBLE + INCOMPATIBLE) -> INVALID
+  // =========================================================================
+  testsRun++;
+  const regConflict1 = new NormativeCompatibilityRegistry();
+  regConflict1.register({
+    ruleId: "SYNTHETIC_RULE_CONFLICT_COMPAT",
+    description: "Verified compatible rule",
+    componentType: "SYNTHETIC_TEE",
+    status: "COMPATIBLE",
+    evidenceIds: ["SYNTHETIC_EV_NORM13_VERIFIED_01"],
+  });
+  regConflict1.register({
+    ruleId: "SYNTHETIC_RULE_CONFLICT_INCOMPAT",
+    description: "Verified incompatible rule",
+    componentType: "SYNTHETIC_TEE",
+    status: "INCOMPATIBLE",
+    evidenceIds: ["SYNTHETIC_EV_NORM13_VERIFIED_02"],
+  });
+  const engineConflict1 = new NormativeCompatibilityEngine(regConflict1, evidenceResolver);
+  const res23 = engineConflict1.evaluate({ componentType: "SYNTHETIC_TEE" });
+  assert(res23.status === "INVALID", `TEST 23: expected INVALID for rule conflict, got ${res23.status}`);
+  assert(
+    res23.message !== undefined && res23.message.includes("NORMATIVE_RULE_CONFLICT"),
+    "TEST 23: message must explicitly explain rule conflict"
+  );
+  results.push("✅ PASS: TEST 23 (FIX-01) — Conflit VERIFIED (COMPATIBLE + INCOMPATIBLE) → INVALID avec explication");
+
+  // =========================================================================
+  // TEST 24 (NORM-13-FIX-01 - 4) : Inversion de l'ordre du conflit -> INVALID (indépendance de l'ordre)
+  // =========================================================================
+  testsRun++;
+  const regConflict2 = new NormativeCompatibilityRegistry();
+  // Règle INCOMPATIBLE enregistrée EN PREMIER
+  regConflict2.register({
+    ruleId: "SYNTHETIC_RULE_CONFLICT_INCOMPAT_FIRST",
+    description: "Verified incompatible rule registered first",
+    componentType: "SYNTHETIC_TEE",
+    status: "INCOMPATIBLE",
+    evidenceIds: ["SYNTHETIC_EV_NORM13_VERIFIED_01"],
+  });
+  // Règle COMPATIBLE enregistrée EN DEUXIÈME
+  regConflict2.register({
+    ruleId: "SYNTHETIC_RULE_CONFLICT_COMPAT_SECOND",
+    description: "Verified compatible rule registered second",
+    componentType: "SYNTHETIC_TEE",
+    status: "COMPATIBLE",
+    evidenceIds: ["SYNTHETIC_EV_NORM13_VERIFIED_02"],
+  });
+  const engineConflict2 = new NormativeCompatibilityEngine(regConflict2, evidenceResolver);
+  const res24 = engineConflict2.evaluate({ componentType: "SYNTHETIC_TEE" });
+  assert(res24.status === "INVALID", `TEST 24: expected INVALID regardless of registration order, got ${res24.status}`);
+  assert(
+    res24.message !== undefined && res24.message.includes("NORMATIVE_RULE_CONFLICT"),
+    "TEST 24: message must explicitly explain rule conflict"
+  );
+  results.push("✅ PASS: TEST 24 (FIX-01) — Inversion de l'ordre du conflit → INVALID (ordre sans effet de priorité)");
+
+  // =========================================================================
+  // TEST 25 (NORM-13-FIX-01 - 5) : Resolver explicitement injecté
+  // =========================================================================
+  testsRun++;
+  const customEvReg = new NormativeEvidenceRegistry();
+  customEvReg.register({
+    evidenceId: "SYNTHETIC_CUSTOM_EV_01",
+    standardId: "SYNTHETIC_STANDARD_NORM13" as any,
+    editionId: "SYNTHETIC_EDITION_2026",
+    clauseReference: "CLAUSE_CUSTOM",
+    sourceType: "VERIFIED_INTERNAL_REFERENCE",
+    sourceReference: "SYNTHETIC_DOC_CUSTOM",
+    verificationStatus: "VERIFIED",
+    verifiedBy: "EXPLICIT_INJECTOR",
+    verifiedAt: "2026-01-01T00:00:00.000Z",
+  });
+  const explicitResolver = new NormativeEvidenceResolver(customEvReg);
+  const explicitCompatReg = new NormativeCompatibilityRegistry();
+  explicitCompatReg.register({
+    ruleId: "SYNTHETIC_RULE_EXPLICIT_RESOLVER",
+    description: "Rule using explicitly injected resolver evidence",
+    componentType: "SYNTHETIC_FLANGE",
+    status: "COMPATIBLE",
+    evidenceIds: ["SYNTHETIC_CUSTOM_EV_01"],
+  });
+  const engineExplicit = new NormativeCompatibilityEngine(explicitCompatReg, explicitResolver);
+  const res25 = engineExplicit.evaluate({ componentType: "SYNTHETIC_FLANGE" });
+  assert(res25.status === "COMPATIBLE", `TEST 25: expected COMPATIBLE, got ${res25.status}`);
+  results.push("✅ PASS: TEST 25 (FIX-01) — Resolver explicitement injecté avec preuve valide");
+
+  // =========================================================================
+  // TEST 26 (NORM-13-FIX-01 - 6) : Resolver vide injecté
+  // =========================================================================
+  testsRun++;
+  const emptyEvReg = new NormativeEvidenceRegistry();
+  const emptyResolver = new NormativeEvidenceResolver(emptyEvReg);
+  const engineWithEmptyResolver = new NormativeCompatibilityEngine(explicitCompatReg, emptyResolver);
+  const res26 = engineWithEmptyResolver.evaluate({ componentType: "SYNTHETIC_FLANGE" });
+  assert(res26.status === "UNVERIFIED", `TEST 26: expected UNVERIFIED for missing evidence in empty resolver, got ${res26.status}`);
+  results.push("✅ PASS: TEST 26 (FIX-01) — Resolver vide injecté → UNVERIFIED");
+
+  // =========================================================================
+  // TEST 27 (NORM-13-FIX-01 - 7) : Deux resolvers indépendants
+  // =========================================================================
+  testsRun++;
+  const evRegA = new NormativeEvidenceRegistry();
+  evRegA.register({
+    evidenceId: "SYNTHETIC_EV_IN_A_ONLY",
+    standardId: "SYNTHETIC_STANDARD_NORM13" as any,
+    editionId: "SYNTHETIC_EDITION_2026",
+    clauseReference: "CLAUSE_A",
+    sourceType: "VERIFIED_INTERNAL_REFERENCE",
+    sourceReference: "SYNTHETIC_DOC_A",
+    verificationStatus: "VERIFIED",
+    verifiedBy: "VALIDATOR_A",
+    verifiedAt: "2026-01-01T00:00:00.000Z",
+  });
+  const resolverA = new NormativeEvidenceResolver(evRegA);
+
+  const evRegB = new NormativeEvidenceRegistry();
+  evRegB.register({
+    evidenceId: "SYNTHETIC_EV_IN_B_ONLY",
+    standardId: "SYNTHETIC_STANDARD_NORM13" as any,
+    editionId: "SYNTHETIC_EDITION_2026",
+    clauseReference: "CLAUSE_B",
+    sourceType: "VERIFIED_INTERNAL_REFERENCE",
+    sourceReference: "SYNTHETIC_DOC_B",
+    verificationStatus: "VERIFIED",
+    verifiedBy: "VALIDATOR_B",
+    verifiedAt: "2026-01-01T00:00:00.000Z",
+  });
+  const resolverB = new NormativeEvidenceResolver(evRegB);
+
+  const regIndependence = new NormativeCompatibilityRegistry();
+  regIndependence.register({
+    ruleId: "SYNTHETIC_RULE_NEEDS_A",
+    description: "Requires evidence present only in A",
+    componentType: "SYNTHETIC_GASKET",
+    status: "COMPATIBLE",
+    evidenceIds: ["SYNTHETIC_EV_IN_A_ONLY"],
+  });
+
+  const engineUsingA = new NormativeCompatibilityEngine(regIndependence, resolverA);
+  const engineUsingB = new NormativeCompatibilityEngine(regIndependence, resolverB);
+
+  const res27A = engineUsingA.evaluate({ componentType: "SYNTHETIC_GASKET" });
+  const res27B = engineUsingB.evaluate({ componentType: "SYNTHETIC_GASKET" });
+
+  assert(res27A.status === "COMPATIBLE", `TEST 27: engine with resolverA must resolve as COMPATIBLE, got ${res27A.status}`);
+  assert(res27B.status === "UNVERIFIED", `TEST 27: engine with resolverB must resolve as UNVERIFIED, got ${res27B.status}`);
+  results.push("✅ PASS: TEST 27 (FIX-01) — Deux resolvers indépendants strictement cloisonnés");
+
   return {
     success: true,
     testsRun,

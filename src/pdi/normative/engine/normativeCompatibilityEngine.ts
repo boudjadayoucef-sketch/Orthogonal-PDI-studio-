@@ -47,8 +47,8 @@ const MATCH_FIELDS: readonly (keyof NormativeCompatibilityContext & keyof Normat
 
 export class NormativeCompatibilityEngine implements INormativeCompatibilityEngine {
   constructor(
-    private readonly registry: INormativeCompatibilityRegistry = defaultCompatibilityRegistry,
-    private readonly evidenceResolver: INormativeEvidenceResolver = new NormativeEvidenceResolver()
+    private readonly registry: INormativeCompatibilityRegistry,
+    private readonly evidenceResolver: INormativeEvidenceResolver
   ) {}
 
   /**
@@ -102,35 +102,51 @@ export class NormativeCompatibilityEngine implements INormativeCompatibilityEngi
       };
     });
 
-    // 1. Chercher d'abord les règles INCOMPATIBLE vérifiées
-    const verifiedIncompatible = evaluatedRules.find(
-      (er) => er.rule.status === "INCOMPATIBLE" && er.isEvidenceVerified
-    );
-    if (verifiedIncompatible) {
-      return {
-        status: "INCOMPATIBLE",
-        ruleId: verifiedIncompatible.rule.ruleId,
-        matchedRule: verifiedIncompatible.rule,
-        evidenceIds: verifiedIncompatible.evidenceIds,
-        message: verifiedIncompatible.rule.description,
-      };
-    }
-
-    // 2. Chercher les règles COMPATIBLE vérifiées (une règle non vérifiée ne masque pas une règle vérifiée)
-    const verifiedCompatible = evaluatedRules.find(
+    const verifiedCompatibleRules = evaluatedRules.filter(
       (er) => er.rule.status === "COMPATIBLE" && er.isEvidenceVerified
     );
-    if (verifiedCompatible) {
+    const verifiedIncompatibleRules = evaluatedRules.filter(
+      (er) => er.rule.status === "INCOMPATIBLE" && er.isEvidenceVerified
+    );
+
+    const hasVerifiedCompatible = verifiedCompatibleRules.length > 0;
+    const hasVerifiedIncompatible = verifiedIncompatibleRules.length > 0;
+
+    // A. Conflit strict entre règles vérifiées contradictoires (COMPATIBLE vs INCOMPATIBLE)
+    if (hasVerifiedCompatible && hasVerifiedIncompatible) {
+      const compatRuleIds = verifiedCompatibleRules.map((r) => r.rule.ruleId).join(", ");
+      const incompatRuleIds = verifiedIncompatibleRules.map((r) => r.rule.ruleId).join(", ");
       return {
-        status: "COMPATIBLE",
-        ruleId: verifiedCompatible.rule.ruleId,
-        matchedRule: verifiedCompatible.rule,
-        evidenceIds: verifiedCompatible.evidenceIds,
-        message: verifiedCompatible.rule.description,
+        status: "INVALID",
+        message: `NORMATIVE_RULE_CONFLICT: Detected contradictory VERIFIED rules matching the same context (Compatible: [${compatRuleIds}], Incompatible: [${incompatRuleIds}]).`,
       };
     }
 
-    // 3. Si des règles correspondent mais qu'aucune n'a de preuve vérifiée complète → UNVERIFIED
+    // B. Toutes les règles vérifiées sont INCOMPATIBLE
+    if (hasVerifiedIncompatible) {
+      const primaryIncompat = verifiedIncompatibleRules[0];
+      return {
+        status: "INCOMPATIBLE",
+        ruleId: primaryIncompat.rule.ruleId,
+        matchedRule: primaryIncompat.rule,
+        evidenceIds: primaryIncompat.evidenceIds,
+        message: primaryIncompat.rule.description,
+      };
+    }
+
+    // C. Toutes les règles vérifiées sont COMPATIBLE (une règle non vérifiée ne masque pas une règle vérifiée)
+    if (hasVerifiedCompatible) {
+      const primaryCompat = verifiedCompatibleRules[0];
+      return {
+        status: "COMPATIBLE",
+        ruleId: primaryCompat.rule.ruleId,
+        matchedRule: primaryCompat.rule,
+        evidenceIds: primaryCompat.evidenceIds,
+        message: primaryCompat.rule.description,
+      };
+    }
+
+    // D. Si des règles correspondent mais qu'aucune n'a de preuve vérifiée complète → UNVERIFIED
     const firstMatch = evaluatedRules[0];
     return {
       status: "UNVERIFIED",
