@@ -1,19 +1,22 @@
 /**
  * PDI NORMATIVE ENGINE — PIPING SPECIFICATION RESOLVER
- * Reference: SPEC-01, SPEC-01-FIX-01 (Authority & Evidence Fix)
+ * Reference: SPEC-01, SPEC-01-FIX-01, SPEC-01-FIX-02
  * 
  * Moteur déterministe d'orchestration et de résolution d'admissibilité
  * d'un composant au sein d'une spécification de tuyauterie (Piping Spec).
  * 
- * RÈGLES ARCHITECTURALES (SPEC-01-FIX-01) :
- * 1. La règle Piping Specification est la condition d'autorité obligatoire :
- *    - NO VERIFIED PIPING-SPEC RULE → NO COMPATIBLE RESULT.
- *    - Une règle Piping Spec UNVERIFIED ou sans preuve vérifiée (NORM-09) produit au maximum UNVERIFIED.
- * 2. Précédence stricte du matériau de composant :
- *    - spec.materialReferenceIds est la borne supérieure globale.
- *    - componentRule.materialId est la contrainte spécifique obligatoire.
- * 3. Preuves normatives (NORM-09) :
- *    - Les preuves associées à la règle (rule.evidenceIds) doivent être résolues comme FOUND_VERIFIED.
+ * RÈGLES ARCHITECTURALES (SPEC-01-FIX-02) :
+ * 1. Isolation stricte des preuves de la règle (Fix 01) :
+ *    - Pour qualifier une règle de composant, utiliser EXCLUSIVEMENT rule.evidenceIds.
+ *    - spec.evidenceIds n'est PAS un fallback pour la règle.
+ *    - Une règle sans evidenceIds ou avec des preuves non vérifiées reste UNVERIFIED (jamais COMPATIBLE).
+ * 2. Gestion déterministe des règles multiples (Fix 02) :
+ *    - Aucune sélection arbitraire par ordre de tableau (pas de matching[0] prioritaire).
+ *    - Si matching.length === 1 : évaluation unitaire.
+ *    - Si matching.length > 1 et règles équivalentes : conservation de tous les ruleIds (triés),
+ *      agrégation des evidenceIds et vérification individuelle de chaque règle.
+ *    - Si matching.length > 1 et règles contradictoires : INVALID avec diagnostic NORMATIVE_RULE_CONFLICT.
+ * 3. Précédence stricte du matériau de composant.
  * 4. Délégation déterministe à NORM-13 (NormativeCompatibilityEngine).
  * 5. Aucune conversion automatique (NPS != DN, Class != PN), aucun score, aucun fuzzy matching.
  */
@@ -146,52 +149,13 @@ export class PipingSpecResolver implements IPipingSpecResolver {
       };
     }
 
-    const matchedRule = evaluation.matchedRule;
     const ruleEvidenceIds = evaluation.evidenceIds;
     const matchedRuleIds = evaluation.matchedRuleIds;
 
-    // 5. Vérification de l'autorité normative de la règle Piping Spec (Fix 01 & Fix 04)
-    // Une règle PipingSpec UNVERIFIED ne peut JAMAIS produire COMPATIBLE.
-    const ruleSourceStatus = matchedRule.sourceStatus || spec.sourceStatus;
-    if (ruleSourceStatus !== "VERIFIED") {
-      return {
-        status: "UNVERIFIED",
-        specificationId: spec.id,
-        componentType: context.componentType,
-        matchedRuleIds,
-        evidenceIds: ruleEvidenceIds,
-        message: `PIPING_SPEC_RULE_UNVERIFIED: Matched rule in specification '${spec.id}' has sourceStatus '${ruleSourceStatus}'.`,
-      };
-    }
-
-    // Résolution formelle des preuves de la règle via NORM-09
-    if (ruleEvidenceIds.length === 0) {
-      return {
-        status: "UNVERIFIED",
-        specificationId: spec.id,
-        componentType: context.componentType,
-        matchedRuleIds,
-        evidenceIds: [],
-        message: `PIPING_SPEC_RULE_LACKS_EVIDENCE: Matched rule in specification '${spec.id}' has no associated normative evidence.`,
-      };
-    }
-
-    const evidenceResolution = this.evidenceResolver.resolveEvidenceSet(ruleEvidenceIds);
-    if (!evidenceResolution.allVerified || evidenceResolution.totalRequested === 0) {
-      return {
-        status: "UNVERIFIED",
-        specificationId: spec.id,
-        componentType: context.componentType,
-        matchedRuleIds,
-        evidenceIds: ruleEvidenceIds,
-        message: `PIPING_SPEC_EVIDENCE_NOT_VERIFIED: Normative evidence for matched rule in specification '${spec.id}' is unverified or missing.`,
-      };
-    }
-
-    // 6. Délégation déterministe à NORM-13 (NormativeCompatibilityEngine)
+    // 5. Délégation déterministe à NORM-13 (NormativeCompatibilityEngine)
     const combinedEvidenceIds = Array.from(
       new Set([...ruleEvidenceIds, ...(context.evidenceIds ?? [])])
-    );
+    ).sort();
 
     const compatContext: NormativeCompatibilityContext = {
       standardId: (context.productStandardId || context.dimensionalStandardId) as any,
@@ -208,15 +172,13 @@ export class PipingSpecResolver implements IPipingSpecResolver {
 
     const compatDecision = this.compatibilityEngine.evaluate(compatContext);
 
-    const finalMatchedRuleIds = [...matchedRuleIds];
-    if (compatDecision.ruleId && !finalMatchedRuleIds.includes(compatDecision.ruleId)) {
-      finalMatchedRuleIds.push(compatDecision.ruleId);
-    } else if (
-      compatDecision.matchedRule?.ruleId &&
-      !finalMatchedRuleIds.includes(compatDecision.matchedRule.ruleId)
-    ) {
-      finalMatchedRuleIds.push(compatDecision.matchedRule.ruleId);
-    }
+    const finalMatchedRuleIds = Array.from(
+      new Set([
+        ...matchedRuleIds,
+        ...(compatDecision.ruleId ? [compatDecision.ruleId] : []),
+        ...(compatDecision.matchedRule?.ruleId ? [compatDecision.matchedRule.ruleId] : []),
+      ])
+    ).sort();
 
     const finalEvidenceIds = Array.from(
       new Set([
@@ -224,7 +186,7 @@ export class PipingSpecResolver implements IPipingSpecResolver {
         ...(compatDecision.evidenceIds ?? []),
         ...(context.evidenceIds ?? []),
       ])
-    );
+    ).sort();
 
     return {
       status: compatDecision.status,
@@ -250,8 +212,6 @@ export class PipingSpecResolver implements IPipingSpecResolver {
     evidenceIds: string[];
     message?: string;
   } {
-    const defaultEvidence = spec.evidenceIds ?? [];
-
     if (upperType === "PIPE") {
       if (spec.pipeRules.length === 0) {
         return {
@@ -263,7 +223,7 @@ export class PipingSpecResolver implements IPipingSpecResolver {
         };
       }
 
-      return this.matchPipeRules(spec, context, defaultEvidence);
+      return this.matchPipeRules(spec, context);
     }
 
     if (upperType === "FITTING") {
@@ -277,7 +237,7 @@ export class PipingSpecResolver implements IPipingSpecResolver {
         };
       }
 
-      return this.matchFittingRules(spec, context, defaultEvidence);
+      return this.matchFittingRules(spec, context);
     }
 
     if (upperType === "FLANGE") {
@@ -291,7 +251,7 @@ export class PipingSpecResolver implements IPipingSpecResolver {
         };
       }
 
-      return this.matchFlangeRules(spec, context, defaultEvidence);
+      return this.matchFlangeRules(spec, context);
     }
 
     if (upperType === "VALVE") {
@@ -305,7 +265,7 @@ export class PipingSpecResolver implements IPipingSpecResolver {
         };
       }
 
-      return this.matchValveRules(spec, context, defaultEvidence);
+      return this.matchValveRules(spec, context);
     }
 
     // Composant sans famille standard
@@ -320,8 +280,7 @@ export class PipingSpecResolver implements IPipingSpecResolver {
 
   private matchPipeRules(
     spec: PipingSpecification,
-    context: PipingSpecResolutionContext,
-    specEvidence: readonly string[]
+    context: PipingSpecResolutionContext
   ) {
     const candidates = spec.pipeRules;
 
@@ -415,13 +374,17 @@ export class PipingSpecResolver implements IPipingSpecResolver {
       return true;
     });
 
-    return this.resolveRuleCandidates(matching, specEvidence, "pipe");
+    return this.resolveRuleCandidates(
+      spec,
+      matching,
+      "pipe",
+      this.arePipeRulesEquivalent.bind(this)
+    );
   }
 
   private matchFittingRules(
     spec: PipingSpecification,
-    context: PipingSpecResolutionContext,
-    specEvidence: readonly string[]
+    context: PipingSpecResolutionContext
   ) {
     const candidates = spec.fittingRules;
 
@@ -518,13 +481,17 @@ export class PipingSpecResolver implements IPipingSpecResolver {
       return true;
     });
 
-    return this.resolveRuleCandidates(matching, specEvidence, "fitting");
+    return this.resolveRuleCandidates(
+      spec,
+      matching,
+      "fitting",
+      this.areFittingRulesEquivalent.bind(this)
+    );
   }
 
   private matchFlangeRules(
     spec: PipingSpecification,
-    context: PipingSpecResolutionContext,
-    specEvidence: readonly string[]
+    context: PipingSpecResolutionContext
   ) {
     const candidates = spec.flangeRules;
 
@@ -605,13 +572,17 @@ export class PipingSpecResolver implements IPipingSpecResolver {
       return true;
     });
 
-    return this.resolveRuleCandidates(matching, specEvidence, "flange");
+    return this.resolveRuleCandidates(
+      spec,
+      matching,
+      "flange",
+      this.areFlangeRulesEquivalent.bind(this)
+    );
   }
 
   private matchValveRules(
     spec: PipingSpecification,
-    context: PipingSpecResolutionContext,
-    specEvidence: readonly string[]
+    context: PipingSpecResolutionContext
   ) {
     const candidates = spec.valveRules;
 
@@ -713,16 +684,69 @@ export class PipingSpecResolver implements IPipingSpecResolver {
       return true;
     });
 
-    return this.resolveRuleCandidates(matching, specEvidence, "valve");
+    return this.resolveRuleCandidates(
+      spec,
+      matching,
+      "valve",
+      this.areValveRulesEquivalent.bind(this)
+    );
+  }
+
+  /**
+   * Helper d'égalité ensembliste pour les tableaux immuables.
+   */
+  private areArraySetsEqual(
+    a?: readonly string[] | readonly any[],
+    b?: readonly string[] | readonly any[]
+  ): boolean {
+    if (!a && !b) return true;
+    if (!a || !b) return false;
+    if (a.length !== b.length) return false;
+    const sortedA = [...a].map(String).sort();
+    const sortedB = [...b].map(String).sort();
+    return sortedA.every((val, idx) => val === sortedB[idx]);
+  }
+
+  private arePipeRulesEquivalent(a: PipingSpecPipeRule, b: PipingSpecPipeRule): boolean {
+    if (a.pipeDimensionalStandardId !== b.pipeDimensionalStandardId) return false;
+    if (a.materialId !== b.materialId) return false;
+    if (a.schedule !== b.schedule) return false;
+    return this.areArraySetsEqual(a.nominalSizes, b.nominalSizes);
+  }
+
+  private areFittingRulesEquivalent(a: PipingSpecFittingRule, b: PipingSpecFittingRule): boolean {
+    if (a.fittingStandardId !== b.fittingStandardId) return false;
+    if (a.materialId !== b.materialId) return false;
+    if (!this.areArraySetsEqual(a.fittingTypes, b.fittingTypes)) return false;
+    return this.areArraySetsEqual(a.connectionTypes, b.connectionTypes);
+  }
+
+  private areFlangeRulesEquivalent(a: PipingSpecFlangeRule, b: PipingSpecFlangeRule): boolean {
+    if (a.flangeStandardId !== b.flangeStandardId) return false;
+    if (a.materialId !== b.materialId) return false;
+    if (a.ratingSystem !== b.ratingSystem) return false;
+    if (a.rating !== b.rating) return false;
+    return this.areArraySetsEqual(a.flangeTypes, b.flangeTypes);
+  }
+
+  private areValveRulesEquivalent(a: PipingSpecValveRule, b: PipingSpecValveRule): boolean {
+    if (a.productStandardId !== b.productStandardId) return false;
+    if (a.dimensionalStandardId !== b.dimensionalStandardId) return false;
+    if (a.materialId !== b.materialId) return false;
+    if (!this.areArraySetsEqual(a.valveTypes, b.valveTypes)) return false;
+    return this.areArraySetsEqual(a.connectionTypes, b.connectionTypes);
   }
 
   /**
    * Résout une liste de règles candidates de façon déterministe avec détection de conflits.
+   * FIX-02 : Aucun ordre de tableau arbitraire.
+   * FIX-01 : Isolation stricte des preuves de la règle (pas d'héritage implicite de spec.evidenceIds).
    */
   private resolveRuleCandidates<T extends GenericSpecRule>(
+    spec: PipingSpecification,
     matching: readonly T[],
-    specEvidence: readonly string[],
-    familyName: string
+    familyName: string,
+    areEquivalentFn: (a: T, b: T) => boolean
   ): {
     status: "ADMISSIBLE" | "INCOMPATIBLE" | "UNVERIFIED" | "INVALID";
     matchedRule: GenericSpecRule;
@@ -730,46 +754,135 @@ export class PipingSpecResolver implements IPipingSpecResolver {
     evidenceIds: string[];
     message?: string;
   } {
+    // 0 match -> UNVERIFIED
     if (matching.length === 0) {
       return {
         status: "UNVERIFIED",
         matchedRule: {} as any,
         matchedRuleIds: [],
         evidenceIds: [],
-        message: `NO_MATCHING_RULE: No ${familyName} rule in specification matched the exact context.`,
+        message: `NO_MATCHING_RULE: No ${familyName} rule in specification '${spec.id}' matched the exact context.`,
       };
     }
 
-    // Détection de conflit direct entre règles contradictoires
-    // Deux règles sont contradictoires si elles définissent des contraintes incompatibles pour un même statut
-    // ou si une règle est déclarée VERIFIED avec des contraintes matérielles/dimensionnelles opposées
-    if (matching.length > 1) {
-      const distinctMaterials = new Set(
-        matching.map((r) => r.materialId).filter((m) => m !== undefined)
-      );
-      if (distinctMaterials.size > 1) {
+    // 1 match -> Evaluation unitaire
+    if (matching.length === 1) {
+      const rule = matching[0];
+      const ruleId = rule.ruleId ? [rule.ruleId] : [];
+      const ruleEvidenceIds = (rule.evidenceIds ?? []).slice().sort();
+
+      // Vérification de l'autorité normative de la règle (Fix 01)
+      if (rule.sourceStatus !== "VERIFIED") {
         return {
-          status: "INVALID",
-          matchedRule: {} as any,
-          matchedRuleIds: matching.map((r) => r.ruleId ?? "UNNAMED_RULE"),
-          evidenceIds: [],
-          message: `NORMATIVE_RULE_CONFLICT: Detected contradictory ${familyName} rules with conflicting material constraints.`,
+          status: "UNVERIFIED",
+          matchedRule: rule,
+          matchedRuleIds: ruleId,
+          evidenceIds: ruleEvidenceIds,
+          message: `PIPING_SPEC_RULE_UNVERIFIED: Matched ${familyName} rule in specification '${spec.id}' has sourceStatus '${rule.sourceStatus}'.`,
         };
+      }
+
+      // Résolution formelle des preuves de la règle via NORM-09 (Fix 01)
+      if (ruleEvidenceIds.length === 0) {
+        return {
+          status: "UNVERIFIED",
+          matchedRule: rule,
+          matchedRuleIds: ruleId,
+          evidenceIds: [],
+          message: `PIPING_SPEC_RULE_LACKS_EVIDENCE: Matched ${familyName} rule in specification '${spec.id}' has no associated normative evidence.`,
+        };
+      }
+
+      const evidenceResolution = this.evidenceResolver.resolveEvidenceSet(ruleEvidenceIds);
+      if (!evidenceResolution.allVerified || evidenceResolution.totalRequested === 0) {
+        return {
+          status: "UNVERIFIED",
+          matchedRule: rule,
+          matchedRuleIds: ruleId,
+          evidenceIds: ruleEvidenceIds,
+          message: `PIPING_SPEC_EVIDENCE_NOT_VERIFIED: Normative evidence for matched ${familyName} rule in specification '${spec.id}' is unverified or missing.`,
+        };
+      }
+
+      return {
+        status: "ADMISSIBLE",
+        matchedRule: rule,
+        matchedRuleIds: ruleId,
+        evidenceIds: ruleEvidenceIds,
+      };
+    }
+
+    // matching.length > 1 : Analyse de conflits et équivalence
+    const allMatchedRuleIds = matching
+      .map((r) => r.ruleId ?? "UNNAMED_RULE")
+      .slice()
+      .sort();
+
+    // Vérifier si toutes les règles en lice sont strictement équivalentes
+    const firstRule = matching[0];
+    const allEquivalent = matching.every((r) => areEquivalentFn(firstRule, r));
+
+    if (!allEquivalent) {
+      return {
+        status: "INVALID",
+        matchedRule: {} as any,
+        matchedRuleIds: allMatchedRuleIds,
+        evidenceIds: [],
+        message: `NORMATIVE_RULE_CONFLICT: Detected contradictory ${familyName} rules in specification '${spec.id}'.`,
+      };
+    }
+
+    // Toutes les règles sont strictement équivalentes (CAS 1).
+    // Vérification individuelle de chaque règle pour ses preuves et son statut :
+    // "Une preuve de Rule A ne doit jamais qualifier Rule B"
+    const aggregatedEvidenceIdsSet = new Set<string>();
+
+    for (const rule of matching) {
+      if (rule.sourceStatus !== "VERIFIED") {
+        return {
+          status: "UNVERIFIED",
+          matchedRule: rule,
+          matchedRuleIds: allMatchedRuleIds,
+          evidenceIds: Array.from(aggregatedEvidenceIdsSet).sort(),
+          message: `PIPING_SPEC_RULE_UNVERIFIED: Matched ${familyName} rule '${rule.ruleId ?? "UNNAMED"}' in specification '${spec.id}' has sourceStatus '${rule.sourceStatus}'.`,
+        };
+      }
+
+      const ruleEvidenceIds = rule.evidenceIds ?? [];
+      if (ruleEvidenceIds.length === 0) {
+        return {
+          status: "UNVERIFIED",
+          matchedRule: rule,
+          matchedRuleIds: allMatchedRuleIds,
+          evidenceIds: Array.from(aggregatedEvidenceIdsSet).sort(),
+          message: `PIPING_SPEC_RULE_LACKS_EVIDENCE: Matched ${familyName} rule '${rule.ruleId ?? "UNNAMED"}' in specification '${spec.id}' has no associated normative evidence.`,
+        };
+      }
+
+      const resolution = this.evidenceResolver.resolveEvidenceSet(ruleEvidenceIds);
+      if (!resolution.allVerified || resolution.totalRequested === 0) {
+        return {
+          status: "UNVERIFIED",
+          matchedRule: rule,
+          matchedRuleIds: allMatchedRuleIds,
+          evidenceIds: Array.from(aggregatedEvidenceIdsSet).sort(),
+          message: `PIPING_SPEC_EVIDENCE_NOT_VERIFIED: Normative evidence for matched ${familyName} rule '${rule.ruleId ?? "UNNAMED"}' in specification '${spec.id}' is unverified or missing.`,
+        };
+      }
+
+      for (const evId of ruleEvidenceIds) {
+        aggregatedEvidenceIdsSet.add(evId);
       }
     }
 
-    const primaryRule = matching[0];
-    const matchedRuleIds = matching
-      .map((r) => r.ruleId)
-      .filter((id): id is string => typeof id === "string" && id.length > 0);
-
-    const ruleEvIds = primaryRule.evidenceIds ?? specEvidence;
+    const sortedEvidenceIds = Array.from(aggregatedEvidenceIdsSet).sort();
 
     return {
       status: "ADMISSIBLE",
-      matchedRule: primaryRule,
-      matchedRuleIds,
-      evidenceIds: Array.from(new Set(ruleEvIds)),
+      matchedRule: firstRule,
+      matchedRuleIds: allMatchedRuleIds,
+      evidenceIds: sortedEvidenceIds,
     };
   }
 }
+
