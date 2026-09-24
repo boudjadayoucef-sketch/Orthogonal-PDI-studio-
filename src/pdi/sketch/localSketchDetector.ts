@@ -11,6 +11,7 @@ import {
   SketchVectorEquipment,
   snapToIsometricAngle
 } from "./sketchRasterEngine";
+import { detectSketchTopologyOpenCv } from "./openCvSketchDetector";
 
 export interface LocalDetectionResult {
   detectedTitle: string;
@@ -25,6 +26,7 @@ export interface LocalDetectionResult {
   segments: SketchVectorSegment[];
   fittings: SketchVectorFitting[];
   equipment: SketchVectorEquipment[];
+  lowConfidence?: boolean;
 }
 
 interface BoundingBox {
@@ -42,34 +44,31 @@ interface BoundingBox {
 }
 
 /**
- * Analyse 100% locale, déterministe et autonome d'une image de tuyauterie / P&ID / croquis.
+ * Analyse 100% locale, déterministe et autonome d'une image de tuyauterie / croquis via OpenCV.js.
  * Ne fait aucun appel réseau, aucune requête API, aucun modèle externe.
+ * Retourne null ou un résultat avec lowConfidence si la détection est incertaine (AUCUN réseau inventé).
  */
 export async function detectSketchTopologyLocal(
   imageDataUrl: string,
   canvasWidth = 1188,
   canvasHeight = 840
-): Promise<LocalDetectionResult> {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.crossOrigin = "anonymous";
+): Promise<LocalDetectionResult | null> {
+  try {
+    const openCvResult = await detectSketchTopologyOpenCv(
+      imageDataUrl,
+      canvasWidth,
+      canvasHeight
+    );
+    if (openCvResult && openCvResult.nodes.length >= 2 && openCvResult.segments.length >= 1) {
+      return openCvResult;
+    }
+  } catch (err) {
+    console.warn("[Local Sketch Detector] OpenCV detection notice :", err);
+  }
 
-    img.onload = () => {
-      try {
-        const result = processImageAlgorithmically(img, canvasWidth, canvasHeight);
-        resolve(result);
-      } catch (err) {
-        console.warn("[Local Sketch Detector] Bascule sur réseau étalonné :", err);
-        resolve(generateDeterministicIsoNetwork(canvasWidth, canvasHeight));
-      }
-    };
-
-    img.onerror = () => {
-      resolve(generateDeterministicIsoNetwork(canvasWidth, canvasHeight));
-    };
-
-    img.src = imageDataUrl;
-  });
+  // Si OpenCV n'a pas pu extraire un graphe avec une confiance suffisante :
+  // On ne génère JAMAIS de réseau inventé silencieux.
+  return null;
 }
 
 /**

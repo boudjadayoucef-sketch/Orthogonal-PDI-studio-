@@ -148,9 +148,22 @@ export const SketchToIsoModule: React.FC<SketchToIsoModuleProps> = ({
         console.warn("[OCR Client] Serveur non joignable, bascule locale :", netErr);
       }
 
-      // 2. Fallback local avec segmentation de feuille si serveur absent
+      // 2. Fallback local avec OpenCV.js si serveur absent
       if (!data) {
         data = await detectSketchTopologyLocal(targetImg, dims.width, dims.height);
+      }
+
+      if (!data || !Array.isArray(data.nodes) || data.nodes.length === 0 || !Array.isArray(data.segments) || data.segments.length === 0) {
+        // Détection non concluante / confiance insuffisante -> Pointage manuel assisté
+        setNodes([]);
+        setSegments([]);
+        setFittings([]);
+        setAiDetectedEquipment([]);
+        setActiveTool("pipe");
+        const msg = "⚠️ Détection automatique insuffisamment fiable pour ce croquis. Mode pointage manuel assisté activé : cliquez sur l'image pour placer les nœuds et tracer la tuyauterie.";
+        setAiDetectionSummary(msg);
+        setStatusMessage(msg);
+        return;
       }
 
       if (data.detectedTitle) setProjectName(data.detectedTitle);
@@ -178,7 +191,7 @@ export const SketchToIsoModule: React.FC<SketchToIsoModuleProps> = ({
         setAiDetectedEquipment(data.equipment);
       }
 
-      const summaryText = data.summary || `Détection OCR terminée : ${data.nodes?.length || 0} nœuds, ${data.segments?.length || 0} tronçons, échelle calibrée à ${data.calibrationScale || calibrationScale} px/mm. Table BOM exclue.`;
+      const summaryText = data.summary || `Détection OCR terminée : ${data.nodes?.length || 0} nœuds, ${data.segments?.length || 0} tronçons, échelle calibrée à ${data.calibrationScale || calibrationScale} px/mm.`;
       setAiDetectionSummary(summaryText);
       setStatusMessage(`🎯 ${summaryText} Ajustez la position des éléments si nécessaire puis validez.`);
     } catch (err: any) {
