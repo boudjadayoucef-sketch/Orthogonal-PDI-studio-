@@ -24,7 +24,7 @@ import {
   DEMO_INITIAL_SEGMENTS,
   DEMO_INITIAL_FITTINGS
 } from "./demoSketchTemplate";
-import { detectSketchTopologyLocal } from "./localSketchDetector";
+import { detectSketchTopologyOpenCv } from "./openCvSketchDetector";
 
 export interface SketchToIsoModuleProps {
   onLoadProjectToEditor?: (isoJson: any, name: string) => void;
@@ -150,7 +150,7 @@ export const SketchToIsoModule: React.FC<SketchToIsoModuleProps> = ({
 
       // 2. Fallback local avec OpenCV.js si serveur absent
       if (!data) {
-        data = await detectSketchTopologyLocal(targetImg, dims.width, dims.height);
+        data = await detectSketchTopologyOpenCv(targetImg, dims.width, dims.height);
       }
 
       if (!data || !Array.isArray(data.nodes) || data.nodes.length === 0 || !Array.isArray(data.segments) || data.segments.length === 0) {
