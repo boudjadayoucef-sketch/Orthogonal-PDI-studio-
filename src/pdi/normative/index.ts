@@ -18,6 +18,7 @@ export * from "./types/pipingSpecResolverTypes";
 export * from "./types/componentSelectionTypes";
 export * from "./types/componentCandidateSelectionTypes";
 export * from "./types/componentCandidateRegistryTypes";
+export * from "./types/componentResolutionTypes";
 
 export * from "./registry/standardsRegistry";
 export * from "./registry/pipeDimensionalRegistry";
@@ -53,6 +54,7 @@ export * from "./validators/pipingSpecResolverValidator";
 export * from "./validators/componentSelectionValidator";
 export * from "./validators/componentCandidateSelectionValidator";
 export * from "./validators/componentCandidateRegistryValidator";
+export * from "./validators/componentResolutionValidator";
 
 export * from "./engine/designCodeEngine";
 export * from "./engine/normativeCompatibilityEngine";
@@ -60,6 +62,7 @@ export * from "./engine/pipingSpecResolver";
 export * from "./engine/componentSelectionEngine";
 export * from "./engine/componentCandidateSelectionEngine";
 export * from "./engine/componentCandidateResolver";
+export * from "./engine/componentResolutionEngine";
 
 export * from "./tests/normativeTests";
 export * from "./tests/pipeDimensionalTests";
@@ -79,3 +82,4 @@ export * from "./tests/pipingSpecResolverTests";
 export * from "./tests/componentSelectionTests";
 export * from "./tests/componentCandidateSelectionTests";
 export * from "./tests/componentCandidateRegistryTests";
+export * from "./tests/componentResolutionTests";
