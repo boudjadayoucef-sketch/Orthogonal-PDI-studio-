@@ -59,8 +59,11 @@ export async function getOpenCv(): Promise<any> {
 }
 
 /**
- * Exécute l'amincissement morphologique de Zhang-Suen sur un buffer binaire 2D (0 = fond, 255 = trait)
+ * Ancien filtre de densité de hachures (SKETCH-DETECT-02)
+ * Remplacé dans SKETCH-DETECT-03 par le filtrage par taille de composante connexe
+ * (connectedComponentsWithStats avec MIN_BBOX_DIM = 40px)
  */
+/*
 function filterHatchingDensity(
   binary: Uint8Array,
   width: number,
@@ -99,6 +102,7 @@ function filterHatchingDensity(
 
   return filtered;
 }
+*/
 
 function zhangSuenThinning(
   binary: Uint8Array,
@@ -289,9 +293,19 @@ export async function detectSketchTopologyOpenCv(
       const imgData = ctx.getImageData(0, 0, sampleW, sampleH);
 
       let srcMat: any = null;
+      let rgbMat: any = null;
+      let hsvMat: any = null;
+      let lowBlack: any = null;
+      let highBlack: any = null;
+      let blackMask: any = null;
+      let dilateKernel: any = null;
+      let dilated: any = null;
+      let labels: any = null;
+      let stats: any = null;
+      let centroids: any = null;
+      let cleanedMat: any = null;
       let grayMat: any = null;
       let blurMat: any = null;
-      let threshMat: any = null;
       let linesMat: any = null;
       let circlesMat: any = null;
       let skeletonMat: any = null;
@@ -299,44 +313,62 @@ export async function detectSketchTopologyOpenCv(
       try {
         // Matrice source RGBA
         srcMat = cv.matFromImageData(imgData);
-        grayMat = new cv.Mat();
-        blurMat = new cv.Mat();
-        threshMat = new cv.Mat();
-        linesMat = new cv.Mat();
-        circlesMat = new cv.Mat();
+
+        // =========================================================================
+        // PIPELINE SKETCH-DETECT-03 : ISOLATION TUYAUTERIE PAR COULEUR + MORPHOLOGIE
+        // =========================================================================
+        // 1. Conversion en HSV (au lieu de niveaux de gris directs)
+        rgbMat = new cv.Mat();
+        cv.cvtColor(srcMat, rgbMat, cv.COLOR_RGBA2RGB);
+        hsvMat = new cv.Mat();
+        cv.cvtColor(rgbMat, hsvMat, cv.COLOR_RGB2HSV);
+
+        // 2. Masque isolant les traits noirs/gris foncés de la tuyauterie, en excluant les teintes colorées (cotes bleues, annotations rouges)
+        lowBlack = new cv.Mat(sampleH, sampleW, hsvMat.type(), [0, 0, 0, 0]);
+        highBlack = new cv.Mat(sampleH, sampleW, hsvMat.type(), [180, 90, 110, 255]);
+        blackMask = new cv.Mat();
+        cv.inRange(hsvMat, lowBlack, highBlack, blackMask);
+
+        // 3. Dilatation pour reconnecter les traits fragmentés par la compression JPEG
+        dilateKernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, new cv.Size(4, 4));
+        dilated = new cv.Mat();
+        cv.dilate(blackMask, dilated, dilateKernel, new cv.Point(-1, -1), 1);
+
+        // 4. Filtrage par taille de composante connexe (distingue la tuyauterie continue du texte/bruit)
+        labels = new cv.Mat();
+        stats = new cv.Mat();
+        centroids = new cv.Mat();
+        const numLabels = cv.connectedComponentsWithStats(dilated, labels, stats, centroids, 8, cv.CV_32S);
+        const MIN_BBOX_DIM = 40; // px — calibré et validé visuellement
+        cleanedMat = new cv.Mat.zeros(sampleH, sampleW, cv.CV_8UC1);
+        for (let i = 1; i < numLabels; i++) {
+          const w = stats.intAt(i, cv.CC_STAT_WIDTH);
+          const h = stats.intAt(i, cv.CC_STAT_HEIGHT);
+          if (w >= MIN_BBOX_DIM || h >= MIN_BBOX_DIM) {
+            for (let y = 0; y < sampleH; y++) {
+              for (let x = 0; x < sampleW; x++) {
+                if (labels.intAt(y, x) === i) cleanedMat.ucharPtr(y, x)[0] = 255;
+              }
+            }
+          }
+        }
+
+        // 5. Squelettisation morphologique par amincissement de Zhang-Suen sur cleanedMat
         skeletonMat = new cv.Mat(sampleH, sampleW, cv.CV_8UC1);
-
-        // a) Niveaux de gris
-        cv.cvtColor(srcMat, grayMat, cv.COLOR_RGBA2GRAY);
-
-        // b) Réduction de bruit gaussienne légère (3x3)
-        const ksize = new cv.Size(3, 3);
-        cv.GaussianBlur(grayMat, blurMat, ksize, 0);
-
-        // c) Binarisation adaptative (inversée : traits blancs = 255, fond = 0)
-        cv.adaptiveThreshold(
-          blurMat,
-          threshMat,
-          255,
-          cv.ADAPTIVE_THRESH_GAUSSIAN_C,
-          cv.THRESH_BINARY_INV,
-          15,
-          4
-        );
-
-        // c2) Filtre de pré-traitement de densité anti-hachures / blocs parasites (fenêtre 20x20px)
-        const binaryBuffer = threshMat.data;
-        const cleanedBinaryBuffer = filterHatchingDensity(binaryBuffer, sampleW, sampleH, 20, 0.60);
-
-        // d) Squelettisation morphologique par amincissement de Zhang-Suen
-        const skeletonBuffer = zhangSuenThinning(cleanedBinaryBuffer, sampleW, sampleH);
+        const binaryBuffer = cleanedMat.data;
+        const skeletonBuffer = zhangSuenThinning(binaryBuffer, sampleW, sampleH);
         skeletonMat.data.set(skeletonBuffer);
 
-        // e) Détection de segments par transformée de Hough probabiliste (HoughLinesP)
-        // minLineLength ajusté à 32 (entre 30 et 40) pour écarter les résidus de hachures
+        // 6. Détection de segments par transformée de Hough probabiliste (HoughLinesP)
+        linesMat = new cv.Mat();
         cv.HoughLinesP(skeletonMat, linesMat, 1, Math.PI / 180, 20, 32, 12);
 
-        // f) Détection des cercles (vannes, brides, piquages, symboles)
+        // Détection des symboles ronds (vannes, brides, piquages)
+        grayMat = new cv.Mat();
+        blurMat = new cv.Mat();
+        circlesMat = new cv.Mat();
+        cv.cvtColor(srcMat, grayMat, cv.COLOR_RGBA2GRAY);
+        cv.GaussianBlur(grayMat, blurMat, new cv.Size(3, 3), 0);
         try {
           cv.HoughCircles(
             blurMat,
@@ -365,7 +397,11 @@ export async function detectSketchTopologyOpenCv(
         }
 
         const rawLines: RawLine[] = [];
-        const numLines = linesMat.rows;
+        // CORRECTIF BUG BINDING @techstark/opencv-js 5.0.0-release.1 :
+        // linesMat.rows ne reflète pas le nombre réel de segments après
+        // HoughLinesP (reste bloqué à 1). data32S.length / 4 donne le compte
+        // réel (4 valeurs x1,y1,x2,y2 par segment). Confirmé par test direct.
+        const numLines = linesMat.data32S ? linesMat.data32S.length / 4 : linesMat.rows;
 
         for (let i = 0; i < numLines; i++) {
           const x1 = linesMat.data32S[i * 4];
@@ -567,9 +603,19 @@ export async function detectSketchTopologyOpenCv(
       } finally {
         // Nettoyage impératif de la mémoire WebAssembly OpenCV
         if (srcMat) srcMat.delete();
+        if (rgbMat) rgbMat.delete();
+        if (hsvMat) hsvMat.delete();
+        if (lowBlack) lowBlack.delete();
+        if (highBlack) highBlack.delete();
+        if (blackMask) blackMask.delete();
+        if (dilateKernel) dilateKernel.delete();
+        if (dilated) dilated.delete();
+        if (labels) labels.delete();
+        if (stats) stats.delete();
+        if (centroids) centroids.delete();
+        if (cleanedMat) cleanedMat.delete();
         if (grayMat) grayMat.delete();
         if (blurMat) blurMat.delete();
-        if (threshMat) threshMat.delete();
         if (linesMat) linesMat.delete();
         if (circlesMat) circlesMat.delete();
         if (skeletonMat) skeletonMat.delete();
