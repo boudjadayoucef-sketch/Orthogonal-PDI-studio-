@@ -313,6 +313,22 @@ export function validateB31_3DataRecordGovernance(
         field: "sourceDocumentId",
         message: `VERIFIED record '${record.dataId}' references source document '${record.sourceDocumentId}' which is not VERIFIED (status: ${docRes.status}).`,
       });
+    } else if (docRes.document) {
+      if (docRes.document.standardId !== record.standardId) {
+        errors.push({
+          code: "VERIFIED_RECORD_STANDARD_MISMATCH",
+          field: "standardId",
+          message: `Record standardId '${record.standardId}' does not match source document standardId '${docRes.document.standardId}'.`,
+        });
+      }
+
+      if (docRes.document.editionId !== record.editionId) {
+        errors.push({
+          code: "VERIFIED_RECORD_EDITION_MISMATCH",
+          field: "editionId",
+          message: `Record editionId '${record.editionId}' does not match source document editionId '${docRes.document.editionId}'.`,
+        });
+      }
     }
 
     // 2. Vérifier l'évidence
