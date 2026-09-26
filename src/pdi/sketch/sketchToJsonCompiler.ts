@@ -5,7 +5,8 @@
 import {
   SketchVectorNode,
   SketchVectorSegment,
-  SketchVectorFitting
+  SketchVectorFitting,
+  SketchVectorEquipment
 } from "./sketchRasterEngine";
 import {
   IsoNode,
@@ -102,6 +103,7 @@ export function compileSketchToIsoModel(params: {
   nodes: SketchVectorNode[];
   segments: SketchVectorSegment[];
   fittings: SketchVectorFitting[];
+  equipment?: SketchVectorEquipment[];
   calibrationScale: number; // px per mm
   title?: string;
   paperFormat?: string;
@@ -112,6 +114,7 @@ export function compileSketchToIsoModel(params: {
     nodes,
     segments,
     fittings,
+    equipment = [],
     calibrationScale,
     title = "Ligne Extraite de Croquis",
     paperFormat = "A4_LANDSCAPE",
@@ -144,75 +147,157 @@ export function compileSketchToIsoModel(params: {
   // Default calibration scale is ~0.25 px/mm = 250 px/m, or if uncalibrated, 100 px ≈ 1 m.
   const pxPerMeter = scale > 0 ? (scale >= 1 ? scale : scale * 1000) : 100;
 
-  // 2. Map Nodes using isometric 3D pipe routing
+  // 2. Map Nodes using multi-component isometric 3D pipe routing
   // Convert sketch segments and angles to true 3D orthogonal coordinates (in meters)
   const nodeCoords3D = new Map<string, { x: number; y: number; z: number }>();
 
   if (nodes.length > 0) {
-    // Initialize starting node
-    const firstNode = nodes[0];
-    nodeCoords3D.set(firstNode.id, {
-      x: 0,
-      y: 0,
-      z: Number(((firstNode.elevation || 0) / 1000).toFixed(3))
-    });
+    // Build adjacency list for connected components exploration
+    const adj = new Map<
+      string,
+      Array<{ nextId: string; seg: SketchVectorSegment; isForward: boolean }>
+    >();
+    for (const node of nodes) {
+      adj.set(node.id, []);
+    }
+    for (const seg of segments) {
+      if (adj.has(seg.fromNodeId)) {
+        adj.get(seg.fromNodeId)!.push({ nextId: seg.toNodeId, seg, isForward: true });
+      }
+      if (adj.has(seg.toNodeId)) {
+        adj.get(seg.toNodeId)!.push({ nextId: seg.fromNodeId, seg, isForward: false });
+      }
+    }
 
-    // BFS propagation along segments to establish 3D coordinates aligned with isometric axes
-    const visited = new Set<string>([firstNode.id]);
-    const queue = [firstNode.id];
+    const visitedNodes = new Set<string>();
 
-    while (queue.length > 0) {
-      const currId = queue.shift()!;
-      const currCoord = nodeCoords3D.get(currId)!;
+    // Traverse every connected component separately to maintain geometric 3D consistency
+    for (const rootNode of nodes) {
+      if (visitedNodes.has(rootNode.id)) continue;
 
-      const outgoing = segments.filter((s) => s.fromNodeId === currId || s.toNodeId === currId);
-      for (const seg of outgoing) {
-        const isForward = seg.fromNodeId === currId;
-        const nextId = isForward ? seg.toNodeId : seg.fromNodeId;
+      const outgoing = adj.get(rootNode.id) || [];
+      if (outgoing.length === 0) {
+        // Isolated node without segments
+        visitedNodes.add(rootNode.id);
+        nodeCoords3D.set(rootNode.id, {
+          x: Number(((rootNode.x - minX) / pxPerMeter).toFixed(3)),
+          y: Number(((rootNode.y - minY) / pxPerMeter).toFixed(3)),
+          z: Number(((rootNode.elevation || 0) / 1000).toFixed(3))
+        });
+        continue;
+      }
 
-        if (!visited.has(nextId)) {
-          visited.add(nextId);
-          queue.push(nextId);
+      // New connected component found
+      // Local origin of this component is initialized with its screen-space offset in meters
+      const compOffsetX = Number(((rootNode.x - minX) / pxPerMeter).toFixed(3));
+      const compOffsetY = Number(((rootNode.y - minY) / pxPerMeter).toFixed(3));
+      const compOffsetZ = Number(((rootNode.elevation || 0) / 1000).toFixed(3));
 
-          const fromN = nodes.find((n) => n.id === currId);
-          const nextN = nodes.find((n) => n.id === nextId);
+      visitedNodes.add(rootNode.id);
+      nodeCoords3D.set(rootNode.id, {
+        x: compOffsetX,
+        y: compOffsetY,
+        z: compOffsetZ
+      });
 
-          const lenM = seg.lengthMm 
-            ? seg.lengthMm / 1000 
-            : (fromN && nextN ? Math.hypot(nextN.x - fromN.x, nextN.y - fromN.y) / pxPerMeter : 1.0);
+      // BFS propagation along segments within this connected component
+      const queue = [rootNode.id];
 
-          const ang = seg.angleIsoDeg !== undefined 
-            ? (isForward ? seg.angleIsoDeg : (seg.angleIsoDeg + 180) % 360) 
-            : 30;
+      while (queue.length > 0) {
+        const currId = queue.shift()!;
+        const currCoord = nodeCoords3D.get(currId)!;
+        const edges = adj.get(currId) || [];
 
-          let dx = 0, dy = 0, dz = 0;
-          if (ang === 90) {
-            dz = lenM;
-          } else if (ang === 270) {
-            dz = -lenM;
-          } else if (ang === 30) {
-            dx = lenM;
-          } else if (ang === 210) {
-            dx = -lenM;
-          } else if (ang === 150) {
-            dy = -lenM;
-          } else if (ang === 330) {
-            dy = lenM;
-          } else {
-            // Décomposition d'angle général
-            const rad = (ang * Math.PI) / 180;
-            dx = lenM * Math.cos(rad);
-            dy = lenM * Math.sin(rad);
+        for (const { nextId, seg, isForward } of edges) {
+          if (!visitedNodes.has(nextId)) {
+            visitedNodes.add(nextId);
+            queue.push(nextId);
+
+            const fromN = nodes.find((n) => n.id === currId);
+            const nextN = nodes.find((n) => n.id === nextId);
+
+            const lenM = seg.lengthMm
+              ? seg.lengthMm / 1000
+              : (fromN && nextN ? Math.hypot(nextN.x - fromN.x, nextN.y - fromN.y) / pxPerMeter : 1.0);
+
+            const ang = seg.angleIsoDeg !== undefined
+              ? (isForward ? seg.angleIsoDeg : (seg.angleIsoDeg + 180) % 360)
+              : 30;
+
+            let dx = 0, dy = 0, dz = 0;
+            if (ang === 90) {
+              dz = lenM;
+            } else if (ang === 270) {
+              dz = -lenM;
+            } else if (ang === 30) {
+              dx = lenM;
+            } else if (ang === 210) {
+              dx = -lenM;
+            } else if (ang === 150) {
+              dy = -lenM;
+            } else if (ang === 330) {
+              dy = lenM;
+            } else {
+              // Décomposition d'angle général
+              const rad = (ang * Math.PI) / 180;
+              dx = lenM * Math.cos(rad);
+              dy = lenM * Math.sin(rad);
+            }
+
+            const targetZ = nextN?.elevation !== undefined
+              ? nextN.elevation / 1000
+              : currCoord.z + dz;
+
+            nodeCoords3D.set(nextId, {
+              x: Number((currCoord.x + dx).toFixed(3)),
+              y: Number((currCoord.y + dy).toFixed(3)),
+              z: Number(targetZ.toFixed(3))
+            });
           }
+        }
+      }
+    }
+  }
 
-          const targetZ = nextN?.elevation !== undefined 
-            ? nextN.elevation / 1000 
-            : currCoord.z + dz;
+  // Map equipment items: attach to existing nodes or create standalone equipment nodes
+  const additionalNodes: IsoNode[] = [];
+  const assignedEquipmentMap = new Map<string, SketchVectorEquipment>();
 
-          nodeCoords3D.set(nextId, {
-            x: Number((currCoord.x + dx).toFixed(3)),
-            y: Number((currCoord.y + dy).toFixed(3)),
-            z: Number(targetZ.toFixed(3))
+  if (Array.isArray(equipment) && equipment.length > 0) {
+    for (const eq of equipment) {
+      if (eq.nodeId && nodes.some((n) => n.id === eq.nodeId)) {
+        assignedEquipmentMap.set(eq.nodeId, eq);
+      } else if (eq.x !== undefined && eq.y !== undefined) {
+        // Find closest node within 30px
+        let nearestNode: SketchVectorNode | null = null;
+        let minDist = 30;
+        for (const n of nodes) {
+          const d = Math.hypot(n.x - eq.x, n.y - eq.y);
+          if (d < minDist) {
+            minDist = d;
+            nearestNode = n;
+          }
+        }
+
+        if (nearestNode) {
+          assignedEquipmentMap.set(nearestNode.id, eq);
+        } else {
+          // Dedicated node for standalone equipment
+          const eqNodeId = eq.id || `eq_node_${additionalNodes.length + 1}`;
+          additionalNodes.push({
+            id: eqNodeId,
+            name: eq.tag || eq.label || `EQ-${additionalNodes.length + 1}`,
+            x: Number(((eq.x - minX) / pxPerMeter).toFixed(3)),
+            y: Number(((eq.y - minY) / pxPerMeter).toFixed(3)),
+            z: 0,
+            type: "normal",
+            dn: segments[0]?.nominalDiameter || 150,
+            equipmentType: mapSketchFittingTypeToIso(eq.type),
+            equipmentLabel: eq.label || eq.tag || eq.type,
+            tag: eq.tag,
+            material: defaultLine.material,
+            pn: defaultLine.pressureClass,
+            lineId: lineId
           });
         }
       }
@@ -230,13 +315,30 @@ export function compileSketchToIsoModel(params: {
       nodeType = "tee";
     }
 
-    // Check if any fitting is assigned directly to this node
+    // Check if any fitting or equipment is assigned directly to this node
     const nodeFitting = fittings.find((f) => f.nodeId === node.id);
+    const nodeEq = assignedEquipmentMap.get(node.id);
+
     const coords = nodeCoords3D.get(node.id) || {
       x: Number(((node.x - minX) / pxPerMeter).toFixed(3)),
       y: Number(((node.y - minY) / pxPerMeter).toFixed(3)),
       z: Number(((node.elevation || 0) / 1000).toFixed(3))
     };
+
+    const eqType = nodeFitting
+      ? mapSketchFittingTypeToIso(nodeFitting.type)
+      : nodeEq
+      ? mapSketchFittingTypeToIso(nodeEq.type)
+      : node.equipmentType
+      ? mapSketchFittingTypeToIso(node.equipmentType)
+      : undefined;
+
+    const eqLabel =
+      nodeFitting?.label ||
+      nodeEq?.label ||
+      nodeEq?.tag ||
+      node.equipmentLabel ||
+      (node.equipmentType ? node.label || node.equipmentType : undefined);
 
     return {
       id: node.id,
@@ -246,13 +348,16 @@ export function compileSketchToIsoModel(params: {
       z: coords.z,
       type: nodeType,
       dn: node.dn || segments[0]?.nominalDiameter || 150,
-      equipmentType: nodeFitting ? mapSketchFittingTypeToIso(nodeFitting.type) : (node.equipmentType ? mapSketchFittingTypeToIso(node.equipmentType) : undefined),
-      equipmentLabel: nodeFitting?.label || node.equipmentLabel || (node.equipmentType ? (node.label || node.equipmentType) : undefined),
+      equipmentType: eqType,
+      equipmentLabel: eqLabel,
+      tag: nodeEq?.tag,
       material: defaultLine.material,
       pn: defaultLine.pressureClass,
       lineId: lineId
     };
   });
+
+  const allIsoNodes = [...isoNodes, ...additionalNodes];
 
   // 3. Map Segments (Pipes) and attach inline fittings
   const dimensions: CompiledIsoModel["dimensions"] = [];
@@ -321,12 +426,13 @@ export function compileSketchToIsoModel(params: {
       paperFormat,
       calibrationScalePxPerMm: scale,
       totalPipesCount: isoSegments.length,
-      totalFittingsCount: fittings.length,
+      totalFittingsCount:
+        fittings.length + (Array.isArray(equipment) ? equipment.length : 0),
       lineReference,
       service
     },
     lines: [defaultLine],
-    nodes: isoNodes,
+    nodes: allIsoNodes,
     segments: isoSegments,
     dimensions
   };

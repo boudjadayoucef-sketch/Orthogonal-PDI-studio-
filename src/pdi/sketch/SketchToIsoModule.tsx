@@ -267,6 +267,7 @@ export const SketchToIsoModule: React.FC<SketchToIsoModuleProps> = ({
       nodes,
       segments,
       fittings,
+      equipment: aiDetectedEquipment,
       calibrationScale,
       title: projectName,
       paperFormat: format,

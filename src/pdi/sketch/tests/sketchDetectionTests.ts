@@ -129,15 +129,15 @@ export function runSketchDetectionTests(): {
   test("DET-07", "Fusion des micro-segments colinéaires de même axe en un seul tronçon continu", () => {
     // 4 nœuds formant 3 segments successifs alignés sur l'axe X (30°)
     const rawNodes: SketchVectorNode[] = [
-      { id: "n1", x: 100, y: 100 },
-      { id: "n2_faux_point", x: 150, y: 71 },
-      { id: "n3_faux_point", x: 200, y: 42 },
-      { id: "n4", x: 250, y: 13 },
+      { id: "n1", x: 100, y: 100, elevation: 0 },
+      { id: "n2_faux_point", x: 150, y: 71, elevation: 0 },
+      { id: "n3_faux_point", x: 200, y: 42, elevation: 0 },
+      { id: "n4", x: 250, y: 13, elevation: 0 },
     ];
     const rawSegs: SketchVectorSegment[] = [
-      { id: "s1", fromNodeId: "n1", toNodeId: "n2_faux_point", detectedAxis: "X", angleIsoDeg: 30, lengthMm: 300 },
-      { id: "s2", fromNodeId: "n2_faux_point", toNodeId: "n3_faux_point", detectedAxis: "X", angleIsoDeg: 30, lengthMm: 400 },
-      { id: "s3", fromNodeId: "n3_faux_point", toNodeId: "n4", detectedAxis: "X", angleIsoDeg: 30, lengthMm: 500 },
+      { id: "s1", fromNodeId: "n1", toNodeId: "n2_faux_point", detectedAxis: "X", angleIsoDeg: 30, lengthMm: 300, nominalDiameter: 100, pressureClass: "Class 150", material: "Acier au carbone" },
+      { id: "s2", fromNodeId: "n2_faux_point", toNodeId: "n3_faux_point", detectedAxis: "X", angleIsoDeg: 30, lengthMm: 400, nominalDiameter: 100, pressureClass: "Class 150", material: "Acier au carbone" },
+      { id: "s3", fromNodeId: "n3_faux_point", toNodeId: "n4", detectedAxis: "X", angleIsoDeg: 30, lengthMm: 500, nominalDiameter: 100, pressureClass: "Class 150", material: "Acier au carbone" },
     ];
 
     const { nodes, segs } = mergeCollinearSegments(rawNodes, rawSegs);
@@ -155,13 +155,13 @@ export function runSketchDetectionTests(): {
   test("DET-08", "Préservation stricte des vrais coudes (axes distincts)", () => {
     // n2 est un vrai coude entre un segment X (horizontal iso) et un segment Z (vertical)
     const rawNodes: SketchVectorNode[] = [
-      { id: "n1", x: 100, y: 100 },
-      { id: "n2_coude", x: 200, y: 42 },
-      { id: "n3", x: 200, y: 200 },
+      { id: "n1", x: 100, y: 100, elevation: 0 },
+      { id: "n2_coude", x: 200, y: 42, elevation: 0 },
+      { id: "n3", x: 200, y: 200, elevation: 0 },
     ];
     const rawSegs: SketchVectorSegment[] = [
-      { id: "s1", fromNodeId: "n1", toNodeId: "n2_coude", detectedAxis: "X", angleIsoDeg: 30, lengthMm: 600 },
-      { id: "s2", fromNodeId: "n2_coude", toNodeId: "n3", detectedAxis: "Z", angleIsoDeg: 270, lengthMm: 800 },
+      { id: "s1", fromNodeId: "n1", toNodeId: "n2_coude", detectedAxis: "X", angleIsoDeg: 30, lengthMm: 600, nominalDiameter: 100, pressureClass: "Class 150", material: "Acier au carbone" },
+      { id: "s2", fromNodeId: "n2_coude", toNodeId: "n3", detectedAxis: "Z", angleIsoDeg: 270, lengthMm: 800, nominalDiameter: 100, pressureClass: "Class 150", material: "Acier au carbone" },
     ];
 
     const { nodes, segs } = mergeCollinearSegments(rawNodes, rawSegs);
@@ -173,15 +173,15 @@ export function runSketchDetectionTests(): {
   // DET-09 (SKETCH-DETECT-04) : Non-fusion des piquages / tés (3+ segments touchants)
   test("DET-09", "Préservation stricte des tés et piquages (3+ segments touchants)", () => {
     const rawNodes: SketchVectorNode[] = [
-      { id: "n1", x: 100, y: 100 },
-      { id: "n_te", x: 200, y: 42 },
-      { id: "n3", x: 300, y: -16 },
-      { id: "n4_branche", x: 200, y: 150 },
+      { id: "n1", x: 100, y: 100, elevation: 0 },
+      { id: "n_te", x: 200, y: 42, elevation: 0 },
+      { id: "n3", x: 300, y: -16, elevation: 0 },
+      { id: "n4_branche", x: 200, y: 150, elevation: 0 },
     ];
     const rawSegs: SketchVectorSegment[] = [
-      { id: "s1", fromNodeId: "n1", toNodeId: "n_te", detectedAxis: "X", lengthMm: 500 },
-      { id: "s2", fromNodeId: "n_te", toNodeId: "n3", detectedAxis: "X", lengthMm: 500 },
-      { id: "s3", fromNodeId: "n_te", toNodeId: "n4_branche", detectedAxis: "Z", lengthMm: 400 },
+      { id: "s1", fromNodeId: "n1", toNodeId: "n_te", detectedAxis: "X", lengthMm: 500, nominalDiameter: 100, pressureClass: "Class 150", material: "Acier au carbone" },
+      { id: "s2", fromNodeId: "n_te", toNodeId: "n3", detectedAxis: "X", lengthMm: 500, nominalDiameter: 100, pressureClass: "Class 150", material: "Acier au carbone" },
+      { id: "s3", fromNodeId: "n_te", toNodeId: "n4_branche", detectedAxis: "Z", lengthMm: 400, nominalDiameter: 100, pressureClass: "Class 150", material: "Acier au carbone" },
     ];
 
     const { nodes, segs } = mergeCollinearSegments(rawNodes, rawSegs);
@@ -193,17 +193,88 @@ export function runSketchDetectionTests(): {
   // DET-10 (SKETCH-DETECT-04) : Non-fusion des extrémités (1 seul segment touchant)
   test("DET-10", "Préservation des extrémités libres (1 segment touchant)", () => {
     const rawNodes: SketchVectorNode[] = [
-      { id: "n1", x: 100, y: 100 },
-      { id: "n2", x: 200, y: 100 },
+      { id: "n1", x: 100, y: 100, elevation: 0 },
+      { id: "n2", x: 200, y: 100, elevation: 0 },
     ];
     const rawSegs: SketchVectorSegment[] = [
-      { id: "s1", fromNodeId: "n1", toNodeId: "n2", detectedAxis: "Y", lengthMm: 500 },
+      { id: "s1", fromNodeId: "n1", toNodeId: "n2", detectedAxis: "Y", lengthMm: 500, nominalDiameter: 100, pressureClass: "Class 150", material: "Acier au carbone" },
     ];
 
     const { nodes, segs } = mergeCollinearSegments(rawNodes, rawSegs);
 
     ok(nodes.length === 2, "Les extrémités doivent être conservées");
     ok(segs.length === 1, "Le segment unique doit être conservé");
+  });
+
+  // DET-11 (SKETCH-DETECT-05) : Multi-composantes connexes 3D BFS
+  test("DET-11", "Reconstruction 3D BFS multi-composantes pour les réseaux disjoints", () => {
+    // Deux composantes disjointes : comp1 (n1-n2) et comp2 (n3-n4)
+    const multiCompNodes: SketchVectorNode[] = [
+      { id: "n1", x: 100, y: 100, elevation: 0 },
+      { id: "n2", x: 200, y: 42, elevation: 0 },
+      { id: "n3", x: 500, y: 300, elevation: 500 },
+      { id: "n4", x: 600, y: 242, elevation: 500 },
+    ];
+    const multiCompSegs: SketchVectorSegment[] = [
+      { id: "s1", fromNodeId: "n1", toNodeId: "n2", angleIsoDeg: 30, lengthMm: 1000, nominalDiameter: 80, pressureClass: "Class 300", material: "Acier" },
+      { id: "s2", fromNodeId: "n3", toNodeId: "n4", angleIsoDeg: 30, lengthMm: 2000, nominalDiameter: 80, pressureClass: "Class 300", material: "Acier" },
+    ];
+
+    const compiled = compileSketchToIsoModel({
+      nodes: multiCompNodes,
+      segments: multiCompSegs,
+      fittings: [],
+      calibrationScale: 0.25,
+    });
+
+    ok(compiled.nodes.length === 4, "Les 4 nœuds doivent être présents");
+    const node1 = compiled.nodes.find(n => n.id === "n1");
+    const node2 = compiled.nodes.find(n => n.id === "n2");
+    const node3 = compiled.nodes.find(n => n.id === "n3");
+    const node4 = compiled.nodes.find(n => n.id === "n4");
+
+    ok(node1 !== undefined && node2 !== undefined, "Nœuds comp1 trouvés");
+    ok(node3 !== undefined && node4 !== undefined, "Nœuds comp2 trouvés");
+
+    // Dans comp1, dx = 1.0 (len 1000mm sur angle 30°)
+    const deltaX1 = Math.round((node2!.x - node1!.x) * 1000) / 1000;
+    ok(deltaX1 === 1.0, `Delta X dans comp1 doit être 1.0m (obtenu: ${deltaX1})`);
+
+    // Dans comp2, dx = 2.0 (len 2000mm sur angle 30°)
+    const deltaX2 = Math.round((node4!.x - node3!.x) * 1000) / 1000;
+    ok(deltaX2 === 2.0, `Delta X dans comp2 doit être 2.0m (obtenu: ${deltaX2})`);
+
+    // La position de comp2 est décalée par rapport à comp1
+    ok(node3!.x > node1!.x, "Comp2 doit avoir son offset dérivé de l'écran par rapport à Comp1");
+  });
+
+  // DET-12 (SKETCH-DETECT-05) : Connexion et mapping des équipements (vannes/pompes)
+  test("DET-12", "Connexion et transmission des équipements détectés vers le modèle ISO", () => {
+    const demoNodes: SketchVectorNode[] = [
+      { id: "n1", x: 100, y: 100, elevation: 0 },
+      { id: "n2", x: 200, y: 100, elevation: 0 },
+    ];
+    const demoSegs: SketchVectorSegment[] = [
+      { id: "s1", fromNodeId: "n1", toNodeId: "n2", lengthMm: 1000, nominalDiameter: 100, pressureClass: "Class 150", material: "Acier" },
+    ];
+
+    const compiled = compileSketchToIsoModel({
+      nodes: demoNodes,
+      segments: demoSegs,
+      fittings: [],
+      equipment: [
+        { id: "eq1", type: "valve", tag: "V-101", label: "Vanne d'isolement", nodeId: "n1" },
+        { id: "eq2", type: "pompe", tag: "P-101", label: "Pompe centrifuge", x: 1000, y: 800 },
+      ],
+      calibrationScale: 0.25,
+    });
+
+    const n1 = compiled.nodes.find(n => n.id === "n1");
+    ok(n1?.equipmentType === "vanne_passage_total", "Nœud n1 doit avoir l'équipement vanne attaché");
+    ok(n1?.equipmentLabel === "Vanne d'isolement", "Nœud n1 doit avoir le label de l'équipement");
+
+    const standalonePump = compiled.nodes.find(n => n.equipmentType === "gare_racleur_depart" || n.name === "P-101");
+    ok(standalonePump !== undefined, "L'équipement autonome P-101 doit être créé comme nœud dédié");
   });
 
   return { success, testsRun, results };
