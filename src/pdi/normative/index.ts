@@ -22,6 +22,7 @@ export * from "./types/componentResolutionTypes";
 export * from "./types/normativeSourceDocumentTypes";
 export * from "./types/b31_3DataTypes";
 export * from "./data/b31_3/b31_3Types";
+export * from "./data/b31_3/b31_3VerifiedData";
 
 export * from "./registry/standardsRegistry";
 export * from "./registry/pipeDimensionalRegistry";

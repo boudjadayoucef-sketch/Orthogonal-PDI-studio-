@@ -262,12 +262,11 @@ export function runComponentCandidateSelectionTests(): Component02TestResult {
       materialId: "SYNTHETIC_MAT_A",
     };
 
-    const contextSch40: ComponentSelectionContext = {
+    const contextFlexible: ComponentSelectionContext = {
       specificationId: "SYNTHETIC_SPEC_01",
       componentType: "PIPE",
       dimensionalStandardId: "SYNTHETIC_STD_PIPE",
       nominalSize: "2",
-      schedule: "SCH 40",
       materialId: "SYNTHETIC_MAT_A",
     };
 
@@ -275,7 +274,7 @@ export function runComponentCandidateSelectionTests(): Component02TestResult {
       specificationId: "SYNTHETIC_SPEC_01",
       componentType: "PIPE",
       candidates: [candA, candB],
-      context: contextSch40,
+      context: contextFlexible,
     };
 
     const res = candidateSelectionEngine.selectCandidate(input);
@@ -614,11 +613,19 @@ export function runComponentCandidateSelectionTests(): Component02TestResult {
       materialId: "SYNTHETIC_MAT_A",
     };
 
+    const contextFlexible: ComponentSelectionContext = {
+      specificationId: "SYNTHETIC_SPEC_01",
+      componentType: "PIPE",
+      dimensionalStandardId: "SYNTHETIC_STD_PIPE",
+      nominalSize: "2",
+      materialId: "SYNTHETIC_MAT_A",
+    };
+
     const input: ComponentCandidateSelectionInput = {
       specificationId: "SYNTHETIC_SPEC_01",
       componentType: "PIPE",
       candidates: [candInelig1, candEligible, candInelig2],
-      context: defaultContext,
+      context: contextFlexible,
     };
 
     const res = candidateSelectionEngine.selectCandidate(input);

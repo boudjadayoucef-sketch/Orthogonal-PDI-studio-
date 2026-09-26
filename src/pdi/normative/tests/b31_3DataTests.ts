@@ -24,10 +24,13 @@ import {
 } from "../registry/normativeEvidenceResolver";
 import {
   B31_3DataRegistry,
+  defaultB31_3DataRegistry,
 } from "../data/b31_3/b31_3DataRegistry";
 import {
   B31_3DataResolver,
+  defaultB31_3DataResolver,
 } from "../data/b31_3/b31_3DataResolver";
+import { B31_3_VERIFIED_DATA } from "../data/b31_3/b31_3VerifiedData";
 import type {
   B31_3NormativeDataRecord,
 } from "../types/b31_3DataTypes";
@@ -659,6 +662,342 @@ export function runB31_3DataTests(): B31_3DataTestResult {
     assert(setRes.notFoundCount === 1, "notFoundCount mismatch");
     assert(setRes.allFound === false, "allFound must be false");
     assert(setRes.allVerified === false, "allVerified must be false");
+  });
+
+  // =========================================================================
+  // 7. TESTS B31.3-03 (TESTS 33 à 50)
+  // =========================================================================
+
+  // TEST 33: Une donnée réellement vérifiée peut être enregistrée avec succès
+  runTest("TEST 33 (B31.3-03) — Une donnée vérifiée avec chaîne complète est enregistrée avec succès", () => {
+    const { dataRegistry, dataResolver } = createTestEnvironment();
+    const verifiedItem: B31_3NormativeDataRecord<number> = {
+      dataId: "SYNTHETIC_B31_3_VERIFIED_ITEM_01",
+      standardId: "SYNTHETIC_STANDARD_01",
+      editionId: "SYNTHETIC_EDITION_01",
+      sourceDocumentId: "SYNTHETIC_SOURCE_DOCUMENT_VERIFIED",
+      evidenceId: "SYNTHETIC_EVIDENCE_VERIFIED",
+      clauseReference: "SYNTHETIC_CLAUSE_01",
+      dataType: "ALLOWABLE_STRESS",
+      value: 137.9,
+      unit: "MPa",
+      status: "VERIFIED",
+    };
+
+    dataRegistry.register(verifiedItem);
+    const res = dataResolver.resolveData<number>("SYNTHETIC_B31_3_VERIFIED_ITEM_01");
+    assert(res.status === "FOUND_VERIFIED", `Expected FOUND_VERIFIED, got '${res.status}'`);
+    assert(res.record?.value === 137.9, "Value mismatch");
+    assert(res.record?.unit === "MPa", "Unit mismatch");
+  });
+
+  // TEST 34: Une donnée sans SourceDocument vérifié est rejetée
+  runTest("TEST 34 (B31.3-03) — Une donnée sans SourceDocument vérifié est rejetée", () => {
+    const { dataRegistry, docResolver, evResolver } = createTestEnvironment();
+    const badDocRecord: B31_3NormativeDataRecord<number> = {
+      ...validRecordSynthetic,
+      dataId: "SYNTHETIC_BAD_DOC_RECORD",
+      sourceDocumentId: "SYNTHETIC_SOURCE_DOCUMENT_UNVERIFIED",
+      status: "VERIFIED",
+    };
+
+    const govRes = validateB31_3DataRecordGovernance(badDocRecord, docResolver, evResolver);
+    assert(!govRes.valid, "Governance validation must fail for unverified source document");
+    assert(
+      govRes.errors.some((e) => e.code === "VERIFIED_RECORD_SOURCE_DOCUMENT_UNVERIFIED"),
+      "Must return VERIFIED_RECORD_SOURCE_DOCUMENT_UNVERIFIED"
+    );
+
+    let threw = false;
+    try {
+      dataRegistry.register(badDocRecord);
+    } catch {
+      threw = true;
+    }
+    assert(threw, "Registry must throw when source document is not verified");
+  });
+
+  // TEST 35: Une donnée sans Evidence vérifiée est rejetée
+  runTest("TEST 35 (B31.3-03) — Une donnée sans Evidence vérifiée est rejetée", () => {
+    const { dataRegistry, docResolver, evResolver } = createTestEnvironment();
+    const badEvRecord: B31_3NormativeDataRecord<number> = {
+      ...validRecordSynthetic,
+      dataId: "SYNTHETIC_BAD_EV_RECORD",
+      evidenceId: "SYNTHETIC_EVIDENCE_UNVERIFIED",
+      status: "VERIFIED",
+    };
+
+    const govRes = validateB31_3DataRecordGovernance(badEvRecord, docResolver, evResolver);
+    assert(!govRes.valid, "Governance validation must fail for unverified evidence");
+    assert(
+      govRes.errors.some((e) => e.code === "VERIFIED_RECORD_EVIDENCE_UNVERIFIED"),
+      "Must return VERIFIED_RECORD_EVIDENCE_UNVERIFIED"
+    );
+
+    let threw = false;
+    try {
+      dataRegistry.register(badEvRecord);
+    } catch {
+      threw = true;
+    }
+    assert(threw, "Registry must throw when evidence is not verified");
+  });
+
+  // TEST 36: Une donnée dont standardId diffère de l'Evidence est rejetée
+  runTest("TEST 36 (B31.3-03) — Incohérence de standardId entre record et Evidence est rejetée", () => {
+    const { dataRegistry, docResolver, evResolver } = createTestEnvironment();
+    const mismatchStdRecord: B31_3NormativeDataRecord<number> = {
+      ...validRecordSynthetic,
+      dataId: "SYNTHETIC_MISMATCH_STD_RECORD",
+      standardId: "SYNTHETIC_STANDARD_DIFFERENT",
+      status: "VERIFIED",
+    };
+
+    const govRes = validateB31_3DataRecordGovernance(mismatchStdRecord, docResolver, evResolver);
+    assert(!govRes.valid, "Governance validation must fail when standardId differs from evidence");
+    assert(
+      govRes.errors.some((e) => e.code === "VERIFIED_RECORD_STANDARD_MISMATCH"),
+      "Must return VERIFIED_RECORD_STANDARD_MISMATCH"
+    );
+
+    let threw = false;
+    try {
+      dataRegistry.register(mismatchStdRecord);
+    } catch {
+      threw = true;
+    }
+    assert(threw, "Registry must throw on standardId mismatch");
+  });
+
+  // TEST 37: Une donnée dont editionId diffère de l'Evidence est rejetée
+  runTest("TEST 37 (B31.3-03) — Incohérence d'editionId entre record et Evidence est rejetée", () => {
+    const { dataRegistry, docResolver, evResolver } = createTestEnvironment();
+    const mismatchEdRecord: B31_3NormativeDataRecord<number> = {
+      ...validRecordSynthetic,
+      dataId: "SYNTHETIC_MISMATCH_ED_RECORD",
+      editionId: "SYNTHETIC_EDITION_DIFFERENT",
+      status: "VERIFIED",
+    };
+
+    const govRes = validateB31_3DataRecordGovernance(mismatchEdRecord, docResolver, evResolver);
+    assert(!govRes.valid, "Governance validation must fail when editionId differs from evidence");
+    assert(
+      govRes.errors.some((e) => e.code === "VERIFIED_RECORD_EDITION_MISMATCH"),
+      "Must return VERIFIED_RECORD_EDITION_MISMATCH"
+    );
+
+    let threw = false;
+    try {
+      dataRegistry.register(mismatchEdRecord);
+    } catch {
+      threw = true;
+    }
+    assert(threw, "Registry must throw on editionId mismatch");
+  });
+
+  // TEST 38: Une Evidence liée à un autre sourceDocumentId est rejetée
+  runTest("TEST 38 (B31.3-03) — Evidence liée à un autre sourceDocumentId est rejetée", () => {
+    const { dataRegistry, docResolver, evResolver } = createTestEnvironment();
+    const mismatchDocRecord: B31_3NormativeDataRecord<number> = {
+      ...validRecordSynthetic,
+      dataId: "SYNTHETIC_MISMATCH_DOC_RECORD",
+      sourceDocumentId: "SYNTHETIC_SOURCE_DOCUMENT_UNVERIFIED", // Evidence is bound to SYNTHETIC_SOURCE_DOCUMENT_VERIFIED
+      status: "VERIFIED",
+    };
+
+    const govRes = validateB31_3DataRecordGovernance(mismatchDocRecord, docResolver, evResolver);
+    assert(!govRes.valid, "Governance validation must fail when record sourceDocumentId differs from evidence sourceDocumentId");
+    assert(
+      govRes.errors.some((e) => e.code === "VERIFIED_RECORD_EVIDENCE_DOCUMENT_MISMATCH" || e.code === "VERIFIED_RECORD_SOURCE_DOCUMENT_UNVERIFIED"),
+      "Must return error for source document mismatch"
+    );
+
+    let threw = false;
+    try {
+      dataRegistry.register(mismatchDocRecord);
+    } catch {
+      threw = true;
+    }
+    assert(threw, "Registry must throw on evidence document mismatch");
+  });
+
+  // TEST 39: sourceReference seul ne permet jamais VERIFIED
+  runTest("TEST 39 (B31.3-03) — sourceReference textuel seul ne permet jamais le statut VERIFIED", () => {
+    const { docResolver, evResolver } = createTestEnvironment();
+    const fakeReferenceRecord: B31_3NormativeDataRecord<number> = {
+      dataId: "SYNTHETIC_TEXT_REF_RECORD",
+      standardId: "SYNTHETIC_STANDARD_01",
+      editionId: "SYNTHETIC_EDITION_01",
+      sourceDocumentId: "SYNTHETIC_UNAUDITED_DOC",
+      evidenceId: "SYNTHETIC_UNAUDITED_EV",
+      clauseReference: "PARAGRAPH_304",
+      dataType: "ALLOWABLE_STRESS",
+      value: 120,
+      unit: "MPa",
+      status: "VERIFIED",
+      notes: "Reference claiming to be ASME without audit",
+    };
+
+    const govRes = validateB31_3DataRecordGovernance(fakeReferenceRecord, docResolver, evResolver);
+    assert(!govRes.valid, "Textual reference alone must never satisfy VERIFIED governance");
+  });
+
+  // TEST 40: Une donnée UNVERIFIED reste FOUND_UNVERIFIED
+  runTest("TEST 40 (B31.3-03) — Une donnée UNVERIFIED reste FOUND_UNVERIFIED sans blocage", () => {
+    const { dataRegistry, dataResolver } = createTestEnvironment();
+    const unverifiedRecord: B31_3NormativeDataRecord<number> = {
+      ...validRecordSynthetic,
+      dataId: "SYNTHETIC_RECORD_UNVERIFIED_STABLE",
+      status: "UNVERIFIED",
+    };
+
+    dataRegistry.register(unverifiedRecord);
+    const res = dataResolver.resolveData("SYNTHETIC_RECORD_UNVERIFIED_STABLE");
+    assert(res.status === "FOUND_UNVERIFIED", `Expected FOUND_UNVERIFIED, got '${res.status}'`);
+    assert(res.record !== undefined, "Record must be returned");
+  });
+
+  // TEST 41: Aucune promotion automatique vers FOUND_VERIFIED
+  runTest("TEST 41 (B31.3-03) — Aucune promotion automatique UNVERIFIED vers FOUND_VERIFIED", () => {
+    const { dataRegistry, dataResolver } = createTestEnvironment();
+    const unverifiedRecord: B31_3NormativeDataRecord<number> = {
+      ...validRecordSynthetic,
+      dataId: "SYNTHETIC_NO_PROMO",
+      status: "UNVERIFIED",
+    };
+    dataRegistry.register(unverifiedRecord);
+
+    const res = dataResolver.resolveData("SYNTHETIC_NO_PROMO");
+    assert(res.status !== "FOUND_VERIFIED", "Must NEVER promote UNVERIFIED to FOUND_VERIFIED");
+    assert(res.status === "FOUND_UNVERIFIED", "Must be FOUND_UNVERIFIED");
+  });
+
+  // TEST 42: Aucune conversion d'unité
+  runTest("TEST 42 (B31.3-03) — Aucune conversion automatique d'unité (unités préservées telles quelles)", () => {
+    const { dataRegistry, dataResolver } = createTestEnvironment();
+    const recordWithUnit: B31_3NormativeDataRecord<number> = {
+      ...validRecordSynthetic,
+      dataId: "SYNTHETIC_UNIT_PRESERVE",
+      value: 20000,
+      unit: "psi",
+    };
+    dataRegistry.register(recordWithUnit);
+
+    const res = dataResolver.resolveData<number>("SYNTHETIC_UNIT_PRESERVE");
+    assert(res.record?.value === 20000, "Value must not be mathematically converted");
+    assert(res.record?.unit === "psi", "Unit string must not be converted (e.g. psi -> MPa)");
+  });
+
+  // TEST 43: Aucun fuzzy matching
+  runTest("TEST 43 (B31.3-03) — Aucun fuzzy matching ou recherche approchée", () => {
+    const { dataRegistry, dataResolver } = createTestEnvironment();
+    dataRegistry.register(validRecordSynthetic);
+
+    assert(dataResolver.resolveData("SYNTHETIC_B31_3_DATA_00").status === "NOT_FOUND", "Partial match must fail");
+    assert(dataResolver.resolveData("SYNTHETIC_b31_3_data_001").status === "NOT_FOUND", "Case variation must fail");
+  });
+
+  // TEST 44: Aucune recherche par nom de matériau
+  runTest("TEST 44 (B31.3-03) — Aucune recherche par nom de matériau (dataId exact obligatoire)", () => {
+    const { dataRegistry, dataResolver } = createTestEnvironment();
+    dataRegistry.register(validRecordSynthetic);
+
+    assert(dataResolver.resolveData("A106-B").status === "NOT_FOUND", "Material name lookup must return NOT_FOUND");
+    assert(dataResolver.resolveData("ASTM A106").status === "NOT_FOUND", "Material name lookup must return NOT_FOUND");
+  });
+
+  // TEST 45: Aucune déduction de clause
+  runTest("TEST 45 (B31.3-03) — Aucune déduction ou synthèse de clause", () => {
+    const res = validateB31_3DataRecordStructure({
+      ...validRecordSynthetic,
+      clauseReference: "",
+    });
+    assert(!res.valid, "Empty clauseReference must be invalid (clause cannot be inferred)");
+  });
+
+  // TEST 46: Le registry par défaut reste vide si aucune donnée réelle n'est enregistrée
+  runTest("TEST 46 (B31.3-03) — Le registry par défaut reste vide et aucune donnée fictive n'est injectée", () => {
+    const freshReg = new B31_3DataRegistry();
+    assert(freshReg.count() === 0, "Default fresh registry count must be 0");
+    assert(freshReg.list().length === 0, "Default fresh registry list must be empty");
+  });
+
+  // TEST 47: Les données vérifiées sont retournées avec leur chaîne d'identifiants intacte
+  runTest("TEST 47 (B31.3-03) — Données retournées avec la chaîne d'identifiants complète et intacte", () => {
+    const { dataRegistry, dataResolver } = createTestEnvironment();
+    dataRegistry.register(validRecordSynthetic);
+
+    const res = dataResolver.resolveData("SYNTHETIC_B31_3_DATA_001");
+    assert(res.status === "FOUND_VERIFIED", "Status must be FOUND_VERIFIED");
+    assert(res.record?.dataId === "SYNTHETIC_B31_3_DATA_001", "dataId intact");
+    assert(res.record?.standardId === "SYNTHETIC_STANDARD_01", "standardId intact");
+    assert(res.record?.editionId === "SYNTHETIC_EDITION_01", "editionId intact");
+    assert(res.record?.sourceDocumentId === "SYNTHETIC_SOURCE_DOCUMENT_VERIFIED", "sourceDocumentId intact");
+    assert(res.record?.evidenceId === "SYNTHETIC_EVIDENCE_VERIFIED", "evidenceId intact");
+    assert(res.record?.clauseReference === "SYNTHETIC_CLAUSE_01", "clauseReference intact");
+  });
+
+  // TEST 48: Résultat déterministe indépendamment de l'ordre d'insertion
+  runTest("TEST 48 (B31.3-03) — Déterminisme strict du registre et des listes de données", () => {
+    const env1 = createTestEnvironment();
+    const env2 = createTestEnvironment();
+
+    const recA: B31_3NormativeDataRecord<number> = { ...validRecordSynthetic, dataId: "SYNTHETIC_REC_A" };
+    const recB: B31_3NormativeDataRecord<number> = { ...validRecordSynthetic, dataId: "SYNTHETIC_REC_B" };
+
+    // Env 1 : A puis B
+    env1.dataRegistry.register(recA);
+    env1.dataRegistry.register(recB);
+
+    // Env 2 : B puis A
+    env2.dataRegistry.register(recB);
+    env2.dataRegistry.register(recA);
+
+    const list1 = env1.dataRegistry.list();
+    const list2 = env2.dataRegistry.list();
+
+    assert(list1.length === 2 && list2.length === 2, "Both must have 2 records");
+    assert(list1[0].dataId === list2[0].dataId, "First item dataId must match");
+    assert(list1[1].dataId === list2[1].dataId, "Second item dataId must match");
+  });
+
+  // TEST 49 (Section 15): Test critique — standardId + editionId + clause + value + sourceRef != VERIFIED
+  runTest("TEST 49 (B31.3-03 Test Critique) — standardId + editionId + clause + value + sourceReference sans Evidence vérifiée != VERIFIED", () => {
+    const { docResolver, evResolver } = createTestEnvironment();
+    const unverifiedAttempt: B31_3NormativeDataRecord<number> = {
+      dataId: "SYNTHETIC_CRITICAL_ATTEMPT",
+      standardId: "ASME-B31.3",
+      editionId: "2024",
+      sourceDocumentId: "NON_EXISTENT_DOCUMENT",
+      evidenceId: "NON_EXISTENT_EVIDENCE",
+      clauseReference: "Table A-1",
+      dataType: "ALLOWABLE_STRESS",
+      value: 137.9,
+      unit: "MPa",
+      status: "VERIFIED",
+    };
+
+    const govRes = validateB31_3DataRecordGovernance(unverifiedAttempt, docResolver, evResolver);
+    assert(!govRes.valid, "Must reject record when SourceDocument and Evidence are not found/verified");
+  });
+
+  // TEST 50 (Section 16): Test de non-invention — B31_3_VERIFIED_DATA ne contient aucune fixture synthétique
+  runTest("TEST 50 (B31.3-03 Non-Invention) — B31_3_VERIFIED_DATA ne contient aucune fixture synthétique ni donnée fictive", () => {
+    assert(Array.isArray(B31_3_VERIFIED_DATA), "B31_3_VERIFIED_DATA must be an array");
+    assert(Object.isFrozen(B31_3_VERIFIED_DATA), "B31_3_VERIFIED_DATA must be frozen");
+
+    // Vérifier qu'aucune donnée synthétique ou fictive n'est présente dans la constante de production
+    for (const item of B31_3_VERIFIED_DATA) {
+      assert(!item.dataId.startsWith("SYNTHETIC_"), "Must not contain SYNTHETIC fixtures");
+      assert(!item.dataId.startsWith("TEST_"), "Must not contain TEST fixtures");
+      assert(!item.dataId.startsWith("DEMO_"), "Must not contain DEMO fixtures");
+      assert(!item.dataId.startsWith("FAKE_"), "Must not contain FAKE fixtures");
+    }
+
+    // Si aucune donnée réelle n'a été certifiée dans le projet, length === 0 est attendu et valide
+    if (B31_3_VERIFIED_DATA.length === 0) {
+      assert(B31_3_VERIFIED_DATA.length === 0, "Empty verified data confirmed when no certified source is available");
+    }
   });
 
   const success = results.every((r) => r.startsWith("✅ PASS"));

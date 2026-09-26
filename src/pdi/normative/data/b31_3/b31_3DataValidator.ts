@@ -59,6 +59,8 @@ export type B31_3DataValidationErrorCode =
   | "VERIFIED_RECORD_SOURCE_DOCUMENT_UNVERIFIED"
   | "VERIFIED_RECORD_EVIDENCE_NOT_FOUND"
   | "VERIFIED_RECORD_EVIDENCE_UNVERIFIED"
+  | "VERIFIED_RECORD_STANDARD_MISMATCH"
+  | "VERIFIED_RECORD_EDITION_MISMATCH"
   | "VERIFIED_RECORD_EVIDENCE_DOCUMENT_MISMATCH";
 
 export interface B31_3DataValidationError {
@@ -327,15 +329,34 @@ export function validateB31_3DataRecordGovernance(
         field: "evidenceId",
         message: `VERIFIED record '${record.dataId}' references evidence '${record.evidenceId}' which is not VERIFIED (status: ${evRes.status}).`,
       });
-    } else if (
-      evRes.evidence?.sourceDocumentId !== undefined &&
-      evRes.evidence.sourceDocumentId !== record.sourceDocumentId
-    ) {
-      errors.push({
-        code: "VERIFIED_RECORD_EVIDENCE_DOCUMENT_MISMATCH",
-        field: "sourceDocumentId",
-        message: `Evidence '${record.evidenceId}' is bound to sourceDocumentId '${evRes.evidence.sourceDocumentId}' which differs from record sourceDocumentId '${record.sourceDocumentId}'.`,
-      });
+    } else if (evRes.evidence) {
+      // 3. Contrôle de cohérence standardId & editionId (Section 9)
+      if (evRes.evidence.standardId !== record.standardId) {
+        errors.push({
+          code: "VERIFIED_RECORD_STANDARD_MISMATCH",
+          field: "standardId",
+          message: `Record standardId '${record.standardId}' does not match evidence standardId '${evRes.evidence.standardId}'.`,
+        });
+      }
+
+      if (evRes.evidence.editionId !== record.editionId) {
+        errors.push({
+          code: "VERIFIED_RECORD_EDITION_MISMATCH",
+          field: "editionId",
+          message: `Record editionId '${record.editionId}' does not match evidence editionId '${evRes.evidence.editionId}'.`,
+        });
+      }
+
+      if (
+        evRes.evidence.sourceDocumentId !== undefined &&
+        evRes.evidence.sourceDocumentId !== record.sourceDocumentId
+      ) {
+        errors.push({
+          code: "VERIFIED_RECORD_EVIDENCE_DOCUMENT_MISMATCH",
+          field: "sourceDocumentId",
+          message: `Evidence '${record.evidenceId}' is bound to sourceDocumentId '${evRes.evidence.sourceDocumentId}' which differs from record sourceDocumentId '${record.sourceDocumentId}'.`,
+        });
+      }
     }
   }
 
