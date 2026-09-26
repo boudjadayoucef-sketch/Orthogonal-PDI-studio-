@@ -530,6 +530,12 @@ export function runComponentCandidateRegistryTests(): Component03TestResult {
     assert(res.status === "AMBIGUOUS", `Expected AMBIGUOUS, got '${res.status}'`);
     assert(res.selectedCandidateId === undefined, "selectedCandidateId must be undefined for AMBIGUOUS");
     assert(res.candidateIds.length === 2, "candidateIds must list the ambiguous candidates");
+    assert(Array.isArray(res.matchedRuleIds), "matchedRuleIds must be an array");
+    assert(res.matchedRuleIds.length > 0, "matchedRuleIds must be preserved for AMBIGUOUS");
+    assert(Array.isArray(res.compatibilityRuleIds), "compatibilityRuleIds must be an array");
+    assert(res.compatibilityRuleIds.length > 0, "compatibilityRuleIds must be preserved for AMBIGUOUS");
+    assert(Array.isArray(res.evidenceIds), "evidenceIds must be an array");
+    assert(res.evidenceIds.length > 0, "evidenceIds must be preserved for AMBIGUOUS");
   });
 
   // TEST 22: ordre inverse des candidats -> même résultat (déterminisme)
@@ -706,6 +712,65 @@ export function runComponentCandidateRegistryTests(): Component03TestResult {
 
     assert(res.status === "NO_CANDIDATE", `Expected NO_CANDIDATE, got '${res.status}'`);
     assert(res.evaluatedCandidateIds.length === 0, "Non-matching candidate types must not be evaluated");
+  });
+
+  // TEST 29 (FIX-01): Conservation de la trace pour les candidats évalués en cas de MULTIPLE_ELIGIBLE_CANDIDATES
+  runTest("TEST 29 (FIX-01) — Union des traces conservée dans ComponentCandidateResolver en cas d'ambiguïté", () => {
+    const registry = new ComponentCandidateRegistry();
+    registry.register({
+      candidateId: "SYNTHETIC_CAND_AMBIG_1",
+      componentType: "PIPE",
+      dimensionalStandardId: "SYNTHETIC_STD_PIPE",
+      nominalSize: "2",
+      schedule: "SCH 40",
+      materialId: "SYNTHETIC_MAT_A",
+    });
+    registry.register({
+      candidateId: "SYNTHETIC_CAND_AMBIG_2",
+      componentType: "PIPE",
+      dimensionalStandardId: "SYNTHETIC_STD_PIPE_ALT",
+      nominalSize: "2",
+      schedule: "SCH 40",
+      materialId: "SYNTHETIC_MAT_A",
+    });
+
+    const contextAnyStd: ComponentSelectionContext = {
+      specificationId: "SYNTHETIC_SPEC_01",
+      componentType: "PIPE",
+      nominalSize: "2",
+      schedule: "SCH 40",
+      materialId: "SYNTHETIC_MAT_A",
+    };
+
+    const resolver = new ComponentCandidateResolver(registry, candidateSelectionEngine);
+    const res = resolver.resolveBySpecification("SYNTHETIC_SPEC_01", contextAnyStd);
+
+    assert(res.status === "AMBIGUOUS", "Expected AMBIGUOUS");
+    assert(res.selectedCandidateId === undefined, "selectedCandidateId must be undefined");
+    assert(res.matchedRuleIds.length >= 2, "matchedRuleIds must contain union of rules from both candidates");
+    assert(res.compatibilityRuleIds.length >= 2, "compatibilityRuleIds must contain union of compat rules");
+    assert(res.evidenceIds.length >= 2, "evidenceIds must contain union of evidence");
+  });
+
+  // TEST 30 (FIX-01): Déterminisme strict de l'union des traces
+  runTest("TEST 30 (FIX-01) — Déterminisme strict des collections de traces dédupliquées", () => {
+    const registry = new ComponentCandidateRegistry();
+    registry.register({
+      candidateId: "SYNTHETIC_CAND_DET_1",
+      componentType: "PIPE",
+      dimensionalStandardId: "SYNTHETIC_STD_PIPE",
+      nominalSize: "2",
+      schedule: "SCH 40",
+      materialId: "SYNTHETIC_MAT_A",
+    });
+
+    const resolver = new ComponentCandidateResolver(registry, candidateSelectionEngine);
+    const res1 = resolver.resolveBySpecification("SYNTHETIC_SPEC_01", defaultContext);
+    const res2 = resolver.resolveBySpecification("SYNTHETIC_SPEC_01", defaultContext);
+
+    assert(JSON.stringify(res1.matchedRuleIds) === JSON.stringify(res2.matchedRuleIds), "matchedRuleIds must be identical");
+    assert(JSON.stringify(res1.compatibilityRuleIds) === JSON.stringify(res2.compatibilityRuleIds), "compatibilityRuleIds must be identical");
+    assert(JSON.stringify(res1.evidenceIds) === JSON.stringify(res2.evidenceIds), "evidenceIds must be identical");
   });
 
   const success = results.every((r) => r.startsWith("✅ PASS"));

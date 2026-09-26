@@ -17,7 +17,13 @@ import { ComponentCandidateRegistry } from "../registry/componentCandidateRegist
 import { ComponentCandidateResolver } from "../engine/componentCandidateResolver";
 import { ComponentResolutionEngine } from "../engine/componentResolutionEngine";
 import type { PipingSpecification } from "../types/pipingSpecTypes";
-import type { ComponentCandidate, ComponentSelectionContext } from "../types/componentSelectionTypes";
+import type {
+  ComponentCandidate,
+  ComponentSelectionContext,
+  ComponentSelectionResult,
+  IComponentSelectionEngine,
+} from "../types/componentSelectionTypes";
+import type { ComponentCandidateSelectionInput } from "../types/componentCandidateSelectionTypes";
 import type {
   ComponentCandidateResolutionResult,
   IComponentCandidateResolver,
@@ -679,6 +685,305 @@ export function runComponentResolutionTests(): Component04TestResult {
     assert(Array.isArray(res.evidenceIds), "evidenceIds must be an array");
     assert(res.evidenceIds.length > 0, "evidenceIds must not be empty");
     assert(res.evidenceIds.includes("SYNTHETIC_EV_SPEC_01"), "evidenceIds must contain spec evidence");
+  });
+
+  // =========================================================================
+  // TESTS COMPONENT-05-FIX-01 (TESTS 23 à 30)
+  // =========================================================================
+
+  class InstrumentedSelectionEngine implements IComponentSelectionEngine {
+    public lastContextReceived?: ComponentSelectionContext;
+    public customResponses = new Map<string, ComponentSelectionResult>();
+
+    public select(
+      candidate: ComponentCandidate,
+      context: ComponentSelectionContext
+    ): ComponentSelectionResult {
+      this.lastContextReceived = context;
+      const custom = this.customResponses.get(candidate.candidateId);
+      if (custom) {
+        return custom;
+      }
+      return {
+        status: "ELIGIBLE",
+        candidateId: candidate.candidateId,
+        specificationId: context.specificationId,
+        matchedRuleIds: [`SYNTHETIC_RULE_${candidate.candidateId}`],
+        compatibilityRuleIds: [`SYNTHETIC_COMPAT_${candidate.candidateId}`],
+        evidenceIds: [`SYNTHETIC_EV_${candidate.candidateId}`],
+        message: "Default mock eligible",
+      };
+    }
+  }
+
+  // TEST 23 (FIX-01 TEST 01) — RESOLVED trace
+  runTest("TEST 23 (FIX-01 TEST 01) — RESOLVED trace complet et typé", () => {
+    const mock = new InstrumentedSelectionEngine();
+    const candEngine = new ComponentCandidateSelectionEngine(mock);
+    const cand: ComponentCandidate = {
+      candidateId: "SYNTHETIC_CAND_01",
+      componentType: "PIPE",
+    };
+    mock.customResponses.set(cand.candidateId, {
+      status: "ELIGIBLE",
+      candidateId: cand.candidateId,
+      specificationId: "SYNTHETIC_SPEC_01",
+      matchedRuleIds: ["SYNTHETIC_RULE_A"],
+      compatibilityRuleIds: ["SYNTHETIC_COMPAT_A"],
+      evidenceIds: ["SYNTHETIC_EV_A"],
+      message: "Eligible candidate",
+    });
+
+    const res = candEngine.selectCandidate({
+      specificationId: "SYNTHETIC_SPEC_01",
+      componentType: "PIPE",
+      candidates: [cand],
+      context: defaultContext,
+    });
+
+    assert(res.status === "SELECTED", "status must be SELECTED");
+    assert(res.selectedCandidateId === "SYNTHETIC_CAND_01", "selectedCandidateId mismatch");
+    assert(res.matchedRuleIds.length > 0, "matchedRuleIds must not be empty");
+    assert(res.compatibilityRuleIds.length > 0, "compatibilityRuleIds must not be empty");
+    assert(res.evidenceIds.length > 0, "evidenceIds must not be empty");
+  });
+
+  // TEST 24 (FIX-01 TEST 02) — UNVERIFIED trace preservation
+  runTest("TEST 24 (FIX-01 TEST 02) — UNVERIFIED trace preservation", () => {
+    const mock = new InstrumentedSelectionEngine();
+    const candEngine = new ComponentCandidateSelectionEngine(mock);
+    const cand: ComponentCandidate = {
+      candidateId: "SYNTHETIC_CAND_UNVERIF",
+      componentType: "PIPE",
+    };
+    mock.customResponses.set(cand.candidateId, {
+      status: "UNVERIFIED",
+      candidateId: cand.candidateId,
+      specificationId: "SYNTHETIC_SPEC_01",
+      matchedRuleIds: ["SYNTHETIC_RULE_U"],
+      compatibilityRuleIds: ["SYNTHETIC_COMPAT_U"],
+      evidenceIds: ["SYNTHETIC_EV_U"],
+      message: "Unverified candidate",
+    });
+
+    const res = candEngine.selectCandidate({
+      specificationId: "SYNTHETIC_SPEC_01",
+      componentType: "PIPE",
+      candidates: [cand],
+      context: defaultContext,
+    });
+
+    assert(res.status === "UNVERIFIED_CANDIDATES", "status must be UNVERIFIED_CANDIDATES");
+    assert(res.selectedCandidateId === undefined, "selectedCandidateId must be undefined");
+    assert(res.matchedRuleIds.includes("SYNTHETIC_RULE_U"), "matchedRuleIds must be preserved");
+    assert(res.compatibilityRuleIds.includes("SYNTHETIC_COMPAT_U"), "compatibilityRuleIds must be preserved");
+    assert(res.evidenceIds.includes("SYNTHETIC_EV_U"), "evidenceIds must be preserved");
+  });
+
+  // TEST 25 (FIX-01 TEST 03) — AMBIGUOUS trace preservation
+  runTest("TEST 25 (FIX-01 TEST 03) — AMBIGUOUS trace preservation", () => {
+    const mock = new InstrumentedSelectionEngine();
+    const candEngine = new ComponentCandidateSelectionEngine(mock);
+    const candA: ComponentCandidate = { candidateId: "SYNTHETIC_CAND_A", componentType: "PIPE" };
+    const candB: ComponentCandidate = { candidateId: "SYNTHETIC_CAND_B", componentType: "PIPE" };
+
+    mock.customResponses.set(candA.candidateId, {
+      status: "ELIGIBLE",
+      candidateId: candA.candidateId,
+      specificationId: "SYNTHETIC_SPEC_01",
+      matchedRuleIds: ["SYNTHETIC_RULE_A"],
+      compatibilityRuleIds: ["SYNTHETIC_COMPAT_A"],
+      evidenceIds: ["SYNTHETIC_EV_A"],
+      message: "Eligible A",
+    });
+    mock.customResponses.set(candB.candidateId, {
+      status: "ELIGIBLE",
+      candidateId: candB.candidateId,
+      specificationId: "SYNTHETIC_SPEC_01",
+      matchedRuleIds: ["SYNTHETIC_RULE_B"],
+      compatibilityRuleIds: ["SYNTHETIC_COMPAT_B"],
+      evidenceIds: ["SYNTHETIC_EV_B"],
+      message: "Eligible B",
+    });
+
+    const res = candEngine.selectCandidate({
+      specificationId: "SYNTHETIC_SPEC_01",
+      componentType: "PIPE",
+      candidates: [candA, candB],
+      context: defaultContext,
+    });
+
+    assert(res.status === "INVALID", "status must be INVALID for multiple eligible");
+    assert(res.selectedCandidateId === undefined, "selectedCandidateId must be undefined");
+    assert(res.message.includes("MULTIPLE_ELIGIBLE_CANDIDATES"), "message must mention multiple eligible");
+    assert(res.matchedRuleIds.length === 2, "matchedRuleIds must preserve both rules");
+    assert(res.compatibilityRuleIds.length === 2, "compatibilityRuleIds must preserve both rules");
+    assert(res.evidenceIds.length === 2, "evidenceIds must preserve both evidences");
+  });
+
+  // TEST 26 (FIX-01 TEST 04) — Union des traces sans doublons
+  runTest("TEST 26 (FIX-01 TEST 04) — Union déterministe des traces sans doublons", () => {
+    const mock = new InstrumentedSelectionEngine();
+    const candEngine = new ComponentCandidateSelectionEngine(mock);
+    const candA: ComponentCandidate = { candidateId: "SYNTHETIC_CAND_A", componentType: "PIPE" };
+    const candB: ComponentCandidate = { candidateId: "SYNTHETIC_CAND_B", componentType: "PIPE" };
+
+    mock.customResponses.set(candA.candidateId, {
+      status: "ELIGIBLE",
+      candidateId: candA.candidateId,
+      specificationId: "SYNTHETIC_SPEC_01",
+      matchedRuleIds: ["SYNTHETIC_RULE_SHARED", "SYNTHETIC_RULE_A"],
+      compatibilityRuleIds: ["SYNTHETIC_COMPAT_SHARED", "SYNTHETIC_COMPAT_A"],
+      evidenceIds: ["SYNTHETIC_EV_SHARED", "SYNTHETIC_EV_A"],
+      message: "Eligible A",
+    });
+    mock.customResponses.set(candB.candidateId, {
+      status: "ELIGIBLE",
+      candidateId: candB.candidateId,
+      specificationId: "SYNTHETIC_SPEC_01",
+      matchedRuleIds: ["SYNTHETIC_RULE_B", "SYNTHETIC_RULE_SHARED"],
+      compatibilityRuleIds: ["SYNTHETIC_COMPAT_B", "SYNTHETIC_COMPAT_SHARED"],
+      evidenceIds: ["SYNTHETIC_EV_B", "SYNTHETIC_EV_SHARED"],
+      message: "Eligible B",
+    });
+
+    const res = candEngine.selectCandidate({
+      specificationId: "SYNTHETIC_SPEC_01",
+      componentType: "PIPE",
+      candidates: [candA, candB],
+      context: defaultContext,
+    });
+
+    assert(res.matchedRuleIds.length === 3, "matchedRuleIds must contain union of 3 unique items");
+    assert(res.compatibilityRuleIds.length === 3, "compatibilityRuleIds must contain union of 3 unique items");
+    assert(res.evidenceIds.length === 3, "evidenceIds must contain union of 3 unique items");
+    assert(res.matchedRuleIds[0] === "SYNTHETIC_RULE_A", "matchedRuleIds must be sorted");
+    assert(res.matchedRuleIds[1] === "SYNTHETIC_RULE_B", "matchedRuleIds must be sorted");
+    assert(res.matchedRuleIds[2] === "SYNTHETIC_RULE_SHARED", "matchedRuleIds must be sorted");
+  });
+
+  // TEST 27 (FIX-01 TEST 05) — Déterminisme
+  runTest("TEST 27 (FIX-01 TEST 05) — Déterminisme indépendant de l'ordre d'entrée", () => {
+    const mock = new InstrumentedSelectionEngine();
+    const candEngine = new ComponentCandidateSelectionEngine(mock);
+    const candA: ComponentCandidate = { candidateId: "SYNTHETIC_CAND_A", componentType: "PIPE" };
+    const candB: ComponentCandidate = { candidateId: "SYNTHETIC_CAND_B", componentType: "PIPE" };
+
+    mock.customResponses.set(candA.candidateId, {
+      status: "INELIGIBLE",
+      candidateId: candA.candidateId,
+      specificationId: "SYNTHETIC_SPEC_01",
+      matchedRuleIds: ["SYNTHETIC_RULE_A"],
+      compatibilityRuleIds: ["SYNTHETIC_COMPAT_A"],
+      evidenceIds: ["SYNTHETIC_EV_A"],
+      message: "Ineligible A",
+    });
+    mock.customResponses.set(candB.candidateId, {
+      status: "INELIGIBLE",
+      candidateId: candB.candidateId,
+      specificationId: "SYNTHETIC_SPEC_01",
+      matchedRuleIds: ["SYNTHETIC_RULE_B"],
+      compatibilityRuleIds: ["SYNTHETIC_COMPAT_B"],
+      evidenceIds: ["SYNTHETIC_EV_B"],
+      message: "Ineligible B",
+    });
+
+    const res1 = candEngine.selectCandidate({
+      specificationId: "SYNTHETIC_SPEC_01",
+      componentType: "PIPE",
+      candidates: [candA, candB],
+      context: defaultContext,
+    });
+    const res2 = candEngine.selectCandidate({
+      specificationId: "SYNTHETIC_SPEC_01",
+      componentType: "PIPE",
+      candidates: [candB, candA],
+      context: defaultContext,
+    });
+
+    assert(JSON.stringify(res1.matchedRuleIds) === JSON.stringify(res2.matchedRuleIds), "matchedRuleIds must be identical");
+    assert(JSON.stringify(res1.compatibilityRuleIds) === JSON.stringify(res2.compatibilityRuleIds), "compatibilityRuleIds must be identical");
+    assert(JSON.stringify(res1.evidenceIds) === JSON.stringify(res2.evidenceIds), "evidenceIds must be identical");
+  });
+
+  // TEST 28 (FIX-01 TEST 06) — Aucun changement de contexte transmis à COMPONENT-01
+  runTest("TEST 28 (FIX-01 TEST 06) — Contexte original transmis intact à COMPONENT-01", () => {
+    const mock = new InstrumentedSelectionEngine();
+    const candEngine = new ComponentCandidateSelectionEngine(mock);
+    const candWithDiffSchedule: ComponentCandidate = {
+      candidateId: "SYNTHETIC_CAND_DIFF_SCH",
+      componentType: "PIPE",
+      schedule: "SYNTHETIC_CANDIDATE_SCHEDULE",
+    };
+    const contextWithOriginalSchedule: ComponentSelectionContext = {
+      ...defaultContext,
+      schedule: "SYNTHETIC_CONTEXT_SCHEDULE",
+    };
+
+    candEngine.selectCandidate({
+      specificationId: "SYNTHETIC_SPEC_01",
+      componentType: "PIPE",
+      candidates: [candWithDiffSchedule],
+      context: contextWithOriginalSchedule,
+    });
+
+    assert(
+      mock.lastContextReceived?.schedule === "SYNTHETIC_CONTEXT_SCHEDULE",
+      "Context schedule passed to COMPONENT-01 must match input.context schedule exactly"
+    );
+    assert(
+      mock.lastContextReceived?.schedule !== "SYNTHETIC_CANDIDATE_SCHEDULE",
+      "Candidate schedule must NEVER overwrite context schedule"
+    );
+  });
+
+  // TEST 29 (FIX-01 TEST 07) — Aucun ranking arbitraire
+  runTest("TEST 29 (FIX-01 TEST 07) — Aucun ranking arbitraire si multiples éligibles", () => {
+    const mock = new InstrumentedSelectionEngine();
+    const candEngine = new ComponentCandidateSelectionEngine(mock);
+    const cand1: ComponentCandidate = { candidateId: "SYNTHETIC_CAND_1", componentType: "PIPE" };
+    const cand2: ComponentCandidate = { candidateId: "SYNTHETIC_CAND_2", componentType: "PIPE" };
+
+    const res = candEngine.selectCandidate({
+      specificationId: "SYNTHETIC_SPEC_01",
+      componentType: "PIPE",
+      candidates: [cand1, cand2],
+      context: defaultContext,
+    });
+
+    assert(res.status === "INVALID", "Must be INVALID");
+    assert(res.selectedCandidateId === undefined, "selectedCandidateId must be undefined (no ranking)");
+  });
+
+  // TEST 30 (FIX-01 TEST 08) — Aucun fallback evidence
+  runTest("TEST 30 (FIX-01 TEST 08) — Aucun fallback evidence artificiel", () => {
+    const mock = new InstrumentedSelectionEngine();
+    const candEngine = new ComponentCandidateSelectionEngine(mock);
+    const candWithEvidence: ComponentCandidate = {
+      candidateId: "SYNTHETIC_CAND_NO_FALLBACK",
+      componentType: "PIPE",
+      evidenceIds: ["SYNTHETIC_FALLBACK_EV_ID"],
+    };
+
+    mock.customResponses.set(candWithEvidence.candidateId, {
+      status: "INELIGIBLE",
+      candidateId: candWithEvidence.candidateId,
+      specificationId: "SYNTHETIC_SPEC_01",
+      matchedRuleIds: [],
+      compatibilityRuleIds: [],
+      evidenceIds: [],
+      message: "No evaluated rules",
+    });
+
+    const res = candEngine.selectCandidate({
+      specificationId: "SYNTHETIC_SPEC_01",
+      componentType: "PIPE",
+      candidates: [candWithEvidence],
+      context: defaultContext,
+    });
+
+    assert(res.evidenceIds.length === 0, "evidenceIds must remain empty and not fallback to candidate.evidenceIds");
+    assert(!res.evidenceIds.includes("SYNTHETIC_FALLBACK_EV_ID"), "Must not promote candidate evidence");
   });
 
   const success = results.every((r) => r.startsWith("✅ PASS"));

@@ -284,6 +284,62 @@ async function extractDimensionsWithOcr(
 }
 
 /**
+ * Fusionne de manière itérative les segments colinéaires consécutifs du même axe isométrique (X, Y ou Z)
+ * connectés par un nœud intermédiaire à exactement 2 segments touchants.
+ * Élimine les faux nœuds intermédiaires parasites ("faux points de soudure") issus de HoughLinesP (SKETCH-DETECT-04).
+ */
+export function mergeCollinearSegments(
+  nodes: SketchVectorNode[],
+  segs: SketchVectorSegment[]
+): { nodes: SketchVectorNode[]; segs: SketchVectorSegment[] } {
+  let merged = true;
+  let workingNodes = [...nodes];
+  let workingSegs = [...segs];
+
+  while (merged) {
+    merged = false;
+
+    for (const node of workingNodes) {
+      const touching = workingSegs.filter(
+        (s) => s.fromNodeId === node.id || s.toNodeId === node.id
+      );
+
+      if (touching.length !== 2) continue;
+
+      const [segA, segB] = touching;
+      if (!segA.detectedAxis || segA.detectedAxis !== segB.detectedAxis) continue;
+
+      // Les deux segments sont du même axe et se rejoignent à ce
+      // nœud avec exactement 2 segments touchants : ce n'est pas un
+      // point d'intérêt réel, fusionner en un seul tronçon.
+      const otherAId = segA.fromNodeId === node.id ? segA.toNodeId : segA.fromNodeId;
+      const otherBId = segB.fromNodeId === node.id ? segB.toNodeId : segB.fromNodeId;
+
+      // Éviter de fusionner si cela créerait une boucle sur lui-même
+      if (otherAId === otherBId) continue;
+
+      const mergedSeg: SketchVectorSegment = {
+        ...segA,
+        id: segA.id,
+        fromNodeId: otherAId,
+        toNodeId: otherBId,
+        lengthMm: (segA.lengthMm || 0) + (segB.lengthMm || 0),
+      };
+
+      workingSegs = workingSegs
+        .filter((s) => s.id !== segA.id && s.id !== segB.id)
+        .concat(mergedSeg);
+      workingNodes = workingNodes.filter((n) => n.id !== node.id);
+
+      merged = true;
+      break; // recommencer la boucle for sur la liste mise à jour
+    }
+  }
+
+  return { nodes: workingNodes, segs: workingSegs };
+}
+
+/**
  * Détection de topologie par OpenCV.js (WebAssembly, 100% local)
  * Retourne LocalDetectionResult si la confiance est satisfaisante, ou null si échec/faible confiance.
  */
@@ -601,10 +657,18 @@ export async function detectSketchTopologyOpenCv(
         }
 
         // =========================================================================
+        // PARTIE 3.5 — FUSION DES SEGMENTS COLINÉAIRES (PATCH SKETCH-DETECT-04)
+        // =========================================================================
+        const { nodes: fusedNodes, segs: fusedSegs } = mergeCollinearSegments(
+          detectedNodes,
+          detectedSegs
+        );
+
+        // =========================================================================
         // PARTIE 4 — DÉTECTION ET INSERTION DE COUDES (validé hors-ligne)
         // =========================================================================
-        for (const node of detectedNodes) {
-          const touchingSegs = detectedSegs.filter(
+        for (const node of fusedNodes) {
+          const touchingSegs = fusedSegs.filter(
             (s) => s.fromNodeId === node.id || s.toNodeId === node.id
           );
 
@@ -615,10 +679,10 @@ export async function detectSketchTopologyOpenCv(
               const seg1 = touchingSegs[0];
               const seg2 = touchingSegs[1];
 
-              const other1 = detectedNodes.find(
+              const other1 = fusedNodes.find(
                 (n) => n.id === (seg1.fromNodeId === node.id ? seg1.toNodeId : seg1.fromNodeId)
               );
-              const other2 = detectedNodes.find(
+              const other2 = fusedNodes.find(
                 (n) => n.id === (seg2.fromNodeId === node.id ? seg2.toNodeId : seg2.fromNodeId)
               );
 
@@ -657,7 +721,7 @@ export async function detectSketchTopologyOpenCv(
         }
 
         // Vérification post-graphe : si moins de 2 nœuds ou 1 segment, échec explicite
-        if (detectedNodes.length < 2 || detectedSegs.length === 0) {
+        if (fusedNodes.length < 2 || fusedSegs.length === 0) {
           console.warn("[OpenCV Sketch Detector] Graphe incomplet après clustering. Bascule manuelle.");
           resolve(null);
           return;
@@ -674,9 +738,9 @@ export async function detectSketchTopologyOpenCv(
             let nearestSeg: SketchVectorSegment | null = null;
             let minSegDist = 30;
 
-            for (const seg of detectedSegs) {
-              const sn1 = detectedNodes.find((n) => n.id === seg.fromNodeId);
-              const sn2 = detectedNodes.find((n) => n.id === seg.toNodeId);
+            for (const seg of fusedSegs) {
+              const sn1 = fusedNodes.find((n) => n.id === seg.fromNodeId);
+              const sn2 = fusedNodes.find((n) => n.id === seg.toNodeId);
               if (!sn1 || !sn2) continue;
 
               const midX = (sn1.x + sn2.x) / 2;
@@ -708,9 +772,9 @@ export async function detectSketchTopologyOpenCv(
         let calculatedScale = 0.25;
         if (ocrDimensions.length > 0) {
           const totalMm = ocrDimensions.reduce((acc, d) => acc + d.valueMm, 0);
-          const totalSegPx = detectedSegs.reduce((acc, s) => {
-            const n1 = detectedNodes.find((n) => n.id === s.fromNodeId);
-            const n2 = detectedNodes.find((n) => n.id === s.toNodeId);
+          const totalSegPx = fusedSegs.reduce((acc, s) => {
+            const n1 = fusedNodes.find((n) => n.id === s.fromNodeId);
+            const n2 = fusedNodes.find((n) => n.id === s.toNodeId);
             return acc + (n1 && n2 ? Math.hypot(n2.x - n1.x, n2.y - n1.y) : 0);
           }, 0);
 
@@ -722,14 +786,14 @@ export async function detectSketchTopologyOpenCv(
         const result: LocalDetectionResult = {
           detectedTitle: "CROQUIS TOPOLOGIE EXTRAITE (OPENCV.JS)",
           service: "TUYAUTERIE INDUSTRIELLE",
-          lineReference: `LIGNE DN80 (${detectedSegs.length} TRONÇONS)`,
+          lineReference: `LIGNE DN80 (${fusedSegs.length} TRONÇONS)`,
           drawingNumber: "SK-LOCAL-01",
           nominalDiameter: 80,
           calibrationScale: calculatedScale,
-          summary: `Extraction OpenCV.js réussie : ${detectedNodes.length} nœuds, ${detectedSegs.length} tronçons détectés, ${detectedFittings.length} symbole(s) identifié(s). Échelle calculée : ${calculatedScale} px/mm.`,
+          summary: `Extraction OpenCV.js réussie : ${fusedNodes.length} nœuds, ${fusedSegs.length} tronçons détectés, ${detectedFittings.length} symbole(s) identifié(s). Échelle calculée : ${calculatedScale} px/mm.`,
           ocrDimensions,
-          nodes: detectedNodes,
-          segments: detectedSegs,
+          nodes: fusedNodes,
+          segments: fusedSegs,
           fittings: detectedFittings,
           equipment: detectedEquip,
         };

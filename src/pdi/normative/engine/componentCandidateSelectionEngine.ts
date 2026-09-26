@@ -84,12 +84,12 @@ export class ComponentCandidateSelectionEngine
     const unverifiedSet = new Set<string>();
     const invalidSet = new Set<string>();
 
+    const matchedRuleSet = new Set<string>();
+    const compatibilityRuleSet = new Set<string>();
+    const evidenceSet = new Set<string>();
+
     for (const candidate of input.candidates) {
-      const candContext =
-        candidate.schedule && candidate.schedule !== input.context.schedule
-          ? { ...input.context, schedule: candidate.schedule }
-          : input.context;
-      const res = this.componentSelectionEngine.select(candidate, candContext);
+      const res = this.componentSelectionEngine.select(candidate, input.context);
 
       const candidateId = candidate.candidateId;
       evaluatedSet.add(candidateId);
@@ -103,6 +103,16 @@ export class ComponentCandidateSelectionEngine
         message: res.message ?? "",
       };
       traces.push(trace);
+
+      for (const id of trace.matchedRuleIds) {
+        matchedRuleSet.add(id);
+      }
+      for (const id of trace.compatibilityRuleIds) {
+        compatibilityRuleSet.add(id);
+      }
+      for (const id of trace.evidenceIds) {
+        evidenceSet.add(id);
+      }
 
       if (res.status === "ELIGIBLE") {
         eligibleSet.add(candidateId);
@@ -121,6 +131,10 @@ export class ComponentCandidateSelectionEngine
     const ineligibleCandidateIds = Array.from(ineligibleSet).sort();
     const unverifiedCandidateIds = Array.from(unverifiedSet).sort();
     const invalidCandidateIds = Array.from(invalidSet).sort();
+
+    const matchedRuleIds = Array.from(matchedRuleSet).sort();
+    const compatibilityRuleIds = Array.from(compatibilityRuleSet).sort();
+    const evidenceIds = Array.from(evidenceSet).sort();
 
     const traceByCandidate = traces.sort((a, b) =>
       a.candidateId.localeCompare(b.candidateId)
@@ -153,14 +167,6 @@ export class ComponentCandidateSelectionEngine
         message = "NO_ELIGIBLE_CANDIDATE: No eligible candidates found.";
       }
     }
-
-    const selectedTrace = selectedCandidateId
-      ? traces.find((t) => t.candidateId === selectedCandidateId)
-      : undefined;
-
-    const matchedRuleIds = selectedTrace ? selectedTrace.matchedRuleIds : [];
-    const compatibilityRuleIds = selectedTrace ? selectedTrace.compatibilityRuleIds : [];
-    const evidenceIds = selectedTrace ? selectedTrace.evidenceIds : [];
 
     return {
       status,

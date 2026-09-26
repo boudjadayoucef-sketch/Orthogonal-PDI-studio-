@@ -24,6 +24,7 @@ import {
   DEMO_INITIAL_FITTINGS
 } from "../demoSketchTemplate";
 import { detectSketchTopologyLocal } from "../localSketchDetector";
+import { mergeCollinearSegments } from "../openCvSketchDetector";
 
 export function runSketchDetectionTests(): {
   success: boolean;
@@ -122,6 +123,87 @@ export function runSketchDetectionTests(): {
       ok(n1 !== undefined && n2 !== undefined, `Tronçon ${seg.id} doit relier des nœuds existants`);
       ok(ISO_STANDARD_ANGLES.includes(seg.angleIsoDeg as number), `Angle ${seg.angleIsoDeg}° doit être standard`);
     }
+  });
+
+  // DET-07 (SKETCH-DETECT-04) : Fusion des segments colinéaires consécutifs du même axe (X, Y ou Z)
+  test("DET-07", "Fusion des micro-segments colinéaires de même axe en un seul tronçon continu", () => {
+    // 4 nœuds formant 3 segments successifs alignés sur l'axe X (30°)
+    const rawNodes: SketchVectorNode[] = [
+      { id: "n1", x: 100, y: 100 },
+      { id: "n2_faux_point", x: 150, y: 71 },
+      { id: "n3_faux_point", x: 200, y: 42 },
+      { id: "n4", x: 250, y: 13 },
+    ];
+    const rawSegs: SketchVectorSegment[] = [
+      { id: "s1", fromNodeId: "n1", toNodeId: "n2_faux_point", detectedAxis: "X", angleIsoDeg: 30, lengthMm: 300 },
+      { id: "s2", fromNodeId: "n2_faux_point", toNodeId: "n3_faux_point", detectedAxis: "X", angleIsoDeg: 30, lengthMm: 400 },
+      { id: "s3", fromNodeId: "n3_faux_point", toNodeId: "n4", detectedAxis: "X", angleIsoDeg: 30, lengthMm: 500 },
+    ];
+
+    const { nodes, segs } = mergeCollinearSegments(rawNodes, rawSegs);
+
+    ok(nodes.length === 2, "Les 2 faux nœuds intermédiaires doivent être éliminés (reste 2 nœuds d'extrémité)");
+    ok(nodes.some(n => n.id === "n1") && nodes.some(n => n.id === "n4"), "Les extrémités n1 et n4 doivent être conservées");
+    ok(!nodes.some(n => n.id === "n2_faux_point") && !nodes.some(n => n.id === "n3_faux_point"), "Les nœuds parasites doivent être supprimés");
+    ok(segs.length === 1, "Les 3 micro-segments doivent être fusionnés en un seul segment");
+    ok((segs[0].fromNodeId === "n1" && segs[0].toNodeId === "n4") || (segs[0].fromNodeId === "n4" && segs[0].toNodeId === "n1"), "Le segment fusionné relie n1 et n4");
+    ok(segs[0].lengthMm === 1200, "La longueur cumulée doit être 300 + 400 + 500 = 1200 mm");
+    ok(segs[0].detectedAxis === "X", "L'axe X doit être préservé");
+  });
+
+  // DET-08 (SKETCH-DETECT-04) : Non-fusion des vrais coudes (segments d'axes différents)
+  test("DET-08", "Préservation stricte des vrais coudes (axes distincts)", () => {
+    // n2 est un vrai coude entre un segment X (horizontal iso) et un segment Z (vertical)
+    const rawNodes: SketchVectorNode[] = [
+      { id: "n1", x: 100, y: 100 },
+      { id: "n2_coude", x: 200, y: 42 },
+      { id: "n3", x: 200, y: 200 },
+    ];
+    const rawSegs: SketchVectorSegment[] = [
+      { id: "s1", fromNodeId: "n1", toNodeId: "n2_coude", detectedAxis: "X", angleIsoDeg: 30, lengthMm: 600 },
+      { id: "s2", fromNodeId: "n2_coude", toNodeId: "n3", detectedAxis: "Z", angleIsoDeg: 270, lengthMm: 800 },
+    ];
+
+    const { nodes, segs } = mergeCollinearSegments(rawNodes, rawSegs);
+
+    ok(nodes.length === 3, "Le nœud du coude n2 ne doit PAS être fusionné");
+    ok(segs.length === 2, "Les 2 segments d'axes distincts doivent être conservés");
+  });
+
+  // DET-09 (SKETCH-DETECT-04) : Non-fusion des piquages / tés (3+ segments touchants)
+  test("DET-09", "Préservation stricte des tés et piquages (3+ segments touchants)", () => {
+    const rawNodes: SketchVectorNode[] = [
+      { id: "n1", x: 100, y: 100 },
+      { id: "n_te", x: 200, y: 42 },
+      { id: "n3", x: 300, y: -16 },
+      { id: "n4_branche", x: 200, y: 150 },
+    ];
+    const rawSegs: SketchVectorSegment[] = [
+      { id: "s1", fromNodeId: "n1", toNodeId: "n_te", detectedAxis: "X", lengthMm: 500 },
+      { id: "s2", fromNodeId: "n_te", toNodeId: "n3", detectedAxis: "X", lengthMm: 500 },
+      { id: "s3", fromNodeId: "n_te", toNodeId: "n4_branche", detectedAxis: "Z", lengthMm: 400 },
+    ];
+
+    const { nodes, segs } = mergeCollinearSegments(rawNodes, rawSegs);
+
+    ok(nodes.length === 4, "Le nœud du té (3 branches) ne doit pas être supprimé");
+    ok(segs.length === 3, "Les 3 segments doivent être préservés");
+  });
+
+  // DET-10 (SKETCH-DETECT-04) : Non-fusion des extrémités (1 seul segment touchant)
+  test("DET-10", "Préservation des extrémités libres (1 segment touchant)", () => {
+    const rawNodes: SketchVectorNode[] = [
+      { id: "n1", x: 100, y: 100 },
+      { id: "n2", x: 200, y: 100 },
+    ];
+    const rawSegs: SketchVectorSegment[] = [
+      { id: "s1", fromNodeId: "n1", toNodeId: "n2", detectedAxis: "Y", lengthMm: 500 },
+    ];
+
+    const { nodes, segs } = mergeCollinearSegments(rawNodes, rawSegs);
+
+    ok(nodes.length === 2, "Les extrémités doivent être conservées");
+    ok(segs.length === 1, "Le segment unique doit être conservé");
   });
 
   return { success, testsRun, results };
