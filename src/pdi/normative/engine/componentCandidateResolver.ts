@@ -78,6 +78,9 @@ export class ComponentCandidateResolver implements IComponentCandidateResolver {
         eligibleCandidateIds: [],
         unverifiedCandidateIds: [],
         invalidCandidateIds: [],
+        matchedRuleIds: [],
+        compatibilityRuleIds: [],
+        evidenceIds: [],
         message: `INVALID_CONTEXT: ${coherence.errors.join("; ")}`,
       };
     }
@@ -101,6 +104,9 @@ export class ComponentCandidateResolver implements IComponentCandidateResolver {
         eligibleCandidateIds: [],
         unverifiedCandidateIds: [],
         invalidCandidateIds: [],
+        matchedRuleIds: [],
+        compatibilityRuleIds: [],
+        evidenceIds: [],
         message: `NO_CANDIDATE: No candidate found in registry with componentType '${context.componentType}'.`,
       };
     }
@@ -155,6 +161,10 @@ export class ComponentCandidateResolver implements IComponentCandidateResolver {
       candidates = [];
     }
 
+    const matchedRuleIds = (selRes.matchedRuleIds ?? []).slice().sort();
+    const compatibilityRuleIds = (selRes.compatibilityRuleIds ?? []).slice().sort();
+    const evidenceIds = (selRes.evidenceIds ?? []).slice().sort();
+
     return {
       status,
       specificationId,
@@ -166,6 +176,9 @@ export class ComponentCandidateResolver implements IComponentCandidateResolver {
       eligibleCandidateIds: selRes.eligibleCandidateIds,
       unverifiedCandidateIds: selRes.unverifiedCandidateIds,
       invalidCandidateIds: selRes.invalidCandidateIds,
+      matchedRuleIds,
+      compatibilityRuleIds,
+      evidenceIds,
       message: selRes.message,
     };
   }

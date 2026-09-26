@@ -430,6 +430,12 @@ export function runComponentCandidateRegistryTests(): Component03TestResult {
     assert(res.candidateIds.length === 1, "candidateIds length mismatch");
     assert(res.candidates?.length === 1, "candidates array length mismatch");
     assert(res.candidates?.[0].candidateId === "SYNTHETIC_CAND_ELIGIBLE", "candidate mismatch");
+    assert(Array.isArray(res.matchedRuleIds), "matchedRuleIds must be an array");
+    assert(res.matchedRuleIds.length > 0, "matchedRuleIds must be populated");
+    assert(Array.isArray(res.compatibilityRuleIds), "compatibilityRuleIds must be an array");
+    assert(res.compatibilityRuleIds.length > 0, "compatibilityRuleIds must be populated");
+    assert(Array.isArray(res.evidenceIds), "evidenceIds must be an array");
+    assert(res.evidenceIds.length > 0, "evidenceIds must be populated");
   });
 
   // TEST 18: resolveBySpecification avec candidat INELIGIBLE

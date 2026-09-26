@@ -49,6 +49,9 @@ export class ComponentCandidateSelectionEngine
         ineligibleCandidateIds: [],
         unverifiedCandidateIds: [],
         invalidCandidateIds: [],
+        matchedRuleIds: [],
+        compatibilityRuleIds: [],
+        evidenceIds: [],
         traceByCandidate: [],
         message: `INVALID_INPUT: ${val.errors.join("; ")}`,
       };
@@ -65,6 +68,9 @@ export class ComponentCandidateSelectionEngine
         ineligibleCandidateIds: [],
         unverifiedCandidateIds: [],
         invalidCandidateIds: [],
+        matchedRuleIds: [],
+        compatibilityRuleIds: [],
+        evidenceIds: [],
         traceByCandidate: [],
         message: "NO_ELIGIBLE_CANDIDATE: Candidates list is empty.",
       };
@@ -79,7 +85,11 @@ export class ComponentCandidateSelectionEngine
     const invalidSet = new Set<string>();
 
     for (const candidate of input.candidates) {
-      const res = this.componentSelectionEngine.select(candidate, input.context);
+      const candContext =
+        candidate.schedule && candidate.schedule !== input.context.schedule
+          ? { ...input.context, schedule: candidate.schedule }
+          : input.context;
+      const res = this.componentSelectionEngine.select(candidate, candContext);
 
       const candidateId = candidate.candidateId;
       evaluatedSet.add(candidateId);
@@ -144,6 +154,14 @@ export class ComponentCandidateSelectionEngine
       }
     }
 
+    const selectedTrace = selectedCandidateId
+      ? traces.find((t) => t.candidateId === selectedCandidateId)
+      : undefined;
+
+    const matchedRuleIds = selectedTrace ? selectedTrace.matchedRuleIds : [];
+    const compatibilityRuleIds = selectedTrace ? selectedTrace.compatibilityRuleIds : [];
+    const evidenceIds = selectedTrace ? selectedTrace.evidenceIds : [];
+
     return {
       status,
       specificationId: input.specificationId,
@@ -153,6 +171,9 @@ export class ComponentCandidateSelectionEngine
       ineligibleCandidateIds,
       unverifiedCandidateIds,
       invalidCandidateIds,
+      matchedRuleIds,
+      compatibilityRuleIds,
+      evidenceIds,
       traceByCandidate,
       message,
     };

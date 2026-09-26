@@ -107,6 +107,9 @@ export function runComponentResolutionTests(): Component04TestResult {
     eligibleCandidateIds: ["SYNTHETIC_CAND_01"],
     unverifiedCandidateIds: [],
     invalidCandidateIds: [],
+    matchedRuleIds: [],
+    compatibilityRuleIds: [],
+    evidenceIds: [],
     message: "Resolved successfully.",
   };
 
@@ -197,6 +200,7 @@ export function runComponentResolutionTests(): Component04TestResult {
   // TEST 07: COMPONENT-03 NO_CANDIDATE -> COMPONENT-04 NO_CANDIDATE
   runTest("TEST 07 — COMPONENT-03 NO_CANDIDATE -> COMPONENT-04 NO_CANDIDATE", () => {
     const fakeResolver = new FakeCandidateResolver({
+      ...baseFakeResult,
       status: "NO_CANDIDATE",
       specificationId: "SYNTHETIC_SPEC_01",
       componentType: "PIPE",
@@ -221,6 +225,7 @@ export function runComponentResolutionTests(): Component04TestResult {
   // TEST 08: COMPONENT-03 UNVERIFIED -> COMPONENT-04 UNVERIFIED
   runTest("TEST 08 — COMPONENT-03 UNVERIFIED -> COMPONENT-04 UNVERIFIED", () => {
     const fakeResolver = new FakeCandidateResolver({
+      ...baseFakeResult,
       status: "UNVERIFIED",
       specificationId: "SYNTHETIC_SPEC_01",
       componentType: "PIPE",
@@ -245,6 +250,7 @@ export function runComponentResolutionTests(): Component04TestResult {
   // TEST 09: COMPONENT-03 AMBIGUOUS -> COMPONENT-04 AMBIGUOUS
   runTest("TEST 09 — COMPONENT-03 AMBIGUOUS -> COMPONENT-04 AMBIGUOUS", () => {
     const fakeResolver = new FakeCandidateResolver({
+      ...baseFakeResult,
       status: "AMBIGUOUS",
       specificationId: "SYNTHETIC_SPEC_01",
       componentType: "PIPE",
@@ -269,6 +275,7 @@ export function runComponentResolutionTests(): Component04TestResult {
   // TEST 10: COMPONENT-03 INVALID -> COMPONENT-04 INVALID
   runTest("TEST 10 — COMPONENT-03 INVALID -> COMPONENT-04 INVALID", () => {
     const fakeResolver = new FakeCandidateResolver({
+      ...baseFakeResult,
       status: "INVALID",
       specificationId: "SYNTHETIC_SPEC_01",
       componentType: "PIPE",
@@ -297,6 +304,7 @@ export function runComponentResolutionTests(): Component04TestResult {
   // TEST 11: Aucun fallback si candidat absent
   runTest("TEST 11 — Aucun fallback (NO_CANDIDATE ne crée aucun candidat synthétique)", () => {
     const fakeResolver = new FakeCandidateResolver({
+      ...baseFakeResult,
       status: "NO_CANDIDATE",
       specificationId: "SYNTHETIC_SPEC_01",
       componentType: "PIPE",
@@ -321,6 +329,7 @@ export function runComponentResolutionTests(): Component04TestResult {
   // TEST 12: Aucun candidat arbitrairement choisi en cas d'ambiguïté
   runTest("TEST 12 — Aucun candidat arbitrairement choisi pour AMBIGUOUS", () => {
     const fakeResolver = new FakeCandidateResolver({
+      ...baseFakeResult,
       status: "AMBIGUOUS",
       specificationId: "SYNTHETIC_SPEC_01",
       componentType: "PIPE",
@@ -345,6 +354,7 @@ export function runComponentResolutionTests(): Component04TestResult {
   // TEST 13: resolvedCandidateId obligatoire pour RESOLVED (anomalie -> INVALID)
   runTest("TEST 13 — resolvedCandidateId obligatoire pour RESOLVED (anomalie -> INVALID)", () => {
     const fakeResolver = new FakeCandidateResolver({
+      ...baseFakeResult,
       status: "RESOLVED",
       specificationId: "SYNTHETIC_SPEC_01",
       componentType: "PIPE",
@@ -369,6 +379,7 @@ export function runComponentResolutionTests(): Component04TestResult {
   // TEST 14: Aucun changement de statut permettant de promouvoir UNVERIFIED vers RESOLVED
   runTest("TEST 14 — Aucun changement de statut : UNVERIFIED ne devient jamais RESOLVED", () => {
     const fakeResolver = new FakeCandidateResolver({
+      ...baseFakeResult,
       status: "UNVERIFIED",
       specificationId: "SYNTHETIC_SPEC_01",
       componentType: "PIPE",
@@ -397,6 +408,7 @@ export function runComponentResolutionTests(): Component04TestResult {
   // TEST 15: Candidate IDs conservés et triés
   runTest("TEST 15 — Candidate IDs conservés et triés (evaluated, eligible, unverified, invalid)", () => {
     const fakeResolver = new FakeCandidateResolver({
+      ...baseFakeResult,
       status: "RESOLVED",
       specificationId: "SYNTHETIC_SPEC_01",
       componentType: "PIPE",
@@ -423,7 +435,7 @@ export function runComponentResolutionTests(): Component04TestResult {
 
   // TEST 16: Rule IDs conservés et triés
   runTest("TEST 16 — Rule IDs conservés et triés (matchedRuleIds, compatibilityRuleIds)", () => {
-    const fakeResultWithRules: any = {
+    const fakeResultWithRules: ComponentCandidateResolutionResult = {
       ...baseFakeResult,
       matchedRuleIds: ["SYNTHETIC_RULE_B", "SYNTHETIC_RULE_A"],
       compatibilityRuleIds: ["SYNTHETIC_COMPAT_Z", "SYNTHETIC_COMPAT_A"],
@@ -442,7 +454,7 @@ export function runComponentResolutionTests(): Component04TestResult {
 
   // TEST 17: Evidence IDs conservés et triés
   runTest("TEST 17 — Evidence IDs conservés et triés", () => {
-    const fakeResultWithEv: any = {
+    const fakeResultWithEv: ComponentCandidateResolutionResult = {
       ...baseFakeResult,
       evidenceIds: ["SYNTHETIC_EV_B", "SYNTHETIC_EV_A"],
     };
@@ -635,6 +647,38 @@ export function runComponentResolutionTests(): Component04TestResult {
       failed = true;
     }
     assert(failed, "Must throw on null resolver");
+  });
+
+  // TEST 22: COMPONENT-05 — Traçabilité de bout en bout strictement typée (matchedRuleIds, compatibilityRuleIds, evidenceIds)
+  runTest("TEST 22 (COMPONENT-05) — Traçabilité de bout en bout strictement typée", () => {
+    const reg = new ComponentCandidateRegistry();
+    reg.register({
+      candidateId: "SYNTHETIC_CAND_TRACE",
+      componentType: "PIPE",
+      dimensionalStandardId: "SYNTHETIC_STD_PIPE",
+      nominalSize: "2",
+      schedule: "SCH 40",
+      materialId: "SYNTHETIC_MAT_A",
+    });
+
+    const orch = new ComponentResolutionEngine(new ComponentCandidateResolver(reg, candSelEngine));
+    const req: ComponentResolutionRequest = {
+      specificationId: "SYNTHETIC_SPEC_01",
+      context: defaultContext,
+    };
+
+    const res = orch.resolve(req);
+    assert(res.status === "RESOLVED", "Status must be RESOLVED");
+    assert(res.resolvedCandidateId === "SYNTHETIC_CAND_TRACE", "Candidate must match");
+    assert(Array.isArray(res.matchedRuleIds), "matchedRuleIds must be an array");
+    assert(res.matchedRuleIds.length > 0, "matchedRuleIds must not be empty");
+    assert(res.matchedRuleIds.includes("SYNTHETIC_SPEC_PIPE_RULE_01"), "matchedRuleIds must contain spec rule");
+    assert(Array.isArray(res.compatibilityRuleIds), "compatibilityRuleIds must be an array");
+    assert(res.compatibilityRuleIds.length > 0, "compatibilityRuleIds must not be empty");
+    assert(res.compatibilityRuleIds.includes("SYNTHETIC_COMPAT_SCH40"), "compatibilityRuleIds must contain compat rule");
+    assert(Array.isArray(res.evidenceIds), "evidenceIds must be an array");
+    assert(res.evidenceIds.length > 0, "evidenceIds must not be empty");
+    assert(res.evidenceIds.includes("SYNTHETIC_EV_SPEC_01"), "evidenceIds must contain spec evidence");
   });
 
   const success = results.every((r) => r.startsWith("✅ PASS"));

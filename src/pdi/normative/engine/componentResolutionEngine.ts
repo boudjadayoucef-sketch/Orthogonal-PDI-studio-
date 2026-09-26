@@ -112,20 +112,11 @@ export class ComponentResolutionEngine implements IComponentResolutionEngine {
       ...(resolverRes.invalidCandidateIds ?? []),
     ].sort();
 
-    const rawMatched = (resolverRes as any).matchedRuleIds;
-    const matchedRuleIds = Array.isArray(rawMatched)
-      ? [...rawMatched].sort()
-      : [];
-
-    const rawCompat = (resolverRes as any).compatibilityRuleIds;
-    const compatibilityRuleIds = Array.isArray(rawCompat)
-      ? [...rawCompat].sort()
-      : [];
-
-    const rawEvidence = (resolverRes as any).evidenceIds;
-    const evidenceIds = Array.isArray(rawEvidence)
-      ? [...rawEvidence].sort()
-      : [];
+    const matchedRuleIds = [...(resolverRes.matchedRuleIds ?? [])].sort();
+    const compatibilityRuleIds = [
+      ...(resolverRes.compatibilityRuleIds ?? []),
+    ].sort();
+    const evidenceIds = [...(resolverRes.evidenceIds ?? [])].sort();
 
     return {
       status,

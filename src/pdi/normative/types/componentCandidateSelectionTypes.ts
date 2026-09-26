@@ -55,6 +55,9 @@ export interface ComponentCandidateSelectionResult {
   readonly ineligibleCandidateIds: readonly string[];
   readonly unverifiedCandidateIds: readonly string[];
   readonly invalidCandidateIds: readonly string[];
+  readonly matchedRuleIds: readonly string[];
+  readonly compatibilityRuleIds: readonly string[];
+  readonly evidenceIds: readonly string[];
   readonly traceByCandidate: readonly ComponentCandidateSelectionTrace[];
   readonly message: string;
 }

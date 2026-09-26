@@ -72,6 +72,9 @@ export interface ComponentCandidateResolutionResult {
   readonly eligibleCandidateIds: readonly string[];
   readonly unverifiedCandidateIds: readonly string[];
   readonly invalidCandidateIds: readonly string[];
+  readonly matchedRuleIds: readonly string[];
+  readonly compatibilityRuleIds: readonly string[];
+  readonly evidenceIds: readonly string[];
   readonly message: string;
 }
 
