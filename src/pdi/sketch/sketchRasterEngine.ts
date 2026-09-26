@@ -29,6 +29,7 @@ export interface SketchVectorSegment {
   material: string;
   lengthMm?: number;
   angleIsoDeg?: number; // 30, 90, 150, 210, 270, 330
+  detectedAxis?: "X" | "Y" | "Z";
 }
 
 export type SketchFittingType =

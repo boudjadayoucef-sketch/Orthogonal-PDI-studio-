@@ -26,6 +26,34 @@ import {
 } from "./sketchRasterEngine";
 import type { LocalDetectionResult } from "./localSketchDetector";
 
+/**
+ * Détermine l'axe 3D isométrique (X, Y ou Z) à partir de l'angle isométrique en degrés :
+ * - 30° ou 210°  -> axe X
+ * - 150° ou 330° -> axe Y
+ * - 90° ou 270°  -> axe Z (vertical)
+ */
+export function isoAngleToAxis(angleDeg: number): { axis: "X" | "Y" | "Z"; diff: number } {
+  let a = ((angleDeg % 360) + 360) % 360;
+  const families: { axis: "X" | "Y" | "Z"; angles: number[] }[] = [
+    { axis: "X", angles: [30, 210] },
+    { axis: "Y", angles: [150, 330] },
+    { axis: "Z", angles: [90, 270] },
+  ];
+  let best: "X" | "Y" | "Z" = "X";
+  let bestDiff = 999;
+  for (const fam of families) {
+    for (const target of fam.angles) {
+      let diff = Math.abs(a - target);
+      if (diff > 180) diff = 360 - diff;
+      if (diff < bestDiff) {
+        bestDiff = diff;
+        best = fam.axis;
+      }
+    }
+  }
+  return { axis: best, diff: bestDiff };
+}
+
 // Cache singleton pour l'instance WebAssembly d'OpenCV
 let openCvInstance: any = null;
 let openCvLoadingPromise: Promise<any> | null = null;
@@ -503,6 +531,7 @@ export async function detectSketchTopologyOpenCv(
           processedPairs.add(pairKey2);
 
           const snap = snapToIsometricAngle(n1, n2, 25);
+          const { axis } = isoAngleToAxis(snap.angleDeg);
           const segId = `seg_${detectedSegs.length + 1}`;
           const distPx = Math.hypot(n2.x - n1.x, n2.y - n1.y);
 
@@ -515,7 +544,116 @@ export async function detectSketchTopologyOpenCv(
             material: "Acier ASTM A106 Gr. B",
             lengthMm: Math.round(distPx / 0.25),
             angleIsoDeg: snap.angleDeg,
+            detectedAxis: axis,
           });
+        }
+
+        // =========================================================================
+        // PARTIE 3 — DÉDUCTION DE L'AXE 3D RÉEL ET PROPAGATION DE L'ÉLÉVATION Z
+        // =========================================================================
+        const nodeElevations = new Map<string, number>();
+        const visitedElev = new Set<string>();
+
+        for (const startNode of detectedNodes) {
+          if (visitedElev.has(startNode.id)) continue;
+          nodeElevations.set(startNode.id, startNode.elevation || 0);
+          visitedElev.add(startNode.id);
+          const queue = [startNode.id];
+
+          while (queue.length > 0) {
+            const currId = queue.shift()!;
+            const currElev = nodeElevations.get(currId)!;
+
+            const connected = detectedSegs.filter(
+              (s) => s.fromNodeId === currId || s.toNodeId === currId
+            );
+
+            for (const seg of connected) {
+              const isForward = seg.fromNodeId === currId;
+              const nextId = isForward ? seg.toNodeId : seg.fromNodeId;
+
+              if (!visitedElev.has(nextId)) {
+                visitedElev.add(nextId);
+                queue.push(nextId);
+
+                let nextElev = currElev;
+                if (seg.detectedAxis === "Z") {
+                  const fromN = detectedNodes.find((n) => n.id === currId);
+                  const nextN = detectedNodes.find((n) => n.id === nextId);
+                  const lenMm = seg.lengthMm || 0;
+                  // Dans l'image écran, y2 < y1 correspond à une montée vers le haut (donc +Z)
+                  if (fromN && nextN) {
+                    const isGoingUp = nextN.y < fromN.y;
+                    nextElev = isGoingUp ? currElev + lenMm : currElev - lenMm;
+                  }
+                }
+                nodeElevations.set(nextId, nextElev);
+              }
+            }
+          }
+        }
+
+        // Mettre à jour l'élévation des nœuds
+        for (const node of detectedNodes) {
+          if (nodeElevations.has(node.id)) {
+            node.elevation = nodeElevations.get(node.id)!;
+          }
+        }
+
+        // =========================================================================
+        // PARTIE 4 — DÉTECTION ET INSERTION DE COUDES (validé hors-ligne)
+        // =========================================================================
+        for (const node of detectedNodes) {
+          const touchingSegs = detectedSegs.filter(
+            (s) => s.fromNodeId === node.id || s.toNodeId === node.id
+          );
+
+          if (touchingSegs.length === 2) {
+            const axes = new Set(touchingSegs.map((s) => s.detectedAxis).filter(Boolean));
+            if (axes.size >= 2) {
+              // Deux segments d'axes distincts se rencontrent : c'est un coude !
+              const seg1 = touchingSegs[0];
+              const seg2 = touchingSegs[1];
+
+              const other1 = detectedNodes.find(
+                (n) => n.id === (seg1.fromNodeId === node.id ? seg1.toNodeId : seg1.fromNodeId)
+              );
+              const other2 = detectedNodes.find(
+                (n) => n.id === (seg2.fromNodeId === node.id ? seg2.toNodeId : seg2.fromNodeId)
+              );
+
+              let is45 = false;
+              if (other1 && other2) {
+                const v1x = other1.x - node.x;
+                const v1y = other1.y - node.y;
+                const v2x = other2.x - node.x;
+                const v2y = other2.y - node.y;
+                const len1 = Math.hypot(v1x, v1y);
+                const len2 = Math.hypot(v2x, v2y);
+                if (len1 > 0 && len2 > 0) {
+                  const dot = (v1x * v2x + v1y * v2y) / (len1 * len2);
+                  const angleDeg = Math.acos(Math.max(-1, Math.min(1, dot))) * (180 / Math.PI);
+                  if (Math.abs(angleDeg - 135) <= 15 || Math.abs(angleDeg - 45) <= 15) {
+                    is45 = true;
+                  }
+                }
+              }
+
+              const elbowType = is45 ? "coude_45" : "coude_90";
+              const elbowLabel = `C-${detectedFittings.length + 1}`;
+
+              node.equipmentType = elbowType;
+              node.equipmentLabel = elbowLabel;
+
+              detectedFittings.push({
+                id: `fit_elbow_${detectedFittings.length + 1}`,
+                nodeId: node.id,
+                type: elbowType,
+                label: elbowLabel,
+                nominalDiameter: 80,
+              });
+            }
+          }
         }
 
         // Vérification post-graphe : si moins de 2 nœuds ou 1 segment, échec explicite
