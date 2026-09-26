@@ -49,6 +49,7 @@ export interface NormativeEvidence {
   readonly clauseReference: string;
   readonly sourceType: NormativeEvidenceSourceType;
   readonly sourceReference: string;
+  readonly sourceDocumentId?: string;
   readonly verificationStatus: NormativeVerificationStatus;
   readonly verifiedBy?: string;
   readonly verifiedAt?: string;

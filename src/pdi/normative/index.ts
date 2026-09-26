@@ -20,6 +20,7 @@ export * from "./types/componentCandidateSelectionTypes";
 export * from "./types/componentCandidateRegistryTypes";
 export * from "./types/componentResolutionTypes";
 export * from "./types/normativeSourceDocumentTypes";
+export * from "./types/b31_3DataTypes";
 export * from "./data/b31_3/b31_3Types";
 
 export * from "./registry/standardsRegistry";
@@ -36,6 +37,8 @@ export * from "./registry/normativeCompatibilityRegistry";
 export * from "./registry/componentCandidateRegistry";
 export * from "./registry/normativeSourceDocumentRegistry";
 export * from "./registry/normativeSourceDocumentResolver";
+export * from "./data/b31_3/b31_3DataRegistry";
+export * from "./data/b31_3/b31_3DataResolver";
 
 export * from "./validators/pipeDimensionalValidator";
 export * from "./validators/fittingValidator";
@@ -45,6 +48,7 @@ export * from "./validators/materialValidator";
 export * from "./validators/pipingSpecValidator";
 export * from "./validators/designCodeValidator";
 export * from "./validators/normativeSourceDocumentValidator";
+export * from "./data/b31_3/b31_3DataValidator";
 export {
   validateNormativeEvidence,
   validateNormativeEdition,
@@ -89,3 +93,4 @@ export * from "./tests/componentCandidateSelectionTests";
 export * from "./tests/componentCandidateRegistryTests";
 export * from "./tests/componentResolutionTests";
 export * from "./tests/normativeSourceDocumentTests";
+export * from "./tests/b31_3DataTests";
