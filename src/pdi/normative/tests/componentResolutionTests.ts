@@ -507,7 +507,7 @@ export function runComponentResolutionTests(): Component04TestResult {
       id: "SYNTHETIC_SPEC_01",
       code: "SYN-SPEC-01",
       name: "Synthetic Spec 01",
-      designCodeId: "ASME-B31.3",
+      designCodeId: "SYNTHETIC_DESIGN_CODE_01" as any,
       materialReferenceIds: ["SYNTHETIC_MAT_A"],
       pipeRules: [
         {
