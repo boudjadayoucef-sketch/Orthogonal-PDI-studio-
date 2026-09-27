@@ -57,6 +57,8 @@ export type B31_3DataValidationErrorCode =
   | "INVALID_NOTES"
   | "VERIFIED_RECORD_SOURCE_DOCUMENT_NOT_FOUND"
   | "VERIFIED_RECORD_SOURCE_DOCUMENT_UNVERIFIED"
+  | "VERIFIED_RECORD_SOURCE_DOCUMENT_STANDARD_MISMATCH"
+  | "VERIFIED_RECORD_SOURCE_DOCUMENT_EDITION_MISMATCH"
   | "VERIFIED_RECORD_EVIDENCE_NOT_FOUND"
   | "VERIFIED_RECORD_EVIDENCE_UNVERIFIED"
   | "VERIFIED_RECORD_STANDARD_MISMATCH"
@@ -316,7 +318,7 @@ export function validateB31_3DataRecordGovernance(
     } else if (docRes.document) {
       if (docRes.document.standardId !== record.standardId) {
         errors.push({
-          code: "VERIFIED_RECORD_STANDARD_MISMATCH",
+          code: "VERIFIED_RECORD_SOURCE_DOCUMENT_STANDARD_MISMATCH",
           field: "standardId",
           message: `Record standardId '${record.standardId}' does not match source document standardId '${docRes.document.standardId}'.`,
         });
@@ -324,7 +326,7 @@ export function validateB31_3DataRecordGovernance(
 
       if (docRes.document.editionId !== record.editionId) {
         errors.push({
-          code: "VERIFIED_RECORD_EDITION_MISMATCH",
+          code: "VERIFIED_RECORD_SOURCE_DOCUMENT_EDITION_MISMATCH",
           field: "editionId",
           message: `Record editionId '${record.editionId}' does not match source document editionId '${docRes.document.editionId}'.`,
         });

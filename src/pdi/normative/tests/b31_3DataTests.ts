@@ -743,8 +743,8 @@ export function runB31_3DataTests(): B31_3DataTestResult {
     assert(threw, "Registry must throw when evidence is not verified");
   });
 
-  // TEST 36: Une donnée dont standardId diffère de l'Evidence est rejetée
-  runTest("TEST 36 (B31.3-03) — Incohérence de standardId entre record et Evidence est rejetée", () => {
+  // TEST 36: Une donnée dont standardId diffère de l'Evidence et du Document Source est rejetée
+  runTest("TEST 36 (B31.3-03) — Incohérence de standardId entre record et Evidence / SourceDocument est rejetée", () => {
     const { dataRegistry, docResolver, evResolver } = createTestEnvironment();
     const mismatchStdRecord: B31_3NormativeDataRecord<number> = {
       ...validRecordSynthetic,
@@ -754,7 +754,11 @@ export function runB31_3DataTests(): B31_3DataTestResult {
     };
 
     const govRes = validateB31_3DataRecordGovernance(mismatchStdRecord, docResolver, evResolver);
-    assert(!govRes.valid, "Governance validation must fail when standardId differs from evidence");
+    assert(!govRes.valid, "Governance validation must fail when standardId differs from evidence and document");
+    assert(
+      govRes.errors.some((e) => e.code === "VERIFIED_RECORD_SOURCE_DOCUMENT_STANDARD_MISMATCH"),
+      "Must return VERIFIED_RECORD_SOURCE_DOCUMENT_STANDARD_MISMATCH"
+    );
     assert(
       govRes.errors.some((e) => e.code === "VERIFIED_RECORD_STANDARD_MISMATCH"),
       "Must return VERIFIED_RECORD_STANDARD_MISMATCH"
@@ -769,8 +773,8 @@ export function runB31_3DataTests(): B31_3DataTestResult {
     assert(threw, "Registry must throw on standardId mismatch");
   });
 
-  // TEST 37: Une donnée dont editionId diffère de l'Evidence est rejetée
-  runTest("TEST 37 (B31.3-03) — Incohérence d'editionId entre record et Evidence est rejetée", () => {
+  // TEST 37: Une donnée dont editionId diffère de l'Evidence et du Document Source est rejetée
+  runTest("TEST 37 (B31.3-03) — Incohérence d'editionId entre record et Evidence / SourceDocument est rejetée", () => {
     const { dataRegistry, docResolver, evResolver } = createTestEnvironment();
     const mismatchEdRecord: B31_3NormativeDataRecord<number> = {
       ...validRecordSynthetic,
@@ -780,7 +784,11 @@ export function runB31_3DataTests(): B31_3DataTestResult {
     };
 
     const govRes = validateB31_3DataRecordGovernance(mismatchEdRecord, docResolver, evResolver);
-    assert(!govRes.valid, "Governance validation must fail when editionId differs from evidence");
+    assert(!govRes.valid, "Governance validation must fail when editionId differs from evidence and document");
+    assert(
+      govRes.errors.some((e) => e.code === "VERIFIED_RECORD_SOURCE_DOCUMENT_EDITION_MISMATCH"),
+      "Must return VERIFIED_RECORD_SOURCE_DOCUMENT_EDITION_MISMATCH"
+    );
     assert(
       govRes.errors.some((e) => e.code === "VERIFIED_RECORD_EDITION_MISMATCH"),
       "Must return VERIFIED_RECORD_EDITION_MISMATCH"
