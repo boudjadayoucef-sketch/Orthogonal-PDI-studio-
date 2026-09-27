@@ -244,9 +244,13 @@ export function compileSketchToIsoModel(params: {
               dy = lenM * Math.sin(rad);
             }
 
-            const targetZ = nextN?.elevation !== undefined
-              ? nextN.elevation / 1000
-              : currCoord.z + dz;
+            // CORRECTIF SKETCH-DETECT-06 : ne jamais réutiliser nextN.elevation
+            // comme valeur ABSOLUE — c'est une valeur relative à l'origine de sa
+            // propre composante connexe (calculée indépendamment par le BFS de
+            // openCvSketchDetector.ts). Accumuler dz depuis currCoord.z, comme
+            // pour dx/dy, garantit la cohérence avec compOffsetZ de cette
+            // composante.
+            const targetZ = currCoord.z + dz;
 
             nodeCoords3D.set(nextId, {
               x: Number((currCoord.x + dx).toFixed(3)),

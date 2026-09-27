@@ -26,11 +26,11 @@ export const pdiIsoAxisDirs017P3 = (cos: number, sin: number): PdiAxisDir017P3[]
 ];
 
 // Rayon du cercle de noeud : suit le zoom mais reste lisible.
-export const PDI_NODE_RADIUS_MIN_017P3 = 3;
-export const PDI_NODE_RADIUS_MAX_017P3 = 10;
+export const PDI_NODE_RADIUS_MIN_017P3 = 2;
+export const PDI_NODE_RADIUS_MAX_017P3 = 7;
 
 export const pdiNodeRadius017P3 = (zoom: number, isSel?: boolean, isHov?: boolean) => {
-  const base = isSel ? 7 : isHov ? 6 : 5;
+  const base = isSel ? 5 : isHov ? 4.2 : 3.5;
   const z = Math.max(0.1, Number.isFinite(zoom) ? zoom : 1);
   const scaled = base * Math.sqrt(z);
   const borne = Math.min(PDI_NODE_RADIUS_MAX_017P3, Math.max(PDI_NODE_RADIUS_MIN_017P3, scaled));
