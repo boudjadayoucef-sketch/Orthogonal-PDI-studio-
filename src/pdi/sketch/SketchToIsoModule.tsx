@@ -24,7 +24,11 @@ import {
   DEMO_INITIAL_SEGMENTS,
   DEMO_INITIAL_FITTINGS
 } from "./demoSketchTemplate";
-import { detectSketchTopologyOpenCv } from "./openCvSketchDetector";
+import {
+  detectSketchTopologyOpenCv,
+  AxisMappingConfig,
+  DEFAULT_AXIS_MAPPING
+} from "./openCvSketchDetector";
 import { SketchCropTool } from "./SketchCropTool";
 
 export interface SketchToIsoModuleProps {
@@ -74,6 +78,9 @@ export const SketchToIsoModule: React.FC<SketchToIsoModuleProps> = ({
   const [autoDetectOnImport, setAutoDetectOnImport] = useState<boolean>(true);
   const [aiDetectionSummary, setAiDetectionSummary] = useState<string | null>(null);
   const [aiDetectedEquipment, setAiDetectedEquipment] = useState<any[]>([]);
+
+  // Interactive Axis Mapping State (Partie 2 - Trièdre)
+  const [axisMapping, setAxisMapping] = useState<AxisMappingConfig>(DEFAULT_AXIS_MAPPING);
 
   // Show live compiled JSON modal
   const [showJsonModal, setShowJsonModal] = useState<boolean>(false);
@@ -272,7 +279,8 @@ export const SketchToIsoModule: React.FC<SketchToIsoModuleProps> = ({
       title: projectName,
       paperFormat: format,
       lineReference: projectName,
-      service
+      service,
+      axisMapping
     });
     setCompiledJsonPreview(model);
     return model;
@@ -407,6 +415,8 @@ export const SketchToIsoModule: React.FC<SketchToIsoModuleProps> = ({
             selectedFittingType={selectedFittingType}
             recenterTrigger={recenterTrigger}
             isDetectingAI={isDetectingAI}
+            axisMapping={axisMapping}
+            onAxisMappingChange={setAxisMapping}
             onNodesChange={setNodes}
             onSegmentsChange={setSegments}
             onFittingsChange={setFittings}

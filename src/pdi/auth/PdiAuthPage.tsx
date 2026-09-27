@@ -377,6 +377,10 @@ export default function PdiAuthPage({
   return (
     <div className="pdi-auth-container">
       <style>{`
+        .pdi-auth-container, .pdi-auth-container * {
+          box-sizing: border-box;
+        }
+
         .pdi-auth-container {
           min-height: 100vh;
           width: 100vw;
@@ -389,31 +393,32 @@ export default function PdiAuthPage({
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          padding: 24px 16px;
+          padding: 16px 16px 12px;
           position: relative;
           overflow-y: auto;
         }
 
         .pdi-auth-topbar {
           position: absolute;
-          top: 18px;
-          left: 24px;
-          right: 24px;
+          top: 14px;
+          left: 20px;
+          right: 20px;
           display: flex;
           align-items: center;
           justify-content: space-between;
+          z-index: 20;
         }
 
         .pdi-auth-back-btn {
           display: inline-flex;
           align-items: center;
-          gap: 8px;
-          padding: 8px 14px;
-          border-radius: 12px;
+          gap: 6px;
+          padding: 6px 12px;
+          border-radius: 10px;
           border: 1px solid rgba(148, 163, 184, 0.25);
           background: rgba(15, 23, 42, 0.7);
           color: #94A3B8;
-          font-size: 12px;
+          font-size: 11.5px;
           font-weight: 800;
           cursor: pointer;
           transition: all 0.2s;
@@ -426,13 +431,13 @@ export default function PdiAuthPage({
 
         .pdi-auth-card {
           width: 100%;
-          max-width: 640px;
-          border-radius: 24px;
+          max-width: 600px;
+          border-radius: 20px;
           border: 1px solid rgba(103, 232, 249, 0.28);
           background: linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(8, 13, 24, 0.99));
-          box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(103, 232, 249, 0.1);
-          padding: 32px;
-          margin: 60px auto 20px;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(103, 232, 249, 0.1);
+          padding: 22px 26px;
+          margin: 38px auto 6px;
           position: relative;
           z-index: 10;
         }
@@ -440,12 +445,12 @@ export default function PdiAuthPage({
         .pdi-auth-tabs {
           display: grid;
           grid-template-columns: 1fr 1fr 1fr;
-          gap: 6px;
+          gap: 4px;
           background: #0B111A;
           border: 1px solid rgba(148, 163, 184, 0.16);
-          border-radius: 14px;
-          padding: 4px;
-          margin: 22px 0 24px;
+          border-radius: 12px;
+          padding: 3px;
+          margin: 14px 0 16px;
         }
 
         .pdi-auth-tab-btn {
@@ -454,8 +459,8 @@ export default function PdiAuthPage({
           color: #8EA3C2;
           font-size: 11px;
           font-weight: 900;
-          padding: 9px 4px;
-          border-radius: 10px;
+          padding: 7px 4px;
+          border-radius: 9px;
           cursor: pointer;
           transition: all 0.2s;
           text-align: center;
@@ -470,24 +475,29 @@ export default function PdiAuthPage({
         .pdi-form-group {
           display: flex;
           flex-direction: column;
-          gap: 6px;
-          margin-bottom: 14px;
+          gap: 4px;
+          margin-bottom: 11px;
+          min-width: 0;
+          width: 100%;
         }
         .pdi-form-group label {
-          font-size: 11px;
+          font-size: 10.5px;
           font-weight: 800;
           color: #94A3B8;
           text-transform: uppercase;
           letter-spacing: 0.04em;
         }
         .pdi-form-group input, .pdi-form-group select {
-          height: 42px;
-          border-radius: 12px;
+          box-sizing: border-box;
+          width: 100%;
+          min-width: 0;
+          height: 38px;
+          border-radius: 10px;
           border: 1px solid rgba(148, 163, 184, 0.22);
           background: #090E17;
           color: #F8FAFC;
-          padding: 0 14px;
-          font-size: 13px;
+          padding: 0 12px;
+          font-size: 12.5px;
           font-weight: 700;
           outline: none;
           transition: border-color 0.2s;
@@ -501,37 +511,41 @@ export default function PdiAuthPage({
           position: relative;
           display: flex;
           align-items: center;
+          width: 100%;
+          min-width: 0;
         }
         .pdi-input-pwd-wrap input {
           width: 100%;
-          padding-right: 42px;
+          min-width: 0;
+          padding-right: 38px;
         }
         .pdi-pwd-toggle {
           position: absolute;
-          right: 12px;
+          right: 10px;
           background: transparent;
           border: 0;
           color: #64748B;
           cursor: pointer;
-          font-size: 14px;
-          padding: 4px;
+          font-size: 13px;
+          padding: 3px;
         }
         .pdi-pwd-toggle:hover {
           color: #94A3B8;
         }
 
         .pdi-btn-submit {
+          box-sizing: border-box;
           width: 100%;
-          height: 44px;
+          height: 40px;
           border: 0;
-          border-radius: 12px;
+          border-radius: 10px;
           background: linear-gradient(135deg, #0284C7, #22D3EE);
           color: white;
-          font-size: 13px;
+          font-size: 12.5px;
           font-weight: 900;
           cursor: pointer;
-          margin-top: 10px;
-          box-shadow: 0 12px 30px rgba(14, 165, 233, 0.35);
+          margin-top: 6px;
+          box-shadow: 0 8px 20px rgba(14, 165, 233, 0.35);
           transition: transform 0.15s, opacity 0.15s;
         }
         .pdi-btn-submit:hover:not(:disabled) {
@@ -543,19 +557,20 @@ export default function PdiAuthPage({
         }
 
         .pdi-btn-google {
+          box-sizing: border-box;
           width: 100%;
-          height: 42px;
+          height: 38px;
           border: 1px solid rgba(148, 163, 184, 0.25);
-          border-radius: 12px;
+          border-radius: 10px;
           background: #0B121E;
           color: #E2E8F0;
-          font-size: 12px;
+          font-size: 11.5px;
           font-weight: 800;
           cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 10px;
+          gap: 8px;
           transition: all 0.2s;
         }
         .pdi-btn-google:hover:not(:disabled) {
@@ -566,10 +581,10 @@ export default function PdiAuthPage({
         .pdi-divider {
           display: flex;
           align-items: center;
-          gap: 12px;
-          margin: 18px 0;
+          gap: 10px;
+          margin: 11px 0;
           color: #64748B;
-          font-size: 11px;
+          font-size: 10px;
           font-weight: 800;
           text-transform: uppercase;
         }
@@ -584,32 +599,32 @@ export default function PdiAuthPage({
           border: 1px solid rgba(239, 68, 68, 0.4);
           background: rgba(239, 68, 68, 0.12);
           color: #FCA5A5;
-          border-radius: 10px;
-          padding: 10px 12px;
-          font-size: 12px;
+          border-radius: 9px;
+          padding: 8px 10px;
+          font-size: 11.5px;
           font-weight: 700;
-          margin-bottom: 14px;
+          margin-bottom: 10px;
         }
         .pdi-msg-success {
           border: 1px solid rgba(34, 197, 94, 0.4);
           background: rgba(34, 197, 94, 0.12);
           color: #86EFAC;
-          border-radius: 10px;
-          padding: 10px 12px;
-          font-size: 12px;
+          border-radius: 9px;
+          padding: 8px 10px;
+          font-size: 11.5px;
           font-weight: 700;
-          margin-bottom: 14px;
+          margin-bottom: 10px;
         }
 
         .pdi-super-btn-link {
           background: transparent;
           border: 0;
           color: #67E8F9;
-          font-size: 11px;
+          font-size: 10.5px;
           font-weight: 800;
           text-decoration: underline;
           cursor: pointer;
-          margin-top: 14px;
+          margin-top: 8px;
           display: block;
           text-align: center;
           width: 100%;
@@ -626,14 +641,14 @@ export default function PdiAuthPage({
 
       {/* Main Auth Card */}
       <div className="pdi-auth-card">
-        <div style={{ textAlign: "center", marginBottom: 8 }}>
-          <span style={{ fontSize: 10, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.1em", color: "#67E8F9", background: "rgba(14, 165, 233, 0.12)", border: "1px solid rgba(103,232,249,0.3)", padding: "4px 10px", borderRadius: 999 }}>
+        <div style={{ textAlign: "center", marginBottom: 4 }}>
+          <span style={{ fontSize: 9.5, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.1em", color: "#67E8F9", background: "rgba(14, 165, 233, 0.12)", border: "1px solid rgba(103,232,249,0.3)", padding: "3px 9px", borderRadius: 999 }}>
             Portail d'Accès Sécurisé
           </span>
-          <h1 style={{ fontSize: 22, fontWeight: 900, color: "#F8FAFC", margin: "14px 0 6px", letterSpacing: "-0.02em" }}>
+          <h1 style={{ fontSize: 19, fontWeight: 900, color: "#F8FAFC", margin: "8px 0 3px", letterSpacing: "-0.02em" }}>
             Connexion &amp; Licences PD&amp;I
           </h1>
-          <p style={{ fontSize: 12, color: "#94A3B8", margin: 0, fontWeight: 600 }}>
+          <p style={{ fontSize: 11.5, color: "#94A3B8", margin: 0, fontWeight: 600 }}>
             Accès protégé par chiffrement fort et clés d'activation officielles.
           </p>
         </div>
@@ -819,7 +834,7 @@ export default function PdiAuthPage({
             </div>
 
             {/* GEO LOCALIZATION: PAYS & VILLE DROPDOWNS */}
-            <div style={{ display: "grid", gridTemplateColumns: "1.1fr 1fr", gap: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.1fr) minmax(0, 1fr)", gap: 10, width: "100%" }}>
               <div className="pdi-form-group">
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <label>Pays de facturation</label>
@@ -900,28 +915,29 @@ export default function PdiAuthPage({
                   : "linear-gradient(135deg, rgba(56, 189, 248, 0.12), rgba(30, 58, 138, 0.25))",
                 border: `1px solid ${selectedCountry.code === "DZ" ? "rgba(16, 185, 129, 0.4)" : "rgba(56, 189, 248, 0.4)"}`,
                 borderRadius: 10,
-                padding: "10px 12px",
-                marginBottom: 14,
+                padding: "8px 10px",
+                marginBottom: 11,
                 display: "flex",
                 alignItems: "center",
-                gap: 10
+                gap: 8,
+                width: "100%"
               }}
             >
-              <div style={{ fontSize: 24, flexShrink: 0 }}>
+              <div style={{ fontSize: 20, flexShrink: 0 }}>
                 {selectedCountry.code === "DZ" ? "💳" : "🌐"}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{
-                  fontSize: 11,
+                  fontSize: 10.5,
                   fontWeight: 800,
                   textTransform: "uppercase",
                   letterSpacing: "0.05em",
                   color: selectedCountry.code === "DZ" ? "#34D399" : "#38BDF8",
-                  marginBottom: 2
+                  marginBottom: 1
                 }}>
                   {selectedCountry.code === "DZ" ? "Paiement Algérie (DZD)" : "Paiement International (EUR / USD)"}
                 </div>
-                <div style={{ fontSize: 11, color: "#CBD5E1", lineHeight: 1.35 }}>
+                <div style={{ fontSize: 10.5, color: "#CBD5E1", lineHeight: 1.35 }}>
                   {selectedCountry.code === "DZ" ? (
                     <>
                       Réglez en Dinars via <strong style={{ color: "#FFF" }}>Baridi Mob &amp; Carte Edahabia</strong> propulsé par la passerelle agréée <span style={{ color: "#34D399" }}>Slick-Pay</span>.
@@ -935,7 +951,7 @@ export default function PdiAuthPage({
               </div>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: 10, width: "100%" }}>
               <div className="pdi-form-group">
                 <label>Mot de passe</label>
                 <input
@@ -1118,12 +1134,13 @@ export default function PdiAuthPage({
                   {/* Selector CIB vs BaridiMob */}
                   <div style={{
                     display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
+                    gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
                     gap: 6,
                     background: "#090E17",
                     padding: 4,
                     borderRadius: 10,
-                    marginBottom: 12
+                    marginBottom: 12,
+                    width: "100%"
                   }}>
                     <button
                       type="button"
@@ -1174,7 +1191,7 @@ export default function PdiAuthPage({
                         />
                       </div>
 
-                      <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr 1fr", gap: 8 }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr)", gap: 8, width: "100%" }}>
                         <div className="pdi-form-group">
                           <label>Titulaire carte</label>
                           <input
@@ -1257,7 +1274,7 @@ export default function PdiAuthPage({
                     />
                   </div>
 
-                  <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr 1fr", gap: 8 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr)", gap: 8, width: "100%" }}>
                     <div className="pdi-form-group">
                       <label>Nom sur la carte</label>
                       <input
@@ -1373,20 +1390,20 @@ export default function PdiAuthPage({
 
         {/* FOOTER INFORMATIONS LÉGALES & TECHNIQUES */}
         <div style={{
-          marginTop: 24,
-          paddingTop: 16,
+          marginTop: 14,
+          paddingTop: 10,
           borderTop: "1px solid rgba(148, 163, 184, 0.12)",
           display: "flex",
           flexDirection: "column",
-          gap: 8
+          gap: 6
         }}>
           <div style={{
             display: "flex",
             flexWrap: "wrap",
             alignItems: "center",
             justifyContent: "center",
-            gap: "6px 14px",
-            fontSize: 11,
+            gap: "4px 12px",
+            fontSize: 10.5,
             color: "#94A3B8"
           }}>
             <button
@@ -1396,7 +1413,7 @@ export default function PdiAuthPage({
                 background: "none",
                 border: "none",
                 color: "#94A3B8",
-                fontSize: 11,
+                fontSize: 10.5,
                 cursor: "pointer",
                 padding: 0,
                 transition: "color 0.2s"
@@ -1414,7 +1431,7 @@ export default function PdiAuthPage({
                 background: "none",
                 border: "none",
                 color: "#94A3B8",
-                fontSize: 11,
+                fontSize: 10.5,
                 cursor: "pointer",
                 padding: 0,
                 transition: "color 0.2s"
@@ -1432,7 +1449,7 @@ export default function PdiAuthPage({
                 background: "none",
                 border: "none",
                 color: "#94A3B8",
-                fontSize: 11,
+                fontSize: 10.5,
                 cursor: "pointer",
                 padding: 0,
                 transition: "color 0.2s"
@@ -1448,9 +1465,9 @@ export default function PdiAuthPage({
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            fontSize: 11,
+            fontSize: 10,
             color: "#64748B",
-            marginTop: 4
+            marginTop: 2
           }}>
             <span>PD&amp;I · Pipeline Design &amp; Isometrics © 2026</span>
             <span style={{ fontWeight: 800, color: "#FFFFFF" }}>Powered by ORTHOGONAL - ENG</span>

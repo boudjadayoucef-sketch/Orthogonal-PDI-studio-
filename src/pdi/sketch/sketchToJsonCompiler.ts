@@ -9,6 +9,11 @@ import {
   SketchVectorEquipment
 } from "./sketchRasterEngine";
 import {
+  isoAngleToAxis,
+  AxisMappingConfig,
+  DEFAULT_AXIS_MAPPING
+} from "./openCvSketchDetector";
+import {
   IsoNode,
   IsoSegment,
   IsoFitting,
@@ -109,6 +114,7 @@ export function compileSketchToIsoModel(params: {
   paperFormat?: string;
   lineReference?: string;
   service?: string;
+  axisMapping?: AxisMappingConfig;
 }): CompiledIsoModel {
   const {
     nodes,
@@ -119,7 +125,8 @@ export function compileSketchToIsoModel(params: {
     title = "Ligne Extraite de Croquis",
     paperFormat = "A4_LANDSCAPE",
     lineReference = "L-SKETCH-01",
-    service = "PROC-CHIM"
+    service = "PROC-CHIM",
+    axisMapping = DEFAULT_AXIS_MAPPING
   } = params;
 
   const scale = calibrationScale > 0 ? calibrationScale : 1;
@@ -224,24 +231,15 @@ export function compileSketchToIsoModel(params: {
               ? (isForward ? seg.angleIsoDeg : (seg.angleIsoDeg + 180) % 360)
               : 30;
 
+            const { axis } = isoAngleToAxis(ang, axisMapping);
             let dx = 0, dy = 0, dz = 0;
-            if (ang === 90) {
-              dz = lenM;
-            } else if (ang === 270) {
-              dz = -lenM;
-            } else if (ang === 30) {
-              dx = lenM;
-            } else if (ang === 210) {
-              dx = -lenM;
-            } else if (ang === 150) {
-              dy = -lenM;
-            } else if (ang === 330) {
-              dy = lenM;
+            if (axis === "Z") {
+              dz = (ang > 180 ? -1 : 1) * lenM;
+            } else if (axis === "X") {
+              dx = (ang > 90 && ang < 270 ? -1 : 1) * lenM;
             } else {
-              // Décomposition d'angle général
-              const rad = (ang * Math.PI) / 180;
-              dx = lenM * Math.cos(rad);
-              dy = lenM * Math.sin(rad);
+              // axis === "Y"
+              dy = (ang > 180 ? 1 : -1) * lenM;
             }
 
             // CORRECTIF SKETCH-DETECT-06 : ne jamais réutiliser nextN.elevation

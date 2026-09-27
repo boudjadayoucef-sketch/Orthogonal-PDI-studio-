@@ -26,18 +26,34 @@ import {
 } from "./sketchRasterEngine";
 import type { LocalDetectionResult } from "./localSketchDetector";
 
+export interface AxisMappingConfig {
+  X: number[];
+  Y: number[];
+  Z: number[];
+}
+
+export const DEFAULT_AXIS_MAPPING: AxisMappingConfig = {
+  X: [30, 210],
+  Y: [150, 330],
+  Z: [90, 270],
+};
+
 /**
  * Détermine l'axe 3D isométrique (X, Y ou Z) à partir de l'angle isométrique en degrés :
- * - 30° ou 210°  -> axe X
- * - 150° ou 330° -> axe Y
- * - 90° ou 270°  -> axe Z (vertical)
+ * - 30° ou 210°  -> axe X (par défaut)
+ * - 150° ou 330° -> axe Y (par défaut)
+ * - 90° ou 270°  -> axe Z (vertical par défaut)
+ * Supporte une configuration de mapping d'axes personnalisée (trièdre interactif).
  */
-export function isoAngleToAxis(angleDeg: number): { axis: "X" | "Y" | "Z"; diff: number } {
+export function isoAngleToAxis(
+  angleDeg: number,
+  mapping: AxisMappingConfig = DEFAULT_AXIS_MAPPING
+): { axis: "X" | "Y" | "Z"; diff: number } {
   let a = ((angleDeg % 360) + 360) % 360;
   const families: { axis: "X" | "Y" | "Z"; angles: number[] }[] = [
-    { axis: "X", angles: [30, 210] },
-    { axis: "Y", angles: [150, 330] },
-    { axis: "Z", angles: [90, 270] },
+    { axis: "X", angles: mapping.X || [30, 210] },
+    { axis: "Y", angles: mapping.Y || [150, 330] },
+    { axis: "Z", angles: mapping.Z || [90, 270] },
   ];
   let best: "X" | "Y" | "Z" = "X";
   let bestDiff = 999;
