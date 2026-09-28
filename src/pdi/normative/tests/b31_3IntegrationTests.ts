@@ -612,3 +612,647 @@ export function runB31_3IntegrationTests(): B31_3IntegrationTestResult {
     results,
   };
 }
+
+/**
+ * PDI NORMATIVE ENGINE — ASME B31.3-05 FIRST VERIFIED NORMATIVE DATA TESTS
+ * Reference: B31.3-05 (First Verified Normative Data / Controlled Boundary)
+ *
+ * Exécute les 12 tests obligatoires définis dans la spécification B31.3-05 Section 9.
+ */
+export function runB31_3_05Tests(): B31_3IntegrationTestResult {
+  const results: string[] = [];
+  let testsRun = 0;
+
+  function runTest(description: string, fn: () => void): void {
+    testsRun++;
+    try {
+      fn();
+      results.push(`✅ PASS ${testsRun}: ${description}`);
+    } catch (err: any) {
+      results.push(`❌ FAIL ${testsRun}: ${description} -> ${err.message}`);
+      throw err;
+    }
+  }
+
+  // Constantes synthétiques isolées
+  const STD = "SYNTHETIC_ASME_B31_3";
+  const EDT = "SYNTHETIC_2022";
+  const DOC_ID = "SYNTHETIC_DOC_B313_05";
+  const EV_ID = "SYNTHETIC_EV_B313_05";
+  const DATA_ID = "SYNTHETIC_DATA_B313_05_001";
+
+  // Factory d'environnement isolé
+  function createEnv() {
+    const docReg = new NormativeSourceDocumentRegistry();
+    const docRes = new NormativeSourceDocumentResolver(docReg);
+    const evReg = new NormativeEvidenceRegistry();
+    const evRes = new NormativeEvidenceResolver(evReg);
+    const dataReg = new B31_3DataRegistry(docRes, evRes);
+    const dataRes = new B31_3DataResolver(dataReg);
+    return { docReg, docRes, evReg, evRes, dataReg, dataRes };
+  }
+
+  // TEST 1: Donnée VERIFIED avec chaîne complète cohérente
+  runTest("Test 1: Donnée VERIFIED avec chaîne complète cohérente", () => {
+    const { docReg, docRes, evReg, evRes, dataReg, dataRes } = createEnv();
+
+    docReg.register({
+      documentId: DOC_ID,
+      standardId: STD,
+      editionId: EDT,
+      title: "Synthetic Test Document",
+      publisher: "SYNTHETIC_ASME",
+      documentReference: "SYNTHETIC-DOC-REF",
+      status: "VERIFIED",
+      verifiedBy: "AUDITOR_1",
+      verifiedAt: "2026-01-01T00:00:00Z",
+    });
+
+    evReg.register({
+      evidenceId: EV_ID,
+      standardId: STD,
+      editionId: EDT,
+      sourceDocumentId: DOC_ID,
+      clauseReference: "Table A-1",
+      sourceType: "VERIFIED_INTERNAL_REFERENCE",
+      sourceReference: "SYNTHETIC-EV-REF",
+      verificationStatus: "VERIFIED",
+      verifiedBy: "AUDITOR_1",
+      verifiedAt: "2026-01-01T00:00:00Z",
+    });
+
+    dataReg.register({
+      dataId: DATA_ID,
+      standardId: STD,
+      editionId: EDT,
+      sourceDocumentId: DOC_ID,
+      evidenceId: EV_ID,
+      clauseReference: "Table A-1",
+      dataType: "ALLOWABLE_STRESS",
+      value: 137.9,
+      unit: "MPa",
+      status: "VERIFIED",
+    });
+
+    const res = integrateB31_3Data<number>(
+      { dataId: DATA_ID },
+      { dataResolver: dataRes, sourceDocResolver: docRes, evidenceResolver: evRes }
+    );
+
+    assert(res.status === "RESOLVED_VERIFIED", `Expected RESOLVED_VERIFIED, got ${res.status}`);
+    assert(res.value === 137.9, "Value must be 137.9");
+    assert(res.verifiedValue?.verificationStatus === "VERIFIED", "Status must be VERIFIED");
+  });
+
+  // TEST 2: Donnée VERIFIED sans SourceDocument VERIFIED → rejet
+  runTest("Test 2: Donnée VERIFIED sans SourceDocument VERIFIED → rejet", () => {
+    const { docReg, evReg, dataReg } = createEnv();
+
+    // Source document est UNVERIFIED
+    docReg.register({
+      documentId: DOC_ID,
+      standardId: STD,
+      editionId: EDT,
+      title: "Synthetic Unverified Document",
+      publisher: "SYNTHETIC_ASME",
+      documentReference: "SYNTHETIC-DOC-REF",
+      status: "UNVERIFIED",
+    });
+
+    evReg.register({
+      evidenceId: EV_ID,
+      standardId: STD,
+      editionId: EDT,
+      sourceDocumentId: DOC_ID,
+      clauseReference: "Table A-1",
+      sourceType: "VERIFIED_INTERNAL_REFERENCE",
+      sourceReference: "SYNTHETIC-EV-REF",
+      verificationStatus: "VERIFIED",
+      verifiedBy: "AUDITOR_1",
+      verifiedAt: "2026-01-01T00:00:00Z",
+    });
+
+    let caught = false;
+    try {
+      dataReg.register({
+        dataId: DATA_ID,
+        standardId: STD,
+        editionId: EDT,
+        sourceDocumentId: DOC_ID,
+        evidenceId: EV_ID,
+        clauseReference: "Table A-1",
+        dataType: "ALLOWABLE_STRESS",
+        value: 137.9,
+        status: "VERIFIED",
+      });
+    } catch {
+      caught = true;
+    }
+    assert(caught, "Registry must reject VERIFIED record when SourceDocument is not verified");
+  });
+
+  // TEST 3: Donnée VERIFIED sans Evidence VERIFIED → rejet
+  runTest("Test 3: Donnée VERIFIED sans Evidence VERIFIED → rejet", () => {
+    const { docReg, evReg, dataReg } = createEnv();
+
+    docReg.register({
+      documentId: DOC_ID,
+      standardId: STD,
+      editionId: EDT,
+      title: "Synthetic Test Document",
+      publisher: "SYNTHETIC_ASME",
+      documentReference: "SYNTHETIC-DOC-REF",
+      status: "VERIFIED",
+      verifiedBy: "AUDITOR_1",
+      verifiedAt: "2026-01-01T00:00:00Z",
+    });
+
+    // Evidence est UNVERIFIED
+    evReg.register({
+      evidenceId: EV_ID,
+      standardId: STD,
+      editionId: EDT,
+      sourceDocumentId: DOC_ID,
+      clauseReference: "Table A-1",
+      sourceType: "LEGACY_REFERENCE",
+      sourceReference: "SYNTHETIC-EV-REF",
+      verificationStatus: "UNVERIFIED",
+    });
+
+    let caught = false;
+    try {
+      dataReg.register({
+        dataId: DATA_ID,
+        standardId: STD,
+        editionId: EDT,
+        sourceDocumentId: DOC_ID,
+        evidenceId: EV_ID,
+        clauseReference: "Table A-1",
+        dataType: "ALLOWABLE_STRESS",
+        value: 137.9,
+        status: "VERIFIED",
+      });
+    } catch {
+      caught = true;
+    }
+    assert(caught, "Registry must reject VERIFIED record when Evidence is not verified");
+  });
+
+  // TEST 4: Mismatch standard → rejet
+  runTest("Test 4: Mismatch standard → rejet", () => {
+    const { docReg, evReg, dataReg } = createEnv();
+
+    docReg.register({
+      documentId: DOC_ID,
+      standardId: STD,
+      editionId: EDT,
+      title: "Synthetic Test Document",
+      documentReference: "SYNTHETIC-DOC-REF",
+      status: "VERIFIED",
+      verifiedBy: "AUDITOR_1",
+      verifiedAt: "2026-01-01T00:00:00Z",
+    });
+
+    evReg.register({
+      evidenceId: EV_ID,
+      standardId: STD,
+      editionId: EDT,
+      sourceDocumentId: DOC_ID,
+      clauseReference: "Table A-1",
+      sourceType: "VERIFIED_INTERNAL_REFERENCE",
+      sourceReference: "SYNTHETIC-EV-REF",
+      verificationStatus: "VERIFIED",
+      verifiedBy: "AUDITOR_1",
+      verifiedAt: "2026-01-01T00:00:00Z",
+    });
+
+    let caught = false;
+    try {
+      dataReg.register({
+        dataId: DATA_ID,
+        standardId: "OTHER_STANDARD",
+        editionId: EDT,
+        sourceDocumentId: DOC_ID,
+        evidenceId: EV_ID,
+        clauseReference: "Table A-1",
+        dataType: "ALLOWABLE_STRESS",
+        value: 137.9,
+        status: "VERIFIED",
+      });
+    } catch {
+      caught = true;
+    }
+    assert(caught, "Registry must reject record with standardId mismatch");
+  });
+
+  // TEST 5: Mismatch édition → rejet
+  runTest("Test 5: Mismatch édition → rejet", () => {
+    const { docReg, evReg, dataReg } = createEnv();
+
+    docReg.register({
+      documentId: DOC_ID,
+      standardId: STD,
+      editionId: EDT,
+      title: "Synthetic Test Document",
+      documentReference: "SYNTHETIC-DOC-REF",
+      status: "VERIFIED",
+      verifiedBy: "AUDITOR_1",
+      verifiedAt: "2026-01-01T00:00:00Z",
+    });
+
+    evReg.register({
+      evidenceId: EV_ID,
+      standardId: STD,
+      editionId: EDT,
+      sourceDocumentId: DOC_ID,
+      clauseReference: "Table A-1",
+      sourceType: "VERIFIED_INTERNAL_REFERENCE",
+      sourceReference: "SYNTHETIC-EV-REF",
+      verificationStatus: "VERIFIED",
+      verifiedBy: "AUDITOR_1",
+      verifiedAt: "2026-01-01T00:00:00Z",
+    });
+
+    let caught = false;
+    try {
+      dataReg.register({
+        dataId: DATA_ID,
+        standardId: STD,
+        editionId: "OTHER_EDITION_2099",
+        sourceDocumentId: DOC_ID,
+        evidenceId: EV_ID,
+        clauseReference: "Table A-1",
+        dataType: "ALLOWABLE_STRESS",
+        value: 137.9,
+        status: "VERIFIED",
+      });
+    } catch {
+      caught = true;
+    }
+    assert(caught, "Registry must reject record with editionId mismatch");
+  });
+
+  // TEST 6: Mismatch SourceDocument → rejet
+  runTest("Test 6: Mismatch SourceDocument → rejet", () => {
+    const { docReg, evReg, dataReg } = createEnv();
+
+    docReg.register({
+      documentId: DOC_ID,
+      standardId: STD,
+      editionId: EDT,
+      title: "Synthetic Test Document",
+      documentReference: "SYNTHETIC-DOC-REF",
+      status: "VERIFIED",
+      verifiedBy: "AUDITOR_1",
+      verifiedAt: "2026-01-01T00:00:00Z",
+    });
+
+    docReg.register({
+      documentId: "OTHER_DOC_ID",
+      standardId: STD,
+      editionId: EDT,
+      title: "Other Document",
+      documentReference: "OTHER-DOC-REF",
+      status: "VERIFIED",
+      verifiedBy: "AUDITOR_1",
+      verifiedAt: "2026-01-01T00:00:00Z",
+    });
+
+    evReg.register({
+      evidenceId: EV_ID,
+      standardId: STD,
+      editionId: EDT,
+      sourceDocumentId: DOC_ID, // Bound to DOC_ID
+      clauseReference: "Table A-1",
+      sourceType: "VERIFIED_INTERNAL_REFERENCE",
+      sourceReference: "SYNTHETIC-EV-REF",
+      verificationStatus: "VERIFIED",
+      verifiedBy: "AUDITOR_1",
+      verifiedAt: "2026-01-01T00:00:00Z",
+    });
+
+    let caught = false;
+    try {
+      dataReg.register({
+        dataId: DATA_ID,
+        standardId: STD,
+        editionId: EDT,
+        sourceDocumentId: "OTHER_DOC_ID", // Mismatch with evidence's sourceDocumentId
+        evidenceId: EV_ID,
+        clauseReference: "Table A-1",
+        dataType: "ALLOWABLE_STRESS",
+        value: 137.9,
+        status: "VERIFIED",
+      });
+    } catch {
+      caught = true;
+    }
+    assert(caught, "Registry must reject record with sourceDocumentId mismatch between record and evidence");
+  });
+
+  // TEST 7: Donnée UNVERIFIED → jamais promue
+  runTest("Test 7: Donnée UNVERIFIED → jamais promue", () => {
+    const { docReg, docRes, evReg, evRes, dataReg, dataRes } = createEnv();
+
+    docReg.register({
+      documentId: DOC_ID,
+      standardId: STD,
+      editionId: EDT,
+      title: "Synthetic Document",
+      documentReference: "DOC-REF",
+      status: "UNVERIFIED",
+    });
+
+    evReg.register({
+      evidenceId: EV_ID,
+      standardId: STD,
+      editionId: EDT,
+      clauseReference: "Table A-1",
+      sourceType: "LEGACY_REFERENCE",
+      sourceReference: "LEGACY-REF",
+      verificationStatus: "UNVERIFIED",
+    });
+
+    dataReg.register({
+      dataId: DATA_ID,
+      standardId: STD,
+      editionId: EDT,
+      sourceDocumentId: DOC_ID,
+      evidenceId: EV_ID,
+      clauseReference: "Table A-1",
+      dataType: "ALLOWABLE_STRESS",
+      value: 137.9,
+      status: "UNVERIFIED",
+      notes: "Looks like a valid ASME value",
+    });
+
+    const resolveRes = dataRes.resolveData(DATA_ID);
+    assert(resolveRes.status === "FOUND_UNVERIFIED", "Status must remain FOUND_UNVERIFIED");
+
+    const intRes = integrateB31_3Data(
+      { dataId: DATA_ID },
+      { dataResolver: dataRes, sourceDocResolver: docRes, evidenceResolver: evRes }
+    );
+    assert(intRes.status === "UNVERIFIED", "Integration status must remain UNVERIFIED");
+    assert(intRes.verifiedValue?.verificationStatus === "UNVERIFIED", "Must never be promoted to VERIFIED");
+  });
+
+  // TEST 8: Registry vide → comportement correct
+  runTest("Test 8: Registry vide → comportement correct", () => {
+    const { dataReg, dataRes, docRes, evRes } = createEnv();
+
+    assert(dataReg.count() === 0, "Empty registry count must be 0");
+    assert(dataReg.list().length === 0, "Empty registry list must have length 0");
+    assert(dataReg.get("NON_EXISTENT") === undefined, "get on empty registry must return undefined");
+    assert(dataReg.has("NON_EXISTENT") === false, "has on empty registry must return false");
+
+    const res = dataRes.resolveData("NON_EXISTENT");
+    assert(res.status === "NOT_FOUND", "resolveData on empty registry must return NOT_FOUND");
+
+    const intRes = integrateB31_3Data(
+      { dataId: "NON_EXISTENT" },
+      { dataResolver: dataRes, sourceDocResolver: docRes, evidenceResolver: evRes }
+    );
+    assert(intRes.status === "NOT_FOUND", "integrateB31_3Data on empty registry must return NOT_FOUND");
+
+    assert(Array.isArray(B31_3_VERIFIED_DATA) && B31_3_VERIFIED_DATA.length === 0, "B31_3_VERIFIED_DATA is empty");
+  });
+
+  // TEST 9: Résolution exacte par dataId
+  runTest("Test 9: Résolution exacte par dataId", () => {
+    const { docReg, evReg, dataReg, dataRes } = createEnv();
+
+    docReg.register({
+      documentId: DOC_ID,
+      standardId: STD,
+      editionId: EDT,
+      title: "Doc",
+      documentReference: "Ref",
+      status: "VERIFIED",
+      verifiedBy: "V",
+      verifiedAt: "2026-01-01T00:00:00Z",
+    });
+
+    evReg.register({
+      evidenceId: EV_ID,
+      standardId: STD,
+      editionId: EDT,
+      sourceDocumentId: DOC_ID,
+      clauseReference: "Clause",
+      sourceType: "VERIFIED_INTERNAL_REFERENCE",
+      sourceReference: "Ref",
+      verificationStatus: "VERIFIED",
+      verifiedBy: "V",
+      verifiedAt: "2026-01-01T00:00:00Z",
+    });
+
+    dataReg.register({
+      dataId: "EXACT_DATA_ID_001",
+      standardId: STD,
+      editionId: EDT,
+      sourceDocumentId: DOC_ID,
+      evidenceId: EV_ID,
+      clauseReference: "Clause",
+      dataType: "STRESS",
+      value: 100,
+      status: "VERIFIED",
+    });
+
+    // Exact match
+    assert(dataRes.resolveData("EXACT_DATA_ID_001").status === "FOUND_VERIFIED", "Exact match succeeds");
+
+    // Case difference fails
+    assert(dataRes.resolveData("exact_data_id_001").status === "NOT_FOUND", "Case difference must not match");
+
+    // Substring fails
+    assert(dataRes.resolveData("EXACT_DATA_ID").status === "NOT_FOUND", "Substring must not match");
+
+    // Partial prefix / suffix fails
+    assert(dataRes.resolveData("EXACT_DATA_ID_001_EXTRA").status === "NOT_FOUND", "Superstring must not match");
+  });
+
+  // TEST 10: Trace complète conservée
+  runTest("Test 10: Trace complète conservée", () => {
+    const { docReg, docRes, evReg, evRes, dataReg, dataRes } = createEnv();
+
+    docReg.register({
+      documentId: DOC_ID,
+      standardId: STD,
+      editionId: EDT,
+      title: "Doc",
+      documentReference: "Ref",
+      status: "VERIFIED",
+      verifiedBy: "V",
+      verifiedAt: "2026-01-01T00:00:00Z",
+    });
+
+    evReg.register({
+      evidenceId: EV_ID,
+      standardId: STD,
+      editionId: EDT,
+      sourceDocumentId: DOC_ID,
+      clauseReference: "Table A-1 §302",
+      sourceType: "VERIFIED_INTERNAL_REFERENCE",
+      sourceReference: "Ref",
+      verificationStatus: "VERIFIED",
+      verifiedBy: "V",
+      verifiedAt: "2026-01-01T00:00:00Z",
+    });
+
+    dataReg.register({
+      dataId: DATA_ID,
+      standardId: STD,
+      editionId: EDT,
+      sourceDocumentId: DOC_ID,
+      evidenceId: EV_ID,
+      clauseReference: "Table A-1 §302",
+      dataType: "ALLOWABLE_STRESS",
+      value: 137.9,
+      unit: "MPa",
+      notes: "Traceability test",
+      status: "VERIFIED",
+    });
+
+    const intRes = integrateB31_3Data<number>(
+      { dataId: DATA_ID },
+      { dataResolver: dataRes, sourceDocResolver: docRes, evidenceResolver: evRes }
+    );
+
+    assert(intRes.status === "RESOLVED_VERIFIED", "Status must be RESOLVED_VERIFIED");
+    assert(intRes.dataId === DATA_ID, "dataId preserved");
+    assert(intRes.standardId === STD, "standardId preserved");
+    assert(intRes.editionId === EDT, "editionId preserved");
+    assert(intRes.sourceDocumentId === DOC_ID, "sourceDocumentId preserved");
+    assert(intRes.evidenceId === EV_ID, "evidenceId preserved");
+    assert(intRes.clauseReference === "Table A-1 §302", "clauseReference preserved");
+    assert(intRes.value === 137.9, "value preserved");
+    assert(intRes.verifiedValue?.sourceReference?.includes(STD) === true, "sourceReference contains standardId");
+    assert(intRes.verifiedValue?.sourceReference?.includes(EDT) === true, "sourceReference contains editionId");
+  });
+
+  // TEST 11: Aucune conversion d'unité
+  runTest("Test 11: Aucune conversion d'unité", () => {
+    const { docReg, docRes, evReg, evRes, dataReg, dataRes } = createEnv();
+
+    docReg.register({
+      documentId: DOC_ID,
+      standardId: STD,
+      editionId: EDT,
+      title: "Doc",
+      documentReference: "Ref",
+      status: "VERIFIED",
+      verifiedBy: "V",
+      verifiedAt: "2026-01-01T00:00:00Z",
+    });
+
+    evReg.register({
+      evidenceId: EV_ID,
+      standardId: STD,
+      editionId: EDT,
+      sourceDocumentId: DOC_ID,
+      clauseReference: "Table A-1",
+      sourceType: "VERIFIED_INTERNAL_REFERENCE",
+      sourceReference: "Ref",
+      verificationStatus: "VERIFIED",
+      verifiedBy: "V",
+      verifiedAt: "2026-01-01T00:00:00Z",
+    });
+
+    const originalValue = 137.9;
+    const originalUnit = "MPa";
+
+    dataReg.register({
+      dataId: DATA_ID,
+      standardId: STD,
+      editionId: EDT,
+      sourceDocumentId: DOC_ID,
+      evidenceId: EV_ID,
+      clauseReference: "Table A-1",
+      dataType: "ALLOWABLE_STRESS",
+      value: originalValue,
+      unit: originalUnit,
+      status: "VERIFIED",
+    });
+
+    const record = dataReg.get<number>(DATA_ID);
+    assert(record?.value === originalValue, "Value must not be converted in registry");
+    assert(record?.unit === originalUnit, "Unit must not be changed in registry");
+
+    const resolved = dataRes.resolveData<number>(DATA_ID);
+    assert(resolved.record?.value === originalValue, "Value must not be converted in resolver");
+    assert(resolved.record?.unit === originalUnit, "Unit must not be changed in resolver");
+
+    const integrated = integrateB31_3Data<number>(
+      { dataId: DATA_ID },
+      { dataResolver: dataRes, sourceDocResolver: docRes, evidenceResolver: evRes }
+    );
+    assert(integrated.value === originalValue, "Value must not be converted in integration");
+    assert(integrated.verifiedValue?.value === originalValue, "Value must not be converted in verifiedValue");
+  });
+
+  // TEST 12: Déterminisme de résolution
+  runTest("Test 12: Déterminisme de résolution", () => {
+    const { docReg, docRes, evReg, evRes, dataReg, dataRes } = createEnv();
+
+    docReg.register({
+      documentId: DOC_ID,
+      standardId: STD,
+      editionId: EDT,
+      title: "Doc",
+      documentReference: "Ref",
+      status: "VERIFIED",
+      verifiedBy: "V",
+      verifiedAt: "2026-01-01T00:00:00Z",
+    });
+
+    evReg.register({
+      evidenceId: EV_ID,
+      standardId: STD,
+      editionId: EDT,
+      sourceDocumentId: DOC_ID,
+      clauseReference: "Clause",
+      sourceType: "VERIFIED_INTERNAL_REFERENCE",
+      sourceReference: "Ref",
+      verificationStatus: "VERIFIED",
+      verifiedBy: "V",
+      verifiedAt: "2026-01-01T00:00:00Z",
+    });
+
+    dataReg.register({
+      dataId: DATA_ID,
+      standardId: STD,
+      editionId: EDT,
+      sourceDocumentId: DOC_ID,
+      evidenceId: EV_ID,
+      clauseReference: "Clause",
+      dataType: "STRESS",
+      value: 200,
+      status: "VERIFIED",
+    });
+
+    // 10 résolutions consécutives
+    const firstRes = integrateB31_3Data<number>(
+      { dataId: DATA_ID },
+      { dataResolver: dataRes, sourceDocResolver: docRes, evidenceResolver: evRes }
+    );
+
+    for (let i = 0; i < 10; i++) {
+      const nthRes = integrateB31_3Data<number>(
+        { dataId: DATA_ID },
+        { dataResolver: dataRes, sourceDocResolver: docRes, evidenceResolver: evRes }
+      );
+      assert(nthRes.status === firstRes.status, `Iteration ${i}: status must match`);
+      assert(nthRes.value === firstRes.value, `Iteration ${i}: value must match`);
+      assert(nthRes.verifiedValue?.verificationStatus === firstRes.verifiedValue?.verificationStatus, `Iteration ${i}: verifiedStatus must match`);
+      assert(nthRes.verifiedValue?.sourceReference === firstRes.verifiedValue?.sourceReference, `Iteration ${i}: sourceReference must match`);
+    }
+  });
+
+  const success = results.every((r) => r.startsWith("✅ PASS"));
+
+  return {
+    success,
+    testsRun,
+    results,
+  };
+}
