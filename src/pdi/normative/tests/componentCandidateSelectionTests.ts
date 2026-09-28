@@ -158,7 +158,6 @@ export function runComponentCandidateSelectionTests(): Component02TestResult {
       id: "SYNTHETIC_SPEC_01",
       code: "SYN-SPEC-01",
       name: "Synthetic Piping Spec 01",
-      designCodeId: "ASME-B31.3",
       materialReferenceIds: ["SYNTHETIC_MAT_A", "SYNTHETIC_MAT_B"],
       pipeRules: [
         {
