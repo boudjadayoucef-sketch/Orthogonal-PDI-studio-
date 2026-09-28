@@ -714,3 +714,478 @@ export function runB31_3F01IntegrationTests(): B31_3F01TestResult {
     results,
   };
 }
+
+/**
+ * PDI NORMATIVE ENGINE — ASME B31.3-07 FINAL AUDIT & RELEASE LOCK SUITE
+ * Reference: B31.3-07 (Final Audit & Release Lock)
+ * 
+ * Exécute l'audit final et le verrouillage de conformité sur l'ensemble de la chaîne :
+ * SourceDocument → Evidence → Qualification → VerifiedValue → CalculationBoundary → F01.
+ */
+export function runB31_3_07AuditTests(): B31_3F01TestResult {
+  const results: string[] = [];
+  let testsRun = 0;
+
+  function runAudit(checkName: string, fn: () => void): void {
+    testsRun++;
+    try {
+      fn();
+      results.push(`✅ AUDIT PASS ${testsRun}: ${checkName}`);
+    } catch (err: any) {
+      results.push(`❌ AUDIT FAIL ${testsRun}: ${checkName} -> ${err.message}`);
+      throw err;
+    }
+  }
+
+  // 1. Audit B31_3_VERIFIED_DATA
+  runAudit("Audit 1: Production registry B31_3_VERIFIED_DATA is empty and frozen", () => {
+    assert(Array.isArray(B31_3_VERIFIED_DATA), "Must be an array");
+    assert(Object.isFrozen(B31_3_VERIFIED_DATA), "Must be frozen");
+    assert(B31_3_VERIFIED_DATA.length === 0, "B31_3_VERIFIED_DATA length must be 0");
+  });
+
+  // 2. Audit Anti-Invention
+  runAudit("Audit 2: Anti-invention check — no invented normative data in production registry", () => {
+    for (const item of B31_3_VERIFIED_DATA) {
+      assert(!item.dataId.startsWith("SYNTHETIC_"), "No synthetic data in production");
+      assert(!item.dataId.startsWith("TEST_"), "No test data in production");
+      assert(!item.dataId.startsWith("FAKE_"), "No fake data in production");
+    }
+  });
+
+  // 3. Audit SourceDocument Chain
+  runAudit("Audit 3: SourceDocument chain integrity enforced", () => {
+    const docReg = new NormativeSourceDocumentRegistry();
+    const docRes = new NormativeSourceDocumentResolver(docReg);
+    const evReg = new NormativeEvidenceRegistry();
+    const evRes = new NormativeEvidenceResolver(evReg);
+    const dataReg = new B31_3DataRegistry(docRes, evRes);
+    const dataRes = new B31_3DataResolver(dataReg);
+
+    // Document non présent dans le registre
+    evReg.register({
+      evidenceId: "EV_AUDIT_01",
+      standardId: "STD_AUDIT",
+      editionId: "2026",
+      sourceDocumentId: "MISSING_DOC_01",
+      clauseReference: "Clause 1",
+      sourceType: "VERIFIED_INTERNAL_REFERENCE",
+      sourceReference: "REF",
+      verificationStatus: "VERIFIED",
+      verifiedBy: "AUDITOR",
+      verifiedAt: "2026-01-01T00:00:00Z",
+    });
+
+    let caught = false;
+    try {
+      dataReg.register({
+        dataId: "DATA_AUDIT_01",
+        standardId: "STD_AUDIT",
+        editionId: "2026",
+        sourceDocumentId: "MISSING_DOC_01",
+        evidenceId: "EV_AUDIT_01",
+        clauseReference: "Clause 1",
+        dataType: "STRESS",
+        value: 100,
+        status: "VERIFIED",
+      });
+    } catch {
+      caught = true;
+    }
+    assert(caught, "Registry must block VERIFIED record when SourceDocument is absent");
+  });
+
+  // 4. Audit Evidence Chain
+  runAudit("Audit 4: Evidence chain integrity enforced", () => {
+    const docReg = new NormativeSourceDocumentRegistry();
+    const docRes = new NormativeSourceDocumentResolver(docReg);
+    const evReg = new NormativeEvidenceRegistry();
+    const evRes = new NormativeEvidenceResolver(evReg);
+    const dataReg = new B31_3DataRegistry(docRes, evRes);
+
+    docReg.register({
+      documentId: "DOC_AUDIT_02",
+      standardId: "STD_AUDIT",
+      editionId: "2026",
+      title: "Doc",
+      documentReference: "REF",
+      status: "VERIFIED",
+      verifiedBy: "AUDITOR",
+      verifiedAt: "2026-01-01T00:00:00Z",
+    });
+
+    // Evidence non présente dans le registre
+    let caught = false;
+    try {
+      dataReg.register({
+        dataId: "DATA_AUDIT_02",
+        standardId: "STD_AUDIT",
+        editionId: "2026",
+        sourceDocumentId: "DOC_AUDIT_02",
+        evidenceId: "MISSING_EV_02",
+        clauseReference: "Clause 2",
+        dataType: "STRESS",
+        value: 100,
+        status: "VERIFIED",
+      });
+    } catch {
+      caught = true;
+    }
+    assert(caught, "Registry must block VERIFIED record when Evidence is absent");
+  });
+
+  // 5. Audit VerifiedValue Boundary
+  runAudit("Audit 5: VerifiedValue boundary — only complete evidence chain produces valid NormativeVerifiedValue", () => {
+    const evReg = new NormativeEvidenceRegistry();
+    const evRes = new NormativeEvidenceResolver(evReg);
+
+    const invalidValue: NormativeVerifiedValue<number> = {
+      value: 150,
+      verificationStatus: "VERIFIED",
+      evidenceIds: ["NON_EXISTENT_EV"],
+    };
+
+    const boundaryRes = resolveNormativeCalculationInput({ name: "S", verifiedValue: invalidValue }, evRes);
+    assert(!boundaryRes.valid, "Calculation boundary must reject NormativeVerifiedValue with unresolvable evidence");
+  });
+
+  // 6. Audit Calculation Boundary (No Raw Bypass)
+  runAudit("Audit 6: Calculation boundary blocks raw numeric bypass", () => {
+    const evReg = new NormativeEvidenceRegistry();
+    const evRes = new NormativeEvidenceResolver(evReg);
+
+    const rawInput = {
+      name: "S",
+      verifiedValue: {
+        value: 120,
+        verificationStatus: "UNVERIFIED" as const,
+        evidenceIds: [],
+      },
+    };
+
+    const resS = resolvePressureDesignStress(rawInput, evRes);
+    assert(!resS.valid, "resolvePressureDesignStress must reject raw unverified input");
+
+    const resE = resolveWeldQualityFactor({ name: "E", verifiedValue: rawInput.verifiedValue }, evRes);
+    assert(!resE.valid, "resolveWeldQualityFactor must reject raw unverified input");
+
+    const resW = resolveWeldReductionFactor({ name: "W", verifiedValue: rawInput.verifiedValue }, evRes);
+    assert(!resW.valid, "resolveWeldReductionFactor must reject raw unverified input");
+
+    const resY = resolveYCoefficient({ name: "Y", verifiedValue: rawInput.verifiedValue }, evRes);
+    assert(!resY.valid, "resolveYCoefficient must reject raw unverified input");
+  });
+
+  // 7. Audit F01 Integrity
+  runAudit("Audit 7: F01 formula and safety guardrail integrity verified", () => {
+    // Exécution avec inputs valides vérifiés pour confirmer que F01 fonctionne
+    const calculationInput: EngineeringCalculationInput = {
+      designCodeId: "ASME-B31.3",
+      standardEdition: { year: "2024" },
+      calculationType: "PRESSURE_WALL_THICKNESS",
+      unitSystem: "SI",
+      pressure: 2.0,
+      temperature: 100,
+      outsideDiameterMm: 114.3,
+      corrosionAllowanceMm: 1.5,
+      diameterBasis: "OUTSIDE",
+      componentType: "SEAMLESS",
+      materialFamily: "FERRITIC",
+      materialId: "SYNTH_MATERIAL",
+      allowableStressInput: {
+        value: 137.9,
+        materialReference: "SYNTH_MATERIAL",
+        temperature: 100,
+        unit: "MPa",
+        sourceReference: "SYNTH_REF",
+        qualificationStatus: "VERIFIED",
+        verifiedValue: { value: 137.9, verificationStatus: "VERIFIED", evidenceIds: ["EV_F01_AUDIT"] },
+      },
+      qualityFactorInput: {
+        factorValue: 1.0,
+        productSpecification: "SYNTH_SPEC",
+        sourceReference: "SYNTH_REF",
+        qualificationStatus: "VERIFIED",
+        verifiedValue: { value: 1.0, verificationStatus: "VERIFIED", evidenceIds: ["EV_F01_AUDIT"] },
+      },
+      weldReductionFactorInput: {
+        factorValue: 1.0,
+        branchId: "W-01",
+        componentType: "SEAMLESS",
+        sourceReference: "SYNTH_REF",
+        qualificationStatus: "VERIFIED",
+        verifiedValue: { value: 1.0, verificationStatus: "VERIFIED", evidenceIds: ["EV_F01_AUDIT"] },
+      },
+      yCoefficientInput: {
+        factorValue: 0.4,
+        materialFamily: "FERRITIC",
+        temperature: 100,
+        sourceReference: "SYNTH_REF",
+        qualificationStatus: "VERIFIED",
+        verifiedValue: { value: 0.4, verificationStatus: "VERIFIED", evidenceIds: ["EV_F01_AUDIT"] },
+      },
+      evidenceItems: [
+        {
+          evidenceId: "EV_F01_AUDIT",
+          standardId: "ASME-B31.3",
+          editionId: "2024",
+          clauseReference: "Clause",
+          sourceType: "VERIFIED_INTERNAL_REFERENCE",
+          sourceReference: "REF",
+          verificationStatus: "VERIFIED",
+          verifiedBy: "AUDITOR",
+          verifiedAt: "2026-01-01T00:00:00Z",
+        },
+      ],
+    };
+
+    const result = executeEngineeringCalculation(calculationInput);
+    assert(result.status === "CALCULATED", "F01 must calculate when fully verified");
+    assert(typeof result.value === "number" && result.value > 0, "Calculated thickness must be positive");
+    assert(
+      result.minimumRequiredThicknessMm === result.value! + 1.5,
+      "tm must equal t + c exactly"
+    );
+
+    // Guardrail test: P / (S * E) > 0.385 must trigger OUT_OF_SCOPE / specialized design required
+    const highPressureInput: EngineeringCalculationInput = {
+      ...calculationInput,
+      pressure: 60.0, // 60 / (137.9 * 1.0) = 0.435 > 0.385
+    };
+    const guardrailResult = executeEngineeringCalculation(highPressureInput);
+    assert(
+      guardrailResult.status === "UNVERIFIED" || guardrailResult.status === "OUT_OF_SCOPE",
+      "P/(S*E) > 0.385 guardrail must block standard Eq 3a calculation"
+    );
+  });
+
+  // 8. Audit No Status Promotion
+  runAudit("Audit 8: Status promotion impossible — UNVERIFIED never promoted to VERIFIED", () => {
+    const docReg = new NormativeSourceDocumentRegistry();
+    const docRes = new NormativeSourceDocumentResolver(docReg);
+    const evReg = new NormativeEvidenceRegistry();
+    const evRes = new NormativeEvidenceResolver(evReg);
+    const dataReg = new B31_3DataRegistry(docRes, evRes);
+    const dataRes = new B31_3DataResolver(dataReg);
+
+    docReg.register({
+      documentId: "DOC_UNVERIFIED",
+      standardId: "STD",
+      editionId: "EDT",
+      title: "Doc",
+      documentReference: "REF",
+      status: "UNVERIFIED",
+    });
+
+    evReg.register({
+      evidenceId: "EV_UNVERIFIED",
+      standardId: "STD",
+      editionId: "EDT",
+      clauseReference: "C",
+      sourceType: "LEGACY_REFERENCE",
+      sourceReference: "REF",
+      verificationStatus: "UNVERIFIED",
+    });
+
+    dataReg.register({
+      dataId: "DATA_UNVERIFIED",
+      standardId: "STD",
+      editionId: "EDT",
+      sourceDocumentId: "DOC_UNVERIFIED",
+      evidenceId: "EV_UNVERIFIED",
+      clauseReference: "C",
+      dataType: "STRESS",
+      value: 100,
+      status: "UNVERIFIED",
+    });
+
+    const res = integrateB31_3Data(
+      { dataId: "DATA_UNVERIFIED" },
+      { dataResolver: dataRes, sourceDocResolver: docRes, evidenceResolver: evRes }
+    );
+    assert(res.status === "UNVERIFIED", "Status must remain UNVERIFIED");
+    assert(res.verifiedValue?.verificationStatus === "UNVERIFIED", "verifiedValue status must remain UNVERIFIED");
+  });
+
+  // 9. Audit No Silent Unit Conversion
+  runAudit("Audit 9: No silent unit conversion", () => {
+    const rawValue = 137.9;
+    const rawUnit = "MPa";
+
+    const docReg = new NormativeSourceDocumentRegistry();
+    const docRes = new NormativeSourceDocumentResolver(docReg);
+    const evReg = new NormativeEvidenceRegistry();
+    const evRes = new NormativeEvidenceResolver(evReg);
+    const dataReg = new B31_3DataRegistry(docRes, evRes);
+    const dataRes = new B31_3DataResolver(dataReg);
+
+    docReg.register({
+      documentId: "DOC_UNIT",
+      standardId: "STD",
+      editionId: "EDT",
+      title: "Doc",
+      documentReference: "REF",
+      status: "VERIFIED",
+      verifiedBy: "AUDITOR",
+      verifiedAt: "2026-01-01T00:00:00Z",
+    });
+
+    evReg.register({
+      evidenceId: "EV_UNIT",
+      standardId: "STD",
+      editionId: "EDT",
+      sourceDocumentId: "DOC_UNIT",
+      clauseReference: "C",
+      sourceType: "VERIFIED_INTERNAL_REFERENCE",
+      sourceReference: "REF",
+      verificationStatus: "VERIFIED",
+      verifiedBy: "AUDITOR",
+      verifiedAt: "2026-01-01T00:00:00Z",
+    });
+
+    dataReg.register({
+      dataId: "DATA_UNIT",
+      standardId: "STD",
+      editionId: "EDT",
+      sourceDocumentId: "DOC_UNIT",
+      evidenceId: "EV_UNIT",
+      clauseReference: "C",
+      dataType: "STRESS",
+      value: rawValue,
+      unit: rawUnit,
+      status: "VERIFIED",
+    });
+
+    const res = integrateB31_3Data<number>(
+      { dataId: "DATA_UNIT" },
+      { dataResolver: dataRes, sourceDocResolver: docRes, evidenceResolver: evRes }
+    );
+    assert(res.value === rawValue, "Value must remain exactly rawValue without conversion");
+    assert(res.verifiedValue?.value === rawValue, "VerifiedValue value must match rawValue");
+  });
+
+  // 10. Audit Determinism & Immutability
+  runAudit("Audit 10: Determinism — repeat executions return identical results without side effects", () => {
+    const docReg = new NormativeSourceDocumentRegistry();
+    const docRes = new NormativeSourceDocumentResolver(docReg);
+    const evReg = new NormativeEvidenceRegistry();
+    const evRes = new NormativeEvidenceResolver(evReg);
+    const dataReg = new B31_3DataRegistry(docRes, evRes);
+    const dataRes = new B31_3DataResolver(dataReg);
+
+    docReg.register({
+      documentId: "DOC_DET",
+      standardId: "STD",
+      editionId: "EDT",
+      title: "Doc",
+      documentReference: "REF",
+      status: "VERIFIED",
+      verifiedBy: "V",
+      verifiedAt: "2026-01-01T00:00:00Z",
+    });
+
+    evReg.register({
+      evidenceId: "EV_DET",
+      standardId: "STD",
+      editionId: "EDT",
+      sourceDocumentId: "DOC_DET",
+      clauseReference: "C",
+      sourceType: "VERIFIED_INTERNAL_REFERENCE",
+      sourceReference: "REF",
+      verificationStatus: "VERIFIED",
+      verifiedBy: "V",
+      verifiedAt: "2026-01-01T00:00:00Z",
+    });
+
+    dataReg.register({
+      dataId: "DATA_DET",
+      standardId: "STD",
+      editionId: "EDT",
+      sourceDocumentId: "DOC_DET",
+      evidenceId: "EV_DET",
+      clauseReference: "C",
+      dataType: "STRESS",
+      value: 125,
+      status: "VERIFIED",
+    });
+
+    const run1 = integrateB31_3Data(
+      { dataId: "DATA_DET" },
+      { dataResolver: dataRes, sourceDocResolver: docRes, evidenceResolver: evRes }
+    );
+    const run2 = integrateB31_3Data(
+      { dataId: "DATA_DET" },
+      { dataResolver: dataRes, sourceDocResolver: docRes, evidenceResolver: evRes }
+    );
+
+    assert(JSON.stringify(run1) === JSON.stringify(run2), "Sequential runs must be bitwise identical");
+  });
+
+  // 11. Audit Full Traceability
+  runAudit("Audit 11: Full traceability chain preserved from SourceDocument to calculation input", () => {
+    const docReg = new NormativeSourceDocumentRegistry();
+    const docRes = new NormativeSourceDocumentResolver(docReg);
+    const evReg = new NormativeEvidenceRegistry();
+    const evRes = new NormativeEvidenceResolver(evReg);
+    const dataReg = new B31_3DataRegistry(docRes, evRes);
+    const dataRes = new B31_3DataResolver(dataReg);
+
+    docReg.register({
+      documentId: "DOC_TRACE",
+      standardId: "ASME-B31.3",
+      editionId: "2024",
+      title: "Trace Doc",
+      documentReference: "ASME B31.3 2024",
+      status: "VERIFIED",
+      verifiedBy: "AUDITOR_TRACE",
+      verifiedAt: "2026-01-01T00:00:00Z",
+    });
+
+    evReg.register({
+      evidenceId: "EV_TRACE",
+      standardId: "ASME-B31.3",
+      editionId: "2024",
+      sourceDocumentId: "DOC_TRACE",
+      clauseReference: "Table A-1 §302.3",
+      sourceType: "VERIFIED_INTERNAL_REFERENCE",
+      sourceReference: "TABLE_A1_REF",
+      verificationStatus: "VERIFIED",
+      verifiedBy: "AUDITOR_TRACE",
+      verifiedAt: "2026-01-01T00:00:00Z",
+    });
+
+    dataReg.register({
+      dataId: "DATA_TRACE",
+      standardId: "ASME-B31.3",
+      editionId: "2024",
+      sourceDocumentId: "DOC_TRACE",
+      evidenceId: "EV_TRACE",
+      clauseReference: "Table A-1 §302.3",
+      dataType: "ALLOWABLE_STRESS",
+      value: 137.9,
+      unit: "MPa",
+      status: "VERIFIED",
+    });
+
+    const intRes = integrateB31_3Data(
+      { dataId: "DATA_TRACE" },
+      { dataResolver: dataRes, sourceDocResolver: docRes, evidenceResolver: evRes }
+    );
+
+    assert(intRes.dataId === "DATA_TRACE", "dataId preserved");
+    assert(intRes.standardId === "ASME-B31.3", "standardId preserved");
+    assert(intRes.editionId === "2024", "editionId preserved");
+    assert(intRes.sourceDocumentId === "DOC_TRACE", "sourceDocumentId preserved");
+    assert(intRes.evidenceId === "EV_TRACE", "evidenceId preserved");
+    assert(intRes.clauseReference === "Table A-1 §302.3", "clauseReference preserved");
+  });
+
+  const success = results.every((r) => r.startsWith("✅ AUDIT PASS"));
+
+  return {
+    success,
+    testsRun,
+    results,
+  };
+}
+
