@@ -40,6 +40,7 @@ export * from "./registry/normativeSourceDocumentRegistry";
 export * from "./registry/normativeSourceDocumentResolver";
 export * from "./data/b31_3/b31_3DataRegistry";
 export * from "./data/b31_3/b31_3DataResolver";
+export * from "./data/b31_3/b31_3Integration";
 
 export * from "./validators/pipeDimensionalValidator";
 export * from "./validators/fittingValidator";
@@ -95,3 +96,4 @@ export * from "./tests/componentCandidateRegistryTests";
 export * from "./tests/componentResolutionTests";
 export * from "./tests/normativeSourceDocumentTests";
 export * from "./tests/b31_3DataTests";
+export * from "./tests/b31_3IntegrationTests";
