@@ -31,7 +31,15 @@ import type {
   B31_3IntegrationRequest,
   B31_3IntegrationResult,
   B31_3IntegrationStatus,
+  B31_3F01ResolutionResult,
 } from "./b31_3DataTypes";
+import type {
+  NormativeStressInput,
+  NormativeQualityFactorInput,
+  NormativeWeldReductionFactorInput,
+  NormativeYCoefficientInput,
+} from "../../types/designCodeTypes";
+import type { NormativeEvidence } from "../../types/normativeEvidenceTypes";
 import type { IB31_3DataResolver } from "./b31_3DataResolver";
 import { defaultB31_3DataResolver } from "./b31_3DataResolver";
 import type { INormativeSourceDocumentResolver } from "../../registry/normativeSourceDocumentResolver";
@@ -304,6 +312,256 @@ export function resolveB31_3ToCalculationBoundary<T = unknown>(
 }
 
 /**
+ * Raccorde une donnée B31.3 vérifiée vers la frontière de calcul F01.
+ * Si la donnée n'est pas vérifiée, la valeur n'est jamais transmise comme valeur qualifiée.
+ */
+export function resolveB31_3ForF01<T = number>(
+  name: string,
+  request: B31_3IntegrationRequest,
+  options?: B31_3IntegrationOptions
+): B31_3F01ResolutionResult<T> {
+  const boundaryCheck = resolveB31_3ToCalculationBoundary<T>(
+    name,
+    request,
+    options
+  );
+
+  const integrationResult = boundaryCheck.integrationResult;
+
+  if (
+    integrationResult.status === "RESOLVED_VERIFIED" &&
+    boundaryCheck.boundaryResult.valid &&
+    integrationResult.verifiedValue
+  ) {
+    return {
+      status: "RESOLVED_VERIFIED",
+      integrationResult,
+      verifiedValue: integrationResult.verifiedValue,
+      message:
+        "B31.3 verified data successfully qualified and resolved across calculation boundary for F01.",
+    };
+  }
+
+  return {
+    status: integrationResult.status,
+    integrationResult,
+    verifiedValue: undefined,
+    message: integrationResult.message,
+  };
+}
+
+/**
+ * Prépare un NormativeStressInput pour F01 à partir d'une requête B31.3.
+ */
+export function createB31_3F01StressInput(
+  request: B31_3IntegrationRequest,
+  context: {
+    materialReference: string;
+    temperature: number;
+    unit?: string;
+  },
+  options?: B31_3IntegrationOptions
+): {
+  stressInput?: NormativeStressInput;
+  evidence?: NormativeEvidence;
+  status: B31_3IntegrationStatus;
+  message: string;
+} {
+  const resolution = resolveB31_3ForF01<number>("S", request, options);
+
+  if (resolution.status === "RESOLVED_VERIFIED" && resolution.verifiedValue) {
+    const evidenceResolver =
+      options?.evidenceResolver ?? defaultEvidenceResolver;
+    const evRes = evidenceResolver.resolveEvidence(
+      resolution.integrationResult.evidenceId!
+    );
+
+    return {
+      status: "RESOLVED_VERIFIED",
+      stressInput: Object.freeze({
+        verifiedValue: resolution.verifiedValue,
+        value: resolution.verifiedValue.value,
+        unit: context.unit ?? "MPa",
+        materialReference: context.materialReference,
+        temperature: context.temperature,
+        sourceReference: resolution.verifiedValue.sourceReference,
+        qualificationStatus: "VERIFIED" as const,
+        evidenceIds: resolution.verifiedValue.evidenceIds,
+      }),
+      evidence: evRes.evidence,
+      message:
+        "NormativeStressInput successfully qualified from B31.3 verified data.",
+    };
+  }
+
+  return {
+    status: resolution.status,
+    stressInput: undefined,
+    evidence: undefined,
+    message: resolution.message,
+  };
+}
+
+/**
+ * Prépare un NormativeQualityFactorInput pour F01 à partir d'une requête B31.3.
+ */
+export function createB31_3F01QualityFactorInput(
+  request: B31_3IntegrationRequest,
+  context?: {
+    productSpecification?: string;
+    jointType?: string;
+  },
+  options?: B31_3IntegrationOptions
+): {
+  qualityFactorInput?: NormativeQualityFactorInput;
+  evidence?: NormativeEvidence;
+  status: B31_3IntegrationStatus;
+  message: string;
+} {
+  const resolution = resolveB31_3ForF01<number>("E", request, options);
+
+  if (resolution.status === "RESOLVED_VERIFIED" && resolution.verifiedValue) {
+    const evidenceResolver =
+      options?.evidenceResolver ?? defaultEvidenceResolver;
+    const evRes = evidenceResolver.resolveEvidence(
+      resolution.integrationResult.evidenceId!
+    );
+
+    return {
+      status: "RESOLVED_VERIFIED",
+      qualityFactorInput: Object.freeze({
+        verifiedValue: resolution.verifiedValue,
+        factorValue: resolution.verifiedValue.value,
+        productSpecification:
+          context?.productSpecification ?? "B31.3-VERIFIED-SPEC",
+        jointType: context?.jointType,
+        sourceReference: resolution.verifiedValue.sourceReference,
+        qualificationStatus: "VERIFIED" as const,
+        evidenceIds: resolution.verifiedValue.evidenceIds,
+      }),
+      evidence: evRes.evidence,
+      message:
+        "NormativeQualityFactorInput successfully qualified from B31.3 verified data.",
+    };
+  }
+
+  return {
+    status: resolution.status,
+    qualityFactorInput: undefined,
+    evidence: undefined,
+    message: resolution.message,
+  };
+}
+
+/**
+ * Prépare un NormativeWeldReductionFactorInput pour F01 à partir d'une requête B31.3.
+ */
+export function createB31_3F01WeldReductionFactorInput(
+  request: B31_3IntegrationRequest,
+  context?: {
+    branchId?: string;
+    componentType?: "SEAMLESS" | "WELDED";
+    materialFamily?: "FERRITIC" | "AUSTENITIC" | "OTHER";
+    temperature?: number;
+    designTemperature?: number;
+    hasQualifiedContextGrid?: boolean;
+  },
+  options?: B31_3IntegrationOptions
+): {
+  weldReductionFactorInput?: NormativeWeldReductionFactorInput;
+  evidence?: NormativeEvidence;
+  status: B31_3IntegrationStatus;
+  message: string;
+} {
+  const resolution = resolveB31_3ForF01<number>("W", request, options);
+
+  if (resolution.status === "RESOLVED_VERIFIED" && resolution.verifiedValue) {
+    const evidenceResolver =
+      options?.evidenceResolver ?? defaultEvidenceResolver;
+    const evRes = evidenceResolver.resolveEvidence(
+      resolution.integrationResult.evidenceId!
+    );
+
+    return {
+      status: "RESOLVED_VERIFIED",
+      weldReductionFactorInput: Object.freeze({
+        verifiedValue: resolution.verifiedValue,
+        factorValue: resolution.verifiedValue.value,
+        branchId: context?.branchId ?? "W-01",
+        componentType: context?.componentType ?? "SEAMLESS",
+        materialFamily: context?.materialFamily,
+        temperature: context?.temperature,
+        designTemperature: context?.designTemperature ?? context?.temperature,
+        hasQualifiedContextGrid: context?.hasQualifiedContextGrid,
+        sourceReference: resolution.verifiedValue.sourceReference,
+        qualificationStatus: "VERIFIED" as const,
+        evidenceIds: resolution.verifiedValue.evidenceIds,
+      }),
+      evidence: evRes.evidence,
+      message:
+        "NormativeWeldReductionFactorInput successfully qualified from B31.3 verified data.",
+    };
+  }
+
+  return {
+    status: resolution.status,
+    weldReductionFactorInput: undefined,
+    evidence: undefined,
+    message: resolution.message,
+  };
+}
+
+/**
+ * Prépare un NormativeYCoefficientInput pour F01 à partir d'une requête B31.3.
+ */
+export function createB31_3F01YCoefficientInput(
+  request: B31_3IntegrationRequest,
+  context?: {
+    materialFamily?: string;
+    temperature?: number;
+  },
+  options?: B31_3IntegrationOptions
+): {
+  yCoefficientInput?: NormativeYCoefficientInput;
+  evidence?: NormativeEvidence;
+  status: B31_3IntegrationStatus;
+  message: string;
+} {
+  const resolution = resolveB31_3ForF01<number>("Y", request, options);
+
+  if (resolution.status === "RESOLVED_VERIFIED" && resolution.verifiedValue) {
+    const evidenceResolver =
+      options?.evidenceResolver ?? defaultEvidenceResolver;
+    const evRes = evidenceResolver.resolveEvidence(
+      resolution.integrationResult.evidenceId!
+    );
+
+    return {
+      status: "RESOLVED_VERIFIED",
+      yCoefficientInput: Object.freeze({
+        verifiedValue: resolution.verifiedValue,
+        factorValue: resolution.verifiedValue.value,
+        materialFamily: context?.materialFamily ?? "FERRITIC",
+        temperature: context?.temperature ?? 100,
+        sourceReference: resolution.verifiedValue.sourceReference,
+        qualificationStatus: "VERIFIED" as const,
+        evidenceIds: resolution.verifiedValue.evidenceIds,
+      }),
+      evidence: evRes.evidence,
+      message:
+        "NormativeYCoefficientInput successfully qualified from B31.3 verified data.",
+    };
+  }
+
+  return {
+    status: resolution.status,
+    yCoefficientInput: undefined,
+    evidence: undefined,
+    message: resolution.message,
+  };
+}
+
+/**
  * Classe de service d'intégration B31.3.
  */
 export class B31_3Integration {
@@ -342,6 +600,78 @@ export class B31_3Integration {
     request: B31_3IntegrationRequest
   ): B31_3CalculationBoundaryIntegrationResult<T> {
     return resolveB31_3ToCalculationBoundary<T>(name, request, {
+      dataResolver: this.dataResolver,
+      sourceDocResolver: this.sourceDocResolver,
+      evidenceResolver: this.evidenceResolver,
+    });
+  }
+
+  public resolveForF01<T = number>(
+    name: string,
+    request: B31_3IntegrationRequest
+  ): B31_3F01ResolutionResult<T> {
+    return resolveB31_3ForF01<T>(name, request, {
+      dataResolver: this.dataResolver,
+      sourceDocResolver: this.sourceDocResolver,
+      evidenceResolver: this.evidenceResolver,
+    });
+  }
+
+  public createF01StressInput(
+    request: B31_3IntegrationRequest,
+    context: {
+      materialReference: string;
+      temperature: number;
+      unit?: string;
+    }
+  ) {
+    return createB31_3F01StressInput(request, context, {
+      dataResolver: this.dataResolver,
+      sourceDocResolver: this.sourceDocResolver,
+      evidenceResolver: this.evidenceResolver,
+    });
+  }
+
+  public createF01QualityFactorInput(
+    request: B31_3IntegrationRequest,
+    context?: {
+      productSpecification?: string;
+      jointType?: string;
+    }
+  ) {
+    return createB31_3F01QualityFactorInput(request, context, {
+      dataResolver: this.dataResolver,
+      sourceDocResolver: this.sourceDocResolver,
+      evidenceResolver: this.evidenceResolver,
+    });
+  }
+
+  public createF01WeldReductionFactorInput(
+    request: B31_3IntegrationRequest,
+    context?: {
+      branchId?: string;
+      componentType?: "SEAMLESS" | "WELDED";
+      materialFamily?: "FERRITIC" | "AUSTENITIC" | "OTHER";
+      temperature?: number;
+      designTemperature?: number;
+      hasQualifiedContextGrid?: boolean;
+    }
+  ) {
+    return createB31_3F01WeldReductionFactorInput(request, context, {
+      dataResolver: this.dataResolver,
+      sourceDocResolver: this.sourceDocResolver,
+      evidenceResolver: this.evidenceResolver,
+    });
+  }
+
+  public createF01YCoefficientInput(
+    request: B31_3IntegrationRequest,
+    context?: {
+      materialFamily?: string;
+      temperature?: number;
+    }
+  ) {
+    return createB31_3F01YCoefficientInput(request, context, {
       dataResolver: this.dataResolver,
       sourceDocResolver: this.sourceDocResolver,
       evidenceResolver: this.evidenceResolver,

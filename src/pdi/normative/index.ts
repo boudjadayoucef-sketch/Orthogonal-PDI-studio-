@@ -97,3 +97,4 @@ export * from "./tests/componentResolutionTests";
 export * from "./tests/normativeSourceDocumentTests";
 export * from "./tests/b31_3DataTests";
 export * from "./tests/b31_3IntegrationTests";
+export * from "./tests/b31_3F01IntegrationTests";

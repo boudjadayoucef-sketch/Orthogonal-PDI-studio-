@@ -46,3 +46,14 @@ export interface B31_3IntegrationResult<T = unknown> {
   readonly verifiedValue?: NormativeVerifiedValue<T>;
   readonly message: string;
 }
+
+/**
+ * Résultat de raccordement d'une donnée B31.3 vers le moteur de calcul F01.
+ */
+export interface B31_3F01ResolutionResult<T = number> {
+  readonly status: B31_3IntegrationStatus;
+  readonly integrationResult: B31_3IntegrationResult<T>;
+  readonly verifiedValue?: NormativeVerifiedValue<T>;
+  readonly message: string;
+}
+
