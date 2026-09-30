@@ -196,9 +196,14 @@ export function compileSketchToIsoModel(params: {
 
       // New connected component found
       // Local origin of this component is initialized with its screen-space offset in meters
-      const compOffsetX = Number(((rootNode.x - minX) / pxPerMeter).toFixed(3));
-      const compOffsetY = Number(((rootNode.y - minY) / pxPerMeter).toFixed(3));
-      const compOffsetZ = Number(((rootNode.elevation || 0) / 1000).toFixed(3));
+      const C30 = Math.cos(Math.PI / 6);
+      const S30 = 0.5; // sin(30°)
+      const rootZ = Number(((rootNode.elevation || 0) / 1000).toFixed(3));
+      const sxM = (rootNode.x - minX) / pxPerMeter;
+      const syUpM = -(rootNode.y - minY) / pxPerMeter; // y écran vers le bas -> vers le haut
+      const compOffsetX = Number((0.5 * (sxM / C30 + (syUpM - rootZ) / S30)).toFixed(3));
+      const compOffsetY = Number((0.5 * (sxM / C30 - (syUpM - rootZ) / S30)).toFixed(3));
+      const compOffsetZ = rootZ;
 
       visitedNodes.add(rootNode.id);
       nodeCoords3D.set(rootNode.id, {

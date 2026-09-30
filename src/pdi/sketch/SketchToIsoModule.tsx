@@ -52,6 +52,7 @@ export const SketchToIsoModule: React.FC<SketchToIsoModuleProps> = ({
 
   // Tools
   const [activeTool, setActiveTool] = useState<"select" | "pipe" | "fitting" | "calibrate" | "erase" | "pan">("pipe");
+  const [axisCursorEnabled, setAxisCursorEnabled] = useState<boolean>(false);
   const [selectedFittingType, setSelectedFittingType] = useState<SketchVectorFitting["type"]>("valve");
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(true);
   const [recenterTrigger, setRecenterTrigger] = useState<number>(0);
@@ -415,6 +416,7 @@ export const SketchToIsoModule: React.FC<SketchToIsoModuleProps> = ({
             selectedFittingType={selectedFittingType}
             recenterTrigger={recenterTrigger}
             isDetectingAI={isDetectingAI}
+            axisCursorEnabled={axisCursorEnabled}
             axisMapping={axisMapping}
             onAxisMappingChange={setAxisMapping}
             onNodesChange={setNodes}
@@ -660,6 +662,31 @@ export const SketchToIsoModule: React.FC<SketchToIsoModuleProps> = ({
                       <span>{t.label}</span>
                     </button>
                   ))}
+
+                  {/* Bouton bascule Curseur Trièdre (SKETCH-DETECT-08 / PARTIE 2) */}
+                  <button
+                    type="button"
+                    onClick={() => setAxisCursorEnabled((prev) => !prev)}
+                    title={axisCursorEnabled ? "Désactiver le curseur trièdre pendant le déplacement" : "Activer le curseur trièdre pendant le déplacement"}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 5,
+                      padding: "7px 6px",
+                      borderRadius: 6,
+                      border: axisCursorEnabled ? "1px solid #F59E0B" : "1px solid #1E293B",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      background: axisCursorEnabled ? "#B45309" : "#0F172A",
+                      color: axisCursorEnabled ? "#FFFFFF" : "#CBD5E1",
+                      transition: "all 0.15s ease"
+                    }}
+                  >
+                    <span>✥</span>
+                    <span>Trièdre {axisCursorEnabled ? "ON" : "OFF"}</span>
+                  </button>
 
                   {/* Bouton Recentrer Scan / Image */}
                   <button

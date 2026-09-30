@@ -16,6 +16,7 @@ import {
 } from "./sketchRasterEngine";
 import { SketchAxisTriad } from "./SketchAxisTriad";
 import { AxisMappingConfig, DEFAULT_AXIS_MAPPING } from "./openCvSketchDetector";
+import { AxisCursorOverlay } from "../shared/AxisCursorOverlay";
 
 export interface SketchCanvasOverlayProps {
   imageBlob?: Blob | null;
@@ -36,6 +37,7 @@ export interface SketchCanvasOverlayProps {
   selectedFittingType: SketchVectorFitting["type"];
   recenterTrigger?: number;
   isDetectingAI?: boolean;
+  axisCursorEnabled?: boolean;
   axisMapping?: AxisMappingConfig;
   onAxisMappingChange?: (mapping: AxisMappingConfig) => void;
   onNodesChange: (nodes: SketchVectorNode[]) => void;
@@ -68,6 +70,7 @@ export const SketchCanvasOverlay: React.FC<SketchCanvasOverlayProps> = ({
   selectedFittingType,
   recenterTrigger,
   isDetectingAI = false,
+  axisCursorEnabled = false,
   axisMapping = DEFAULT_AXIS_MAPPING,
   onAxisMappingChange,
   onNodesChange,
@@ -1090,6 +1093,11 @@ export const SketchCanvasOverlay: React.FC<SketchCanvasOverlayProps> = ({
             pointerEvents: "none"
           }}
         />
+
+        {/* Curseur Trièdre pendant le déplacement d'un élément (SKETCH-DETECT-08 / PARTIE 2) */}
+        {axisCursorEnabled && isDraggingNode && mousePos && (
+          <AxisCursorOverlay x={mousePos.x} y={mousePos.y} />
+        )}
       </div>
 
       {/* Indicateur d'analyse locale en cours (0 API, 0 IA) */}

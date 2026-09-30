@@ -306,7 +306,8 @@ async function extractDimensionsWithOcr(
  */
 export function mergeCollinearSegments(
   nodes: SketchVectorNode[],
-  segs: SketchVectorSegment[]
+  segs: SketchVectorSegment[],
+  calibrationScale?: number
 ): { nodes: SketchVectorNode[]; segs: SketchVectorSegment[] } {
   let merged = true;
   let workingNodes = [...nodes];
@@ -334,12 +335,23 @@ export function mergeCollinearSegments(
       // Éviter de fusionner si cela créerait une boucle sur lui-même
       if (otherAId === otherBId) continue;
 
+      const nA = workingNodes.find((n) => n.id === otherAId);
+      const nB = workingNodes.find((n) => n.id === otherBId);
+      if (!nA || !nB) continue;
+
+      const v1x = node.x - nA.x, v1y = node.y - nA.y;
+      const v2x = nB.x - node.x, v2y = nB.y - node.y;
+      if (v1x * v2x + v1y * v2y <= 0) continue;
+
+      const mergedSnap = snapToIsometricAngle({ x: nA.x, y: nA.y }, { x: nB.x, y: nB.y }, 25);
       const mergedSeg: SketchVectorSegment = {
         ...segA,
         id: segA.id,
         fromNodeId: otherAId,
         toNodeId: otherBId,
-        lengthMm: (segA.lengthMm || 0) + (segB.lengthMm || 0),
+        angleIsoDeg: mergedSnap.angleDeg,
+        detectedAxis: isoAngleToAxis(mergedSnap.angleDeg).axis,
+        lengthMm: Math.round(Math.hypot(nB.x - nA.x, nB.y - nA.y) / (calibrationScale || 0.25)),
       };
 
       workingSegs = workingSegs
@@ -353,6 +365,163 @@ export function mergeCollinearSegments(
   }
 
   return { nodes: workingNodes, segs: workingSegs };
+}
+
+/**
+ * Pontage des composantes connexes disjointes proches et alignées (SKETCH-DETECT-08).
+ * Détecte les extrémités libres (degré 1) séparées par un faible intervalle dans le
+ * prolongement approximatif de leur direction, et insère un segment pont.
+ */
+export function bridgeNearbyEndpoints(
+  nodes: SketchVectorNode[],
+  segs: SketchVectorSegment[],
+  maxGapPx: number = 90,
+  maxAngleDeviationDeg: number = 15,
+  calibrationScale?: number
+): { nodes: SketchVectorNode[]; segs: SketchVectorSegment[] } {
+  // 1. Calculer le degré de chaque nœud.
+  const nodeDegrees = new Map<string, number>();
+  for (const node of nodes) {
+    nodeDegrees.set(node.id, 0);
+  }
+  for (const seg of segs) {
+    nodeDegrees.set(seg.fromNodeId, (nodeDegrees.get(seg.fromNodeId) || 0) + 1);
+    nodeDegrees.set(seg.toNodeId, (nodeDegrees.get(seg.toNodeId) || 0) + 1);
+  }
+
+  // 2. Pour chaque nœud de degré 1, déterminer la direction de son unique segment (voisin -> extrémité).
+  interface EndpointInfo {
+    node: SketchVectorNode;
+    neighbor: SketchVectorNode;
+    seg: SketchVectorSegment;
+    dirAngleRad: number;
+  }
+  const endpoints: EndpointInfo[] = [];
+
+  for (const node of nodes) {
+    if (nodeDegrees.get(node.id) === 1) {
+      const touchingSeg = segs.find(
+        (s) => s.fromNodeId === node.id || s.toNodeId === node.id
+      );
+      if (!touchingSeg) continue;
+
+      const neighborId =
+        touchingSeg.fromNodeId === node.id
+          ? touchingSeg.toNodeId
+          : touchingSeg.fromNodeId;
+      const neighborNode = nodes.find((n) => n.id === neighborId);
+      if (!neighborNode) continue;
+
+      const vx = node.x - neighborNode.x;
+      const vy = node.y - neighborNode.y;
+      const dirAngleRad = Math.atan2(vy, vx);
+
+      endpoints.push({
+        node,
+        neighbor: neighborNode,
+        seg: touchingSeg,
+        dirAngleRad,
+      });
+    }
+  }
+
+  // Union-Find pour suivre les composantes connexes
+  const parent = new Map<string, string>();
+  for (const node of nodes) {
+    parent.set(node.id, node.id);
+  }
+  const findRoot = (id: string): string => {
+    const p = parent.get(id);
+    if (!p || p === id) return id;
+    const root = findRoot(p);
+    parent.set(id, root);
+    return root;
+  };
+  const unionSets = (id1: string, id2: string): boolean => {
+    const r1 = findRoot(id1);
+    const r2 = findRoot(id2);
+    if (r1 !== r2) {
+      parent.set(r1, r2);
+      return true;
+    }
+    return false;
+  };
+
+  // Initialiser les composantes avec les segments actuels
+  for (const seg of segs) {
+    unionSets(seg.fromNodeId, seg.toNodeId);
+  }
+
+  // 3. Chercher les nœuds candidats à une distance <= maxGapPx et dans le prolongement approximatif
+  interface CandidateBridge {
+    ep: EndpointInfo;
+    candNode: SketchVectorNode;
+    dist: number;
+    snapAngleDeg: number;
+  }
+  const candidateBridges: CandidateBridge[] = [];
+
+  for (const ep of endpoints) {
+    for (const candNode of nodes) {
+      if (candNode.id === ep.node.id || candNode.id === ep.neighbor.id) continue;
+
+      const dx = candNode.x - ep.node.x;
+      const dy = candNode.y - ep.node.y;
+      const dist = Math.hypot(dx, dy);
+
+      if (dist > 0 && dist <= maxGapPx) {
+        const candAngleRad = Math.atan2(dy, dx);
+        let diffDeg = Math.abs(((candAngleRad - ep.dirAngleRad) * 180) / Math.PI);
+        while (diffDeg > 180) diffDeg = Math.abs(diffDeg - 360);
+
+        if (diffDeg <= maxAngleDeviationDeg) {
+          const snap = snapToIsometricAngle(
+            { x: ep.node.x, y: ep.node.y },
+            { x: candNode.x, y: candNode.y },
+            25
+          );
+          candidateBridges.push({
+            ep,
+            candNode,
+            dist,
+            snapAngleDeg: snap.angleDeg,
+          });
+        }
+      }
+    }
+  }
+
+  // 4. Trier les candidats par distance croissante.
+  candidateBridges.sort((a, b) => a.dist - b.dist);
+
+  // 5. Pour chaque candidat, si les deux nœuds n'appartiennent pas déjà à la même composante connexe, créer un segment "pont"
+  const workingSegs = [...segs];
+  let bridgeIdx = 1;
+
+  for (const cb of candidateBridges) {
+    if (findRoot(cb.ep.node.id) !== findRoot(cb.candNode.id)) {
+      unionSets(cb.ep.node.id, cb.candNode.id);
+
+      const lengthMm = Math.round(cb.dist / (calibrationScale || 0.25));
+      const bridgeSeg: SketchVectorSegment = {
+        id: `bridge_${cb.ep.node.id}_${cb.candNode.id}_${bridgeIdx++}`,
+        fromNodeId: cb.ep.node.id,
+        toNodeId: cb.candNode.id,
+        angleIsoDeg: cb.snapAngleDeg,
+        detectedAxis: isoAngleToAxis(cb.snapAngleDeg).axis,
+        lengthMm: lengthMm > 0 ? lengthMm : 100,
+        nominalDiameter: cb.ep.seg.nominalDiameter || 100,
+        pressureClass: cb.ep.seg.pressureClass || "Class 150",
+        material: cb.ep.seg.material || "Acier au carbone",
+      };
+
+      workingSegs.push(bridgeSeg);
+    }
+  }
+
+  // 6. Ré-appeler mergeCollinearSegments sur le résultat pour fusionner les ponts avec leurs voisins de même axe si pertinent.
+  // 7. Retourner { nodes, segs }.
+  return mergeCollinearSegments(nodes, workingSegs, calibrationScale);
 }
 
 /**
@@ -675,9 +844,19 @@ export async function detectSketchTopologyOpenCv(
         // =========================================================================
         // PARTIE 3.5 — FUSION DES SEGMENTS COLINÉAIRES (PATCH SKETCH-DETECT-04)
         // =========================================================================
-        const { nodes: fusedNodes, segs: fusedSegs } = mergeCollinearSegments(
+        const { nodes: colNodes, segs: colSegs } = mergeCollinearSegments(
           detectedNodes,
           detectedSegs
+        );
+
+        // =========================================================================
+        // PARTIE 3.6 — PONTAGE DES COMPOSANTES DISJOINTES PROCHES ET ALIGNÉES (SKETCH-DETECT-08)
+        // =========================================================================
+        const { nodes: fusedNodes, segs: fusedSegs } = bridgeNearbyEndpoints(
+          colNodes,
+          colSegs,
+          90,
+          15
         );
 
         // =========================================================================

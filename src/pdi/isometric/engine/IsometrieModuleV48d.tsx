@@ -148,6 +148,7 @@ import {
   pdiValidateTag,
 } from "./pdiTagging";
 import type { PdiProjectSetup } from "./pdiTagging";
+import { AxisCursorOverlay } from "../../shared/AxisCursorOverlay";
 // PATCH 017K2
 import { pdiAlert } from "../../ui/PdiNotice";
 import { PdiUniversalPropertyInspector } from "../ui/PdiUniversalPropertyInspector";
@@ -2483,6 +2484,10 @@ function IsometrieModule(props: { projectId?: string }) {
   } | null>(null);
   const dragChangedRef=useRef(false);
   const lastEquipmentDropRef=useRef<{key:string;at:number}|null>(null);
+
+  // State curseur trièdre pendant le déplacement (SKETCH-DETECT-08 / PARTIE 2)
+  const [axisCursorEnabled, setAxisCursorEnabled] = useState<boolean>(false);
+  const [dragCursorPos, setDragCursorPos] = useState<{ x: number; y: number } | null>(null);
 
   const [contextMenu, setContextMenu] = useState<{
     x: number;
@@ -6700,6 +6705,9 @@ function IsometrieModule(props: { projectId?: string }) {
           return;
         }
         ds.isDragging = true;
+        if (axisCursorEnabled) {
+          setDragCursorPos({ x: sx, y: sy });
+        }
 
         const now=screenToIsoWorld(e, nodeZ || 0);
         const dx=now.x-ds.start.x,dy=now.y-ds.start.y,dz=now.z-ds.start.z;
@@ -6734,6 +6742,9 @@ function IsometrieModule(props: { projectId?: string }) {
       return;
     }
     if(dragFittingInfo && interactionMode==="select"){
+      if (axisCursorEnabled) {
+        setDragCursorPos({ x: sx, y: sy });
+      }
       const hit=findSegmentAtScreen(sx,sy);
       if(hit&&hit.id===dragFittingInfo.segmentId){
         if(!gestureDirtyRef.current){
@@ -6840,6 +6851,7 @@ function IsometrieModule(props: { projectId?: string }) {
     setDragNodeId(null);
     setDragFittingInfo(null);
     setBranchDrawing(null);
+    setDragCursorPos(null);
   };
 
   const addNode=()=>{
@@ -8536,6 +8548,7 @@ function IsometrieModule(props: { projectId?: string }) {
       items: [
         { label: "Sélection (Boîte / Clic)", hint: "V", run: () => { setInteractionMode("select"); setIsoDrawMode("select"); } },
         { label: "Main / Pan", hint: "H / Espace", run: () => setInteractionMode("main") },
+        { label: axisCursorEnabled ? "Curseur Trièdre (Actif)" : "Curseur Trièdre (Inactif)", hint: "TRIÈDRE", run: () => setAxisCursorEnabled((v) => !v) },
         { label: "Nœud / Point", hint: "N", run: () => { setInteractionMode("select"); setIsoDrawMode("node"); } },
         { label: "Tube / Tronçon", hint: "T", run: () => { setInteractionMode("select"); setIsoDrawMode("segment"); } },
         { label: "Té de dérivation", hint: "E", run: () => { setInteractionMode("select"); setIsoDrawMode("te"); } },
@@ -9195,6 +9208,15 @@ function IsometrieModule(props: { projectId?: string }) {
             >
               <Hand className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
               {!railCollapsed && <span className="truncate">Main</span>}
+            </button>
+            <button
+              type="button"
+              title={axisCursorEnabled ? "Désactiver le curseur trièdre pendant le déplacement" : "Activer le curseur trièdre pendant le déplacement"}
+              onClick={() => setAxisCursorEnabled((v) => !v)}
+              className={`pdi-rail-tool-btn ${railCollapsed ? "justify-center p-1" : ""} ${axisCursorEnabled ? "active" : ""}`}
+            >
+              <Move className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              {!railCollapsed && <span className="truncate">Trièdre {axisCursorEnabled ? "ON" : "OFF"}</span>}
             </button>
             <button
               type="button"
@@ -11893,6 +11915,11 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                   </g>
                 );
               })()}
+
+              {/* Curseur Trièdre pendant le déplacement d'un élément (SKETCH-DETECT-08 / PARTIE 2) */}
+              {axisCursorEnabled && dragCursorPos && (dragNodeId || dragFittingInfo) && (
+                <AxisCursorOverlay x={dragCursorPos.x} y={dragCursorPos.y} inSvg={true} />
+              )}
             </svg>
 
             {/* Interactive CAD Context Menu & Floating PROPS */}
