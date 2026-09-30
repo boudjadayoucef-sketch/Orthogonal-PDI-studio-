@@ -437,14 +437,56 @@ export function runNormativeComponentCompatibilityTests(): {
   });
   assert("TEST 28 — Aucun fuzzy matching : correspondance approchée retourne UNVERIFIED", resPartial.status === "UNVERIFIED");
 
-  // TEST 29 : Token heuristique interdit rejeté dans componentId
-  const resHeuristic = adapter.resolveCompatibility({
+  // TEST 29A : TEST A — Identifiant avec pattern apparent "PIPE_MAT_CS_A106" est structurellement valide
+  const valTestA = validateNormativeComponentReference({
+    componentType: "PIPE",
+    componentId: "PIPE_MAT_CS_A106",
+  });
+  assert("TEST 29A — PIPE_MAT_CS_A106 est structurellement valide (aucun blocage heuristique)", valTestA.valid && valTestA.errors.length === 0);
+
+  // TEST 29B : TEST B — Identifiant avec pattern apparent "VALVE_CRMO_TEST" est structurellement valide
+  const valTestB = validateNormativeComponentReference({
+    componentType: "VALVE",
+    componentId: "VALVE_CRMO_TEST",
+  });
+  assert("TEST 29B — VALVE_CRMO_TEST est structurellement valide (aucun blocage heuristique)", valTestB.valid && valTestB.errors.length === 0);
+
+  // TEST 29C : TEST C — Identifiant avec pattern apparent "ASME_B16_5_TEST" est structurellement valide
+  const valTestC = validateNormativeComponentReference({
+    componentType: "FLANGE",
+    componentId: "ASME_B16_5_TEST",
+  });
+  assert("TEST 29C — ASME_B16_5_TEST est structurellement valide (aucun blocage heuristique)", valTestC.valid && valTestC.errors.length === 0);
+
+  // TEST 29D : TEST D — Le validator répond uniquement à la validité structurelle et ne confère aucun statut
+  const valQueryA = validateNormativeComponentCompatibilityQuery({
     left: { componentType: "PIPE", componentId: "PIPE_MAT_CS_A106" },
     right: { componentType: "FITTING", componentId: "SYNTHETIC_FITTING_001" },
   });
+  const valResultKeys = Object.keys(valTestA);
+  const queryResultKeys = Object.keys(valQueryA);
+  const validatorHasNoStatus =
+    !("status" in valTestA) &&
+    !("status" in valQueryA) &&
+    valQueryA.valid === true;
   assert(
-    "TEST 29 — Token heuristique interdit dans componentId retourne INVALID",
-    resHeuristic.status === "INVALID"
+    "TEST 29D — Le validator répond uniquement par validité structurelle (sans statut COMPATIBLE/INCOMPATIBLE/VERIFIED/QUALIFIED)",
+    validatorHasNoStatus && valTestA.valid && valTestB.valid && valTestC.valid
+  );
+
+  // TEST 29E : Principe architectural — componentId = identification uniquement ≠ qualification normative
+  const resTestE = adapter.resolveCompatibility({
+    left: { componentType: "VALVE", componentId: "VALVE_CRMO_TEST" },
+    right: { componentType: "FLANGE", componentId: "ASME_B16_5_TEST" },
+  });
+  const notAutoPromoted =
+    (resTestE.status as string) !== "COMPATIBLE" &&
+    (resTestE.status as string) !== "INCOMPATIBLE" &&
+    (resTestE.status as string) !== "VERIFIED" &&
+    (resTestE.status as string) !== "QUALIFIED";
+  assert(
+    "TEST 29E — Principe architectural : componentId = identification pure, pas de qualification (statut reste UNVERIFIED)",
+    resTestE.status === "UNVERIFIED" && notAutoPromoted && resTestE.evidenceIds.length === 0
   );
 
   // TEST 30 : Injection obligatoire du moteur NORM-14-01 dans le constructeur

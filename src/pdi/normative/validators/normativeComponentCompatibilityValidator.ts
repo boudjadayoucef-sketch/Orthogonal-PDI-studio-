@@ -16,7 +16,6 @@ import type {
   NormativeComponentReference,
   NormativeComponentType,
 } from "../types/normativeComponentCompatibilityTypes";
-import { isDisallowedTokenHeuristic } from "./normativeEvidenceValidator";
 import { isRecordObject } from "./pipeDimensionalValidator";
 
 export type ComponentCompatibilityValidationErrorCode =
@@ -29,8 +28,7 @@ export type ComponentCompatibilityValidationErrorCode =
   | "INVALID_COMPONENT_TYPE"
   | "MISSING_COMPONENT_ID"
   | "EMPTY_COMPONENT_ID"
-  | "INVALID_COMPONENT_ID_TYPE"
-  | "DISALLOWED_TOKEN_HEURISTIC";
+  | "INVALID_COMPONENT_ID_TYPE";
 
 export interface ComponentCompatibilityValidationError {
   readonly code: ComponentCompatibilityValidationErrorCode;
@@ -108,12 +106,6 @@ export function validateNormativeComponentReference(
         code: "EMPTY_COMPONENT_ID",
         field: `${fieldName}.componentId`,
         message: `Field '${fieldName}.componentId' cannot be empty or whitespace.`,
-      });
-    } else if (isDisallowedTokenHeuristic(trimmed)) {
-      errors.push({
-        code: "DISALLOWED_TOKEN_HEURISTIC",
-        field: `${fieldName}.componentId`,
-        message: `Field '${fieldName}.componentId' contains disallowed heuristic token: '${trimmed}'.`,
       });
     }
   }
