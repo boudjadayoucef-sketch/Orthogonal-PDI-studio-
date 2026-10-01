@@ -15,6 +15,7 @@
  * 7. Préservation absolue de la traçabilité : union, déduplication, tri et gel des matchedRuleIds, evidenceIds et conflictCodes.
  * 8. Consolidation des statuts : INVALID > INCOMPATIBLE > UNVERIFIED > COMPATIBLE.
  * 9. Aucune promotion d'évidence, aucun fuzzy matching, aucun ranking.
+ * 10. Injection explicite obligatoire (IComponentResolutionEngine, INormativeSpecCompatibilityIntegrationEngine).
  */
 
 import type {
@@ -36,54 +37,25 @@ import { validateNormativeComponentIntegrationQuery } from "../validators/normat
 export class NormativeComponentIntegrationEngine
   implements INormativeComponentIntegrationEngine
 {
-  private readonly specCompatibilityEngine: INormativeSpecCompatibilityIntegrationEngine;
-  private readonly componentEngine?: IComponentResolutionEngine;
-
   constructor(
-    dep1: INormativeSpecCompatibilityIntegrationEngine | IComponentResolutionEngine,
-    dep2?: INormativeSpecCompatibilityIntegrationEngine | IComponentResolutionEngine
+    private readonly componentEngine: IComponentResolutionEngine,
+    private readonly specCompatibilityEngine: INormativeSpecCompatibilityIntegrationEngine
   ) {
-    if (!dep1) {
+    if (
+      !componentEngine ||
+      typeof componentEngine.resolve !== "function"
+    ) {
       throw new Error(
-        "COMPONENT_INTEGRATION_ENGINE_ERROR: Dependencies must be provided by injection."
+        "NORM-14-09 requires a valid IComponentResolutionEngine."
       );
     }
 
-    if (dep2) {
-      if (
-        (dep1 as any).candidateResolver ||
-        (dep1 as any).resolveBySpecification ||
-        dep1.constructor.name.includes("Component") ||
-        dep2.constructor.name.includes("Spec") ||
-        (dep2 as any).multiCompatibilityEngine
-      ) {
-        this.componentEngine = dep1 as IComponentResolutionEngine;
-        this.specCompatibilityEngine = dep2 as INormativeSpecCompatibilityIntegrationEngine;
-      } else if (
-        (dep2 as any).candidateResolver ||
-        (dep2 as any).resolveBySpecification ||
-        dep2.constructor.name.includes("Component") ||
-        dep1.constructor.name.includes("Spec") ||
-        (dep1 as any).multiCompatibilityEngine
-      ) {
-        this.specCompatibilityEngine = dep1 as INormativeSpecCompatibilityIntegrationEngine;
-        this.componentEngine = dep2 as IComponentResolutionEngine;
-      } else {
-        // Ordre par défaut Section 6 : (componentEngine, specCompatibilityEngine)
-        this.componentEngine = dep1 as IComponentResolutionEngine;
-        this.specCompatibilityEngine = dep2 as INormativeSpecCompatibilityIntegrationEngine;
-      }
-    } else {
-      this.specCompatibilityEngine = dep1 as INormativeSpecCompatibilityIntegrationEngine;
-      this.componentEngine = undefined;
-    }
-
     if (
-      !this.specCompatibilityEngine ||
-      typeof this.specCompatibilityEngine.resolve !== "function"
+      !specCompatibilityEngine ||
+      typeof specCompatibilityEngine.resolve !== "function"
     ) {
       throw new Error(
-        "COMPONENT_INTEGRATION_ENGINE_ERROR: A valid INormativeSpecCompatibilityIntegrationEngine instance must be injected."
+        "NORM-14-09 requires a valid INormativeSpecCompatibilityIntegrationEngine."
       );
     }
   }
@@ -157,59 +129,42 @@ export class NormativeComponentIntegrationEngine
       });
     }
 
-    // 2. Résolution du composant (COMPONENT-01..05)
-    let compRes: ComponentResolutionResult;
-    if (query.componentResolution) {
-      compRes = query.componentResolution;
-    } else if (this.componentEngine) {
-      compRes = this.componentEngine.resolve({
-        specificationId: query.componentContext.specificationId,
-        context: query.componentContext,
-      });
-    } else {
-      compRes = Object.freeze({
-        status: "RESOLVED" as const,
-        specificationId: query.componentContext.specificationId,
-        componentType: query.componentContext.componentType,
-        evaluatedCandidateIds: Object.freeze([]),
-        eligibleCandidateIds: Object.freeze([]),
-        unverifiedCandidateIds: Object.freeze([]),
-        invalidCandidateIds: Object.freeze([]),
-        matchedRuleIds: Object.freeze([]),
-        compatibilityRuleIds: Object.freeze([]),
-        evidenceIds: Object.freeze([]),
-        message: "Component context accepted.",
-      });
-    }
+    // 2. Résolution du composant (COMPONENT-01..05) via le moteur injecté
+    const componentResolution = this.componentEngine.resolve({
+      specificationId: query.componentContext.specificationId,
+      context: query.componentContext,
+    });
 
-    // 3. Délégation exclusive à NORM-14-08 (Spec ↔ Compatibility)
-    const specCompatResult = this.specCompatibilityEngine.resolve({
+    // 3. Résolution SPEC ↔ Compatibilité (NORM-14-08) via le moteur injecté
+    const specCompatibilityResult = this.specCompatibilityEngine.resolve({
       specResolution: query.specResolution,
       compatibilityQuery: query.compatibilityQuery,
     });
 
-    // 4. Consolidation des statuts : INVALID > INCOMPATIBLE > UNVERIFIED > COMPATIBLE
+    // 4. Mapping et consolidation des statuts
     let normCompStatus: NormativeComponentIntegrationStatus;
-    if (compRes.status === "INVALID") {
-      normCompStatus = "INVALID";
-    } else if (
-      compRes.status === "NO_CANDIDATE" ||
-      compRes.status === "INCOMPATIBLE" ||
-      compRes.status === ("INELIGIBLE" as any)
-    ) {
-      normCompStatus = "INCOMPATIBLE";
-    } else if (
-      compRes.status === "UNVERIFIED" ||
-      compRes.status === "AMBIGUOUS"
-    ) {
-      normCompStatus = "UNVERIFIED";
-    } else {
-      normCompStatus = "COMPATIBLE";
+    switch (componentResolution.status) {
+      case "INVALID":
+        normCompStatus = "INVALID";
+        break;
+      case "NO_CANDIDATE":
+        normCompStatus = "INCOMPATIBLE";
+        break;
+      case "UNVERIFIED":
+      case "AMBIGUOUS":
+        normCompStatus = "UNVERIFIED";
+        break;
+      case "RESOLVED":
+        normCompStatus = "COMPATIBLE";
+        break;
+      default:
+        normCompStatus = "INVALID";
+        break;
     }
 
-    const specCompatStatus = specCompatResult.status;
+    const specCompatStatus = specCompatibilityResult.status;
 
-    let finalStatus: NormativeComponentIntegrationStatus = "COMPATIBLE";
+    let finalStatus: NormativeComponentIntegrationStatus;
     if (normCompStatus === "INVALID" || specCompatStatus === "INVALID") {
       finalStatus = "INVALID";
     } else if (
@@ -228,21 +183,21 @@ export class NormativeComponentIntegrationEngine
 
     // 5. Traçabilité globale intégrée : union, déduplication, tri et gel
     const allRuleIds: string[] = [
-      ...(compRes.matchedRuleIds || []),
-      ...(compRes.compatibilityRuleIds || []),
-      ...(specCompatResult.matchedRuleIds || []),
+      ...(componentResolution.matchedRuleIds || []),
+      ...(componentResolution.compatibilityRuleIds || []),
+      ...(specCompatibilityResult.matchedRuleIds || []),
     ];
 
     const allEvidenceIds: string[] = [
-      ...(compRes.evidenceIds || []),
-      ...(specCompatResult.evidenceIds || []),
+      ...(componentResolution.evidenceIds || []),
+      ...(specCompatibilityResult.evidenceIds || []),
     ];
 
     const allConflictCodes: string[] = [
-      ...(specCompatResult.conflictCodes || []),
+      ...(specCompatibilityResult.conflictCodes || []),
     ];
 
-    if (normCompStatus === "INCOMPATIBLE" && compRes.status === "NO_CANDIDATE") {
+    if (componentResolution.status === "NO_CANDIDATE") {
       allConflictCodes.push("COMPONENT_NO_CANDIDATE");
     }
 
@@ -256,12 +211,12 @@ export class NormativeComponentIntegrationEngine
       Array.from(new Set(allConflictCodes)).sort()
     );
 
-    const message = `Component resolution '${compRes.status}' integrated with Spec/Compatibility '${specCompatStatus}' -> Consolidated status '${finalStatus}'.`;
+    const message = `Component resolution '${componentResolution.status}' integrated with Spec/Compatibility '${specCompatStatus}' -> Consolidated status '${finalStatus}'.`;
 
     return Object.freeze({
       status: finalStatus,
-      componentResolution: Object.freeze({ ...compRes }),
-      specCompatibilityResult: specCompatResult,
+      componentResolution: Object.freeze({ ...componentResolution }),
+      specCompatibilityResult,
       matchedRuleIds: sortedMatchedRuleIds,
       evidenceIds: sortedEvidenceIds,
       conflictCodes: sortedConflictCodes,

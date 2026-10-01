@@ -22,6 +22,7 @@ export * from "./types/normativeComponentDimensionalCompatibilityTypes";
 export * from "./types/normativeComponentProductCompatibilityTypes";
 export * from "./types/normativeMultiCompatibilityTypes";
 export * from "./types/normativeSpecCompatibilityIntegrationTypes";
+export * from "./types/normativeComponentIntegrationTypes";
 export * from "./types/pipingSpecResolverTypes";
 export * from "./types/componentSelectionTypes";
 export * from "./types/componentCandidateSelectionTypes";
@@ -78,6 +79,15 @@ export * from "./validators/normativeComponentDimensionalCompatibilityValidator"
 export * from "./validators/normativeComponentProductCompatibilityValidator";
 export * from "./validators/normativeMultiCompatibilityValidator";
 export * from "./validators/normativeSpecCompatibilityIntegrationValidator";
+export {
+  validateNormativeComponentIntegrationQuery,
+  ALLOWED_COMPONENT_RESOLUTION_STATUSES as ALLOWED_COMPONENT_INTEGRATION_RESOLUTION_STATUSES,
+} from "./validators/normativeComponentIntegrationValidator";
+export type {
+  ComponentIntegrationValidationErrorCode,
+  ComponentIntegrationValidationError,
+  ComponentIntegrationValidationResult,
+} from "./validators/normativeComponentIntegrationValidator";
 export * from "./validators/pipingSpecResolverValidator";
 export * from "./validators/componentSelectionValidator";
 export * from "./validators/componentCandidateSelectionValidator";
@@ -94,6 +104,7 @@ export * from "./engine/normativeComponentDimensionalCompatibilityEngine";
 export * from "./engine/normativeComponentProductCompatibilityEngine";
 export * from "./engine/normativeMultiCompatibilityEngine";
 export * from "./engine/normativeSpecCompatibilityIntegrationEngine";
+export * from "./engine/normativeComponentIntegrationEngine";
 export * from "./engine/pipingSpecResolver";
 export * from "./engine/componentSelectionEngine";
 export * from "./engine/componentCandidateSelectionEngine";
@@ -122,6 +133,7 @@ export * from "./tests/normativeComponentDimensionalCompatibilityTests";
 export * from "./tests/normativeComponentProductCompatibilityTests";
 export * from "./tests/normativeMultiCompatibilityTests";
 export * from "./tests/normativeSpecCompatibilityIntegrationTests";
+export * from "./tests/normativeComponentIntegrationTests";
 export * from "./tests/pipingSpecResolverTests";
 export * from "./tests/componentSelectionTests";
 export * from "./tests/componentCandidateSelectionTests";

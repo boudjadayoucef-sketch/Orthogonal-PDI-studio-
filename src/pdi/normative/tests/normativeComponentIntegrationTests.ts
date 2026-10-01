@@ -88,7 +88,7 @@ class MockComponentResolutionEngine implements IComponentResolutionEngine {
       unverifiedCandidateIds: Object.freeze([]),
       invalidCandidateIds: Object.freeze([]),
       matchedRuleIds: Object.freeze(this.defaultResult?.matchedRuleIds ?? ["COMP_RULE_01"]),
-      compatibilityRuleIds: Object.freeze(this.defaultResult?.compatibilityRuleIds ?? ["COMP_COMPAT_RULE_01"]),
+      compatibilityRuleIds: Object.freeze(this.defaultResult?.compatibilityRuleIds ?? []),
       evidenceIds: Object.freeze(this.defaultResult?.evidenceIds ?? ["COMP_EVID_01"]),
       message: "Mock component resolved.",
     });
@@ -109,11 +109,19 @@ function createValidQuery(
   };
 
   const compatibilityQuery: NormativeMultiCompatibilityQuery = {
-    primaryComponent: {
-      componentType: "PIPE",
-      componentId: "SYN_PIPE_001",
-    },
-    constraints: [],
+    constraints: [
+      {
+        constraintType: "COMPONENT",
+        left: {
+          entityType: "PIPE",
+          entityId: "SYN_PIPE_001",
+        },
+        right: {
+          entityType: "VALVE",
+          entityId: "SYN_VALVE_001",
+        },
+      },
+    ],
   };
 
   return {
@@ -240,128 +248,144 @@ export function runNormativeComponentIntegrationTests(): {
   });
 
   // =========================================================================
-  // SECTION 2: DEPENDENCY INJECTION (11 à 15)
+  // SECTION 2: DEPENDENCY INJECTION & CONSTRUCTOR VALIDATION (11 à 15)
   // =========================================================================
 
-  runTest("TEST 11: NORM-14-08 injecté correctement", () => {
+  runTest("TEST 11: Moteurs injectés correctement (IComponentResolutionEngine, INormativeSpecCompatibilityIntegrationEngine)", () => {
+    const mockComp = new MockComponentResolutionEngine();
     const mockSpec = new MockSpecCompatibilityIntegrationEngine();
-    const engine = new NormativeComponentIntegrationEngine(mockSpec);
+    const engine = new NormativeComponentIntegrationEngine(mockComp, mockSpec);
     assert(engine !== null, "Moteur instancié.");
   });
 
-  runTest("TEST 12: Injection obligatoire (erreur si null/invalide)", () => {
+  runTest("TEST 12: Injection obligatoire - rejet si componentEngine null ou invalide", () => {
+    const mockSpec = new MockSpecCompatibilityIntegrationEngine();
     let threw = false;
     try {
-      new (NormativeComponentIntegrationEngine as any)(null);
+      new (NormativeComponentIntegrationEngine as any)(null, mockSpec);
     } catch {
       threw = true;
     }
-    assert(threw, "Doit lever une exception si NORM-14-08 est absent.");
+    assert(threw, "Doit lever une exception si componentEngine est absent.");
+
+    let threwInvalid = false;
+    try {
+      new (NormativeComponentIntegrationEngine as any)({} as any, mockSpec);
+    } catch {
+      threwInvalid = true;
+    }
+    assert(threwInvalid, "Doit lever une exception si componentEngine.resolve n'est pas une fonction.");
   });
 
-  runTest("TEST 13: Moteur injecté NORM-14-08 est appelé lors de resolve()", () => {
+  runTest("TEST 13: Injection obligatoire - rejet si specCompatibilityEngine null ou invalide", () => {
+    const mockComp = new MockComponentResolutionEngine();
+    let threw = false;
+    try {
+      new (NormativeComponentIntegrationEngine as any)(mockComp, null);
+    } catch {
+      threw = true;
+    }
+    assert(threw, "Doit lever une exception si specCompatibilityEngine est absent.");
+
+    let threwInvalid = false;
+    try {
+      new (NormativeComponentIntegrationEngine as any)(mockComp, {} as any);
+    } catch {
+      threwInvalid = true;
+    }
+    assert(threwInvalid, "Doit lever une exception si specCompatibilityEngine.resolve n'est pas une fonction.");
+  });
+
+  runTest("TEST 14: Les moteurs injectés sont appelés exactement une fois par resolve()", () => {
+    const mockComp = new MockComponentResolutionEngine();
     const mockSpec = new MockSpecCompatibilityIntegrationEngine();
-    const engine = new NormativeComponentIntegrationEngine(mockSpec);
+    const engine = new NormativeComponentIntegrationEngine(mockComp, mockSpec);
     const q = createValidQuery();
     engine.resolve(q);
-    assert(mockSpec.callCount === 1, "NORM-14-08 doit être appelé exactement 1 fois.");
+    assert(mockComp.callCount === 1, "componentEngine appelé exactement 1 fois.");
+    assert(mockSpec.callCount === 1, "specCompatibilityEngine appelé exactement 1 fois.");
   });
 
-  runTest("TEST 14: Aucun new interne pour la compatibilité", () => {
+  runTest("TEST 15: Aucun registre ou matrice interne instancié dans NORM-14-09", () => {
+    const mockComp = new MockComponentResolutionEngine();
     const mockSpec = new MockSpecCompatibilityIntegrationEngine();
-    const engine = new NormativeComponentIntegrationEngine(mockSpec);
-    const q = createValidQuery();
-    const res = engine.resolve(q);
-    assert(res.status === "COMPATIBLE", "Résolution réussie via injection.");
-  });
-
-  runTest("TEST 15: Aucun registry interne dans NORM-14-09", () => {
-    const mockSpec = new MockSpecCompatibilityIntegrationEngine();
-    const engine = new NormativeComponentIntegrationEngine(mockSpec);
+    const engine = new NormativeComponentIntegrationEngine(mockComp, mockSpec);
     assert(!(engine as any).registry, "Aucun registre interne.");
     assert(!(engine as any).matrixRegistry, "Aucune matrice interne.");
   });
 
   // =========================================================================
-  // SECTION 3: COMPONENT INTEGRATION (16 à 25)
+  // SECTION 3: COMPONENT INTEGRATION & STATUS MAPPING (16 à 25)
   // =========================================================================
 
-  runTest("TEST 16: Résolution component compatible (RESOLVED)", () => {
-    const mockSpec = new MockSpecCompatibilityIntegrationEngine();
+  runTest("TEST 16: Statut RESOLVED mappé vers COMPATIBLE", () => {
     const mockComp = new MockComponentResolutionEngine({ status: "RESOLVED" });
+    const mockSpec = new MockSpecCompatibilityIntegrationEngine({ status: "COMPATIBLE" });
     const engine = new NormativeComponentIntegrationEngine(mockComp, mockSpec);
     const res = engine.resolve(createValidQuery());
     assert(res.status === "COMPATIBLE", "Statut consolidé COMPATIBLE.");
     assert(res.componentResolution.status === "RESOLVED", "Statut composant préservé.");
   });
 
-  runTest("TEST 17: Résolution component incompatible (NO_CANDIDATE)", () => {
-    const mockSpec = new MockSpecCompatibilityIntegrationEngine();
+  runTest("TEST 17: Statut NO_CANDIDATE mappé vers INCOMPATIBLE avec code de conflit", () => {
     const mockComp = new MockComponentResolutionEngine({ status: "NO_CANDIDATE" });
+    const mockSpec = new MockSpecCompatibilityIntegrationEngine({ status: "COMPATIBLE" });
     const engine = new NormativeComponentIntegrationEngine(mockComp, mockSpec);
     const res = engine.resolve(createValidQuery());
     assert(res.status === "INCOMPATIBLE", "NO_CANDIDATE donne INCOMPATIBLE.");
     assert(res.componentResolution.status === "NO_CANDIDATE", "Statut NO_CANDIDATE conservé.");
+    assert(res.conflictCodes.includes("COMPONENT_NO_CANDIDATE"), "Code COMPONENT_NO_CANDIDATE émis.");
   });
 
-  runTest("TEST 18: Résolution component unverified (UNVERIFIED)", () => {
-    const mockSpec = new MockSpecCompatibilityIntegrationEngine();
+  runTest("TEST 18: Statut UNVERIFIED mappé vers UNVERIFIED", () => {
     const mockComp = new MockComponentResolutionEngine({ status: "UNVERIFIED" });
+    const mockSpec = new MockSpecCompatibilityIntegrationEngine({ status: "COMPATIBLE" });
     const engine = new NormativeComponentIntegrationEngine(mockComp, mockSpec);
     const res = engine.resolve(createValidQuery());
     assert(res.status === "UNVERIFIED", "Statut consolidé UNVERIFIED.");
   });
 
-  runTest("TEST 19: Résolution component invalid (INVALID)", () => {
-    const mockSpec = new MockSpecCompatibilityIntegrationEngine();
-    const mockComp = new MockComponentResolutionEngine({ status: "INVALID" });
+  runTest("TEST 19: Statut AMBIGUOUS mappé vers UNVERIFIED", () => {
+    const mockComp = new MockComponentResolutionEngine({ status: "AMBIGUOUS" });
+    const mockSpec = new MockSpecCompatibilityIntegrationEngine({ status: "COMPATIBLE" });
     const engine = new NormativeComponentIntegrationEngine(mockComp, mockSpec);
     const res = engine.resolve(createValidQuery());
-    assert(res.status === "INVALID", "Statut consolidé INVALID.");
+    assert(res.status === "UNVERIFIED", "AMBIGUOUS donne UNVERIFIED.");
   });
 
-  runTest("TEST 20: Conservation stricte du résultat COMPONENT", () => {
-    const mockSpec = new MockSpecCompatibilityIntegrationEngine();
+  runTest("TEST 20: Statut INVALID mappé vers INVALID", () => {
+    const mockComp = new MockComponentResolutionEngine({ status: "INVALID" });
+    const mockSpec = new MockSpecCompatibilityIntegrationEngine({ status: "COMPATIBLE" });
+    const engine = new NormativeComponentIntegrationEngine(mockComp, mockSpec);
+    const res = engine.resolve(createValidQuery());
+    assert(res.status === "INVALID", "INVALID donne INVALID.");
+  });
+
+  runTest("TEST 21: Conservation stricte du résultat COMPONENT sans modification", () => {
     const mockComp = new MockComponentResolutionEngine({
       status: "RESOLVED",
       resolvedCandidateId: "SYN_CAND_999",
       matchedRuleIds: ["RULE_X"],
     });
+    const mockSpec = new MockSpecCompatibilityIntegrationEngine();
     const engine = new NormativeComponentIntegrationEngine(mockComp, mockSpec);
     const res = engine.resolve(createValidQuery());
     assert(res.componentResolution.resolvedCandidateId === "SYN_CAND_999", "CandidateId conservé.");
     assert(res.componentResolution.matchedRuleIds.includes("RULE_X"), "Règles conservées.");
-  });
-
-  runTest("TEST 21: Aucune modification de l'objet résultat COMPONENT", () => {
-    const mockSpec = new MockSpecCompatibilityIntegrationEngine();
-    const mockComp = new MockComponentResolutionEngine({ status: "RESOLVED" });
-    const engine = new NormativeComponentIntegrationEngine(mockComp, mockSpec);
-    const res = engine.resolve(createValidQuery());
     assert(Object.isFrozen(res.componentResolution), "Résultat composant immuable.");
   });
 
-  runTest("TEST 22: Aucune promotion du statut composant", () => {
-    const mockSpec = new MockSpecCompatibilityIntegrationEngine({ status: "COMPATIBLE" });
+  runTest("TEST 22: Aucune promotion artificielle du statut composant", () => {
     const mockComp = new MockComponentResolutionEngine({ status: "UNVERIFIED" });
+    const mockSpec = new MockSpecCompatibilityIntegrationEngine({ status: "COMPATIBLE" });
     const engine = new NormativeComponentIntegrationEngine(mockComp, mockSpec);
     const res = engine.resolve(createValidQuery());
     assert(res.status === "UNVERIFIED", "UNVERIFIED ne doit pas être promu COMPATIBLE.");
   });
 
-  runTest("TEST 23: Direction conservée (composant vers compatibilité)", () => {
-    const mockSpec = new MockSpecCompatibilityIntegrationEngine();
+  runTest("TEST 23: Paramètres transmis fidèlement au moteur COMPONENT", () => {
     const mockComp = new MockComponentResolutionEngine();
-    const engine = new NormativeComponentIntegrationEngine(mockComp, mockSpec);
-    const q = createValidQuery();
-    engine.resolve(q);
-    assert(mockComp.callCount === 1, "Appel dans le bon sens d'orchestration.");
-    assert(mockSpec.callCount === 1, "Délégation NORM-14-08 après composant.");
-  });
-
-  runTest("TEST 24: Contexte de sélection conservé sans modification", () => {
     const mockSpec = new MockSpecCompatibilityIntegrationEngine();
-    const mockComp = new MockComponentResolutionEngine();
     const engine = new NormativeComponentIntegrationEngine(mockComp, mockSpec);
     const q = createValidQuery({
       componentContext: {
@@ -375,9 +399,21 @@ export function runNormativeComponentIntegrationTests(): {
     assert(mockComp.lastRequest?.context.componentType === "FLANGE", "ComponentType transmis.");
   });
 
-  runTest("TEST 25: Résultat déterministe (même entrée -> même sortie)", () => {
-    const mockSpec = new MockSpecCompatibilityIntegrationEngine();
+  runTest("TEST 24: Pas de bypass caller pour componentResolution", () => {
+    const mockComp = new MockComponentResolutionEngine({ status: "NO_CANDIDATE" });
+    const mockSpec = new MockSpecCompatibilityIntegrationEngine({ status: "COMPATIBLE" });
+    const engine = new NormativeComponentIntegrationEngine(mockComp, mockSpec);
+    const q = createValidQuery();
+    // Même si un caller tente d'injecter componentResolution dans l'objet query:
+    (q as any).componentResolution = { status: "RESOLVED" };
+    const res = engine.resolve(q);
+    assert(res.status === "INCOMPATIBLE", "Le moteur COMPONENT réel doit être utilisé, bypass ignoré/interdit.");
+    assert(mockComp.callCount === 1, "Moteur COMPONENT appelé.");
+  });
+
+  runTest("TEST 25: Déterminisme strict (même entrée -> même sortie)", () => {
     const mockComp = new MockComponentResolutionEngine();
+    const mockSpec = new MockSpecCompatibilityIntegrationEngine();
     const engine = new NormativeComponentIntegrationEngine(mockComp, mockSpec);
     const q = createValidQuery();
     const res1 = engine.resolve(q);
@@ -387,40 +423,45 @@ export function runNormativeComponentIntegrationTests(): {
   });
 
   // =========================================================================
-  // SECTION 4: SPEC / NORM-14-08 (26 à 35)
+  // SECTION 4: SPEC / NORM-14-08 INTEGRATION (26 à 35)
   // =========================================================================
 
   runTest("TEST 26: SPEC / NORM-14-08 compatible", () => {
+    const mockComp = new MockComponentResolutionEngine({ status: "RESOLVED" });
     const mockSpec = new MockSpecCompatibilityIntegrationEngine({ status: "COMPATIBLE" });
-    const engine = new NormativeComponentIntegrationEngine(mockSpec);
+    const engine = new NormativeComponentIntegrationEngine(mockComp, mockSpec);
     const res = engine.resolve(createValidQuery());
     assert(res.status === "COMPATIBLE", "Consolidé COMPATIBLE.");
   });
 
   runTest("TEST 27: SPEC / NORM-14-08 incompatible", () => {
+    const mockComp = new MockComponentResolutionEngine({ status: "RESOLVED" });
     const mockSpec = new MockSpecCompatibilityIntegrationEngine({ status: "INCOMPATIBLE" });
-    const engine = new NormativeComponentIntegrationEngine(mockSpec);
+    const engine = new NormativeComponentIntegrationEngine(mockComp, mockSpec);
     const res = engine.resolve(createValidQuery());
     assert(res.status === "INCOMPATIBLE", "Consolidé INCOMPATIBLE.");
   });
 
   runTest("TEST 28: SPEC / NORM-14-08 unverified", () => {
+    const mockComp = new MockComponentResolutionEngine({ status: "RESOLVED" });
     const mockSpec = new MockSpecCompatibilityIntegrationEngine({ status: "UNVERIFIED" });
-    const engine = new NormativeComponentIntegrationEngine(mockSpec);
+    const engine = new NormativeComponentIntegrationEngine(mockComp, mockSpec);
     const res = engine.resolve(createValidQuery());
     assert(res.status === "UNVERIFIED", "Consolidé UNVERIFIED.");
   });
 
   runTest("TEST 29: SPEC / NORM-14-08 invalid", () => {
+    const mockComp = new MockComponentResolutionEngine({ status: "RESOLVED" });
     const mockSpec = new MockSpecCompatibilityIntegrationEngine({ status: "INVALID" });
-    const engine = new NormativeComponentIntegrationEngine(mockSpec);
+    const engine = new NormativeComponentIntegrationEngine(mockComp, mockSpec);
     const res = engine.resolve(createValidQuery());
     assert(res.status === "INVALID", "Consolidé INVALID.");
   });
 
   runTest("TEST 30: Délégation exacte des paramètres à NORM-14-08", () => {
+    const mockComp = new MockComponentResolutionEngine();
     const mockSpec = new MockSpecCompatibilityIntegrationEngine();
-    const engine = new NormativeComponentIntegrationEngine(mockSpec);
+    const engine = new NormativeComponentIntegrationEngine(mockComp, mockSpec);
     const q = createValidQuery();
     engine.resolve(q);
     assert(mockSpec.lastQuery?.specResolution === q.specResolution, "specResolution transmis exactement.");
@@ -428,46 +469,50 @@ export function runNormativeComponentIntegrationTests(): {
   });
 
   runTest("TEST 31: Aucune modification de SPEC-01", () => {
+    const mockComp = new MockComponentResolutionEngine();
     const mockSpec = new MockSpecCompatibilityIntegrationEngine();
-    const engine = new NormativeComponentIntegrationEngine(mockSpec);
+    const engine = new NormativeComponentIntegrationEngine(mockComp, mockSpec);
     const q = createValidQuery();
     const res = engine.resolve(q);
     assert(res.specCompatibilityResult.specResolution.specificationId === "SYN_SPEC_001", "SPEC-01 inchangé.");
   });
 
   runTest("TEST 32: Aucune promotion SPEC-01", () => {
-    const mockSpec = new MockSpecCompatibilityIntegrationEngine({ status: "UNVERIFIED" });
     const mockComp = new MockComponentResolutionEngine({ status: "RESOLVED" });
+    const mockSpec = new MockSpecCompatibilityIntegrationEngine({ status: "UNVERIFIED" });
     const engine = new NormativeComponentIntegrationEngine(mockComp, mockSpec);
     const res = engine.resolve(createValidQuery());
     assert(res.status === "UNVERIFIED", "Pas de promotion.");
   });
 
   runTest("TEST 33: Conservation des traces SPEC-01", () => {
+    const mockComp = new MockComponentResolutionEngine();
     const mockSpec = new MockSpecCompatibilityIntegrationEngine({
       matchedRuleIds: ["SPEC_TRACE_01", "SPEC_TRACE_02"],
       evidenceIds: ["SPEC_EVID_TRACE_01"],
     });
-    const engine = new NormativeComponentIntegrationEngine(mockSpec);
+    const engine = new NormativeComponentIntegrationEngine(mockComp, mockSpec);
     const res = engine.resolve(createValidQuery());
     assert(res.matchedRuleIds.includes("SPEC_TRACE_01"), "Traces de règles SPEC conservées.");
     assert(res.evidenceIds.includes("SPEC_EVID_TRACE_01"), "Traces d'évidence SPEC conservées.");
   });
 
   runTest("TEST 34: Propagation des codes de conflit SPEC / NORM-14-08", () => {
+    const mockComp = new MockComponentResolutionEngine();
     const mockSpec = new MockSpecCompatibilityIntegrationEngine({
       status: "INCOMPATIBLE",
       conflictCodes: ["RATING_MISMATCH", "MATERIAL_DISCREPANCY"],
     });
-    const engine = new NormativeComponentIntegrationEngine(mockSpec);
+    const engine = new NormativeComponentIntegrationEngine(mockComp, mockSpec);
     const res = engine.resolve(createValidQuery());
     assert(res.conflictCodes.includes("RATING_MISMATCH"), "Conflit rating propagé.");
     assert(res.conflictCodes.includes("MATERIAL_DISCREPANCY"), "Conflit matériau propagé.");
   });
 
   runTest("TEST 35: Résultat intégré SPEC déterministe", () => {
+    const mockComp = new MockComponentResolutionEngine();
     const mockSpec = new MockSpecCompatibilityIntegrationEngine();
-    const engine = new NormativeComponentIntegrationEngine(mockSpec);
+    const engine = new NormativeComponentIntegrationEngine(mockComp, mockSpec);
     const q = createValidQuery();
     const r1 = engine.resolve(q);
     const r2 = engine.resolve(q);
@@ -478,81 +523,81 @@ export function runNormativeComponentIntegrationTests(): {
   // SECTION 5: CONSOLIDATION DES STATUTS (36 à 45)
   // =========================================================================
 
-  runTest("TEST 36: Consolidation finale INVALID", () => {
-    const mockSpec = new MockSpecCompatibilityIntegrationEngine({ status: "INVALID" });
+  runTest("TEST 36: Consolidation finale INVALID (spec INVALID, comp RESOLVED)", () => {
     const mockComp = new MockComponentResolutionEngine({ status: "RESOLVED" });
+    const mockSpec = new MockSpecCompatibilityIntegrationEngine({ status: "INVALID" });
     const engine = new NormativeComponentIntegrationEngine(mockComp, mockSpec);
     const res = engine.resolve(createValidQuery());
     assert(res.status === "INVALID", "INVALID gagne.");
   });
 
-  runTest("TEST 37: Consolidation finale INCOMPATIBLE", () => {
-    const mockSpec = new MockSpecCompatibilityIntegrationEngine({ status: "INCOMPATIBLE" });
+  runTest("TEST 37: Consolidation finale INVALID (comp INVALID, spec COMPATIBLE)", () => {
+    const mockComp = new MockComponentResolutionEngine({ status: "INVALID" });
+    const mockSpec = new MockSpecCompatibilityIntegrationEngine({ status: "COMPATIBLE" });
+    const engine = new NormativeComponentIntegrationEngine(mockComp, mockSpec);
+    const res = engine.resolve(createValidQuery());
+    assert(res.status === "INVALID", "INVALID composant gagne.");
+  });
+
+  runTest("TEST 38: Consolidation finale INCOMPATIBLE (spec INCOMPATIBLE, comp RESOLVED)", () => {
     const mockComp = new MockComponentResolutionEngine({ status: "RESOLVED" });
+    const mockSpec = new MockSpecCompatibilityIntegrationEngine({ status: "INCOMPATIBLE" });
     const engine = new NormativeComponentIntegrationEngine(mockComp, mockSpec);
     const res = engine.resolve(createValidQuery());
     assert(res.status === "INCOMPATIBLE", "INCOMPATIBLE gagne sur COMPATIBLE.");
   });
 
-  runTest("TEST 38: Consolidation finale UNVERIFIED", () => {
-    const mockSpec = new MockSpecCompatibilityIntegrationEngine({ status: "UNVERIFIED" });
-    const mockComp = new MockComponentResolutionEngine({ status: "RESOLVED" });
-    const engine = new NormativeComponentIntegrationEngine(mockComp, mockSpec);
-    const res = engine.resolve(createValidQuery());
-    assert(res.status === "UNVERIFIED", "UNVERIFIED gagne sur COMPATIBLE.");
-  });
-
-  runTest("TEST 39: Consolidation finale COMPATIBLE (tous compatibles)", () => {
+  runTest("TEST 39: Consolidation finale INCOMPATIBLE (comp NO_CANDIDATE, spec COMPATIBLE)", () => {
+    const mockComp = new MockComponentResolutionEngine({ status: "NO_CANDIDATE" });
     const mockSpec = new MockSpecCompatibilityIntegrationEngine({ status: "COMPATIBLE" });
-    const mockComp = new MockComponentResolutionEngine({ status: "RESOLVED" });
     const engine = new NormativeComponentIntegrationEngine(mockComp, mockSpec);
     const res = engine.resolve(createValidQuery());
-    assert(res.status === "COMPATIBLE", "COMPATIBLE si tout est vert.");
+    assert(res.status === "INCOMPATIBLE", "NO_CANDIDATE gagne sur COMPATIBLE.");
   });
 
   runTest("TEST 40: Priorité INVALID > INCOMPATIBLE", () => {
-    const mockSpec = new MockSpecCompatibilityIntegrationEngine({ status: "INCOMPATIBLE" });
     const mockComp = new MockComponentResolutionEngine({ status: "INVALID" });
+    const mockSpec = new MockSpecCompatibilityIntegrationEngine({ status: "INCOMPATIBLE" });
     const engine = new NormativeComponentIntegrationEngine(mockComp, mockSpec);
     const res = engine.resolve(createValidQuery());
     assert(res.status === "INVALID", "INVALID a priorité sur INCOMPATIBLE.");
   });
 
   runTest("TEST 41: Priorité INCOMPATIBLE > UNVERIFIED", () => {
-    const mockSpec = new MockSpecCompatibilityIntegrationEngine({ status: "UNVERIFIED" });
     const mockComp = new MockComponentResolutionEngine({ status: "NO_CANDIDATE" });
+    const mockSpec = new MockSpecCompatibilityIntegrationEngine({ status: "UNVERIFIED" });
     const engine = new NormativeComponentIntegrationEngine(mockComp, mockSpec);
     const res = engine.resolve(createValidQuery());
     assert(res.status === "INCOMPATIBLE", "INCOMPATIBLE a priorité sur UNVERIFIED.");
   });
 
   runTest("TEST 42: Priorité UNVERIFIED > COMPATIBLE", () => {
-    const mockSpec = new MockSpecCompatibilityIntegrationEngine({ status: "COMPATIBLE" });
     const mockComp = new MockComponentResolutionEngine({ status: "UNVERIFIED" });
+    const mockSpec = new MockSpecCompatibilityIntegrationEngine({ status: "COMPATIBLE" });
     const engine = new NormativeComponentIntegrationEngine(mockComp, mockSpec);
     const res = engine.resolve(createValidQuery());
     assert(res.status === "UNVERIFIED", "UNVERIFIED a priorité sur COMPATIBLE.");
   });
 
   runTest("TEST 43: Statut COMPATIBLE uniquement si COMPONENT et SPEC/Compatibilité sont valides", () => {
-    const mockSpec = new MockSpecCompatibilityIntegrationEngine({ status: "COMPATIBLE" });
     const mockComp = new MockComponentResolutionEngine({ status: "RESOLVED" });
+    const mockSpec = new MockSpecCompatibilityIntegrationEngine({ status: "COMPATIBLE" });
     const engine = new NormativeComponentIntegrationEngine(mockComp, mockSpec);
     const res = engine.resolve(createValidQuery());
     assert(res.status === "COMPATIBLE", "Seule combinaison donnant COMPATIBLE.");
   });
 
-  runTest("TEST 44: Conflit NO_CANDIDATE propagé dans conflictCodes", () => {
-    const mockSpec = new MockSpecCompatibilityIntegrationEngine();
+  runTest("TEST 44: Conflit COMPONENT_NO_CANDIDATE propagé dans conflictCodes", () => {
     const mockComp = new MockComponentResolutionEngine({ status: "NO_CANDIDATE" });
+    const mockSpec = new MockSpecCompatibilityIntegrationEngine();
     const engine = new NormativeComponentIntegrationEngine(mockComp, mockSpec);
     const res = engine.resolve(createValidQuery());
     assert(res.conflictCodes.includes("COMPONENT_NO_CANDIDATE"), "Conflit NO_CANDIDATE présent.");
   });
 
   runTest("TEST 45: Ordre de consolidation déterministe", () => {
-    const mockSpec = new MockSpecCompatibilityIntegrationEngine({ status: "INCOMPATIBLE" });
     const mockComp = new MockComponentResolutionEngine({ status: "UNVERIFIED" });
+    const mockSpec = new MockSpecCompatibilityIntegrationEngine({ status: "INCOMPATIBLE" });
     const engine = new NormativeComponentIntegrationEngine(mockComp, mockSpec);
     const res1 = engine.resolve(createValidQuery());
     const res2 = engine.resolve(createValidQuery());
@@ -560,29 +605,31 @@ export function runNormativeComponentIntegrationTests(): {
   });
 
   // =========================================================================
-  // SECTION 6: TRACEABILITY (46 à 50)
+  // SECTION 6: TRACEABILITY & IMMUTABILITY (46 à 50)
   // =========================================================================
 
   runTest("TEST 46: matchedRuleIds contient l'union de COMPONENT et SPEC/Compat", () => {
-    const mockSpec = new MockSpecCompatibilityIntegrationEngine({
-      matchedRuleIds: ["RULE_B", "RULE_A"],
-    });
     const mockComp = new MockComponentResolutionEngine({
       matchedRuleIds: ["RULE_C", "RULE_A"],
+      compatibilityRuleIds: ["RULE_D"],
+    });
+    const mockSpec = new MockSpecCompatibilityIntegrationEngine({
+      matchedRuleIds: ["RULE_B", "RULE_A"],
     });
     const engine = new NormativeComponentIntegrationEngine(mockComp, mockSpec);
     const res = engine.resolve(createValidQuery());
     assert(res.matchedRuleIds.includes("RULE_A"), "RULE_A présent.");
     assert(res.matchedRuleIds.includes("RULE_B"), "RULE_B présent.");
     assert(res.matchedRuleIds.includes("RULE_C"), "RULE_C présent.");
+    assert(res.matchedRuleIds.includes("RULE_D"), "RULE_D présent.");
   });
 
   runTest("TEST 47: evidenceIds contient l'union sans perte", () => {
-    const mockSpec = new MockSpecCompatibilityIntegrationEngine({
-      evidenceIds: ["EVID_2"],
-    });
     const mockComp = new MockComponentResolutionEngine({
       evidenceIds: ["EVID_1"],
+    });
+    const mockSpec = new MockSpecCompatibilityIntegrationEngine({
+      evidenceIds: ["EVID_2"],
     });
     const engine = new NormativeComponentIntegrationEngine(mockComp, mockSpec);
     const res = engine.resolve(createValidQuery());
@@ -590,21 +637,26 @@ export function runNormativeComponentIntegrationTests(): {
   });
 
   runTest("TEST 48: conflictCodes consolidés", () => {
+    const mockComp = new MockComponentResolutionEngine({ status: "RESOLVED" });
     const mockSpec = new MockSpecCompatibilityIntegrationEngine({
       conflictCodes: ["CONFLICT_Y", "CONFLICT_X"],
     });
-    const engine = new NormativeComponentIntegrationEngine(mockSpec);
+    const engine = new NormativeComponentIntegrationEngine(mockComp, mockSpec);
     const res = engine.resolve(createValidQuery());
     assert(res.conflictCodes.includes("CONFLICT_X") && res.conflictCodes.includes("CONFLICT_Y"), "Conflits conservés.");
   });
 
   runTest("TEST 49: Déduplication, tri alphabétique et freeze des traces", () => {
+    const mockComp = new MockComponentResolutionEngine({
+      matchedRuleIds: ["R_Z", "R_A"],
+      evidenceIds: ["E_Z", "E_B"],
+    });
     const mockSpec = new MockSpecCompatibilityIntegrationEngine({
-      matchedRuleIds: ["R_Z", "R_A", "R_A"],
-      evidenceIds: ["E_Z", "E_B", "E_B"],
+      matchedRuleIds: ["R_A"],
+      evidenceIds: ["E_B"],
       conflictCodes: ["C_B", "C_A"],
     });
-    const engine = new NormativeComponentIntegrationEngine(mockSpec);
+    const engine = new NormativeComponentIntegrationEngine(mockComp, mockSpec);
     const res = engine.resolve(createValidQuery());
 
     // Déduplication & Tri
@@ -620,10 +672,10 @@ export function runNormativeComponentIntegrationTests(): {
   });
 
   runTest("TEST 50: Aucune évidence inventée (0 fabrication)", () => {
-    const mockSpec = new MockSpecCompatibilityIntegrationEngine({
+    const mockComp = new MockComponentResolutionEngine({
       evidenceIds: [],
     });
-    const mockComp = new MockComponentResolutionEngine({
+    const mockSpec = new MockSpecCompatibilityIntegrationEngine({
       evidenceIds: [],
     });
     const engine = new NormativeComponentIntegrationEngine(mockComp, mockSpec);
@@ -646,16 +698,18 @@ export function runNormativeComponentIntegrationTests(): {
         productStandardId: "PRODUCT_API_TEST",
       },
     });
+    const mockComp = new MockComponentResolutionEngine();
     const mockSpec = new MockSpecCompatibilityIntegrationEngine();
-    const engine = new NormativeComponentIntegrationEngine(mockSpec);
+    const engine = new NormativeComponentIntegrationEngine(mockComp, mockSpec);
     const res = engine.resolve(q);
     assert(res.status === "COMPATIBLE", "Tokens opaques traités sans parsing sémantique.");
   });
 
   runTest("TEST 52: Support de tous les types de composants (PIPE, FITTING, FLANGE, VALVE)", () => {
     const types = ["PIPE", "FITTING", "FLANGE", "VALVE"] as const;
+    const mockComp = new MockComponentResolutionEngine();
     const mockSpec = new MockSpecCompatibilityIntegrationEngine();
-    const engine = new NormativeComponentIntegrationEngine(mockSpec);
+    const engine = new NormativeComponentIntegrationEngine(mockComp, mockSpec);
     for (const t of types) {
       const q = createValidQuery({
         componentContext: {
@@ -669,26 +723,28 @@ export function runNormativeComponentIntegrationTests(): {
   });
 
   runTest("TEST 53: Résultat d'erreur structurelle conforme et immuable", () => {
+    const mockComp = new MockComponentResolutionEngine();
     const mockSpec = new MockSpecCompatibilityIntegrationEngine();
-    const engine = new NormativeComponentIntegrationEngine(mockSpec);
+    const engine = new NormativeComponentIntegrationEngine(mockComp, mockSpec);
     const res = engine.resolve({} as any);
     assert(res.status === "INVALID", "Requête vide donne INVALID.");
     assert(res.conflictCodes.includes("INVALID_COMPONENT_INTEGRATION_QUERY"), "Code de conflit requis.");
     assert(Object.isFrozen(res), "Résultat d'erreur gelé.");
   });
 
-  runTest("TEST 54: Compatibilité avec injection dans l'ordre (compEngine, specEngine)", () => {
-    const mockSpec = new MockSpecCompatibilityIntegrationEngine();
+  runTest("TEST 54: Immutabilité globale du contrat retourné", () => {
     const mockComp = new MockComponentResolutionEngine();
+    const mockSpec = new MockSpecCompatibilityIntegrationEngine();
     const engine = new NormativeComponentIntegrationEngine(mockComp, mockSpec);
     const res = engine.resolve(createValidQuery());
-    assert(res.status === "COMPATIBLE", "Ordre 1 fonctionne.");
-    assert(mockComp.callCount === 1, "MockComp appelé.");
-    assert(mockSpec.callCount === 1, "MockSpec appelé.");
+    assert(Object.isFrozen(res), "Résultat racine gelé.");
+    assert(Object.isFrozen(res.componentResolution), "componentResolution gelé.");
+    assert(Object.isFrozen(res.matchedRuleIds), "matchedRuleIds gelé.");
+    assert(Object.isFrozen(res.evidenceIds), "evidenceIds gelé.");
+    assert(Object.isFrozen(res.conflictCodes), "conflictCodes gelé.");
   });
 
   runTest("TEST 55: Absence de données normatives réelles codées en dur", () => {
-    // Vérifier que le moteur fonctionne avec des identifiants complètement arbitraires
     const q = createValidQuery({
       componentContext: {
         specificationId: "CUSTOM_RANDOM_SPEC_42",
@@ -696,8 +752,9 @@ export function runNormativeComponentIntegrationTests(): {
         nominalSize: "CUSTOM_SIZE_999",
       },
     });
+    const mockComp = new MockComponentResolutionEngine();
     const mockSpec = new MockSpecCompatibilityIntegrationEngine();
-    const engine = new NormativeComponentIntegrationEngine(mockSpec);
+    const engine = new NormativeComponentIntegrationEngine(mockComp, mockSpec);
     const res = engine.resolve(q);
     assert(res.status === "COMPATIBLE", "Zéro blocage sur identifiant arbitraire.");
   });

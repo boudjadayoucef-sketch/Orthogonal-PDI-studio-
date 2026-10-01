@@ -15,6 +15,7 @@
 import type {
   NormativeComponentIntegrationQuery,
 } from "../types/normativeComponentIntegrationTypes";
+import type { ComponentResolutionStatus } from "../types/componentResolutionTypes";
 import { isRecordObject } from "./pipeDimensionalValidator";
 import { validateSpecResolutionResult } from "./normativeSpecCompatibilityIntegrationValidator";
 import { validateNormativeMultiCompatibilityQuery } from "./normativeMultiCompatibilityValidator";
@@ -32,14 +33,7 @@ export type ComponentIntegrationValidationErrorCode =
   | "MISSING_SPEC_RESOLUTION"
   | "INVALID_SPEC_RESOLUTION"
   | "MISSING_COMPATIBILITY_QUERY"
-  | "INVALID_COMPATIBILITY_QUERY"
-  | "INVALID_COMPONENT_RESOLUTION"
-  | "MISSING_COMPONENT_RESOLUTION_STATUS"
-  | "INVALID_COMPONENT_RESOLUTION_STATUS"
-  | "MISSING_COMPONENT_RESOLUTION_SPEC_ID"
-  | "INVALID_COMPONENT_RESOLUTION_SPEC_ID_TYPE"
-  | "MISSING_COMPONENT_RESOLUTION_TYPE"
-  | "INVALID_COMPONENT_RESOLUTION_TYPE";
+  | "INVALID_COMPATIBILITY_QUERY";
 
 export interface ComponentIntegrationValidationError {
   readonly code: ComponentIntegrationValidationErrorCode;
@@ -59,17 +53,14 @@ export const ALLOWED_COMPONENT_TYPES = Object.freeze([
   "VALVE",
 ]);
 
-export const ALLOWED_COMPONENT_RESOLUTION_STATUSES = Object.freeze([
-  "RESOLVED",
-  "NO_CANDIDATE",
-  "UNVERIFIED",
-  "AMBIGUOUS",
-  "INVALID",
-  "COMPATIBLE",
-  "INCOMPATIBLE",
-  "ELIGIBLE",
-  "INELIGIBLE",
-]);
+export const ALLOWED_COMPONENT_RESOLUTION_STATUSES: readonly ComponentResolutionStatus[] =
+  Object.freeze([
+    "RESOLVED",
+    "NO_CANDIDATE",
+    "UNVERIFIED",
+    "AMBIGUOUS",
+    "INVALID",
+  ]);
 
 /**
  * Valide structurellement le contexte de sélection de composant.
@@ -141,92 +132,6 @@ export function validateComponentSelectionContext(
       message: `Field '${fieldName}.componentType' must be one of [${ALLOWED_COMPONENT_TYPES.join(
         ", "
       )}], got '${String(candidate.componentType)}'.`,
-    });
-  }
-
-  return {
-    valid: errors.length === 0,
-    errors: Object.freeze(errors),
-  };
-}
-
-/**
- * Valide structurellement un résultat de résolution de composant facultatif.
- */
-export function validateOptionalComponentResolution(
-  raw: unknown,
-  fieldName: string = "componentResolution"
-): ComponentIntegrationValidationResult {
-  if (raw === undefined || raw === null) {
-    return { valid: true, errors: Object.freeze([]) };
-  }
-
-  if (!isRecordObject(raw)) {
-    return {
-      valid: false,
-      errors: [
-        {
-          code: "INVALID_COMPONENT_RESOLUTION",
-          field: fieldName,
-          message: `Field '${fieldName}' must be a non-null, non-array object.`,
-        },
-      ],
-    };
-  }
-
-  const errors: ComponentIntegrationValidationError[] = [];
-  const candidate = raw as Record<string, unknown>;
-
-  // status
-  if (candidate.status === undefined || candidate.status === null) {
-    errors.push({
-      code: "MISSING_COMPONENT_RESOLUTION_STATUS",
-      field: `${fieldName}.status`,
-      message: `Field '${fieldName}.status' is required.`,
-    });
-  } else if (typeof candidate.status !== "string") {
-    errors.push({
-      code: "INVALID_COMPONENT_RESOLUTION_STATUS",
-      field: `${fieldName}.status`,
-      message: `Field '${fieldName}.status' must be a string.`,
-    });
-  } else if (!ALLOWED_COMPONENT_RESOLUTION_STATUSES.includes(candidate.status)) {
-    errors.push({
-      code: "INVALID_COMPONENT_RESOLUTION_STATUS",
-      field: `${fieldName}.status`,
-      message: `Field '${fieldName}.status' must be one of [${ALLOWED_COMPONENT_RESOLUTION_STATUSES.join(
-        ", "
-      )}], got '${String(candidate.status)}'.`,
-    });
-  }
-
-  // specificationId
-  if (candidate.specificationId === undefined || candidate.specificationId === null) {
-    errors.push({
-      code: "MISSING_COMPONENT_RESOLUTION_SPEC_ID",
-      field: `${fieldName}.specificationId`,
-      message: `Field '${fieldName}.specificationId' is required.`,
-    });
-  } else if (typeof candidate.specificationId !== "string") {
-    errors.push({
-      code: "INVALID_COMPONENT_RESOLUTION_SPEC_ID_TYPE",
-      field: `${fieldName}.specificationId`,
-      message: `Field '${fieldName}.specificationId' must be a string.`,
-    });
-  }
-
-  // componentType
-  if (candidate.componentType === undefined || candidate.componentType === null) {
-    errors.push({
-      code: "MISSING_COMPONENT_RESOLUTION_TYPE",
-      field: `${fieldName}.componentType`,
-      message: `Field '${fieldName}.componentType' is required.`,
-    });
-  } else if (typeof candidate.componentType !== "string") {
-    errors.push({
-      code: "INVALID_COMPONENT_RESOLUTION_TYPE",
-      field: `${fieldName}.componentType`,
-      message: `Field '${fieldName}.componentType' must be a string.`,
     });
   }
 
@@ -317,17 +222,6 @@ export function validateNormativeComponentIntegrationQuery(
           message: err.message,
         });
       }
-    }
-  }
-
-  // 4. componentResolution (facultatif si transmis)
-  if ("componentResolution" in candidate && candidate.componentResolution !== undefined) {
-    const compResVal = validateOptionalComponentResolution(
-      candidate.componentResolution,
-      "componentResolution"
-    );
-    if (!compResVal.valid) {
-      errors.push(...compResVal.errors);
     }
   }
 

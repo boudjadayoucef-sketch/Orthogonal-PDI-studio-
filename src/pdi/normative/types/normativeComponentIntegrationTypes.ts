@@ -17,11 +17,9 @@
 
 import type {
   ComponentSelectionContext,
-  ComponentType,
 } from "./componentSelectionTypes";
 import type {
   ComponentResolutionResult,
-  IComponentResolutionEngine,
 } from "./componentResolutionTypes";
 import type {
   PipingSpecResolutionResult,
@@ -30,7 +28,6 @@ import type {
   NormativeMultiCompatibilityQuery,
 } from "./normativeMultiCompatibilityTypes";
 import type {
-  INormativeSpecCompatibilityIntegrationEngine,
   NormativeSpecCompatibilityIntegrationResult,
 } from "./normativeSpecCompatibilityIntegrationTypes";
 
@@ -44,7 +41,6 @@ export interface NormativeComponentIntegrationQuery {
   readonly componentContext: ComponentSelectionContext;
   readonly compatibilityQuery: NormativeMultiCompatibilityQuery;
   readonly specResolution: PipingSpecResolutionResult;
-  readonly componentResolution?: ComponentResolutionResult;
 }
 
 export interface NormativeComponentIntegrationResult {
