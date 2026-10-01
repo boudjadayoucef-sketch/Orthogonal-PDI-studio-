@@ -931,6 +931,7 @@ export async function detectSketchTopologyOpenCv(
 
             // Trouver le segment ou nœud le plus proche
             let nearestSeg: SketchVectorSegment | null = null;
+            let nearestSegNodes: { sn1: SketchVectorNode; sn2: SketchVectorNode } | null = null;
             let minSegDist = 30;
 
             for (const seg of fusedSegs) {
@@ -945,16 +946,26 @@ export async function detectSketchTopologyOpenCv(
               if (dist < minSegDist) {
                 minSegDist = dist;
                 nearestSeg = seg;
+                nearestSegNodes = { sn1, sn2 };
               }
             }
 
-            if (nearestSeg) {
+            if (nearestSeg && nearestSegNodes) {
+              const { sn1, sn2 } = nearestSegNodes;
+              const segDx = sn2.x - sn1.x, segDy = sn2.y - sn1.y;
+              const segLenSq = segDx * segDx + segDy * segDy;
+              const rawT = segLenSq > 0
+                ? ((cx - sn1.x) * segDx + (cy - sn1.y) * segDy) / segLenSq
+                : 0.5;
+              const clampedT = Math.max(0.05, Math.min(0.95, rawT));
+
               detectedFittings.push({
                 id: `fit_v_${detectedFittings.length + 1}`,
                 segmentId: nearestSeg.id,
                 type: radius > 22 ? "ballon_horizontal" : "valve",
                 label: `V-${100 + detectedFittings.length + 1}`,
                 nominalDiameter: 80,
+                localPosition: Number(clampedT.toFixed(4)),
               });
             }
           }

@@ -11067,7 +11067,7 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                       </g>
                     )}
                     {isoDrawMode==="coude"&&<g data-iso-object="true" transform={`translate(${mx} ${my})`} onClick={e=>{e.stopPropagation();insertGraphicFitting(s.id,fitType.startsWith("coude")?fitType:"coude_90",.5)}} style={{cursor:"crosshair"}}><circle r="14" fill="#f59e0b" fillOpacity=".18" stroke="#fbbf24" strokeDasharray="3 2"/><path d="M-7 7 Q-7 -7 7 -7" stroke="#fbbf24" strokeWidth="2.5" fill="none"/></g>}
-                    {false&&s.fittings.map(f=>{
+                    {s.fittings.map(f=>{
                       const x=p1.x+(p2.x-p1.x)*f.localPosition,y=p1.y+(p2.y-p1.y)*f.localPosition;
                       const isFitSel=selectedFittingIds.includes(f.id)||selectedFitting?.fittingId===f.id;
                        const angle=Math.atan2(p2.y-p1.y,p2.x-p1.x)*180/Math.PI;

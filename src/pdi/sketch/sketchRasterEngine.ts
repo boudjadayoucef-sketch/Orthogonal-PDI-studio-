@@ -55,6 +55,7 @@ export interface SketchVectorFitting {
   type: SketchFittingType;
   label?: string;
   nominalDiameter?: number;
+  localPosition?: number; // 0..1, position réelle le long du segment si connue
 }
 
 export interface SketchVectorEquipment {
