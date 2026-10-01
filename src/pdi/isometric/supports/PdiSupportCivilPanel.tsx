@@ -15,12 +15,13 @@ import {
   calculateBasePlateWeight,
   calculateConcreteVolume,
 } from "./pdiMssSupportEngine";
-import { IsoSegment } from "../types/isoGraphTypes";
+import { IsoNode, IsoSegment } from "../types/isoGraphTypes";
 import { UnitSystem, formatLength, formatMass } from "../../units/pdiUnitSystem";
 
 interface PdiSupportCivilPanelProps {
   supports: IsoPipingSupport[];
   segments: IsoSegment[];
+  nodes?: IsoNode[];
   selectedSupportId: string | null;
   unitSystem: UnitSystem;
   onSelectSupport: (id: string | null) => void;
@@ -33,6 +34,7 @@ interface PdiSupportCivilPanelProps {
 export const PdiSupportCivilPanel: React.FC<PdiSupportCivilPanelProps> = ({
   supports,
   segments,
+  nodes = [],
   selectedSupportId,
   unitSystem,
   onSelectSupport,
@@ -206,6 +208,57 @@ export const PdiSupportCivilPanel: React.FC<PdiSupportCivilPanelProps> = ({
                       </option>
                     ))}
                   </select>
+                </div>
+              </div>
+
+              {/* POSITION & COTE SUR LE TRONÇON */}
+              <div className="grid grid-cols-2 gap-2 bg-slate-900/60 p-2 rounded-lg border border-slate-800">
+                <div>
+                  <label className="text-[8px] text-slate-400 uppercase font-bold block mb-0.5">Distance sur tube (m)</label>
+                  <input
+                    type="number"
+                    step="0.05"
+                    min="0"
+                    value={selectedSupport.distanceFromFromNodeM || 0}
+                    onChange={(e) => {
+                      const distM = Math.max(0, Number(e.target.value) || 0);
+                      const seg = segments.find(s => s.id === selectedSupport.segmentId);
+                      if (seg) {
+                        const fn = nodes.find(n => n.id === seg.fromNodeId);
+                        const tn = nodes.find(n => n.id === seg.toNodeId);
+                        const segLen = seg.length || 1;
+                        const t = Math.max(0.01, Math.min(0.99, distM / segLen));
+                        if (fn && tn) {
+                          const wx = Number((fn.x + t * (tn.x - fn.x)).toFixed(3));
+                          const wy = Number((fn.y + t * (tn.y - fn.y)).toFixed(3));
+                          const wz = Number(((fn.z || 0) + t * ((tn.z || 0) - (fn.z || 0))).toFixed(3));
+                          onUpdateSupport(selectedSupport.id, {
+                            distanceFromFromNodeM: distM,
+                            tRatio: t,
+                            worldPos: { x: wx, y: wy, z: wz },
+                            elevationZ: wz,
+                          });
+                        }
+                      }
+                    }}
+                    className="w-full bg-slate-950 border border-slate-700 rounded px-1.5 py-1 text-cyan-300 font-mono text-[9px]"
+                  />
+                </div>
+                <div>
+                  <label className="text-[8px] text-slate-400 uppercase font-bold block mb-0.5">Élévation Z (m)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={selectedSupport.worldPos?.z ?? selectedSupport.elevationZ ?? 0}
+                    onChange={(e) => {
+                      const z = Number(e.target.value) || 0;
+                      onUpdateSupport(selectedSupport.id, {
+                        worldPos: { ...(selectedSupport.worldPos || { x: 0, y: 0, z: 0 }), z },
+                        elevationZ: z,
+                      });
+                    }}
+                    className="w-full bg-slate-950 border border-slate-700 rounded px-1.5 py-1 text-slate-100 font-mono text-[9px]"
+                  />
                 </div>
               </div>
 

@@ -12,6 +12,7 @@ interface IsoSupportRendererProps {
   supports: IsoPipingSupport[];
   selectedSupportId: string | null;
   onSelectSupport: (id: string, e: React.MouseEvent) => void;
+  onPointerDownSupport?: (id: string, e: React.PointerEvent<any>) => void;
   projectFn: (x: number, y: number, z: number) => { x: number; y: number };
   zoom: number;
 }
@@ -20,6 +21,7 @@ export const IsoSupportRenderer: React.FC<IsoSupportRendererProps> = ({
   supports,
   selectedSupportId,
   onSelectSupport,
+  onPointerDownSupport,
   projectFn,
   zoom,
 }) => {
@@ -51,21 +53,27 @@ export const IsoSupportRenderer: React.FC<IsoSupportRendererProps> = ({
               e.stopPropagation();
               onSelectSupport(sup.id, e);
             }}
+            onPointerDown={(e) => {
+              e.stopPropagation();
+              if (onPointerDownSupport) {
+                onPointerDownSupport(sup.id, e);
+              }
+            }}
           >
-            {/* Zone de clic élargie invisible */}
-            <circle cx="0" cy="0" r="18" fill="transparent" />
+            {/* Zone de clic compacte et ultra-précise */}
+            <circle cx="0" cy="0" r="10" fill="transparent" />
 
-            {/* HALO DE SÉLECTION */}
+            {/* HALO DE SÉLECTION COMPACT ET PRÉCIS */}
             {isSelected && (
               <circle
                 cx="0"
                 cy="0"
-                r="16"
+                r="11"
                 fill="#f59e0b"
                 fillOpacity="0.25"
                 stroke="#f59e0b"
                 strokeWidth="1.5"
-                strokeDasharray="3 3"
+                strokeDasharray="3 2"
               />
             )}
 

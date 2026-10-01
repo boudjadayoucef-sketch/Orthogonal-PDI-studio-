@@ -1724,6 +1724,15 @@ function IsometrieModule(props: { projectId?: string }) {
   const [selectedSupportId, setSelectedSupportId] = useState<string | null>(null);
   const [activeSupportTypeToPlace, setActiveSupportTypeToPlace] = useState<MssSupportCode | null>(null);
 
+  // Focus & Halo rectangulaire sur section en erreur / anomalie
+  const [activeErrorHighlight, setActiveErrorHighlight] = useState<{
+    id: string;
+    kind: "segment" | "node" | "support";
+    code?: string;
+    message?: string;
+    timestamp: number;
+  } | null>(null);
+
   const [autocadCmdInput, setAutocadCmdInput] = useState("");
   const [autocadCmdHistory, setAutocadCmdHistory] = useState<string[]>([]);
   const [autocadHistoryIdx, setAutocadHistoryIdx] = useState(-1);
@@ -2379,13 +2388,29 @@ function IsometrieModule(props: { projectId?: string }) {
     // PATCH 017P2 : les faces suivent la geometrie reelle et les coudes
     // sont ramenes sur l angle normalise le plus proche.
     const pdiReor = pdiReorientPorts(nextNodes, nextSegments, { adaptElbows: true });
+    const updatedSupports = (nextSupports || []).map(s => {
+      const seg = nextSegments.find(sg => sg.id === s.segmentId);
+      if (!seg) return s;
+      const fn = pdiReor.nodes.find(n => n.id === seg.fromNodeId);
+      const tn = pdiReor.nodes.find(n => n.id === seg.toNodeId);
+      if (!fn || !tn) return s;
+      const t = s.tRatio ?? 0.5;
+      const wx = Number((fn.x + t * (tn.x - fn.x)).toFixed(3));
+      const wy = Number((fn.y + t * (tn.y - fn.y)).toFixed(3));
+      const wz = Number(((fn.z || 0) + t * ((tn.z || 0) - (fn.z || 0))).toFixed(3));
+      return {
+        ...s,
+        worldPos: { x: wx, y: wy, z: wz },
+        elevationZ: wz,
+      };
+    });
     setNodesRaw(pdiReor.nodes);
     setSegmentsRaw(nextSegments);
     setLinesRaw(nextLines);
     setDimensionsRaw(nextDimensions);
     setCad2dEntitiesRaw(nextCad2d);
     setCad2dLayersRaw(nextCad2dLayers);
-    setSupportsRaw(nextSupports);
+    setSupportsRaw(updatedSupports);
     setTimeout(() => {
       historyBusyRef.current = false;
     }, 0);
@@ -2485,7 +2510,7 @@ function IsometrieModule(props: { projectId?: string }) {
     nodes: Map<string, { x: number; y: number; z: number }>;
     isDragging: boolean;
     clickedEntity?: {
-      type: "node" | "segment";
+      type: "node" | "segment" | "support";
       id: string;
       wasAlreadySelected: boolean;
       additive: boolean;
@@ -3223,6 +3248,95 @@ function IsometrieModule(props: { projectId?: string }) {
     setSelectedFitting(null);
     setSelectedDimensionId(null);
     setSelectedDimensionIds([]);
+    setSelectedSupportId(null);
+    setActiveErrorHighlight(null);
+  };
+
+  const focusAndHighlightError = (
+    targetId: string,
+    kind: "segment" | "node" | "support" = "node",
+    issueInfo?: { code?: string; message?: string }
+  ) => {
+    let targetWorldPos: { x: number; y: number; z: number } | null = null;
+    let effectiveKind: "segment" | "node" | "support" = kind;
+
+    const seg = segments.find(s => s.id === targetId);
+    if (kind === "segment" || seg) {
+      if (seg) {
+        effectiveKind = "segment";
+        selectSegmentV44(seg.id, false);
+        const a = nodes.find(n => n.id === seg.fromNodeId);
+        const b = nodes.find(n => n.id === seg.toNodeId);
+        if (a && b) {
+          targetWorldPos = {
+            x: (a.x + b.x) / 2,
+            y: (a.y + b.y) / 2,
+            z: ((a.z || 0) + (b.z || 0)) / 2,
+          };
+        } else if (a) {
+          targetWorldPos = { x: a.x, y: a.y, z: a.z || 0 };
+        }
+      }
+    }
+
+    if (!targetWorldPos) {
+      const node = nodes.find(n => n.id === targetId);
+      if (node) {
+        effectiveKind = "node";
+        selectNodeV44(node.id, false);
+        targetWorldPos = { x: node.x, y: node.y, z: node.z || 0 };
+      }
+    }
+
+    if (!targetWorldPos) {
+      const sup = supports.find(s => s.id === targetId);
+      if (sup) {
+        effectiveKind = "support";
+        setSelectedSupportId(sup.id);
+        targetWorldPos = { x: sup.worldPos.x, y: sup.worldPos.y, z: sup.worldPos.z || 0 };
+      }
+    }
+
+    if (targetWorldPos) {
+      // Zoom automatique sur la section concernée et recentrage
+      const targetZoom = Math.max(viewport.zoom, 2.0);
+      const scale = 28 * targetZoom;
+      const axes = getProjectionAxes(viewport.viewMode, viewport.yaw, viewport.pitch);
+
+      let rx = targetWorldPos.x;
+      let ry = targetWorldPos.y;
+      let rz = targetWorldPos.z || 0;
+      if (viewport.viewMode === "free") {
+        rx = targetWorldPos.x - (globalModelCenter.x || 0);
+        ry = targetWorldPos.y - (globalModelCenter.y || 0);
+        rz = (targetWorldPos.z || 0) - (globalModelCenter.z || 0);
+      }
+
+      const projX = (rx * axes.dx_x + ry * axes.dx_y + rz * axes.dx_z) * scale;
+      const projY = (rx * axes.dy_x + ry * axes.dy_y + rz * axes.dy_z) * scale;
+
+      const newPanX = Math.round(310 - 310 - projX);
+      const newPanY = Math.round(200 - 210 - projY);
+
+      setViewport(v => ({
+        ...v,
+        zoom: targetZoom,
+        panX: newPanX,
+        panY: newPanY,
+      }));
+
+      setActiveErrorHighlight({
+        id: targetId,
+        kind: effectiveKind,
+        code: issueInfo?.code || "ERREUR",
+        message: issueInfo?.message || "Anomalie détectée sur cet élément",
+        timestamp: Date.now(),
+      });
+
+      setStatusMessage(`Focus anomalie [${issueInfo?.code || "ERREUR"}] : Zoom et halo appliqués sur la section concernée.`);
+      setRightPanelOpen(true);
+      setRightPanelTab("properties");
+    }
   };
 
   const selectNodeV44=(id:string,additive:boolean)=>{
@@ -5159,8 +5273,9 @@ function IsometrieModule(props: { projectId?: string }) {
 
   const startGuidedCommand = (type: "move" | "copy" | "rotate") => {
     const ids = guidedSelectionNodeIds();
-    if (!ids.length) {
-      setAutocadPrompt("Selectionnez d'abord un ou plusieurs elements, puis relancez la commande.");
+    const hasAny = ids.length > 0 || Boolean(selectedSupportId) || selectedCad2dIds.length > 0;
+    if (!hasAny) {
+      setAutocadPrompt("Selectionnez d'abord un ou plusieurs elements (nœuds, tronçons, supports MSS ou entités 2D), puis relancez la commande.");
       setStatusMessage("Aucune selection pour la commande guidee");
       return;
     }
@@ -5187,15 +5302,13 @@ function IsometrieModule(props: { projectId?: string }) {
   const applyGuidedCommand = (target: { x: number; y: number; z: number }) => {
     if (!guidedCmd || !guidedCmd.base) return;
     const ids = guidedSelectionNodeIds();
-    if (!ids.length) { setGuidedCmd(null); return; }
+    const hasAny = ids.length > 0 || Boolean(selectedSupportId) || selectedCad2dIds.length > 0;
+    if (!hasAny) { setGuidedCmd(null); return; }
     const base = guidedCmd.base;
 
     if (guidedCmd.type === "move") {
       const { dx, dy } = guidedDelta(base, target);
-      const nextNodes = nodes.map(n => ids.includes(n.id)
-        ? { ...n, x: snapIsoV4(n.x + dx, isoSnapStep), y: snapIsoV4(n.y + dy, isoSnapStep) }
-        : n);
-      commitGraph(nextNodes, recalcSegmentLengths(nextNodes, segments));
+      executeUniversalMove(dx, dy, 0);
       setAutocadPrompt(`[DEPLACER] Applique : dX ${dx.toFixed(2)} m, dY ${dy.toFixed(2)} m.`);
     } else if (guidedCmd.type === "copy") {
       const { dx, dy } = guidedDelta(base, target);
@@ -5291,13 +5404,40 @@ function IsometrieModule(props: { projectId?: string }) {
       setSupports(prev => prev.map(s => {
         if (s.id !== selectedSupportId) return s;
         const currentPos = s.worldPos || { x: 0, y: 0, z: 0 };
+        const newWorldX = snapIsoV4(currentPos.x + dx, isoSnapStep);
+        const newWorldY = snapIsoV4(currentPos.y + dy, isoSnapStep);
+        const newWorldZ = Number(((currentPos.z || 0) + dz).toFixed(3));
+
+        let t = s.tRatio ?? 0.5;
+        let distM = s.distanceFromFromNodeM ?? 0;
+        const seg = segments.find(sg => sg.id === s.segmentId);
+        if (seg) {
+          const fn = nodes.find(n => n.id === seg.fromNodeId);
+          const tn = nodes.find(n => n.id === seg.toNodeId);
+          if (fn && tn) {
+            const segDx = tn.x - fn.x;
+            const segDy = tn.y - fn.y;
+            const segDz = (tn.z || 0) - (fn.z || 0);
+            const segDistSq = segDx * segDx + segDy * segDy + segDz * segDz;
+            if (segDistSq > 0.0001) {
+              const cdx = newWorldX - fn.x;
+              const cdy = newWorldY - fn.y;
+              const cdz = newWorldZ - (fn.z || 0);
+              t = Math.max(0.01, Math.min(0.99, (cdx * segDx + cdy * segDy + cdz * segDz) / segDistSq));
+              distM = Number((t * seg.length).toFixed(3));
+            }
+          }
+        }
         return {
           ...s,
+          tRatio: t,
+          distanceFromFromNodeM: distM,
           worldPos: {
-            x: snapIsoV4(currentPos.x + dx, isoSnapStep),
-            y: snapIsoV4(currentPos.y + dy, isoSnapStep),
-            z: Number(((currentPos.z || 0) + dz).toFixed(3)),
+            x: newWorldX,
+            y: newWorldY,
+            z: newWorldZ,
           },
+          elevationZ: newWorldZ,
         };
       }));
       movedAnything = true;
@@ -5490,6 +5630,42 @@ function IsometrieModule(props: { projectId?: string }) {
     setDragNodeId(id);
     try {
       (svgRef.current || e.currentTarget).setPointerCapture(e.pointerId);
+    } catch {}
+  };
+
+  const beginSupportDrag = (e: React.PointerEvent<any>, id: string, additive: boolean = false) => {
+    setSelectedSupportId(id);
+    setSelectedNodeId(null);
+    setSelectedNodeIds([]);
+    setSelectedSegmentId(null);
+    setSelectedSegmentIds([]);
+    setSelectedFitting(null);
+    setSelectedFittingIds([]);
+    setSelectedDimensionId(null);
+    setSelectedDimensionIds([]);
+    setSelectedCad2dIds([]);
+    setRightPanelOpen(true);
+    setRightPanelTab("supports");
+
+    const sup = supports.find(s => s.id === id);
+    if (!sup) return;
+
+    const start = screenToIsoWorld(e, sup.worldPos.z || nodeZ || 0);
+    dragSelectionRef.current = {
+      startScreen: { x: e.clientX, y: e.clientY },
+      start,
+      nodes: new Map(),
+      isDragging: false,
+      clickedEntity: { type: "support", id, wasAlreadySelected: true, additive },
+    };
+    dragChangedRef.current = false;
+    setDragNodeId(id);
+    try {
+      if (svgRef.current) {
+        svgRef.current.setPointerCapture(e.pointerId);
+      } else if (e.currentTarget?.setPointerCapture) {
+        e.currentTarget.setPointerCapture(e.pointerId);
+      }
     } catch {}
   };
 
@@ -6054,14 +6230,7 @@ function IsometrieModule(props: { projectId?: string }) {
           const fromPt = sess.points[0];
           const dx = pt.x - fromPt.x;
           const dy = pt.y - fromPt.y;
-          if (selectedCad2dIds.length) {
-            setCad2dEntities((prev) =>
-              prev.map((ent) => (selectedCad2dIds.includes(ent.id) ? cad2dApplyDelta(ent, dx, dy, "body") : ent)),
-            );
-          }
-          if (selectedNodeIds.length) {
-            moveSelection(dx, dy, 0);
-          }
+          executeUniversalMove(dx, dy, 0);
           setCadDraftSession(null);
           setAutocadPrompt(`Déplacement terminé (dx: ${dx.toFixed(2)}, dy: ${dy.toFixed(2)})`);
           setStatusMessage("Déplacement validé");
@@ -6719,6 +6888,71 @@ function IsometrieModule(props: { projectId?: string }) {
         }
 
         const now=screenToIsoWorld(e, nodeZ || 0);
+
+        if (ds.clickedEntity?.type === "support") {
+          const supId = ds.clickedEntity.id;
+          const sup = supports.find(s => s.id === supId);
+          if (sup) {
+            const hitSeg = findSegmentAtScreen(sx, sy);
+            const targetSeg = hitSeg ? segments.find(s => s.id === hitSeg.id) : segments.find(s => s.id === sup.segmentId);
+            if (targetSeg) {
+              const fn = nodes.find(n => n.id === targetSeg.fromNodeId);
+              const tn = nodes.find(n => n.id === targetSeg.toNodeId);
+              if (fn && tn) {
+                const segDx = tn.x - fn.x;
+                const segDy = tn.y - fn.y;
+                const segDz = (tn.z || 0) - (fn.z || 0);
+                const segDistSq = segDx * segDx + segDy * segDy + segDz * segDz;
+                let t = 0.5;
+                if (segDistSq > 0.0001) {
+                  const cdx = now.x - fn.x;
+                  const cdy = now.y - fn.y;
+                  const cdz = (now.z || 0) - (fn.z || 0);
+                  t = Math.max(0.01, Math.min(0.99, (cdx * segDx + cdy * segDy + cdz * segDz) / segDistSq));
+                }
+                const worldX = Number((fn.x + t * segDx).toFixed(3));
+                const worldY = Number((fn.y + t * segDy).toFixed(3));
+                const worldZ = Number(((fn.z || 0) + t * segDz).toFixed(3));
+                const distM = Number((t * targetSeg.length).toFixed(3));
+
+                const nextSupports = supports.map(s => s.id === supId ? {
+                  ...s,
+                  segmentId: targetSeg.id,
+                  tRatio: t,
+                  distanceFromFromNodeM: distM,
+                  worldPos: { x: worldX, y: worldY, z: worldZ },
+                  elevationZ: worldZ
+                } : s);
+
+                if (!gestureDirtyRef.current) {
+                  pushHistory();
+                  redoRef.current = [];
+                  gestureDirtyRef.current = true;
+                }
+                dragChangedRef.current = true;
+                setSupportsRaw(nextSupports);
+              }
+            } else {
+              const targetX = snapEnabled ? snapIsoV4(now.x, isoSnapStep) : pdiRound3(now.x);
+              const targetY = snapEnabled ? snapIsoV4(now.y, isoSnapStep) : pdiRound3(now.y);
+              const targetZ = pdiRound3(now.z);
+              const nextSupports = supports.map(s => s.id === supId ? {
+                ...s,
+                worldPos: { x: targetX, y: targetY, z: targetZ },
+                elevationZ: targetZ
+              } : s);
+              if (!gestureDirtyRef.current) {
+                pushHistory();
+                redoRef.current = [];
+                gestureDirtyRef.current = true;
+              }
+              dragChangedRef.current = true;
+              setSupportsRaw(nextSupports);
+            }
+          }
+          return;
+        }
+
         const dx=now.x-ds.start.x,dy=now.y-ds.start.y,dz=now.z-ds.start.z;
         const snapStep = snapEnabled ? isoSnapStep : 0;
         const nextNodes=nodes.map(n=>{
@@ -10503,13 +10737,10 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                   <div
                     key={issue.id}
                     onClick={() => {
-                      if (kind === "segment") {
-                        selectSegmentV44(targetId, false);
-                      } else {
-                        selectNodeV44(targetId, false);
-                      }
-                      setRightPanelOpen(true);
-                      setRightPanelTab("properties");
+                      focusAndHighlightError(targetId, kind === "segment" ? "segment" : "node", {
+                        code: issue.code,
+                        message: issue.message,
+                      });
                     }}
                     className={`p-2 rounded-lg text-[10px] cursor-pointer hover:ring-1 hover:ring-amber-500 transition-all ${issue.severity === "error" ? "bg-red-50 text-red-700 hover:bg-red-100" : "bg-amber-50 text-amber-700 hover:bg-amber-100"}`}
                   >
@@ -11035,8 +11266,8 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                     onPointerEnter={()=>setHoveredEntity({ type: "segment", id: s.id })}
                     onPointerLeave={()=>setHoveredEntity(null)}>
                     {(() => { const pts=isoPolylineV4(s,a,b,viewport.zoom,viewport.panX,viewport.panY,viewport.viewMode,viewport.yaw,viewport.pitch); const path=isoPathV4(pts); return <>
-                      {/* Zone de clic élargie invisible pour sélection sans faille */}
-                      <path d={path} stroke="#000000" strokeOpacity="0.001" strokeWidth={Math.max(width + 16, 20)} strokeLinecap="round" fill="none" pointerEvents="all" className="cursor-pointer" />
+                      {/* Zone de clic élargie invisible pour sélection précise sans empiéter sur les voisins */}
+                      <path d={path} stroke="#000000" strokeOpacity="0.001" strokeWidth={Math.max(width + 6, 11)} strokeLinecap="round" fill="none" pointerEvents="all" className="cursor-pointer" />
                       {sel&&<path d={path} stroke="#38bdf8" strokeWidth={width+5} strokeOpacity=".16" strokeLinecap="round" strokeLinejoin="round" fill="none"/>}
                       {hoveredEntity?.type==="segment"&&hoveredEntity.id===s.id&&!sel&&<path d={path} stroke="#67e8f9" strokeWidth={width+3} strokeOpacity=".12" strokeLinecap="round" strokeLinejoin="round" fill="none"/>}
                       <path d={path} stroke={segmentStrokeColor(s)} strokeWidth={width} strokeLinecap="round" strokeLinejoin="round" fill="none"/>
@@ -11215,12 +11446,20 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                       }
                       setContextMenu({ x: e.clientX, y: e.clientY, type: "node", id: n.id });
                     }}>
-                    {/* Zone de clic invisible pour sélection instantanée au clic & glisser */}
-                    <circle r={Math.max(24 * kGlyph, 24)} fill="#000000" fillOpacity="0.001" pointerEvents="all" className="cursor-pointer" />
+                    {/* Zone de clic invisible calibrée pour sélection ultra-précise */}
+                    <circle r={Math.max(8, Math.min(16, 7 * Math.sqrt(Math.min(kGlyph, 2.5))))} fill="#000000" fillOpacity="0.001" pointerEvents="all" className="cursor-pointer" />
                     {isEquip ? (
                       <g>
-                        {isSel&&<rect x={-11.5*kGlyph} y={-11.5*kGlyph} width={23*kGlyph} height={23*kGlyph} rx="5" fill="none" stroke="#facc15" strokeWidth="1.5" strokeDasharray="4 2"/>}
-                        {isHov&&!isSel&&<rect x={-10.8*kGlyph} y={-10.8*kGlyph} width={21.6*kGlyph} height={21.6*kGlyph} rx="4" fill="none" stroke="#67e8f9" strokeWidth="1" strokeDasharray="2 2"/>}
+                        {isSel&&(()=>{
+                          const selHalf = Math.max(9, Math.min(17, 8 * Math.sqrt(Math.min(kGlyph, 2.5))));
+                          const selSize = selHalf * 2;
+                          return <rect x={-selHalf} y={-selHalf} width={selSize} height={selSize} rx="3" fill="none" stroke="#facc15" strokeWidth="1.5" strokeDasharray="3 2"/>;
+                        })()}
+                        {isHov&&!isSel&&(()=>{
+                          const selHalf = Math.max(8.5, Math.min(16, 7.5 * Math.sqrt(Math.min(kGlyph, 2.5))));
+                          const selSize = selHalf * 2;
+                          return <rect x={-selHalf} y={-selHalf} width={selSize} height={selSize} rx="3" fill="none" stroke="#67e8f9" strokeWidth="1" strokeDasharray="2 2"/>;
+                        })()}
                         {isBend ? (
                           <path d={elbowPathD || (p0 && p1 ? `M ${p0.sx} ${p0.sy} Q 0 0 ${p1.sx} ${p1.sy}` : "M -6 6 Q -6 -6 6 -6")} stroke="#f59e0b" strokeWidth={Math.max(3.2, ((n.dn || 100) / 25) * pipeStrokeScale)} fill="none" strokeLinecap="round" />
                         ) : branchPort ? (
@@ -11637,6 +11876,9 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                     setRightPanelOpen(true);
                     setRightPanelTab("supports");
                   }}
+                  onPointerDownSupport={(id, e) => {
+                    beginSupportDrag(e, id);
+                  }}
                   projectFn={(x, y, z) => isoProjectV4(x, y, z, viewport.zoom, viewport.panX, viewport.panY)}
                   zoom={viewport.zoom}
                 />
@@ -11852,6 +12094,108 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                     </text>
                   </g>
                 )}
+
+                {/* HALO RECTANGULAIRE LUMINEUX & BADGE FLOTTANT SUR SECTION EN ERREUR */}
+                {activeErrorHighlight && (() => {
+                  const h = activeErrorHighlight;
+                  let box: { x: number; y: number; w: number; h: number } | null = null;
+                  const label = h.code ? `${h.code} : ${h.message || ""}` : (h.message || "Anomalie détectée");
+
+                  if (h.kind === "segment") {
+                    const seg = segments.find(s => s.id === h.id);
+                    if (seg) {
+                      const a = nodes.find(n => n.id === seg.fromNodeId);
+                      const b = nodes.find(n => n.id === seg.toNodeId);
+                      if (a && b) {
+                        const pa = isoProjectV4(a.x, a.y, a.z || 0, viewport.zoom, viewport.panX, viewport.panY, viewport.viewMode, viewport.yaw, viewport.pitch);
+                        const pb = isoProjectV4(b.x, b.y, b.z || 0, viewport.zoom, viewport.panX, viewport.panY, viewport.viewMode, viewport.yaw, viewport.pitch);
+                        const pad = 24;
+                        const minX = Math.min(pa.x, pb.x) - pad;
+                        const maxX = Math.max(pa.x, pb.x) + pad;
+                        const minY = Math.min(pa.y, pb.y) - pad;
+                        const maxY = Math.max(pa.y, pb.y) + pad;
+                        box = { x: minX, y: minY, w: Math.max(maxX - minX, 52), h: Math.max(maxY - minY, 44) };
+                      }
+                    }
+                  } else if (h.kind === "support") {
+                    const sup = supports.find(s => s.id === h.id);
+                    if (sup) {
+                      const p = isoProjectV4(sup.worldPos.x, sup.worldPos.y, sup.worldPos.z || 0, viewport.zoom, viewport.panX, viewport.panY, viewport.viewMode, viewport.yaw, viewport.pitch);
+                      box = { x: p.x - 30, y: p.y - 30, w: 60, h: 60 };
+                    }
+                  } else {
+                    const node = nodes.find(n => n.id === h.id);
+                    if (node) {
+                      const p = isoProjectV4(node.x, node.y, node.z || 0, viewport.zoom, viewport.panX, viewport.panY, viewport.viewMode, viewport.yaw, viewport.pitch);
+                      box = { x: p.x - 28, y: p.y - 28, w: 56, h: 56 };
+                    }
+                  }
+
+                  if (!box) return null;
+
+                  const bracketLen = Math.min(12, Math.min(box.w, box.h) / 3);
+
+                  return (
+                    <g key="error-halo-overlay" className="animate-in fade-in duration-200">
+                      {/* Halo rectangulaire lumineux pulsant */}
+                      <rect
+                        x={box.x - 4}
+                        y={box.y - 4}
+                        width={box.w + 8}
+                        height={box.h + 8}
+                        rx="10"
+                        fill="#ef4444"
+                        fillOpacity="0.16"
+                        stroke="#f87171"
+                        strokeWidth="1.5"
+                        strokeOpacity="0.6"
+                      />
+                      <rect
+                        x={box.x}
+                        y={box.y}
+                        width={box.w}
+                        height={box.h}
+                        rx="6"
+                        fill="none"
+                        stroke="#ef4444"
+                        strokeWidth="2.5"
+                        strokeDasharray="6 3"
+                      />
+                      {/* Coins CAD de précision (Brackets) */}
+                      <path d={`M${box.x} ${box.y + bracketLen} L${box.x} ${box.y} L${box.x + bracketLen} ${box.y}`} fill="none" stroke="#fca5a5" strokeWidth="3" />
+                      <path d={`M${box.x + box.w - bracketLen} ${box.y} L${box.x + box.w} ${box.y} L${box.x + box.w} ${box.y + bracketLen}`} fill="none" stroke="#fca5a5" strokeWidth="3" />
+                      <path d={`M${box.x} ${box.y + box.h - bracketLen} L${box.x} ${box.y + box.h} L${box.x + bracketLen} ${box.y + box.h}`} fill="none" stroke="#fca5a5" strokeWidth="3" />
+                      <path d={`M${box.x + box.w - bracketLen} ${box.y + box.h} L${box.x + box.w} ${box.y + box.h} L${box.x + box.w} ${box.y + box.h - bracketLen}`} fill="none" stroke="#fca5a5" strokeWidth="3" />
+
+                      {/* Badge / Pill flottant au-dessus du rectangle */}
+                      <g transform={`translate(${box.x + box.w / 2} ${Math.max(16, box.y - 14)})`}>
+                        <path d="M-5 0 L5 0 L0 5 Z" fill="#b91c1c" />
+                        <rect
+                          x={-Math.min(160, Math.max(60, label.length * 3.8 + 20))}
+                          y="-20"
+                          width={Math.min(320, Math.max(120, label.length * 7.6 + 40))}
+                          height="20"
+                          rx="5"
+                          fill="#7f1d1d"
+                          stroke="#ef4444"
+                          strokeWidth="1.2"
+                          filter="drop-shadow(0 2px 4px rgba(0,0,0,0.5))"
+                        />
+                        <text
+                          x="0"
+                          y="-6.5"
+                          textAnchor="middle"
+                          fill="#fef2f2"
+                          fontSize="9.5"
+                          fontWeight="bold"
+                          fontFamily="sans-serif"
+                        >
+                          ⚠️ {label.length > 40 ? label.slice(0, 38) + "…" : label}
+                        </text>
+                      </g>
+                    </g>
+                  );
+                })()}
               </g>
 
               {(() => {
@@ -14171,10 +14515,11 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                         key={issue.kind + issue.id + String(idx)}
                         type="button"
                         onClick={() => {
-                          if (issue.kind === "segment") selectSegmentV44(issue.id, false);
-                          else selectNodeV44(issue.id, false);
-                          setRightPanelOpen(true);
-                          setRightPanelTab("properties");
+                          const originalIssue = graphIssues.find(gi => (gi.entityId || gi.id) === issue.id);
+                          focusAndHighlightError(issue.id, issue.kind, {
+                            code: originalIssue?.code || "SPEC",
+                            message: issue.label,
+                          });
                         }}
                         className="w-full text-left px-2 py-1.5 rounded bg-slate-900 border border-slate-700 hover:border-amber-600 text-[10px] font-bold text-slate-300"
                       >
@@ -14196,6 +14541,7 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
             <PdiSupportCivilPanel
               supports={supports}
               segments={segments}
+              nodes={nodes}
               selectedSupportId={selectedSupportId}
               unitSystem={unitSystem}
               onSelectSupport={(id) => setSelectedSupportId(id)}
