@@ -30,25 +30,25 @@ export const AxisCursorOverlay: React.FC<AxisCursorOverlayProps> = ({
   const C30 = Math.cos(Math.PI / 6); // ~0.866
   const S30 = Math.sin(Math.PI / 6); // 0.5
 
-  // Coordonnées écran (Y vers le bas)
-  // X+ (30°)
+  // Coordonnées écran (Y vers le bas) — Aligné sur la projection isométrique de l'éditeur
+  // X+ (aligné sur l'éditeur ISO : vers le bas-droite)
   const xX = size * C30;
-  const yX = -size * S30;
+  const yX = size * S30;
 
-  // Y+ (150°)
+  // Y+ (aligné sur l'éditeur ISO : vers le bas-gauche)
   const xY = -size * C30;
-  const yY = -size * S30;
+  const yY = size * S30;
 
-  // Z+ (90° / Vertical haut)
+  // Z+ (Vertical haut)
   const xZ = 0;
   const yZ = -size;
 
   // Prolongements négatifs (dashed)
   const oppLen = size * 0.45;
   const oppXX = -oppLen * C30;
-  const oppYX = oppLen * S30;
+  const oppYX = -oppLen * S30;
   const oppXY = oppLen * C30;
-  const oppYY = oppLen * S30;
+  const oppYY = -oppLen * S30;
   const oppXZ = 0;
   const oppYZ = oppLen;
 

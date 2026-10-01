@@ -239,6 +239,7 @@ export const isWeldableConnection = (type: JointConnectionType) =>
 export function deriveProjectJoints(nodes: IsoNode[], segments: IsoSegment[]): PipingJoint[] {
   let weldIndex = 1;
   const joints: PipingJoint[] = [];
+  const portWeldNumberMap = new Map<string, string>();
   for (const seg of segments) {
     for (const endpoint of ["from", "to"] as const) {
       const nodeId = endpoint === "from" ? seg.fromNodeId : seg.toNodeId;
@@ -249,6 +250,14 @@ export function deriveProjectJoints(nodes: IsoNode[], segments: IsoSegment[]): P
         portId
       );
       const weldable = isWeldableConnection(connectionType);
+      let wNum: string | undefined = undefined;
+      if (weldable) {
+        const jointKey = `${nodeId}_${portId}`;
+        if (!portWeldNumberMap.has(jointKey)) {
+          portWeldNumberMap.set(jointKey, `W${String(weldIndex++).padStart(2, "0")}`);
+        }
+        wNum = portWeldNumberMap.get(jointKey);
+      }
       joints.push({
         id: `joint_${seg.id}_${endpoint}`,
         segmentId: seg.id,
@@ -257,7 +266,7 @@ export function deriveProjectJoints(nodes: IsoNode[], segments: IsoSegment[]): P
         portId,
         lineId: seg.lineId || DEFAULT_LINE_ID,
         connectionType,
-        weldNumber: weldable ? `W${String(weldIndex++).padStart(3, "0")}` : undefined,
+        weldNumber: wNum,
         location: weldable ? "shop" : undefined,
       });
     }

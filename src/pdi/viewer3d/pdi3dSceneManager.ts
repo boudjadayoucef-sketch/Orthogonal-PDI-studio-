@@ -607,18 +607,57 @@ export class Pdi3dSceneManager {
         nodeName.includes("gare_");
 
       if (node.type === "tee" || eqType.startsWith("te_") || eqType.includes("tee")) {
-        // Té 3D
+        // Té 3D orienté selon les directions réelles des tronçons connectés
         const teeGroup = new THREE.Group();
-        const mainGeom = new THREE.CylinderGeometry(0.08, 0.08, 0.4, 24);
+        const pipeR = Math.max(0.025, (dn / 1000) / 2);
+        const mainLen = Math.max(0.24, pipeR * 5);
+        const branchLen = Math.max(0.14, pipeR * 3);
+
+        let runDir = new THREE.Vector3(1, 0, 0);
+        let branchDir = new THREE.Vector3(0, 1, 0);
+
+        if (conns.length >= 2) {
+          // Chercher les deux branches colinéaires opposées formant la ligne principale (run)
+          let bestPair = [0, 1];
+          let bestDot = 1;
+          for (let ci = 0; ci < conns.length; ci++) {
+            for (let cj = ci + 1; cj < conns.length; cj++) {
+              const d = conns[ci].dir.dot(conns[cj].dir);
+              if (d < bestDot) {
+                bestDot = d;
+                bestPair = [ci, cj];
+              }
+            }
+          }
+          if (bestDot < -0.4) {
+            runDir = conns[bestPair[0]].dir.clone().normalize();
+            // Trouver la branche restante
+            const branchConn = conns.find((_, idx) => idx !== bestPair[0] && idx !== bestPair[1]);
+            if (branchConn) {
+              branchDir = branchConn.dir.clone().normalize();
+            } else {
+              branchDir = new THREE.Vector3(0, 1, 0).cross(runDir).normalize();
+              if (branchDir.lengthSq() < 0.1) branchDir = new THREE.Vector3(0, 0, 1).cross(runDir).normalize();
+            }
+          } else {
+            runDir = conns[0].dir.clone().normalize();
+            branchDir = conns[1] ? conns[1].dir.clone().normalize() : new THREE.Vector3(0, 1, 0);
+          }
+        }
+
+        const mainGeom = new THREE.CylinderGeometry(pipeR * 1.04, pipeR * 1.04, mainLen, 24);
         const mainMesh = new THREE.Mesh(mainGeom, mat);
-        mainMesh.rotation.z = Math.PI / 2;
-        const branchGeom = new THREE.CylinderGeometry(0.07, 0.07, 0.25, 24);
+        mainMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), runDir);
+
+        const branchGeom = new THREE.CylinderGeometry(pipeR * 1.02, pipeR * 1.02, branchLen, 24);
         const branchMesh = new THREE.Mesh(branchGeom, mat);
-        branchMesh.position.y = 0.12;
+        branchMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), branchDir);
+        branchMesh.position.copy(branchDir.clone().multiplyScalar(branchLen / 2));
+
         teeGroup.add(mainMesh);
         teeGroup.add(branchMesh);
         teeGroup.position.copy(pos);
-        teeGroup.userData = { isPdiEntity: true, entityType: "node", label: `Té DN${dn}`, id: node.id, dn };
+        teeGroup.userData = { isPdiEntity: true, entityType: "node", label: node.equipmentLabel || node.name || `Té DN${dn}`, id: node.id, dn };
         this.modelRoot.add(teeGroup);
       } else if (isPump) {
         // Pompe centrifuge 3D ultra-détaillée
@@ -809,6 +848,29 @@ export class Pdi3dSceneManager {
           id: node.id,
         };
         this.modelRoot.add(wallGroup);
+      } else if (eqType.includes("coude") || eqType.includes("elbow") || conns.length === 2) {
+        // Détecter un coude à 90°, 45° ou changement de direction d'angle au nœud
+        if (conns.length >= 2) {
+          const inDir = conns[0].dir.clone().negate();
+          const outDir = conns[1].dir.clone();
+          const dot = inDir.dot(outDir);
+          if (dot < 0.98 || eqType.includes("coude") || eqType.includes("elbow")) {
+            const elbow = this.factory.createElbowMesh(pos, inDir, outDir, dn, mat, {
+              id: `elbow_${node.id}`,
+              label: node.equipmentLabel || node.name || `Coude DN${dn}`,
+              nodeId: node.id,
+            });
+            this.modelRoot.add(elbow);
+          }
+        } else if (eqType.includes("coude") || eqType.includes("elbow")) {
+          const norm = conns[0] ? conns[0].dir : new THREE.Vector3(1, 0, 0);
+          const elbow = this.factory.createElbowMesh(pos, norm.clone().negate(), norm, dn, mat, {
+            id: `elbow_${node.id}`,
+            label: node.equipmentLabel || node.name || `Coude DN${dn}`,
+            nodeId: node.id,
+          });
+          this.modelRoot.add(elbow);
+        }
       } else if (node.equipmentType) {
         const norm = conns[0] ? conns[0].dir : new THREE.Vector3(1, 0, 0);
         const valve = this.factory.createValveMesh(pos, norm, dn, mat, {
@@ -817,19 +879,6 @@ export class Pdi3dSceneManager {
           dn,
         });
         this.modelRoot.add(valve);
-      } else if (conns.length === 2) {
-        // Détecter un coude à 90° ou angle au nœud
-        const inDir = conns[0].dir.clone().negate();
-        const outDir = conns[1].dir.clone();
-        const dot = inDir.dot(outDir);
-        if (dot < 0.98) {
-          const elbow = this.factory.createElbowMesh(pos, inDir, outDir, dn, mat, {
-            id: `elbow_${node.id}`,
-            label: `Coude DN${dn}`,
-            nodeId: node.id,
-          });
-          this.modelRoot.add(elbow);
-        }
       }
     }
 

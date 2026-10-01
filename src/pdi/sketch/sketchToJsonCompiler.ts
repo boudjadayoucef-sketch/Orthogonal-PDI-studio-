@@ -247,12 +247,6 @@ export function compileSketchToIsoModel(params: {
               dy = (ang > 180 ? 1 : -1) * lenM;
             }
 
-            // CORRECTIF SKETCH-DETECT-06 : ne jamais réutiliser nextN.elevation
-            // comme valeur ABSOLUE — c'est une valeur relative à l'origine de sa
-            // propre composante connexe (calculée indépendamment par le BFS de
-            // openCvSketchDetector.ts). Accumuler dz depuis currCoord.z, comme
-            // pour dx/dy, garantit la cohérence avec compOffsetZ de cette
-            // composante.
             const targetZ = currCoord.z + dz;
 
             nodeCoords3D.set(nextId, {
@@ -332,13 +326,24 @@ export function compileSketchToIsoModel(params: {
       z: Number(((node.elevation || 0) / 1000).toFixed(3))
     };
 
-    const eqType = nodeFitting
+    let eqType = nodeFitting
       ? mapSketchFittingTypeToIso(nodeFitting.type)
       : nodeEq
       ? mapSketchFittingTypeToIso(nodeEq.type)
       : node.equipmentType
       ? mapSketchFittingTypeToIso(node.equipmentType)
       : undefined;
+
+    if (!eqType && connectedSegs.length === 2) {
+      const seg1 = connectedSegs[0];
+      const seg2 = connectedSegs[1];
+      const ang1 = seg1.angleIsoDeg ?? 0;
+      const ang2 = seg2.angleIsoDeg ?? 0;
+      const diff = Math.abs(ang1 - ang2) % 180;
+      if (diff > 15 && diff < 165) {
+        eqType = "coude_90";
+      }
+    }
 
     const eqLabel =
       nodeFitting?.label ||
