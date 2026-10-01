@@ -224,6 +224,22 @@ export function deriveSpoolsAndWelds(
         }
       }
 
+      // Filtrage : Un nœud d'extrémité libre (1 seul tronçon connecté) sans composant terminal ne constitue pas une soudure
+      const nodeTouching = segments.filter(
+        (s) => s.fromNodeId === nodeId || s.toNodeId === nodeId
+      );
+      const isTerminalFitting =
+        Boolean(node.equipmentType) ||
+        node.type === "entree_poste" ||
+        node.type === "sortie_poste" ||
+        node.type === "gare_depart" ||
+        node.type === "gare_arrivee" ||
+        node.type === "tee";
+
+      if (nodeTouching.length < 2 && !isTerminalFitting) {
+        continue;
+      }
+
       const connType: JointConnectionType = port?.connectionType || "butt_weld";
       const isWeldable =
         connType === "butt_weld" || connType === "socket_weld" || connType === "fillet_weld";
@@ -257,9 +273,14 @@ export function deriveSpoolsAndWelds(
   let weldCounter = 1;
   const welds: PdiWeldEntry[] = [];
 
-  // Création des entités de soudure
+  // Création des entités de soudure (1 seule soudure par joint physique)
   for (const [key, cands] of groupedWeldLocs.entries()) {
-    const primary = cands[0];
+    // Préférer le candidat rattaché à un équipement/té s'il existe pour une indexation précise
+    const primary = cands.find((c) => {
+      const n = nodeMap.get(c.nodeId);
+      return Boolean(n?.equipmentType || n?.type === "tee");
+    }) || cands[0];
+
     const weldId = `W_${primary.nodeId}_${primary.portId}`;
     const override = weldOverrides[weldId] || {};
 

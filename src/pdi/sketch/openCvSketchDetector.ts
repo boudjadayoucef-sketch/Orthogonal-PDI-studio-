@@ -33,16 +33,16 @@ export interface AxisMappingConfig {
 }
 
 export const DEFAULT_AXIS_MAPPING: AxisMappingConfig = {
-  X: [30, 210],
-  Y: [150, 330],
+  X: [330, 150],
+  Y: [210, 30],
   Z: [90, 270],
 };
 
 /**
  * Détermine l'axe 3D isométrique (X, Y ou Z) à partir de l'angle isométrique en degrés :
- * - 30° ou 210°  -> axe X (par défaut)
- * - 150° ou 330° -> axe Y (par défaut)
- * - 90° ou 270°  -> axe Z (vertical par défaut)
+ * - 330° ou 150° (ou 30°/210°) -> axe X (aligné sur éditeur ISO Sud-Est / Nord-Ouest)
+ * - 210° ou 30° (ou 150°/330°) -> axe Y (aligné sur éditeur ISO Sud-Ouest / Nord-Est)
+ * - 90° ou 270°               -> axe Z (vertical par défaut)
  * Supporte une configuration de mapping d'axes personnalisée (trièdre interactif).
  */
 export function isoAngleToAxis(
@@ -51,8 +51,8 @@ export function isoAngleToAxis(
 ): { axis: "X" | "Y" | "Z"; diff: number } {
   let a = ((angleDeg % 360) + 360) % 360;
   const families: { axis: "X" | "Y" | "Z"; angles: number[] }[] = [
-    { axis: "X", angles: mapping.X || [30, 210] },
-    { axis: "Y", angles: mapping.Y || [150, 330] },
+    { axis: "X", angles: mapping.X || [330, 150] },
+    { axis: "Y", angles: mapping.Y || [210, 30] },
     { axis: "Z", angles: mapping.Z || [90, 270] },
   ];
   let best: "X" | "Y" | "Z" = "X";
@@ -322,6 +322,14 @@ export function mergeCollinearSegments(
       );
 
       if (touching.length !== 2) continue;
+
+      // PRÉSERVATION : Ne jamais fusionner un nœud portant un équipement ou un repère explicite
+      if (
+        node.equipmentType ||
+        (node.label && !node.label.startsWith("N-"))
+      ) {
+        continue;
+      }
 
       const [segA, segB] = touching;
       if (!segA.detectedAxis || segA.detectedAxis !== segB.detectedAxis) continue;

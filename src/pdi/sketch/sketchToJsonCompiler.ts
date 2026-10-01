@@ -58,6 +58,7 @@ export function mapSketchFittingTypeToIso(type: string): IsoFittingType {
       return "vanne_papillon";
     case "check_valve":
     case "clapet":
+    case "clapet_bille":
       return "clapet";
     case "flange":
     case "bride":
@@ -65,6 +66,8 @@ export function mapSketchFittingTypeToIso(type: string): IsoFittingType {
       return "bride_wn";
     case "bride_so":
       return "bride_so";
+    case "bride_pleine":
+      return "bride_pleine";
     case "elbow_90":
     case "coude_90":
       return "coude_90";
@@ -74,6 +77,8 @@ export function mapSketchFittingTypeToIso(type: string): IsoFittingType {
     case "tee":
     case "te_egal":
       return "te_egal";
+    case "te_reduit":
+      return "te_reduit";
     case "reducer":
     case "reduction_concentrique":
       return "reduction_concentrique";
@@ -85,6 +90,10 @@ export function mapSketchFittingTypeToIso(type: string): IsoFittingType {
     case "support":
     case "purge":
       return "purge";
+    case "soupape":
+      return "soupape";
+    case "robinet_pointeau":
+      return "robinet_pointeau";
     case "ballon_horizontal":
     case "vessel_horizontal":
       return "poste_sectionnement";
@@ -200,9 +209,9 @@ export function compileSketchToIsoModel(params: {
       const S30 = 0.5; // sin(30°)
       const rootZ = Number(((rootNode.elevation || 0) / 1000).toFixed(3));
       const sxM = (rootNode.x - minX) / pxPerMeter;
-      const syUpM = -(rootNode.y - minY) / pxPerMeter; // y écran vers le bas -> vers le haut
-      const compOffsetX = Number((0.5 * (sxM / C30 + (syUpM - rootZ) / S30)).toFixed(3));
-      const compOffsetY = Number((0.5 * (sxM / C30 - (syUpM - rootZ) / S30)).toFixed(3));
+      const syM = (rootNode.y - minY) / pxPerMeter; // Y écran positif vers le bas (aligné sur isoProjectV4)
+      const compOffsetX = Number((0.5 * (sxM / C30 + (syM + rootZ) / S30)).toFixed(3));
+      const compOffsetY = Number((0.5 * ((syM + rootZ) / S30 - sxM / C30)).toFixed(3));
       const compOffsetZ = rootZ;
 
       visitedNodes.add(rootNode.id);
@@ -234,17 +243,24 @@ export function compileSketchToIsoModel(params: {
 
             const ang = seg.angleIsoDeg !== undefined
               ? (isForward ? seg.angleIsoDeg : (seg.angleIsoDeg + 180) % 360)
-              : 30;
+              : 330;
 
             const { axis } = isoAngleToAxis(ang, axisMapping);
             let dx = 0, dy = 0, dz = 0;
+
+            // Détermination du sens (+ ou -) selon la direction principale de l'axe dans le mapping
+            const primary = axisMapping[axis]?.[0] ?? (axis === "X" ? 330 : axis === "Y" ? 210 : 90);
+            let diff = Math.abs(ang - primary);
+            if (diff > 180) diff = 360 - diff;
+            const sign = diff < 60 ? 1 : -1;
+
             if (axis === "Z") {
-              dz = (ang > 180 ? -1 : 1) * lenM;
+              dz = sign * lenM;
             } else if (axis === "X") {
-              dx = (ang > 90 && ang < 270 ? -1 : 1) * lenM;
+              dx = sign * lenM;
             } else {
               // axis === "Y"
-              dy = (ang > 180 ? 1 : -1) * lenM;
+              dy = sign * lenM;
             }
 
             const targetZ = currCoord.z + dz;
@@ -333,6 +349,10 @@ export function compileSketchToIsoModel(params: {
       : node.equipmentType
       ? mapSketchFittingTypeToIso(node.equipmentType)
       : undefined;
+
+    if (nodeType === "tee" && !eqType) {
+      eqType = "te_egal";
+    }
 
     if (!eqType && connectedSegs.length === 2) {
       const seg1 = connectedSegs[0];

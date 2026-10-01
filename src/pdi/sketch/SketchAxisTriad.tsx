@@ -34,9 +34,9 @@ export const SketchAxisTriad: React.FC<SketchAxisTriadProps> = ({
   const [activeAxisDrag, setActiveAxisDrag] = useState<"X" | "Y" | "Z" | null>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  // Primary angles for X, Y, Z
-  const primaryX = axisMapping.X?.[0] ?? 30;
-  const primaryY = axisMapping.Y?.[0] ?? 150;
+  // Primary angles for X, Y, Z (Alignés sur l'éditeur ISO : X=330°, Y=210°, Z=90°)
+  const primaryX = axisMapping.X?.[0] ?? 330;
+  const primaryY = axisMapping.Y?.[0] ?? 210;
   const primaryZ = axisMapping.Z?.[0] ?? 90;
 
   // Triad arrow length in px

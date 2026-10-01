@@ -11240,13 +11240,9 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                           const weldAnnotation=joint?editorAnnotationMap.get(`weld:${joint.id}`):undefined;
                           if (connected) {
                             if(!joint?.weldNumber||!showWelds)return null;
-                            const wx=(weldAnnotation?.x??p.x+port.sx+8)-p.x, wy=(weldAnnotation?.y??p.y+port.sy-9)-p.y;
-                            const hasWeldBadge = weldSpoolData.welds.some(w => (w.nodeId === n.id && w.portId === port.id) || (joint && w.segmentId === joint.segmentId && w.nodeId === n.id));
                             return <g key={port.id} pointerEvents="none">
-                              {weldAnnotation && !hasWeldBadge && <line x1={port.sx} y1={port.sy} x2={wx} y2={wy} stroke="#fbbf24" strokeWidth=".7" strokeDasharray="2 2"/>}
                               <circle cx={port.sx} cy={port.sy} r="3.4" fill="#0f172a" stroke="#fbbf24" strokeWidth="1.4"/>
                               <path d={`M ${port.sx-3} ${port.sy-3} L ${port.sx+3} ${port.sy+3} M ${port.sx+3} ${port.sy-3} L ${port.sx-3} ${port.sy+3}`} stroke="#fbbf24" strokeWidth="1"/>
-                              {!hasWeldBadge && <text x={wx} y={wy} fill="#fde68a" fontSize="6.5" fontWeight="900">{joint.weldNumber}</text>}
                             </g>;
                           }
                           return <g key={port.id} data-iso-port="true" data-port-node-id={n.id} data-port-idx={String(port.index)} className="cursor-crosshair"><circle cx={port.sx} cy={port.sy} r={port.role==="branch"?4:3} fill={connected?"#0f172a":port.role==="branch"?"#22c55e":"#8b5cf6"} stroke={connected?"#fbbf24":"#ffffff"} strokeWidth="1"/></g>;

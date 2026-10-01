@@ -10,7 +10,7 @@
 
 import * as THREE from "three";
 import { createPdi3dMaterialPalette, type MaterialPalette } from "./pdi3dMaterials";
-import { Pdi3dGeometryFactory } from "./pdi3dGeometryFactory";
+import { Pdi3dGeometryFactory, getPipeStandardDimensions } from "./pdi3dGeometryFactory";
 import type {
   Viewer3dOptions,
   Viewer3dDataPayload,
@@ -312,11 +312,42 @@ export class Pdi3dSceneManager {
             : this.materials.carbonSteel;
       }
 
-      const p1 = toThree(fromNode.x, fromNode.y, fromNode.z);
-      const p2 = toThree(toNode.x, toNode.y, toNode.z);
+      let p1 = toThree(fromNode.x, fromNode.y, fromNode.z);
+      let p2 = toThree(toNode.x, toNode.y, toNode.z);
       const segVec = new THREE.Vector3().subVectors(p2, p1);
       const segLen = segVec.length();
       const normDir = segLen > 0.0001 ? segVec.clone().normalize() : new THREE.Vector3(1, 0, 0);
+
+      // Calcul des dégagements aux extrémités pour que les coudes, tés et brides soient nets et visibles
+      const fromEqType = (fromNode.equipmentType || "").toLowerCase();
+      const toEqType = (toNode.equipmentType || "").toLowerCase();
+
+      const fromIsElbow = fromEqType.includes("coude") || fromEqType.includes("elbow");
+      const toIsElbow = toEqType.includes("coude") || toEqType.includes("elbow");
+
+      const fromIsTee = fromNode.type === "tee" || fromEqType.includes("te");
+      const toIsTee = toNode.type === "tee" || toEqType.includes("te");
+
+      const dimsFrom = getPipeStandardDimensions(fromNode.dn || seg.dn);
+      const dimsTo = getPipeStandardDimensions(toNode.dn || seg.dn);
+
+      const bendRFrom = Math.max(0.04, (dimsFrom.odM / 2) * 3.0);
+      const bendRTo = Math.max(0.04, (dimsTo.odM / 2) * 3.0);
+      const teeOffsetFrom = Math.max(0.06, (dimsFrom.odM / 2) * 2.0);
+      const teeOffsetTo = Math.max(0.06, (dimsTo.odM / 2) * 2.0);
+
+      let trimFrom = 0;
+      if (fromIsElbow) trimFrom = bendRFrom;
+      else if (fromIsTee) trimFrom = teeOffsetFrom;
+
+      let trimTo = 0;
+      if (toIsElbow) trimTo = bendRTo;
+      else if (toIsTee) trimTo = teeOffsetTo;
+
+      if (trimFrom + trimTo < segLen * 0.85) {
+        if (trimFrom > 0) p1 = p1.clone().addScaledVector(normDir, trimFrom);
+        if (trimTo > 0) p2 = p2.clone().addScaledVector(normDir, -trimTo);
+      }
 
       // Tube cylindrique solide extrudé
       const pipeMesh = this.factory.createPipeCylinder(p1, p2, seg.dn, mat, {
@@ -560,11 +591,17 @@ export class Pdi3dSceneManager {
       const eqType = (node.equipmentType || "").toLowerCase();
       const nodeType = (node.type || "").toLowerCase();
       const nodeName = (node.name || "").toLowerCase();
+      const eqLabel = (node.equipmentLabel || node.reference || "").toLowerCase();
+      const eqTag = (node.tag || "").toLowerCase();
       const rot = node.rotation || 0;
 
       const isPump =
         eqType.includes("pompe") ||
         eqType.includes("pump") ||
+        eqLabel.includes("pompe") ||
+        eqLabel.includes("pump") ||
+        eqTag.includes("pompe") ||
+        eqTag.includes("pump") ||
         nodeName.startsWith("pompe") ||
         nodeName.startsWith("pump_") ||
         nodeName.includes("pompe");
@@ -575,6 +612,12 @@ export class Pdi3dSceneManager {
         eqType.includes("reservoir") ||
         eqType.includes("vessel") ||
         eqType.includes("capacite") ||
+        eqLabel.includes("ballon") ||
+        eqLabel.includes("cuve") ||
+        eqLabel.includes("reservoir") ||
+        eqLabel.includes("vessel") ||
+        eqTag.includes("ballon") ||
+        eqTag.includes("cuve") ||
         nodeName.startsWith("ballon") ||
         nodeName.startsWith("cuve") ||
         nodeName.startsWith("reservoir") ||
@@ -588,6 +631,9 @@ export class Pdi3dSceneManager {
         eqType.includes("condenseur") ||
         eqType.includes("reboiler") ||
         eqType.includes("exchanger") ||
+        eqLabel.includes("echangeur") ||
+        eqLabel.includes("exchanger") ||
+        eqTag.includes("echangeur") ||
         nodeName.startsWith("echangeur") ||
         nodeName.includes("echangeur");
 
@@ -595,6 +641,8 @@ export class Pdi3dSceneManager {
         eqType.includes("filtre") ||
         eqType.includes("tamis") ||
         eqType.includes("strainer") ||
+        eqLabel.includes("filtre") ||
+        eqLabel.includes("strainer") ||
         nodeName.startsWith("filtre") ||
         nodeName.includes("filtre");
 
@@ -629,7 +677,7 @@ export class Pdi3dSceneManager {
               }
             }
           }
-          if (bestDot < -0.4) {
+          if (bestDot < -0.3) {
             runDir = conns[bestPair[0]].dir.clone().normalize();
             // Trouver la branche restante
             const branchConn = conns.find((_, idx) => idx !== bestPair[0] && idx !== bestPair[1]);
