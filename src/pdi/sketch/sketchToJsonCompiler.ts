@@ -387,8 +387,8 @@ export function compileSketchToIsoModel(params: {
         id: fit.id,
         type: mapSketchFittingTypeToIso(fit.type),
         label: fit.label || `ACC-${index + 1}.${fitIdx + 1}`,
-        localPosition: fit.localPosition ?? 0.5,
-        cumulativePosition: Number((computedLength * (fit.localPosition ?? 0.5)).toFixed(3)),
+        localPosition: 0.5,
+        cumulativePosition: Number((computedLength * 0.5).toFixed(3)),
         dn: fit.nominalDiameter || seg.nominalDiameter || 150,
         pn: seg.pressureClass || defaultLine.pressureClass,
         material: seg.material || defaultLine.material
