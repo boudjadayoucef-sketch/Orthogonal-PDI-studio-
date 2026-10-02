@@ -30,6 +30,7 @@ export type PdiOngletRuban017M =
   | "dessin"
   | "annoter"
   | "precision"
+  | "volume"
   | "insertion"
   | "trois_d"
   | "donnees"
@@ -87,6 +88,7 @@ export const PDI_ONGLETS_RUBAN_017M: Array<{
   { id: "dessin", nomFr: "Dessin", nomEn: "Draw" },
   { id: "annoter", nomFr: "Annoter", nomEn: "Annotate" },
   { id: "precision", nomFr: "Precision", nomEn: "Precision" },
+  { id: "volume", nomFr: "Volume & Skid", nomEn: "Volume & Skid" },
   { id: "insertion", nomFr: "Insertion", nomEn: "Insert" },
   { id: "trois_d", nomFr: "3D", nomEn: "3D" },
   { id: "donnees", nomFr: "Donnees", nomEn: "Data" },
@@ -106,6 +108,8 @@ export const PDI_REGISTRE_RUBAN_017M: PdiEntreeRuban017M[] = [
   { id:"fichier.exemple.demo", nomFr:"Démo 3D Complète", nomEn:"Complete 3D Demo", aliases:["DEMO","COMPLEXE","SAMPLE","PROJET_DEMO"], icone:"✨", onglet:"fichier", groupe:"Exemples", ordre:1, portee:"projet", etat:"actif", commande:"DEMO" },
   { id:"fichier.exemple.poste", nomFr:"Exemple poste", nomEn:"Station sample", aliases:["EXEMPLEPOSTE"], icone:"\u25a6", onglet:"fichier", groupe:"Exemples", ordre:2, portee:"projet", etat:"actif", source:{menu:"Fichier",index:3} },
   { id:"fichier.exemple.gare", nomFr:"Exemple gare racleur", nomEn:"Pig trap sample", aliases:["EXEMPLEGARE"], icone:"\u25a7", onglet:"fichier", groupe:"Exemples", ordre:3, portee:"projet", etat:"actif", source:{menu:"Fichier",index:4} },
+  { id:"fichier.exemple.chambre", nomFr:"Démo Chambre Technique", nomEn:"Technical Chamber Demo", aliases:["DEMO_CT","CHAMBRE"], icone:"🏠", onglet:"fichier", groupe:"Exemples", ordre:4, portee:"projet", etat:"actif", commande:"DEMO_CT" },
+  { id:"fichier.exemple.skid", nomFr:"Démo Skid de Filtration", nomEn:"Filtration Skid Demo", aliases:["DEMO_SKID","SKID_DEMO"], icone:"⚙️", onglet:"fichier", groupe:"Exemples", ordre:5, portee:"projet", etat:"actif", commande:"DEMO_SKID" },
   { id:"fichier.sauver", nomFr:"Sauver JSON", nomEn:"Save JSON", aliases:["SAUVER","SAVE","EXPORT"], icone:"\u{1F4BE}", raccourci:"Ctrl+S", onglet:"fichier", groupe:"Enregistrement", ordre:1, portee:"projet", etat:"actif", source:{menu:"Fichier",index:7} },
   { id:"fichier.planche", nomFr:"Planche ISO A3", nomEn:"ISO sheet A3", aliases:["PLANCHE","A3","PLANTISOVIEW","PLANTISOQUICK","ISOVIEW"], icone:"\u25a4", raccourci:"A3", onglet:"fichier", groupe:"Impression et export", ordre:1, portee:"document", etat:"actif", source:{menu:"Impression",index:0} },
   { id:"fichier.imprimer", nomFr:"Imprimer", nomEn:"Print", aliases:["IMPRIMER","PRINT","PLOT"], icone:"\u2399", raccourci:"P", onglet:"fichier", groupe:"Impression et export", ordre:2, portee:"document", etat:"actif", source:{menu:"Impression",index:1} },
@@ -157,6 +161,12 @@ export const PDI_REGISTRE_RUBAN_017M: PdiEntreeRuban017M[] = [
   { id:"precision.eqsurtube", nomFr:"Equipement sur tube", nomEn:"Fitting on pipe", aliases:["AT","EQSURTUBE","ALIGNERTUBE"], icone:"⦸", raccourci:"AT", onglet:"precision", groupe:"Alignement", ordre:6, portee:"selection", etat:"actif", source:{menu:"Alignement",index:5} },
   { id:"precision.redresser", nomFr:"Redresser ISO", nomEn:"Straighten ISO", aliases:["REDRESSER","ISO","STRAIGHTEN"], icone:"⬡", raccourci:"ISO", onglet:"precision", groupe:"Alignement", ordre:7, portee:"selection", etat:"actif", source:{menu:"Alignement",index:6} },
   { id:"precision.controle", nomFr:"Controle reseau", nomEn:"Network check", aliases:["CONTROLE","AUDIT","VALIDATE"], icone:"✓", onglet:"precision", groupe:"Controle", ordre:8, portee:"projet", etat:"actif", source:{menu:"Outils",index:1} },
+
+  // ================= 5B. VOLUME & ENVELOPPE EXTRUDÉE =================
+  { id:"volume.panneau", nomFr:"Panneau Volume", nomEn:"Volume Panel", aliases:["VOLUME","ENVELOPPE","SKID","CADRAGE"], icone:"⚙️", onglet:"volume", groupe:"Configuration", ordre:1, portee:"vue", etat:"actif", commande:"VOLUME_PANEL" },
+  { id:"volume.extruder", nomFr:"Extruder Volume", nomEn:"Extrude Volume", aliases:["EXTRUDER","EXTRUDE","EXT"], icone:"⧉", onglet:"volume", groupe:"Définition du Skid", ordre:2, portee:"projet", etat:"actif", commande:"VOLUME_EXTRUDE" },
+  { id:"volume.toggle", nomFr:"Masquer/Afficher", nomEn:"Toggle Volume", aliases:["VTOGGLE","MASQUER_VOLUME","GABARIT"], icone:"👁️", onglet:"volume", groupe:"Visualisation", ordre:3, portee:"vue", etat:"actif", commande:"VOLUME_TOGGLE" },
+  { id:"volume.check", nomFr:"Vérifier Confinement", nomEn:"Check Confinement", aliases:["VCHECK","CONFINEMENT"], icone:"🛡️", onglet:"volume", groupe:"Contrôle de Gabarit", ordre:4, portee:"projet", etat:"actif", commande:"VOLUME_CHECK" },
 
   // ================= 6. INSERTION =================
   { id:"insertion.bibliotheque", nomFr:"Bibliotheque", nomEn:"Library", aliases:["BIBLIO","LIBRARY"], icone:"\u29c9", onglet:"insertion", groupe:"Bibliotheque", ordre:1, portee:"vue", etat:"actif", source:{menu:"Insertion",index:0}, suivreLibelle:true },

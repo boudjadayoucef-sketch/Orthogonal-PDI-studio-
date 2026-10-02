@@ -108,6 +108,7 @@ import {
   SplitSquareVertical, Tv2, Monitor, FileSpreadsheet, HelpCircle
 } from "lucide-react";
 import { generateComplexIndustrialIsoDemo } from "../demo/pdiComplexIsoDemo";
+import { generateChambreTechniqueDemo, generateSkidFiltrationDemo } from "../demo/pdiNewDemos";
 import { PdiWorkspaceConfigModal } from "../../workspace/PdiWorkspaceConfigModal";
 import { pdiWorkspaceBus } from "../../workspace/pdiWorkspaceChannel";
 import type {
@@ -1733,6 +1734,62 @@ function IsometrieModule(props: { projectId?: string }) {
     timestamp: number;
   } | null>(null);
 
+  // ENVELOPE SPATIALE & SKID VOLUME INTEGRATION BY EXTRUSION
+  const [envelopeActive, setEnvelopeActive] = useState<boolean>(true);
+  const [envelopeLength, setEnvelopeLength] = useState<number>(6.0); // m
+  const [envelopeWidth, setEnvelopeWidth] = useState<number>(4.0); // m
+  const [envelopeHeight, setEnvelopeHeight] = useState<number>(3.0); // m (extrusion)
+  const [envelopeX, setEnvelopeX] = useState<number>(-1.0); // origin
+  const [envelopeY, setEnvelopeY] = useState<number>(-1.0); // origin
+  const [envelopeZ, setEnvelopeZ] = useState<number>(0.0); // origin
+  const [envelopeWireframe, setEnvelopeWireframe] = useState<boolean>(false);
+  const [envelopeOpacity, setEnvelopeOpacity] = useState<number>(0.12);
+  const [envelopePreset, setEnvelopePreset] = useState<string>("skid_filtration");
+
+  // Effect to apply presets
+  useEffect(() => {
+    if (envelopePreset === "skid_filtration") {
+      setEnvelopeLength(6.0); setEnvelopeWidth(4.0); setEnvelopeHeight(3.0);
+      setEnvelopeX(-1.0); setEnvelopeY(-1.0); setEnvelopeZ(0.0);
+    } else if (envelopePreset === "local_compresseur") {
+      setEnvelopeLength(4.5); setEnvelopeWidth(3.0); setEnvelopeHeight(2.5);
+      setEnvelopeX(-0.5); setEnvelopeY(-0.5); setEnvelopeZ(0.0);
+    } else if (envelopePreset === "chambre_vanne") {
+      setEnvelopeLength(3.0); setEnvelopeWidth(3.0); setEnvelopeHeight(2.0);
+      setEnvelopeX(0.0); setEnvelopeY(0.0); setEnvelopeZ(0.0);
+    } else if (envelopePreset === "corridor_asme") {
+      setEnvelopeLength(10.0); setEnvelopeWidth(2.0); setEnvelopeHeight(4.0);
+      setEnvelopeX(-2.0); setEnvelopeY(-1.0); setEnvelopeZ(0.0);
+    }
+  }, [envelopePreset]);
+
+  // Containment checkers
+  const checkEnvelopeContainment = (x: number, y: number, z: number) => {
+    if (!envelopeActive) return true;
+    const minX = envelopeX;
+    const maxX = envelopeX + envelopeLength;
+    const minY = envelopeY;
+    const maxY = envelopeY + envelopeWidth;
+    const minZ = envelopeZ;
+    const maxZ = envelopeZ + envelopeHeight;
+    // Tolerance of 0.001 to prevent floating-point rounding errors
+    return x >= (minX - 0.001) && x <= (maxX + 0.001) &&
+           y >= (minY - 0.001) && y <= (maxY + 0.001) &&
+           z >= (minZ - 0.001) && z <= (maxZ + 0.001);
+  };
+
+  const outOfEnvelopeNodes = useMemo(() => {
+    if (!envelopeActive) return [];
+    return nodes.filter(n => !checkEnvelopeContainment(n.x, n.y, n.z || 0));
+  }, [nodes, envelopeActive, envelopeX, envelopeLength, envelopeY, envelopeWidth, envelopeZ, envelopeHeight]);
+
+  const outOfEnvelopeSupports = useMemo(() => {
+    if (!envelopeActive) return [];
+    return supports.filter(s => !checkEnvelopeContainment(s.worldPos.x, s.worldPos.y, s.worldPos.z || 0));
+  }, [supports, envelopeActive, envelopeX, envelopeLength, envelopeY, envelopeWidth, envelopeZ, envelopeHeight]);
+
+  const totalEnvelopeIssues = outOfEnvelopeNodes.length + outOfEnvelopeSupports.length;
+
   const [autocadCmdInput, setAutocadCmdInput] = useState("");
   const [autocadCmdHistory, setAutocadCmdHistory] = useState<string[]>([]);
   const [autocadHistoryIdx, setAutocadHistoryIdx] = useState(-1);
@@ -2575,6 +2632,21 @@ function IsometrieModule(props: { projectId?: string }) {
 
   const viewport = viewportRaw;
 
+  const projEnvelope = useMemo(() => {
+    const corners = [
+      { x: envelopeX, y: envelopeY, z: envelopeZ }, // 0: bottom-back-left
+      { x: envelopeX + envelopeLength, y: envelopeY, z: envelopeZ }, // 1: bottom-back-right
+      { x: envelopeX + envelopeLength, y: envelopeY + envelopeWidth, z: envelopeZ }, // 2: bottom-front-right
+      { x: envelopeX, y: envelopeY + envelopeWidth, z: envelopeZ }, // 3: bottom-front-left
+      { x: envelopeX, y: envelopeY, z: envelopeZ + envelopeHeight }, // 4: top-back-left
+      { x: envelopeX + envelopeLength, y: envelopeY, z: envelopeZ + envelopeHeight }, // 5: top-back-right
+      { x: envelopeX + envelopeLength, y: envelopeY + envelopeWidth, z: envelopeZ + envelopeHeight }, // 6: top-front-right
+      { x: envelopeX, y: envelopeY + envelopeWidth, z: envelopeZ + envelopeHeight }, // 7: top-front-left
+    ];
+
+    return corners.map(c => isoProjectV4(c.x, c.y, c.z, viewport.zoom, viewport.panX, viewport.panY, viewport.viewMode, viewport.yaw, viewport.pitch));
+  }, [envelopeX, envelopeLength, envelopeY, envelopeWidth, envelopeZ, envelopeHeight, viewport]);
+
   const setViewport = (next: any | ((prev: any) => any)) => {
     setViewportRaw(prev => {
       const computed = typeof next === "function" ? next(prev) : next;
@@ -2665,7 +2737,7 @@ function IsometrieModule(props: { projectId?: string }) {
     try{window.localStorage.setItem("pdi.rightPanelOpen.v1",rightPanelOpen?"1":"0");}catch{}
   },[rightPanelOpen]);
   const [rightPanelHovered, setRightPanelHovered] = useState(false);
-  const [rightPanelTab, setRightPanelTab] = useState<"properties" | "bom" | "dimensions" | "snap" | "layers" | "supports">("properties");
+  const [rightPanelTab, setRightPanelTab] = useState<"properties" | "bom" | "dimensions" | "snap" | "layers" | "supports" | "volume">("properties");
   const [selectedDimensionId, setSelectedDimensionId] = useState<string | null>(null);
   // PATCH 004b : selection multiple de cotations. selectedDimensionId reste la
   // cotation ACTIVE (aucun panneau existant n'est casse) ; selectedDimensionIds
@@ -4761,6 +4833,46 @@ function IsometrieModule(props: { projectId?: string }) {
       setStatusMessage("Caster / Projeter sur Smart TV");
       return;
     }
+    // COMMANDES ENVELOPPE DE VOLUME ET SKID INDUSTRIEL PAR EXTRUSION
+    if (["volume_panel", "volume", "skid", "enveloppe", "cadrage"].includes(rawVerb)) {
+      setRightPanelOpen(true);
+      setRightPanelTab("volume");
+      setEnvelopeActive(true);
+      setAutocadPrompt("COMMANDE [VOLUME] : Ouverture du panneau de gestion du volume et skid d'intégration.");
+      setStatusMessage("Panneau Volume Skid ouvert");
+      return;
+    }
+    if (["volume_extrude", "extruder", "extrude", "ext"].includes(rawVerb)) {
+      setRightPanelOpen(true);
+      setRightPanelTab("volume");
+      setEnvelopeActive(true);
+      if (rawArg) {
+        const h = Math.max(0.5, Number(rawArg) || 2.5);
+        setEnvelopeHeight(h);
+        setAutocadPrompt(`COMMANDE [EXTRUDE] : Enveloppe de travail extrudée à H = ${h.toFixed(2)} m.`);
+        setStatusMessage(`Extrusion Z = ${h.toFixed(2)} m`);
+      } else {
+        setAutocadPrompt("COMMANDE [EXTRUDE] : Définissez la hauteur d'extrusion sous plafond dans le panneau droit.");
+      }
+      return;
+    }
+    if (["volume_toggle", "vtoggle", "gabarit"].includes(rawVerb)) {
+      setEnvelopeActive(prev => {
+        const next = !prev;
+        setAutocadPrompt(`COMMANDE [VOLUME_TOGGLE] : Affichage de l'enveloppe ${next ? "ACTIVÉ" : "DÉSACTIVÉ"}.`);
+        setStatusMessage(`Enveloppe ${next ? "visible" : "masquée"}`);
+        return next;
+      });
+      return;
+    }
+    if (["volume_check", "vcheck", "confinement"].includes(rawVerb)) {
+      setRightPanelOpen(true);
+      setRightPanelTab("volume");
+      const issuesCount = outOfEnvelopeNodes.length + outOfEnvelopeSupports.length;
+      setAutocadPrompt(`COMMANDE [VOLUME_CHECK] : Contrôle lancé. ${issuesCount === 0 ? "Aucun dépassement de gabarit détecté." : `${issuesCount} élément(s) hors limites détecté(s).`}`);
+      return;
+    }
+
     if (["deplacer", "deplace", "move", "m", "translation"].includes(rawVerb)) {
       startGuidedCommand("move");
       return;
@@ -4775,6 +4887,14 @@ function IsometrieModule(props: { projectId?: string }) {
     }
     if (["demo", "complexe", "exemple", "sample", "projet_demo", "modele"].includes(rawVerb)) {
       loadPresetDemoComplexe();
+      return;
+    }
+    if (["demo_ct", "democt", "chambre", "chambre_technique"].includes(rawVerb)) {
+      loadPresetChambreTechnique();
+      return;
+    }
+    if (["demo_skid", "demoskid", "skid_filtration", "skid_demo"].includes(rawVerb)) {
+      loadPresetSkidFiltration();
       return;
     }
 
@@ -7932,6 +8052,68 @@ function IsometrieModule(props: { projectId?: string }) {
     }, 60);
   };
 
+  const loadPresetChambreTechnique = () => {
+    const demo = generateChambreTechniqueDemo();
+    commitGraph(
+      demo.nodes,
+      demo.segments,
+      demo.lines,
+      demo.dimensions,
+      demo.cad2dEntities,
+      cad2dLayers,
+      demo.supports
+    );
+    setCad2dLayers(demo.cad2dLayers);
+    setFromNode(demo.nodes[0]?.id || "");
+    setToNode(demo.nodes[demo.nodes.length - 1]?.id || "");
+    setSelectedSegmentId(demo.segments[0]?.id || null);
+    setSelectedSupportId(demo.supports[0]?.id || null);
+    setEnvelopeActive(demo.envelopeActive);
+    setEnvelopeLength(demo.envelopeLength);
+    setEnvelopeWidth(demo.envelopeWidth);
+    setEnvelopeHeight(demo.envelopeHeight);
+    setEnvelopeX(demo.envelopeX);
+    setEnvelopeY(demo.envelopeY);
+    setEnvelopeZ(demo.envelopeZ);
+    setEnvelopePreset(demo.envelopePreset);
+    setStatusMessage("✨ Démo Chambre Technique chargée : 2 lignes d'eau glacée parallèles DN100 (Aller/Retour), vannes, manomètres, supports et cotations.");
+    setAutocadPrompt("COMMANDE [DEMO_CT] : Chambre Technique chargée. Le gabarit d'espace représente le local.");
+    setTimeout(() => {
+      resetView();
+    }, 60);
+  };
+
+  const loadPresetSkidFiltration = () => {
+    const demo = generateSkidFiltrationDemo();
+    commitGraph(
+      demo.nodes,
+      demo.segments,
+      demo.lines,
+      demo.dimensions,
+      demo.cad2dEntities,
+      cad2dLayers,
+      demo.supports
+    );
+    setCad2dLayers(demo.cad2dLayers);
+    setFromNode(demo.nodes[0]?.id || "");
+    setToNode(demo.nodes[demo.nodes.length - 1]?.id || "");
+    setSelectedSegmentId(demo.segments[0]?.id || null);
+    setSelectedSupportId(demo.supports[0]?.id || null);
+    setEnvelopeActive(demo.envelopeActive);
+    setEnvelopeLength(demo.envelopeLength);
+    setEnvelopeWidth(demo.envelopeWidth);
+    setEnvelopeHeight(demo.envelopeHeight);
+    setEnvelopeX(demo.envelopeX);
+    setEnvelopeY(demo.envelopeY);
+    setEnvelopeZ(demo.envelopeZ);
+    setEnvelopePreset(demo.envelopePreset);
+    setStatusMessage("✨ Démo Skid de Filtration chargée : 3 lignes parallèles DN150 (WN Flanges, réducteurs, vannes, patins mss_type_39, cotations).");
+    setAutocadPrompt("COMMANDE [DEMO_SKID] : Skid de filtration conforme à isometrie.png chargé.");
+    setTimeout(() => {
+      resetView();
+    }, 60);
+  };
+
   const printIso=()=>{
     const w=window.open("","_blank");if(!w)return;
     const rows=segments.map((s,i)=>`<tr>
@@ -8667,6 +8849,8 @@ function IsometrieModule(props: { projectId?: string }) {
         { label: "✨ Démo Industrielle Complète (ASME/MSS)", hint: "DEMO", run: loadPresetDemoComplexe },
         { label: "Exemple poste", hint: "charger", run: loadPresetPoste },
         { label: "Exemple gare racleur", hint: "charger", run: loadPresetGare },
+        { label: "🏠 Démo Chambre Technique d'Eau Glacée", hint: "DEMO_CT", run: loadPresetChambreTechnique },
+        { label: "⚙️ Démo Skid de Filtration Parallèle", hint: "DEMO_SKID", run: loadPresetSkidFiltration },
         { label: "📋 BOM / Tableau global", hint: "BOM", run: () => { setRightPanelOpen(true); setRightPanelTab("bom"); } },
         { label: "Ouvrir JSON", hint: "import", run: () => importProjectRef.current?.click() },
         { label: "Sauver JSON", hint: "export", run: exportProjectJson },
@@ -8866,6 +9050,15 @@ function IsometrieModule(props: { projectId?: string }) {
   // PATCH 017M : etat du ruban (Mega-Menu style GitHub). Replié par défaut pour maximiser l'espace de dessin.
   const [rubanOnglet017M, setRubanOnglet017M] = useState<string>("dessin");
   const [rubanAnchorLeft, setRubanAnchorLeft] = useState<number | undefined>(undefined);
+
+  // Synchronisation avec l'Espace de Travail & Skid (Volume Extrudé)
+  useEffect(() => {
+    if (rubanOnglet017M === "volume") {
+      setRightPanelOpen(true);
+      setRightPanelTab("volume");
+      setEnvelopeActive(true);
+    }
+  }, [rubanOnglet017M]);
   const [rubanReplie017M, setRubanReplie017M] = useState<boolean>(() => {
     try {
       const saved = localStorage.getItem("pdi.ribbon.collapsed.v1");
@@ -10246,13 +10439,29 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
           >
             <Flame className="w-4 h-4 text-amber-200" /> Plan de Soudage ({weldSpoolData.spools.length} Spools / {weldSpoolData.welds.length} Soudures)
           </button>
-          <button type="button" onClick={loadPresetPoste} className="px-3 py-2 bg-blue-600 rounded-xl text-xs font-black">
-            <Flame className="inline w-4 h-4 mr-1"/> Exemple poste
+          <button type="button" onClick={loadPresetPoste} className="px-3 py-2 bg-zinc-800 hover:bg-zinc-700 text-slate-200 rounded-xl text-xs font-black transition-colors">
+            <Flame className="inline w-4 h-4 mr-1 text-orange-400"/> Exemple poste
           </button>
-          <button type="button" onClick={loadPresetGare} className="px-3 py-2 bg-slate-700 rounded-xl text-xs font-black">
-            <Waypoints className="inline w-4 h-4 mr-1"/> Exemple gare racleur
+          <button type="button" onClick={loadPresetGare} className="px-3 py-2 bg-zinc-800 hover:bg-zinc-700 text-slate-200 rounded-xl text-xs font-black transition-colors">
+            <Waypoints className="inline w-4 h-4 mr-1 text-cyan-400"/> Exemple gare racleur
           </button>
-          <button type="button" onClick={printPlanSheet} className="px-3 py-2 bg-emerald-600 rounded-xl text-xs font-black">
+          <button
+            type="button"
+            onClick={loadPresetChambreTechnique}
+            className="px-3.5 py-2 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white rounded-xl text-xs font-black shadow-md flex items-center gap-1.5 transition-all border border-teal-400/30 active:scale-95"
+            title="Charger la Démo de Chambre Technique d'Eau Glacée (Local fermé confiné)"
+          >
+            <Box className="w-4 h-4 text-emerald-200" /> Démo Chambre Technique
+          </button>
+          <button
+            type="button"
+            onClick={loadPresetSkidFiltration}
+            className="px-3.5 py-2 bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white rounded-xl text-xs font-black shadow-md flex items-center gap-1.5 transition-all border border-sky-400/30 active:scale-95"
+            title="Charger la Démo de Skid de Filtration conforme à isometrie.png (3 lignes parallèles DN150)"
+          >
+            <LayoutGrid className="w-4 h-4 text-sky-200" /> Démo Skid Filtration (isometrie.png)
+          </button>
+          <button type="button" onClick={printPlanSheet} className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black transition-colors">
             <Printer className="inline w-4 h-4 mr-1"/> Imprimer
           </button>
         </div>
@@ -11186,7 +11395,89 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
                   <path d="M 120 0 L 0 0 0 120" fill="none" stroke="#64748b" strokeWidth="0.85" opacity="0.42" />
                 </pattern>
               </defs>
-              {showGrid && <rect x="-5000" y="-5000" width="10000" height="10000" fill="url(#pdiGridMajor)" opacity="0.88" pointerEvents="none" />}
+               {showGrid && <rect x="-5000" y="-5000" width="10000" height="10000" fill="url(#pdiGridMajor)" opacity="0.88" pointerEvents="none" />}
+
+              {/* ENVELOPE SPATIALE EXTRUDÉE (VOLUME DE TRAVAIL) */}
+              {envelopeActive && projEnvelope.length === 8 && (
+                <g key="skid-volume-envelope" pointerEvents="none">
+                  {/* Faces translucides du volume extrudé */}
+                  {!envelopeWireframe && (
+                    <g opacity={envelopeOpacity}>
+                      {/* Face de dessous */}
+                      <polygon
+                        points={`${projEnvelope[0].x},${projEnvelope[0].y} ${projEnvelope[1].x},${projEnvelope[1].y} ${projEnvelope[2].x},${projEnvelope[2].y} ${projEnvelope[3].x},${projEnvelope[3].y}`}
+                        fill="#0284c7"
+                        stroke="none"
+                      />
+                      {/* Face de dessus */}
+                      <polygon
+                        points={`${projEnvelope[4].x},${projEnvelope[4].y} ${projEnvelope[5].x},${projEnvelope[5].y} ${projEnvelope[6].x},${projEnvelope[6].y} ${projEnvelope[7].x},${projEnvelope[7].y}`}
+                        fill="#38bdf8"
+                        stroke="none"
+                      />
+                      {/* Face Gauche (0 -> 3 -> 7 -> 4) */}
+                      <polygon
+                        points={`${projEnvelope[0].x},${projEnvelope[0].y} ${projEnvelope[3].x},${projEnvelope[3].y} ${projEnvelope[7].x},${projEnvelope[7].y} ${projEnvelope[4].x},${projEnvelope[4].y}`}
+                        fill="#0369a1"
+                        stroke="none"
+                      />
+                      {/* Face Droite (1 -> 2 -> 6 -> 5) */}
+                      <polygon
+                        points={`${projEnvelope[1].x},${projEnvelope[1].y} ${projEnvelope[2].x},${projEnvelope[2].y} ${projEnvelope[6].x},${projEnvelope[6].y} ${projEnvelope[5].x},${projEnvelope[5].y}`}
+                        fill="#0369a1"
+                        stroke="none"
+                      />
+                      {/* Face Fond (0 -> 1 -> 5 -> 4) */}
+                      <polygon
+                        points={`${projEnvelope[0].x},${projEnvelope[0].y} ${projEnvelope[1].x},${projEnvelope[1].y} ${projEnvelope[5].x},${projEnvelope[5].y} ${projEnvelope[4].x},${projEnvelope[4].y}`}
+                        fill="#0c4a6e"
+                        stroke="none"
+                      />
+                      {/* Face Devant (3 -> 2 -> 6 -> 7) */}
+                      <polygon
+                        points={`${projEnvelope[3].x},${projEnvelope[3].y} ${projEnvelope[2].x},${projEnvelope[2].y} ${projEnvelope[6].x},${projEnvelope[6].y} ${projEnvelope[7].x},${projEnvelope[7].y}`}
+                        fill="#0c4a6e"
+                        stroke="none"
+                      />
+                    </g>
+                  )}
+
+                  {/* Arêtes structurales du Skid (Le Châssis métallique en orange/cyan vif) */}
+                  <g stroke="#38bdf8" strokeWidth="1.2" strokeLinecap="round" opacity="0.65">
+                    {/* Cadre bas */}
+                    <line x1={projEnvelope[0].x} y1={projEnvelope[0].y} x2={projEnvelope[1].x} y2={projEnvelope[1].y} />
+                    <line x1={projEnvelope[1].x} y1={projEnvelope[1].y} x2={projEnvelope[2].x} y2={projEnvelope[2].y} />
+                    <line x1={projEnvelope[2].x} y1={projEnvelope[2].y} x2={projEnvelope[3].x} y2={projEnvelope[3].y} />
+                    <line x1={projEnvelope[3].x} y1={projEnvelope[3].y} x2={projEnvelope[0].x} y2={projEnvelope[0].y} />
+
+                    {/* Cadre haut */}
+                    <line x1={projEnvelope[4].x} y1={projEnvelope[4].y} x2={projEnvelope[5].x} y2={projEnvelope[5].y} stroke="#f59e0b" strokeWidth="1.5" />
+                    <line x1={projEnvelope[5].x} y1={projEnvelope[5].y} x2={projEnvelope[6].x} y2={projEnvelope[6].y} stroke="#f59e0b" strokeWidth="1.5" />
+                    <line x1={projEnvelope[6].x} y1={projEnvelope[6].y} x2={projEnvelope[7].x} y2={projEnvelope[7].y} stroke="#f59e0b" strokeWidth="1.5" />
+                    <line x1={projEnvelope[7].x} y1={projEnvelope[7].y} x2={projEnvelope[4].x} y2={projEnvelope[4].y} stroke="#f59e0b" strokeWidth="1.5" />
+
+                    {/* Poteaux verticaux d'extrusion */}
+                    <line x1={projEnvelope[0].x} y1={projEnvelope[0].y} x2={projEnvelope[4].x} y2={projEnvelope[4].y} />
+                    <line x1={projEnvelope[1].x} y1={projEnvelope[1].y} x2={projEnvelope[5].x} y2={projEnvelope[5].y} />
+                    <line x1={projEnvelope[2].x} y1={projEnvelope[2].y} x2={projEnvelope[6].x} y2={projEnvelope[6].y} />
+                    <line x1={projEnvelope[3].x} y1={projEnvelope[3].y} x2={projEnvelope[7].x} y2={projEnvelope[7].y} />
+                  </g>
+
+                  {/* Indicateurs textuels de hauteur et dimensions sur le Skid */}
+                  <g transform={`translate(${projEnvelope[6].x + 10} ${projEnvelope[6].y - 10})`}>
+                    <rect x="-4" y="-12" width="135" height="24" rx="4" fill="#09090b" stroke="#f59e0b" strokeWidth="1" />
+                    <text x="6" y="4" fill="#fde68a" fontSize="8.5" fontWeight="bold" fontFamily="monospace">
+                      H={envelopeHeight.toFixed(1)}m (Extrusion)
+                    </text>
+                  </g>
+                  <g transform={`translate(${projEnvelope[2].x + 10} ${projEnvelope[2].y + 10})`}>
+                    <rect x="-4" y="-12" width="135" height="24" rx="4" fill="#09090b" stroke="#38bdf8" strokeWidth="1" />
+                    <text x="6" y="4" fill="#bae6fd" fontSize="8.5" fontWeight="bold" fontFamily="monospace">
+                      {envelopeLength.toFixed(1)}m × {envelopeWidth.toFixed(1)}m
+                    </text>
+                  </g>
+                </g>
+              )}
 
               {/* Apercu fantome de la commande guidee - ligne pleine nette */}
               {guidedPreviewNodes.length > 0 && (
@@ -13980,6 +14271,13 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
               >
                 Supports ({supports.length})
               </button>
+              <button
+                type="button"
+                onClick={() => setRightPanelTab("volume")}
+                className={`px-2 py-1 rounded-lg text-[10px] font-black transition-all ${rightPanelTab === "volume" ? "bg-orange-600 text-white shadow-sm ring-1 ring-orange-400/50" : "bg-slate-800 text-slate-300 hover:bg-slate-700"}`}
+              >
+                Volume Skid ({envelopeActive ? "Actif" : "Inactif"})
+              </button>
             </div>
             <div className="flex items-center gap-1">
               <button
@@ -14562,6 +14860,225 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
               }}
               onExportCivilCsv={exportCivilMtoCsv}
             />
+          )}
+
+          {/* TAB: ESPACE & ENVELOPPE EXTRUDÉE */}
+          {rightPanelTab === "volume" && (
+            <div className="space-y-4 text-xs animate-fade-in">
+              <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black uppercase text-orange-400">Enveloppe de Travail 3D</span>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={envelopeActive}
+                      onChange={(e) => setEnvelopeActive(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-8 h-4 bg-slate-800 rounded-full peer peer-checked:bg-orange-600 relative after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:width-3 after:transition-all peer-checked:after:translate-x-4"></div>
+                    <span className="ml-2 text-[10px] font-bold text-slate-300">Activer</span>
+                  </label>
+                </div>
+                <p className="text-[10px] text-slate-400 leading-normal">
+                  Définit un gabarit d'intégration physique modélisé par extrusion. La tuyauterie doit être installée à l'intérieur de ces limites géométriques.
+                </p>
+              </div>
+
+              {envelopeActive && (
+                <>
+                  {/* PRESETS DE SKIDS / LOCAUX */}
+                  <div className="space-y-1.5">
+                    <label className="text-[9px] font-black uppercase text-slate-400 block tracking-wider">Gabarit d'Espace Prédéfini</label>
+                    <select
+                      value={envelopePreset}
+                      onChange={(e) => setEnvelopePreset(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-[11px] font-bold text-slate-100"
+                    >
+                      <option value="skid_filtration">Skid de Filtration ASME (6.0m × 4.0m × H=3.0m)</option>
+                      <option value="local_compresseur">Local Technique Compresseurs (4.5m × 3.0m × H=2.5m)</option>
+                      <option value="chambre_vanne">Chambre de Vanne de Sectionnement (3.0m × 3.0m × H=2.0m)</option>
+                      <option value="corridor_asme">Corridor Technique / Passerelle (10.0m × 2.0m × H=4.0m)</option>
+                      <option value="custom">Gabarit Personnalisé (Saisie manuelle)</option>
+                    </select>
+                  </div>
+
+                  {/* PARAMÈTRES GÉOMÉTRIQUES DU SKID */}
+                  <div className="bg-slate-950/40 p-3 rounded-xl border border-slate-800 space-y-3">
+                    <span className="text-[9px] font-black text-cyan-300 uppercase block tracking-wider">Cotes d'Extrusion & Limites (m)</span>
+                    
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <label className="text-[8px] text-slate-400 uppercase font-bold block mb-0.5">Longueur (X)</label>
+                        <input
+                          type="number"
+                          step="0.5"
+                          min="1"
+                          value={envelopeLength}
+                          onChange={(e) => {
+                            setEnvelopeLength(Math.max(1, Number(e.target.value) || 1));
+                            setEnvelopePreset("custom");
+                          }}
+                          className="w-full bg-slate-950 border border-slate-700 rounded px-1.5 py-1 text-slate-100 font-mono text-[10px]"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[8px] text-slate-400 uppercase font-bold block mb-0.5">Largeur (Y)</label>
+                        <input
+                          type="number"
+                          step="0.5"
+                          min="1"
+                          value={envelopeWidth}
+                          onChange={(e) => {
+                            setEnvelopeWidth(Math.max(1, Number(e.target.value) || 1));
+                            setEnvelopePreset("custom");
+                          }}
+                          className="w-full bg-slate-950 border border-slate-700 rounded px-1.5 py-1 text-slate-100 font-mono text-[10px]"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[8px] text-slate-400 uppercase font-bold block mb-0.5">Hauteur (Z)</label>
+                        <input
+                          type="number"
+                          step="0.5"
+                          min="1"
+                          value={envelopeHeight}
+                          onChange={(e) => {
+                            setEnvelopeHeight(Math.max(1, Number(e.target.value) || 1));
+                            setEnvelopePreset("custom");
+                          }}
+                          className="w-full bg-slate-950 border border-slate-700 rounded px-1.5 py-1 text-orange-400 font-black font-mono text-[10px]"
+                          title="Hauteur d'extrusion verticale de l'enveloppe"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2 border-t border-slate-900 pt-2">
+                      <div>
+                        <label className="text-[8px] text-slate-400 uppercase font-bold block mb-0.5">Origine X</label>
+                        <input
+                          type="number"
+                          step="0.5"
+                          value={envelopeX}
+                          onChange={(e) => {
+                            setEnvelopeX(Number(e.target.value) || 0);
+                            setEnvelopePreset("custom");
+                          }}
+                          className="w-full bg-slate-950 border border-slate-700 rounded px-1.5 py-1 text-slate-300 font-mono text-[10px]"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[8px] text-slate-400 uppercase font-bold block mb-0.5">Origine Y</label>
+                        <input
+                          type="number"
+                          step="0.5"
+                          value={envelopeY}
+                          onChange={(e) => {
+                            setEnvelopeY(Number(e.target.value) || 0);
+                            setEnvelopePreset("custom");
+                          }}
+                          className="w-full bg-slate-950 border border-slate-700 rounded px-1.5 py-1 text-slate-300 font-mono text-[10px]"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[8px] text-slate-400 uppercase font-bold block mb-0.5">Origine Z</label>
+                        <input
+                          type="number"
+                          step="0.5"
+                          value={envelopeZ}
+                          onChange={(e) => {
+                            setEnvelopeZ(Number(e.target.value) || 0);
+                            setEnvelopePreset("custom");
+                          }}
+                          className="w-full bg-slate-950 border border-slate-700 rounded px-1.5 py-1 text-slate-300 font-mono text-[10px]"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* VISUALISATION ET OPACITÉ */}
+                  <div className="bg-slate-950/40 p-3 rounded-xl border border-slate-800 space-y-2">
+                    <span className="text-[9px] font-black text-slate-400 uppercase block tracking-wider">Style d'Affichage du Volume</span>
+                    
+                    <div className="flex items-center justify-between text-[10px] text-slate-300">
+                      <span>Rendu solide translucide</span>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={!envelopeWireframe}
+                          onChange={(e) => setEnvelopeWireframe(!e.target.checked)}
+                          className="sr-only peer"
+                        />
+                        <div className="w-8 h-4 bg-slate-800 rounded-full peer peer-checked:bg-cyan-600 relative after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:width-3 after:transition-all peer-checked:after:translate-x-4"></div>
+                      </label>
+                    </div>
+
+                    {!envelopeWireframe && (
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-[8.5px] text-slate-400">
+                          <span>Translucidité de l'enveloppe</span>
+                          <span className="font-mono text-cyan-300">{Math.round(envelopeOpacity * 100)}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0.05"
+                          max="0.4"
+                          step="0.01"
+                          value={envelopeOpacity}
+                          onChange={(e) => setEnvelopeOpacity(Number(e.target.value))}
+                          className="w-full h-1 bg-slate-850 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* RAPPORT DE CONFINEMENT & GABARIT */}
+                  <div className={`p-3 rounded-xl border ${totalEnvelopeIssues > 0 ? "bg-red-950/40 border-red-900/60" : "bg-emerald-950/40 border-emerald-900/60"} space-y-2`}>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm">{totalEnvelopeIssues > 0 ? "⚠️" : "✓"}</span>
+                      <span className={`text-[10px] font-black uppercase tracking-wider ${totalEnvelopeIssues > 0 ? "text-red-400" : "text-emerald-400"}`}>
+                        Contrôle Géométrique de l'Espace
+                      </span>
+                    </div>
+
+                    {totalEnvelopeIssues === 0 ? (
+                      <p className="text-[10px] text-slate-300 leading-normal">
+                        Intégration conforme ! L'intégralité du réseau de tuyauterie et des supports est parfaitement confinée à l'intérieur du volume extrudé.
+                      </p>
+                    ) : (
+                      <div className="space-y-2">
+                        <p className="text-[10px] text-slate-300 leading-normal">
+                          Dépassement détecté ! {totalEnvelopeIssues} élément(s) sortent de l'enveloppe autorisée.
+                        </p>
+                        <div className="max-h-24 overflow-y-auto space-y-1 border-t border-red-900/40 pt-1">
+                          {outOfEnvelopeNodes.map(n => (
+                            <div key={n.id} className="flex items-center justify-between text-[9px] bg-red-950/60 p-1.5 rounded">
+                              <span className="font-bold text-red-200 truncate">{n.name} (Hors limite)</span>
+                              <button
+                                onClick={() => focusAndHighlightError(n.id, "node", { code: "GABARIT", message: "Nœud hors Skid !" })}
+                                className="px-1.5 py-0.5 bg-red-800 text-white rounded font-bold hover:bg-red-700"
+                              >
+                                Localiser
+                              </button>
+                            </div>
+                          ))}
+                          {outOfEnvelopeSupports.map(s => (
+                            <div key={s.id} className="flex items-center justify-between text-[9px] bg-red-950/60 p-1.5 rounded">
+                              <span className="font-bold text-red-200 truncate">Support {s.tag} (Hors limite)</span>
+                              <button
+                                onClick={() => focusAndHighlightError(s.id, "support", { code: "GABARIT", message: "Support hors Skid !" })}
+                                className="px-1.5 py-0.5 bg-red-800 text-white rounded font-bold hover:bg-red-700"
+                              >
+                                Localiser
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
           )}
         </div>
       </div>

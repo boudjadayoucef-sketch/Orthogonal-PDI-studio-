@@ -859,6 +859,35 @@ export const IsoRibbonBar: React.FC<IsoRibbonBarProps> = ({
         );
       }
 
+      case "volume": {
+        const entreesConfig = pdiEntreesGroupe017M("volume", "Configuration");
+        const entreesSkid = pdiEntreesGroupe017M("volume", "Définition du Skid");
+        const entreesVisu = pdiEntreesGroupe017M("volume", "Visualisation");
+        const entreesControle = pdiEntreesGroupe017M("volume", "Contrôle de Gabarit");
+
+        return (
+          <>
+            {/* Configuration & Panneau principal */}
+            {entreesConfig.map(renderSingleEntry)}
+
+            <div className="h-px bg-[#30363D]/80 my-1" />
+
+            {/* Extrusion et dimensionnement du Skid */}
+            {entreesSkid.map(renderSingleEntry)}
+
+            <div className="h-px bg-[#30363D]/80 my-1" />
+
+            {/* Options d'affichage et visibilité */}
+            {entreesVisu.map(renderSingleEntry)}
+
+            <div className="h-px bg-[#30363D]/80 my-1" />
+
+            {/* Validation et détection des dépassements */}
+            {entreesControle.map(renderSingleEntry)}
+          </>
+        );
+      }
+
       case "affichage": {
         const entreesZoom = pdiEntreesGroupe017M("affichage", "Zoom");
         const entreesReperes = pdiEntreesGroupe017M("affichage", "Reperes");
