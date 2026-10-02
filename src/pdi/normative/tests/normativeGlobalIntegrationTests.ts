@@ -5,13 +5,13 @@
  * Suite de tests d'intégration globale validant la chaîne normative complète :
  * MASTER-02 -> NORM-09/10/11 -> NORM-13 -> NORM-14-01 -> NORM-14-02..06 -> NORM-14-07 -> NORM-14-08 -> COMPONENT-01..05 -> NORM-14-09 -> NORM-14-10
  * 
- * RÈGLES DE CONCEPTION STRICTES (NORM-14-11) :
+ * RÈGLES DE CONCEPTION STRICTES (NORM-14-11 / NORM-14-11-FIX-01) :
  * 1. Aucun inventaire normatif réel (pas d'ASME B31.3, B16.5, B16.9, API, ISO, EN, ASTM).
- * 2. Données et identifiants strictement synthétiques (SYNTHETIC_*, *_SYNTH_*, *_TEST).
+ * 2. Données et identifiants strictement synthétiques (SYNTHETIC_*, *_SYNTH_*, *_TEST, SYN_*).
  * 3. Aucune nouvelle source de vérité normative, aucun recalcul ni nouvelle règle.
  * 4. Déterminisme absolu, immutabilité et traçabilité de bout en bout.
  * 5. Traitement strictement opaque et anti-heuristique des chaînes d'identification.
- * 6. Minimum 30 tests réels (45 tests implémentés couvrant 15 sections).
+ * 6. Comptage strict : testsRun = nombre de scénarios runTest(), assertionsPassed/Failed = assertions assert().
  */
 
 import type {
@@ -61,6 +61,8 @@ export interface NormativeGlobalIntegrationTestResult {
   readonly testsRun: number;
   readonly passed: number;
   readonly failed: number;
+  readonly assertionsPassed: number;
+  readonly assertionsFailed: number;
   readonly results: readonly string[];
 }
 
@@ -107,24 +109,26 @@ class SyntheticComponentResolutionEngine implements IComponentResolutionEngine {
  */
 export function runNormativeGlobalIntegrationTests(): NormativeGlobalIntegrationTestResult {
   const results: string[] = [];
-  let passed = 0;
-  let failed = 0;
+  let testsRun = 0;
+  let assertionsPassed = 0;
+  let assertionsFailed = 0;
 
   function assert(condition: boolean, testName: string, detail?: string) {
     if (!condition) {
-      failed++;
+      assertionsFailed++;
       results.push(`❌ FAIL: ${testName} ${detail ? `(${detail})` : ""}`);
     } else {
-      passed++;
+      assertionsPassed++;
       results.push(`✅ PASS: ${testName}`);
     }
   }
 
   function runTest(testName: string, fn: () => void) {
+    testsRun++;
     try {
       fn();
     } catch (err: unknown) {
-      failed++;
+      assertionsFailed++;
       const msg = err instanceof Error ? err.message : String(err);
       results.push(`❌ EXCEPTION in ${testName}: ${msg}`);
     }
@@ -395,7 +399,7 @@ export function runNormativeGlobalIntegrationTests(): NormativeGlobalIntegration
   runTest("TEST 11 [NORM-14-04]: Pas de conversion implicite Class ↔ PN (strict match uniquement)", () => {
     const res = ratAdapter.resolveCompatibility({
       component: { componentType: "PIPE", componentId: "PIPE_SYNTH_RAT_01" },
-      rating: { ratingId: "PN16_SYNTHETIC_UNMAPPED" },
+      rating: { ratingId: "SYN_RATING_UNMAPPED_01" },
     });
     assert(res.status === "UNVERIFIED", "Aucune conversion automatique ne doit être effectuée");
     assert(res.matchedRuleIds.length === 0, "matchedRuleIds vide");
@@ -646,8 +650,8 @@ export function runNormativeGlobalIntegrationTests(): NormativeGlobalIntegration
       componentContext: {
         specificationId: "SPEC_SYNTH_01",
         componentType: "PIPE",
-        nominalSize: "2",
-        schedule: "SCH 40",
+        nominalSize: "SYN_NOMINAL_SIZE_01",
+        schedule: "SYN_SCHEDULE_01",
       },
       specResolution: {
         status: "COMPATIBLE",
@@ -692,14 +696,14 @@ export function runNormativeGlobalIntegrationTests(): NormativeGlobalIntegration
 
     const res = testEngineNoCand.resolve({
       componentContext: {
-        specificationId: "SPEC_01",
+        specificationId: "SPEC_SYNTH_01",
         componentType: "PIPE",
-        nominalSize: "2",
-        schedule: "SCH 40",
+        nominalSize: "SYN_NOMINAL_SIZE_01",
+        schedule: "SYN_SCHEDULE_01",
       },
       specResolution: {
         status: "COMPATIBLE",
-        specificationId: "SPEC_01",
+        specificationId: "SPEC_SYNTH_01",
         componentType: "PIPE",
         matchedRuleIds: [],
         compatibilityRuleIds: [],
@@ -722,14 +726,14 @@ export function runNormativeGlobalIntegrationTests(): NormativeGlobalIntegration
   runTest("TEST 25 [NORM-14-09]: Incompatibilité multi-compatibilité domine component resolution RESOLVED", () => {
     const res = componentIntegrationEngine.resolve({
       componentContext: {
-        specificationId: "SPEC_01",
+        specificationId: "SPEC_SYNTH_01",
         componentType: "PIPE",
-        nominalSize: "2",
-        schedule: "SCH 40",
+        nominalSize: "SYN_NOMINAL_SIZE_01",
+        schedule: "SYN_SCHEDULE_01",
       },
       specResolution: {
         status: "COMPATIBLE",
-        specificationId: "SPEC_01",
+        specificationId: "SPEC_SYNTH_01",
         componentType: "PIPE",
         matchedRuleIds: [],
         compatibilityRuleIds: [],
@@ -907,8 +911,8 @@ export function runNormativeGlobalIntegrationTests(): NormativeGlobalIntegration
       componentContext: {
         specificationId: "SPEC_SYNTH_GLOBAL",
         componentType: "PIPE",
-        nominalSize: "4",
-        schedule: "SCH 40",
+        nominalSize: "SYN_NOMINAL_SIZE_02",
+        schedule: "SYN_SCHEDULE_01",
       },
       specResolution: {
         status: "COMPATIBLE",
@@ -966,8 +970,8 @@ export function runNormativeGlobalIntegrationTests(): NormativeGlobalIntegration
       componentContext: {
         specificationId: "SPEC_SYNTH_GLOBAL",
         componentType: "PIPE",
-        nominalSize: "2",
-        schedule: "SCH 40",
+        nominalSize: "SYN_NOMINAL_SIZE_01",
+        schedule: "SYN_SCHEDULE_01",
       },
       specResolution: {
         status: "COMPATIBLE",
@@ -1021,8 +1025,8 @@ export function runNormativeGlobalIntegrationTests(): NormativeGlobalIntegration
       componentContext: {
         specificationId: "SPEC_SYNTH_01",
         componentType: "PIPE",
-        nominalSize: "2",
-        schedule: "SCH 40",
+        nominalSize: "SYN_NOMINAL_SIZE_01",
+        schedule: "SYN_SCHEDULE_01",
       },
       specResolution: {
         status: "COMPATIBLE",
@@ -1109,12 +1113,14 @@ export function runNormativeGlobalIntegrationTests(): NormativeGlobalIntegration
     assert(freshMatrixRegistry.count() === 0, "Registre de matrice instancié localement est vierge");
   });
 
-  const success = failed === 0;
+  const success = assertionsFailed === 0;
   return Object.freeze({
     success,
-    testsRun: passed + failed,
-    passed,
-    failed,
+    testsRun,
+    passed: assertionsPassed,
+    failed: assertionsFailed,
+    assertionsPassed,
+    assertionsFailed,
     results: Object.freeze(results),
   });
 }
