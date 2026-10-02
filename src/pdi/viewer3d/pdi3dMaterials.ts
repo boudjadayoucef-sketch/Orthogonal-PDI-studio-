@@ -38,6 +38,14 @@ export interface MaterialPalette {
   gaugeNeedle: THREE.MeshStandardMaterial;
   copperBrass: THREE.MeshStandardMaterial;
   insulationOrange: THREE.MeshStandardMaterial;
+  volumeWallGlass: THREE.MeshPhysicalMaterial;
+  volumeWallSolid: THREE.MeshStandardMaterial;
+  volumeEdgeLine: THREE.LineBasicMaterial;
+  skidSteelBeam: THREE.MeshStandardMaterial;
+  skidFloorPlate: THREE.MeshStandardMaterial;
+  wallSleeveSteel: THREE.MeshStandardMaterial;
+  wallSleeveGasket: THREE.MeshStandardMaterial;
+  wallCrossingGlow: THREE.MeshBasicMaterial;
   getSpoolMaterial: (spoolId?: string, spoolColor?: string, mode?: RenderShadingMode) => THREE.Material;
   getServiceMaterial: (service?: string, mode?: RenderShadingMode) => THREE.Material;
 }
@@ -233,6 +241,65 @@ export function createPdi3dMaterialPalette(): MaterialPalette {
     roughness: 0.5,
   });
 
+  const volumeWallGlass = new THREE.MeshPhysicalMaterial({
+    color: 0x38bdf8,
+    transparent: true,
+    opacity: 0.14,
+    roughness: 0.25,
+    transmission: 0.55,
+    metalness: 0.1,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+  });
+
+  const volumeWallSolid = new THREE.MeshStandardMaterial({
+    color: 0x1e293b,
+    transparent: true,
+    opacity: 0.22,
+    roughness: 0.5,
+    metalness: 0.2,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+  });
+
+  const volumeEdgeLine = new THREE.LineBasicMaterial({
+    color: 0x38bdf8,
+    linewidth: 2,
+    transparent: true,
+    opacity: 0.85,
+  });
+
+  const skidSteelBeam = new THREE.MeshStandardMaterial({
+    color: 0x334155, // Heavy IPE steel channel
+    metalness: 0.85,
+    roughness: 0.3,
+  });
+
+  const skidFloorPlate = new THREE.MeshStandardMaterial({
+    color: 0x1e293b,
+    metalness: 0.65,
+    roughness: 0.6,
+  });
+
+  const wallSleeveSteel = new THREE.MeshStandardMaterial({
+    color: 0x475569,
+    metalness: 0.88,
+    roughness: 0.22,
+  });
+
+  const wallSleeveGasket = new THREE.MeshStandardMaterial({
+    color: 0xf97316, // High-visibility safety orange elastomer seal
+    emissive: 0xc2410c,
+    emissiveIntensity: 0.35,
+    metalness: 0.2,
+    roughness: 0.6,
+  });
+
+  const wallCrossingGlow = new THREE.MeshBasicMaterial({
+    color: 0xf59e0b,
+    wireframe: true,
+  });
+
   const spoolCache = new Map<string, THREE.MeshStandardMaterial>();
   const serviceCache = new Map<string, THREE.MeshStandardMaterial>();
 
@@ -312,6 +379,14 @@ export function createPdi3dMaterialPalette(): MaterialPalette {
     gaugeNeedle,
     copperBrass,
     insulationOrange,
+    volumeWallGlass,
+    volumeWallSolid,
+    volumeEdgeLine,
+    skidSteelBeam,
+    skidFloorPlate,
+    wallSleeveSteel,
+    wallSleeveGasket,
+    wallCrossingGlow,
     getSpoolMaterial,
     getServiceMaterial,
   };

@@ -986,6 +986,106 @@ export class Pdi3dSceneManager {
       }
     }
 
+    // 5. Projection du Volume Extrudé (Skid Industriel / Chambre Technique), Zones Intérieur/Extérieur & Traversées de Paroi
+    const env = data.envelope;
+    const isEnvelopeActive = env && env.active !== false;
+    const shouldShowEnvelope = isEnvelopeActive && this.currentOptions.showVolumeEnvelope !== false;
+
+    if (shouldShowEnvelope && env) {
+      // Construction de la structure volumétrique 3D (Parois, ossature IPE, dalle/caillebotis)
+      const volumeMesh = this.factory.createVolumeEnvelopeMesh(env, {
+        showSolidWalls: false,
+        wireframe: false,
+      });
+      this.modelRoot.add(volumeMesh);
+
+      // Calcul des traversées de paroi étanches (Link-Seal) et détection des zones int/ext
+      if (this.currentOptions.showWallCrossings !== false) {
+        const xMin = env.x;
+        const xMax = env.x + env.length;
+        const yMin = env.y;
+        const yMax = env.y + env.width;
+        const zMin = env.z;
+        const zMax = env.z + env.height;
+
+        const isInside = (x: number, y: number, z: number) =>
+          x >= xMin - 0.001 && x <= xMax + 0.001 &&
+          y >= yMin - 0.001 && y <= yMax + 0.001 &&
+          z >= zMin - 0.001 && z <= zMax + 0.001;
+
+        const eps = 0.02;
+
+        for (const seg of segments) {
+          const fn = nodeMap.get(seg.fromNodeId);
+          const tn = nodeMap.get(seg.toNodeId);
+          if (!fn || !tn) continue;
+
+          const p1 = { x: fn.x, y: fn.y, z: fn.z };
+          const p2 = { x: tn.x, y: tn.y, z: tn.z };
+          const in1 = isInside(p1.x, p1.y, p1.z);
+          const in2 = isInside(p2.x, p2.y, p2.z);
+
+          // Si le segment franchit une frontière ou relie intérieur et extérieur
+          const dx = p2.x - p1.x;
+          const dy = p2.y - p1.y;
+          const dz = p2.z - p1.z;
+
+          const checkPlane = (
+            valA: number,
+            valB: number,
+            planeVal: number,
+            axis: "X" | "Y" | "Z",
+            planeName: string,
+            normVec: THREE.Vector3
+          ) => {
+            if (Math.abs(valB - valA) < 0.0001) return;
+            const t = (planeVal - valA) / (valB - valA);
+            if (t >= -0.001 && t <= 1.001) {
+              const ix = p1.x + t * dx;
+              const iy = p1.y + t * dy;
+              const iz = p1.z + t * dz;
+
+              // Vérifier si l'intersection tombe dans le rectangle de la face
+              const withinX = (axis === "X") || (ix >= xMin - eps && ix <= xMax + eps);
+              const withinY = (axis === "Y") || (iy >= yMin - eps && iy <= yMax + eps);
+              const withinZ = (axis === "Z") || (iz >= zMin - eps && iz <= zMax + eps);
+
+              if (withinX && withinY && withinZ) {
+                const threePos = toThree(ix, iy, iz);
+                const isExit = in1 && !in2;
+
+                const crossingGroup = this.factory.createWallCrossingMesh({
+                  x: threePos.x,
+                  y: threePos.y,
+                  z: threePos.z,
+                  plane: planeName,
+                  axis,
+                  normal: normVec,
+                  dn: seg.dn || 100,
+                  segmentId: seg.id,
+                  lineNumber: seg.tag,
+                  isExit,
+                });
+                this.modelRoot.add(crossingGroup);
+              }
+            }
+          };
+
+          // 1. Paroi Ouest (-X) et Paroi Est (+X)
+          checkPlane(p1.x, p2.x, xMin, "X", "Paroi Ouest (-X)", new THREE.Vector3(-1, 0, 0));
+          checkPlane(p1.x, p2.x, xMax, "X", "Paroi Est (+X)", new THREE.Vector3(1, 0, 0));
+
+          // 2. Paroi Sud (-Y) et Paroi Nord (+Y)
+          checkPlane(p1.y, p2.y, yMin, "Y", "Paroi Sud (-Y)", new THREE.Vector3(0, 0, -1));
+          checkPlane(p1.y, p2.y, yMax, "Y", "Paroi Nord (+Y)", new THREE.Vector3(0, 0, 1));
+
+          // 3. Dalle Sol (-Z) et Dalle Plafond (+Z)
+          checkPlane(p1.z, p2.z, zMin, "Z", "Dalle Sol (-Z)", new THREE.Vector3(0, -1, 0));
+          checkPlane(p1.z, p2.z, zMax, "Z", "Plafond (+Z)", new THREE.Vector3(0, 1, 0));
+        }
+      }
+    }
+
     // Cadrage automatique uniquement au premier chargement ou si explicitement demandé (évite la perte de zoom lors des mises à jour)
     if (this.isFirstBuild || options?.forceAutoFit) {
       this.fitToExtents();
@@ -1244,6 +1344,17 @@ export class Pdi3dSceneManager {
         service: u.service,
         pressureClass: u.pressureClass,
         lengthM: u.lengthM,
+        wallCrossingInfo:
+          u.entityType === "wall_crossing"
+            ? {
+                plane: u.plane,
+                axis: u.axis,
+                coord: u.axis === "X" ? hit.point.x : u.axis === "Y" ? hit.point.z : hit.point.y,
+                segmentId: u.segmentId,
+                dn: u.dn,
+                sleeveType: u.sleeveType || "Fourreau étanche Link-Seal",
+              }
+            : undefined,
         worldPos: { x: hit.point.x, y: hit.point.y, z: hit.point.z },
       });
     } else {
@@ -1295,6 +1406,17 @@ export class Pdi3dSceneManager {
                 typeLabelFr: u.typeLabelFr,
                 standard: u.standard,
                 designLoadKn: u.designLoadKn,
+              }
+            : undefined,
+        wallCrossingInfo:
+          u.entityType === "wall_crossing"
+            ? {
+                plane: u.plane,
+                axis: u.axis,
+                coord: u.axis === "X" ? hit.point.x : u.axis === "Y" ? hit.point.z : hit.point.y,
+                segmentId: u.segmentId,
+                dn: u.dn,
+                sleeveType: u.sleeveType || "Fourreau étanche Link-Seal",
               }
             : undefined,
         worldPos: { x: hit.point.x, y: hit.point.y, z: hit.point.z },

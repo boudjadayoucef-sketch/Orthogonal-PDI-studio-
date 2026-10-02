@@ -2013,5 +2013,323 @@ export class Pdi3dGeometryFactory {
     group.userData = { ...userData, isPdiEntity: true, entityType: "fitting", fittingType: "purge", dn };
     return group;
   }
+
+  /**
+   * Crée un sprite de texte 3D haute lisibilité pour les annotations d'enveloppe et traversées
+   */
+  public createBillboardTextSprite(
+    text: string,
+    subText?: string,
+    bgColor: string = "rgba(10, 15, 24, 0.88)",
+    textColor: string = "#38bdf8",
+    borderColor: string = "#0284c7"
+  ): THREE.Sprite {
+    const canvas = document.createElement("canvas");
+    canvas.width = 384;
+    canvas.height = 96;
+    const ctx = canvas.getContext("2d");
+    if (ctx) {
+      ctx.fillStyle = bgColor;
+      if (ctx.roundRect) ctx.roundRect(4, 4, 376, 88, 12);
+      else ctx.fillRect(4, 4, 376, 88);
+      ctx.fill();
+
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = borderColor;
+      ctx.stroke();
+
+      ctx.fillStyle = textColor;
+      ctx.font = "bold 22px 'Space Grotesk', system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(text, 192, subText ? 34 : 48);
+
+      if (subText) {
+        ctx.fillStyle = "#94a3b8";
+        ctx.font = "bold 15px 'Space Grotesk', system-ui, sans-serif";
+        ctx.fillText(subText, 192, 64);
+      }
+    }
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.minFilter = THREE.LinearFilter;
+    const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
+    const sprite = new THREE.Sprite(mat);
+    sprite.scale.set(2.4, 0.6, 1);
+    return sprite;
+  }
+
+  /**
+   * Crée la projection tridimensionnelle solide et structurée d'un Volume / Skid industriel ou Chambre Technique
+   * Modélise les parois transparentes, l'ossature métallique IPE, le caillebotis de sol, les poteaux cornières et les repères
+   */
+  public createVolumeEnvelopeMesh(
+    env: {
+      length: number;
+      width: number;
+      height: number;
+      x: number;
+      y: number;
+      z: number;
+      preset?: string;
+      active?: boolean;
+    },
+    options: {
+      showSolidWalls?: boolean;
+      wireframe?: boolean;
+      opacity?: number;
+    } = {}
+  ): THREE.Group {
+    const root = new THREE.Group();
+
+    const len = Math.max(0.2, env.length);   // Axe X (Longueur)
+    const wid = Math.max(0.2, env.width);    // Axe Y CAD -> Axe Z Three.js (Largeur)
+    const hgt = Math.max(0.2, env.height);   // Axe Z CAD -> Axe Y Three.js (Hauteur d'extrusion)
+
+    // Centre Three.js (X = x + len/2, Y = z + hgt/2, Z = y + wid/2)
+    const cx = env.x + len / 2;
+    const cy = env.z + hgt / 2;
+    const cz = env.y + wid / 2;
+
+    const isSkid = !env.preset || env.preset.includes("skid") || env.preset === "custom";
+    const isRoom = env.preset?.includes("local") || env.preset?.includes("chambre") || env.preset?.includes("bureau");
+
+    // 1. Boîte volumétrique principale semi-transparente (Confinement d'espace)
+    const boxGeom = new THREE.BoxGeometry(len, hgt, wid);
+    const wallMat = options.showSolidWalls ? this.materials.volumeWallSolid : this.materials.volumeWallGlass;
+    const boxMesh = new THREE.Mesh(boxGeom, wallMat);
+    boxMesh.position.set(cx, cy, cz);
+    boxMesh.userData = {
+      isPdiEntity: true,
+      entityType: "volume_envelope",
+      label: isRoom ? "Chambre Technique (Local Clôturé)" : "Châssis & Enveloppe Skid Industriel",
+      preset: env.preset || "skid",
+      dimensions: `${len.toFixed(2)}m × ${wid.toFixed(2)}m × H=${hgt.toFixed(2)}m`,
+      origin: `X0=${env.x.toFixed(2)}m, Y0=${env.y.toFixed(2)}m, Z0=${env.z.toFixed(2)}m`,
+    };
+    root.add(boxMesh);
+
+    // 2. Arêtes filaires lumineuses d'extrusion (Bordures de volume)
+    const edgesGeom = new THREE.EdgesGeometry(boxGeom);
+    const edgesLine = new THREE.LineSegments(edgesGeom, this.materials.volumeEdgeLine);
+    edgesLine.position.set(cx, cy, cz);
+    root.add(edgesLine);
+
+    // 3. Structure physique selon la nature du volume (Châssis Skid Métallique ou Génie Civil)
+    if (isSkid) {
+      // Structure métallique Skid : Longérons et Traverses en profilés IPE (Acier structurel)
+      const beamHeight = Math.min(0.18, Math.max(0.08, len * 0.025));
+      const beamWidth = beamHeight * 0.55;
+      const baseElevation = env.z + beamHeight / 2;
+
+      // Longérons périphériques X (Bas Sud et Bas Nord)
+      const xBeamGeom = new THREE.BoxGeometry(len, beamHeight, beamWidth);
+      const xBeamSud = new THREE.Mesh(xBeamGeom, this.materials.skidSteelBeam);
+      xBeamSud.position.set(cx, baseElevation, env.y + beamWidth / 2);
+      xBeamSud.castShadow = true;
+      root.add(xBeamSud);
+
+      const xBeamNord = new THREE.Mesh(xBeamGeom, this.materials.skidSteelBeam);
+      xBeamNord.position.set(cx, baseElevation, env.y + wid - beamWidth / 2);
+      xBeamNord.castShadow = true;
+      root.add(xBeamNord);
+
+      // Traverses périphériques Z (Bas Ouest et Bas Est)
+      const zBeamGeom = new THREE.BoxGeometry(beamWidth, beamHeight, wid);
+      const zBeamOuest = new THREE.Mesh(zBeamGeom, this.materials.skidSteelBeam);
+      zBeamOuest.position.set(env.x + beamWidth / 2, baseElevation, cz);
+      zBeamOuest.castShadow = true;
+      root.add(zBeamOuest);
+
+      const zBeamEst = new THREE.Mesh(zBeamGeom, this.materials.skidSteelBeam);
+      zBeamEst.position.set(env.x + len - beamWidth / 2, baseElevation, cz);
+      zBeamEst.castShadow = true;
+      root.add(zBeamEst);
+
+      // Traverses intermédiaires de renfort sous appareils et tuyauterie
+      const crossBeamCount = Math.max(1, Math.floor(len / 1.6));
+      for (let i = 1; i <= crossBeamCount; i++) {
+        const xPos = env.x + (i * len) / (crossBeamCount + 1);
+        const crossBeam = new THREE.Mesh(zBeamGeom, this.materials.skidSteelBeam);
+        crossBeam.position.set(xPos, baseElevation, cz);
+        crossBeam.castShadow = true;
+        root.add(crossBeam);
+      }
+
+      // Poteaux d'angle verticaux (Cornières / Montants de structure Skid)
+      const postGeom = new THREE.BoxGeometry(beamWidth * 1.1, hgt, beamWidth * 1.1);
+      const cornerOffsets = [
+        [env.x + beamWidth / 2, env.y + beamWidth / 2],
+        [env.x + len - beamWidth / 2, env.y + beamWidth / 2],
+        [env.x + beamWidth / 2, env.y + wid - beamWidth / 2],
+        [env.x + len - beamWidth / 2, env.y + wid - beamWidth / 2],
+      ];
+
+      cornerOffsets.forEach(([px, pz]) => {
+        const post = new THREE.Mesh(postGeom, this.materials.skidSteelBeam);
+        post.position.set(px, cy, pz);
+        post.castShadow = true;
+        root.add(post);
+
+        // Oreille de levage / Pad eye au sommet de chaque poteau pour manutention Skid
+        const eyeGeom = new THREE.TorusGeometry(0.045, 0.015, 12, 24);
+        const eyeMesh = new THREE.Mesh(eyeGeom, this.materials.equipmentBrass);
+        eyeMesh.position.set(px, env.z + hgt + 0.04, pz);
+        eyeMesh.rotation.y = Math.PI / 4;
+        root.add(eyeMesh);
+      });
+
+      // Cadre supérieur de couronnement Skid
+      const topElevation = env.z + hgt - beamHeight / 2;
+      const topXSud = new THREE.Mesh(xBeamGeom, this.materials.skidSteelBeam);
+      topXSud.position.set(cx, topElevation, env.y + beamWidth / 2);
+      root.add(topXSud);
+
+      const topXNord = new THREE.Mesh(xBeamGeom, this.materials.skidSteelBeam);
+      topXNord.position.set(cx, topElevation, env.y + wid - beamWidth / 2);
+      root.add(topXNord);
+
+      const topZOuest = new THREE.Mesh(zBeamGeom, this.materials.skidSteelBeam);
+      topZOuest.position.set(env.x + beamWidth / 2, topElevation, cz);
+      root.add(topZOuest);
+
+      const topZEst = new THREE.Mesh(zBeamGeom, this.materials.skidSteelBeam);
+      topZEst.position.set(env.x + len - beamWidth / 2, topElevation, cz);
+      root.add(topZEst);
+
+      // Caillebotis / Plancher d'atelier métallique de base
+      const floorGeom = new THREE.PlaneGeometry(len - beamWidth * 2, wid - beamWidth * 2);
+      const floorMesh = new THREE.Mesh(floorGeom, this.materials.skidFloorPlate);
+      floorMesh.rotation.x = -Math.PI / 2;
+      floorMesh.position.set(cx, env.z + beamHeight, cz);
+      floorMesh.receiveShadow = true;
+      root.add(floorMesh);
+    } else {
+      // Structure Chambre Technique / Local Confiné : Dalle béton armé et plafond
+      const slabThick = 0.16;
+
+      // Radier / Dalle de sol en béton armé
+      const floorSlabGeom = new THREE.BoxGeometry(len + 0.3, slabThick, wid + 0.3);
+      const floorSlab = new THREE.Mesh(floorSlabGeom, this.materials.concretePad);
+      floorSlab.position.set(cx, env.z - slabThick / 2, cz);
+      floorSlab.receiveShadow = true;
+      root.add(floorSlab);
+
+      // Dalle de plafond supérieure
+      const roofSlabGeom = new THREE.BoxGeometry(len + 0.3, slabThick, wid + 0.3);
+      const roofSlab = new THREE.Mesh(roofSlabGeom, this.materials.concretePad);
+      roofSlab.position.set(cx, env.z + hgt + slabThick / 2, cz);
+      roofSlab.castShadow = true;
+      root.add(roofSlab);
+    }
+
+    // 4. Cartouche flottant 3D d'identification au coin supérieur
+    const title = isRoom
+      ? `CHAMBRE TECHNIQUE (${len.toFixed(1)}m × ${wid.toFixed(1)}m)`
+      : `SKID INDUSTRIEL ASME (${len.toFixed(1)}m × ${wid.toFixed(1)}m)`;
+    const subtitle = `Volume Extrudé H=${hgt.toFixed(1)}m · Origine (X0=${env.x.toFixed(1)}, Y0=${env.y.toFixed(1)})`;
+    const labelSprite = this.createBillboardTextSprite(
+      title,
+      subtitle,
+      "rgba(10, 15, 24, 0.92)",
+      isRoom ? "#38bdf8" : "#f59e0b",
+      isRoom ? "#0284c7" : "#d97706"
+    );
+    labelSprite.position.set(env.x + len + 0.2, env.z + hgt + 0.45, env.y + wid + 0.2);
+    root.add(labelSprite);
+
+    return root;
+  }
+
+  /**
+   * Crée une traversée de paroi étanche 3D (Fourreau métallique, manchette souple Link-Seal et bride de serrage)
+   * Générée au point précis d'intersection entre un tube et une paroi de volume/skid
+   */
+  public createWallCrossingMesh(crossing: {
+    x: number;       // Coordonnée X Three.js
+    y: number;       // Coordonnée Y Three.js (Élévation)
+    z: number;       // Coordonnée Z Three.js (Nord)
+    plane: string;   // "Paroi Ouest (-X)", "Paroi Est (+X)", "Paroi Sud (-Y)", "Paroi Nord (+Y)", "Sol (-Z)", "Plafond (+Z)"
+    axis: "X" | "Y" | "Z";
+    normal: THREE.Vector3;
+    dn: number;
+    segmentId: string;
+    lineNumber?: string;
+    label?: string;
+    isExit?: boolean;
+  }): THREE.Group {
+    const group = new THREE.Group();
+    const dims = getPipeStandardDimensions(crossing.dn);
+    const pipeR = dims.odM / 2;
+    const sleeveR = pipeR + 0.035; // Fourreau élargi de +35mm de rayon pour le joint Link-Seal
+    const sleeveLen = 0.28;        // Épaisseur de la paroi / traversée
+
+    // 1. Fourreau métallique extérieur scellé dans la paroi
+    const sleeveGeom = new THREE.CylinderGeometry(sleeveR, sleeveR, sleeveLen, 32);
+    const sleeveMesh = new THREE.Mesh(sleeveGeom, this.materials.wallSleeveSteel);
+    sleeveMesh.castShadow = true;
+    sleeveMesh.receiveShadow = true;
+
+    // 2. Joint d'étanchéité annulaire haute visibilité (Élastomère orange sécurité Link-Seal)
+    const sealGeom = new THREE.RingGeometry(pipeR * 1.02, sleeveR * 0.98, 32);
+    const sealFront = new THREE.Mesh(sealGeom, this.materials.wallSleeveGasket);
+    sealFront.position.y = sleeveLen / 2 + 0.001;
+    sealFront.rotation.x = -Math.PI / 2;
+
+    const sealBack = new THREE.Mesh(sealGeom, this.materials.wallSleeveGasket);
+    sealBack.position.y = -sleeveLen / 2 - 0.001;
+    sealBack.rotation.x = Math.PI / 2;
+
+    // 3. Collerette / Bride métallique de serrage mural avec boulons
+    const collarGeom = new THREE.CylinderGeometry(sleeveR * 1.25, sleeveR * 1.25, 0.02, 32);
+    const collarMesh = new THREE.Mesh(collarGeom, this.materials.supportSteel);
+    collarMesh.position.y = sleeveLen / 2;
+
+    const sleeveAssembly = new THREE.Group();
+    sleeveAssembly.add(sleeveMesh);
+    sleeveAssembly.add(sealFront);
+    sleeveAssembly.add(sealBack);
+    sleeveAssembly.add(collarMesh);
+
+    // Orientation du fourreau selon la normale à la paroi
+    const yAxis = new THREE.Vector3(0, 1, 0);
+    const norm = crossing.normal.clone().normalize();
+    if (norm.lengthSq() > 0.0001) {
+      sleeveAssembly.quaternion.setFromUnitVectors(yAxis, norm);
+    }
+
+    sleeveAssembly.position.set(crossing.x, crossing.y, crossing.z);
+    group.add(sleeveAssembly);
+
+    // 4. Cartouche indicateur flottant au-dessus de la traversée
+    const planeName = crossing.plane || "Traversée Paroi";
+    const dirTag = crossing.isExit ? "OUTLET" : "INLET";
+    const tagText = `${planeName} [${dirTag}] · DN${crossing.dn}`;
+    const coordText = `Pos: (${crossing.x.toFixed(2)}, ${crossing.z.toFixed(2)}, EL.+${crossing.y.toFixed(2)}m)`;
+    const sprite = this.createBillboardTextSprite(
+      tagText,
+      coordText,
+      "rgba(15, 23, 42, 0.90)",
+      "#38bdf8",
+      "#0284c7"
+    );
+    sprite.scale.set(1.8, 0.45, 1);
+    sprite.position.set(crossing.x + norm.x * 0.15, crossing.y + 0.35, crossing.z + norm.z * 0.15);
+    group.add(sprite);
+
+    group.userData = {
+      isPdiEntity: true,
+      entityType: "wall_crossing",
+      label: `Traversée de paroi étanche DN${crossing.dn} (${crossing.plane})`,
+      plane: crossing.plane,
+      axis: crossing.axis,
+      dn: crossing.dn,
+      segmentId: crossing.segmentId,
+      sleeveType: "Fourreau Acier avec Presse-Étoupe Link-Seal",
+      worldPos: { x: crossing.x, y: crossing.y, z: crossing.z },
+    };
+
+    return group;
+  }
 }
+
 

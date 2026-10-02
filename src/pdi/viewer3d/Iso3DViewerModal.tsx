@@ -27,6 +27,8 @@ import {
   Sliders,
   CheckCircle2,
   Sparkles,
+  Building2,
+  ShieldCheck,
 } from "lucide-react";
 import { Pdi3dSceneManager } from "./pdi3dSceneManager";
 import type {
@@ -69,6 +71,8 @@ export const Iso3DViewerModal: React.FC<Iso3DViewerModalProps> = ({
     showDimensions: false,
     showGroundGrid: true,
     showCompassAxes: true,
+    showVolumeEnvelope: true,
+    showWallCrossings: true,
     autoRotate: false,
     clippingPlaneEnabled: false,
     clippingZPercent: 100,
@@ -152,12 +156,20 @@ export const Iso3DViewerModal: React.FC<Iso3DViewerModalProps> = ({
     };
   }, [isOpen, embedded]);
 
-  // Répercuter les changements de données
+  // Répercuter les changements de données et d'options volumétriques
   useEffect(() => {
     if (sceneManagerRef.current && (isOpen || embedded)) {
       sceneManagerRef.current.buildModel(data, options);
     }
-  }, [data, options.selectedSpoolId, options.shadingMode, options.showWelds, options.showSupports]);
+  }, [
+    data,
+    options.selectedSpoolId,
+    options.shadingMode,
+    options.showWelds,
+    options.showSupports,
+    options.showVolumeEnvelope,
+    options.showWallCrossings,
+  ]);
 
   useEffect(() => {
     if (sceneManagerRef.current && (isOpen || embedded)) {
@@ -228,6 +240,22 @@ export const Iso3DViewerModal: React.FC<Iso3DViewerModalProps> = ({
                 </div>
               </div>
             </div>
+
+            {/* Badge Volume Extrudé / Skid / Chambre Technique */}
+            {data.envelope && data.envelope.active !== false && (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-950/70 border border-amber-500/50 text-[10px] text-amber-300 font-bold shadow-sm">
+                <Building2 className="w-3.5 h-3.5 text-amber-400" />
+                <span>
+                  {data.envelope.preset?.includes("chambre") || data.envelope.preset?.includes("local")
+                    ? "Chambre Technique"
+                    : "Skid Industriel"}{" "}
+                  ({data.envelope.length}m × {data.envelope.width}m · H={data.envelope.height}m)
+                </span>
+                <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-200 border border-amber-400/30 text-[9px]">
+                  3D Extrudé
+                </span>
+              </div>
+            )}
 
             {/* Sélecteur rapide des 3 Rendus de Tuyauterie (uniquement en mode modal) */}
             {!embedded && (
@@ -624,6 +652,30 @@ export const Iso3DViewerModal: React.FC<Iso3DViewerModalProps> = ({
                           </div>
                         </div>
                       )}
+                      {item.wallCrossingInfo && (
+                        <div className="bg-cyan-950/40 p-2.5 rounded-lg border border-cyan-500/50 col-span-2 space-y-1.5">
+                          <div className="flex items-center gap-1.5 text-cyan-300 font-bold text-[11px] border-b border-cyan-800/60 pb-1">
+                            <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
+                            <span>Traversée de Paroi Étanche</span>
+                          </div>
+                          <div className="flex justify-between text-[10px]">
+                            <span className="text-slate-400">Plan de franchissement :</span>
+                            <span className="text-amber-300 font-bold">{item.wallCrossingInfo.plane}</span>
+                          </div>
+                          <div className="flex justify-between text-[10px]">
+                            <span className="text-slate-400">Type de Fourreau :</span>
+                            <span className="text-slate-200">{item.wallCrossingInfo.sleeveType}</span>
+                          </div>
+                          <div className="flex justify-between text-[10px]">
+                            <span className="text-slate-400">Garniture :</span>
+                            <span className="text-emerald-400 font-mono font-bold">Joint Élastomère Link-Seal</span>
+                          </div>
+                          <div className="flex justify-between text-[10px]">
+                            <span className="text-slate-400">Étanchéité :</span>
+                            <span className="text-emerald-300 font-bold">100% Conforme Gaz & Eau</span>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -633,7 +685,7 @@ export const Iso3DViewerModal: React.FC<Iso3DViewerModalProps> = ({
         </div>
 
         {/* Pied de page technique avec signature inaltérable R30 */}
-        <footer className="px-4 py-2 bg-[#0a0f18] border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-400 shrink-0">
+        <footer className="px-4 py-2 bg-[#0a0f18] border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-400 shrink-0 flex-wrap gap-2">
           <div className="flex items-center gap-3">
             <span className="font-mono text-cyan-400 font-bold">ORTHOGONAL - ENG</span>
             <span>·</span>
@@ -642,7 +694,25 @@ export const Iso3DViewerModal: React.FC<Iso3DViewerModalProps> = ({
             <span className="text-slate-500">Conforme ASME B31.3 & ASME B16.9</span>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-wrap">
+            <label className="flex items-center gap-1.5 cursor-pointer text-amber-300 hover:text-white font-semibold">
+              <input
+                type="checkbox"
+                checked={options.showVolumeEnvelope !== false}
+                onChange={(e) => setOptions((prev) => ({ ...prev, showVolumeEnvelope: e.target.checked }))}
+                className="rounded bg-slate-800 text-amber-500 focus:ring-0 w-3.5 h-3.5"
+              />
+              🏢 Volume & Skid (3D)
+            </label>
+            <label className="flex items-center gap-1.5 cursor-pointer text-cyan-300 hover:text-white font-semibold">
+              <input
+                type="checkbox"
+                checked={options.showWallCrossings !== false}
+                onChange={(e) => setOptions((prev) => ({ ...prev, showWallCrossings: e.target.checked }))}
+                className="rounded bg-slate-800 text-cyan-500 focus:ring-0 w-3.5 h-3.5"
+              />
+              🚪 Traversées de Paroi
+            </label>
             <label className="flex items-center gap-1.5 cursor-pointer text-slate-300 hover:text-white">
               <input
                 type="checkbox"

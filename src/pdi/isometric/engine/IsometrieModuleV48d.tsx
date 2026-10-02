@@ -10372,6 +10372,16 @@ setLastSavedAt(restoredTime);setSaveState("autosaved");setRecoveryCandidate(null
         supports,
         projectName,
         activeUnitSystem: unitSystem === "imperial" ? "imperial" : "metric",
+        envelope: {
+          active: envelopeActive,
+          length: envelopeLength,
+          width: envelopeWidth,
+          height: envelopeHeight,
+          x: envelopeX,
+          y: envelopeY,
+          z: envelopeZ,
+          preset: envelopePreset,
+        },
       }}
       onSwitchToIso={() => {
         setSolid3dViewerOpen(false);

@@ -29,6 +29,19 @@ export type CameraViewPreset =
 
 export type CameraProjectionType = "perspective" | "orthographic";
 
+export interface VolumeEnvelopeSpec3d {
+  active: boolean;
+  length: number; // m
+  width: number;  // m
+  height: number; // m (extrusion)
+  x: number;      // origin X
+  y: number;      // origin Y
+  z: number;      // origin Z
+  preset?: string;
+  wireframe?: boolean;
+  opacity?: number;
+}
+
 export interface Viewer3dOptions {
   shadingMode: RenderShadingMode;
   projection: CameraProjectionType;
@@ -37,6 +50,8 @@ export interface Viewer3dOptions {
   showDimensions: boolean;
   showGroundGrid: boolean;
   showCompassAxes: boolean;
+  showVolumeEnvelope?: boolean;
+  showWallCrossings?: boolean;
   autoRotate: boolean;
   clippingPlaneEnabled: boolean;
   clippingZPercent: number; // 0 à 100%
@@ -49,7 +64,7 @@ export interface Viewer3dOptions {
 }
 
 export interface Selected3dEntity {
-  type: "segment" | "node" | "fitting" | "weld" | "support" | "spool";
+  type: "segment" | "node" | "fitting" | "weld" | "support" | "spool" | "wall_crossing" | "volume_envelope";
   id: string;
   label: string;
   dn?: number;
@@ -78,6 +93,14 @@ export interface Selected3dEntity {
     standard: string;
     designLoadKn?: number;
   };
+  wallCrossingInfo?: {
+    plane: string;
+    axis: "X" | "Y" | "Z";
+    coord: number;
+    segmentId: string;
+    dn: number;
+    sleeveType: string;
+  };
   worldPos?: { x: number; y: number; z: number };
 }
 
@@ -89,4 +112,5 @@ export interface Viewer3dDataPayload {
   supports: IsoPipingSupport[];
   projectName?: string;
   activeUnitSystem?: "metric" | "imperial";
+  envelope?: VolumeEnvelopeSpec3d;
 }

@@ -1,7 +1,7 @@
 /**
  * PD&I - Nouveaux Modèles de Démonstration Industrielle
- * 1. Chambre Technique (Local Technique Fermé avec Confinement)
- * 2. Skid de Filtration Parallèle (ASME B31.3 / Conforme au Plan isometrie.png)
+ * 1. Chambre Technique (Local Technique Fermé avec Confinement & Traversées de Mur)
+ * 2. Skid de Filtration Parallèle (ASME B31.3 / Conforme à 100% au Plan isometrie.png avec Coudes et Collecteurs)
  */
 
 import type {
@@ -44,7 +44,7 @@ export interface NewDemoData {
 
 /**
  * DEMO 1 : CHAMBRE TECHNIQUE (LOCAL TECHNIQUE CHAUFFAGE & CLIMATISATION)
- * Enveloppe fermée et confinée de 5.5m × 4.0m × H=2.8m
+ * Enveloppe fermée et confinée de 4.8m × 3.8m × H=2.8m avec traversées de parois
  */
 export function generateChambreTechniqueDemo(): NewDemoData {
   const lineAllerId = "line_ct_aller";
@@ -79,142 +79,6 @@ export function generateChambreTechniqueDemo(): NewDemoData {
     },
   ];
 
-  // Nodes for Aller Line (Lower line starting at Z=0.5m, rising up to Z=2.3m)
-  const a01: IsoNode = {
-    id: "ct_a01",
-    name: "Inlet Aller DN100 (EL. +0.500)",
-    x: 0,
-    y: 0.6,
-    z: 0.5,
-    type: "entree_poste",
-    lineId: lineAllerId,
-    dn: 100,
-  };
-
-  const a02: IsoNode = {
-    id: "ct_a02",
-    name: "Vanne d'isolement Aller",
-    x: 1.8,
-    y: 0.6,
-    z: 0.5,
-    type: "normal",
-    lineId: lineAllerId,
-    dn: 100,
-  };
-
-  const a03: IsoNode = {
-    id: "ct_a03",
-    name: "Pied de colonne montante Aller",
-    x: 3.5,
-    y: 0.6,
-    z: 0.5,
-    type: "normal",
-    lineId: lineAllerId,
-    dn: 100,
-  };
-
-  const a04: IsoNode = {
-    id: "ct_a04",
-    name: "Coude haut Aller (EL. +2.300)",
-    x: 3.5,
-    y: 0.6,
-    z: 2.3,
-    type: "normal",
-    lineId: lineAllerId,
-    dn: 100,
-  };
-
-  const a05: IsoNode = {
-    id: "ct_a05",
-    name: "Traversée de cloison Aller",
-    x: 3.5,
-    y: 2.4,
-    z: 2.3,
-    type: "normal",
-    lineId: lineAllerId,
-    dn: 100,
-  };
-
-  const a06: IsoNode = {
-    id: "ct_a06",
-    name: "Sortie Aller vers Bâtiment (EL. +2.300)",
-    x: 5.0,
-    y: 2.4,
-    z: 2.3,
-    type: "sortie_poste",
-    lineId: lineAllerId,
-    dn: 100,
-  };
-
-  // Nodes for Retour Line (Slightly parallel, starting at Z=0.8m, rising up to Z=2.5m)
-  const r01: IsoNode = {
-    id: "ct_r01",
-    name: "Inlet Retour DN100 (EL. +0.800)",
-    x: 0,
-    y: 1.8,
-    z: 0.8,
-    type: "entree_poste",
-    lineId: lineRetourId,
-    dn: 100,
-  };
-
-  const r02: IsoNode = {
-    id: "ct_r02",
-    name: "Vanne d'isolement Retour",
-    x: 1.8,
-    y: 1.8,
-    z: 0.8,
-    type: "normal",
-    lineId: lineRetourId,
-    dn: 100,
-  };
-
-  const r03: IsoNode = {
-    id: "ct_r03",
-    name: "Pied de colonne Retour",
-    x: 3.5,
-    y: 1.8,
-    z: 0.8,
-    type: "normal",
-    lineId: lineRetourId,
-    dn: 100,
-  };
-
-  const r04: IsoNode = {
-    id: "ct_r04",
-    name: "Coude haut Retour (EL. +2.500)",
-    x: 3.5,
-    y: 1.8,
-    z: 2.5,
-    type: "normal",
-    lineId: lineRetourId,
-    dn: 100,
-  };
-
-  const r05: IsoNode = {
-    id: "ct_r05",
-    name: "Traversée de cloison Retour",
-    x: 3.5,
-    y: 3.2,
-    z: 2.5,
-    type: "normal",
-    lineId: lineRetourId,
-    dn: 100,
-  };
-
-  const r06: IsoNode = {
-    id: "ct_r06",
-    name: "Sortie Retour vers Bâtiment (EL. +2.500)",
-    x: 5.0,
-    y: 3.2,
-    z: 2.5,
-    type: "sortie_poste",
-    lineId: lineRetourId,
-    dn: 100,
-  };
-
-  const nodes = [a01, a02, a03, a04, a05, a06, r01, r02, r03, r04, r05, r06];
-
   // Helper for fittings
   const makeFitting = (type: string, pos: number, size: number): IsoFitting => ({
     id: uid("fit"),
@@ -225,8 +89,150 @@ export function generateChambreTechniqueDemo(): NewDemoData {
     dn: size,
   });
 
+  // --- LIGNE ALLER (Entrée Ouest Z=0.5m -> Vanne -> Coude bas 90° -> Riser -> Coude haut 90° -> Raccord Y -> Coude 90° -> Sortie Est Z=2.3m) ---
+  const a01: IsoNode = {
+    id: "ct_a01",
+    name: "Arrivée Extérieure Aller DN100 (EL. +0.500)",
+    x: -0.6,
+    y: 0.8,
+    z: 0.5,
+    type: "entree_poste",
+    lineId: lineAllerId,
+    dn: 100,
+  };
+
+  const a02: IsoNode = {
+    id: "ct_a02",
+    name: "Vanne d'isolement Aller (Intérieur Local)",
+    x: 1.8,
+    y: 0.8,
+    z: 0.5,
+    type: "normal",
+    lineId: lineAllerId,
+    dn: 100,
+  };
+
+  const a03: IsoNode = {
+    id: "ct_a03",
+    name: "Pied de colonne Aller (Coude 90° Bas)",
+    x: 3.5,
+    y: 0.8,
+    z: 0.5,
+    type: "normal",
+    equipmentType: "coude_90",
+    lineId: lineAllerId,
+    dn: 100,
+  };
+
+  const a04: IsoNode = {
+    id: "ct_a04",
+    name: "Tête de colonne Aller (Coude 90° Haut, EL. +2.300)",
+    x: 3.5,
+    y: 0.8,
+    z: 2.3,
+    type: "normal",
+    equipmentType: "coude_90",
+    lineId: lineAllerId,
+    dn: 100,
+  };
+
+  const a05: IsoNode = {
+    id: "ct_a05",
+    name: "Coude 90° Changement d'axe Aller (Vers Sortie Est)",
+    x: 3.5,
+    y: 2.6,
+    z: 2.3,
+    type: "normal",
+    equipmentType: "coude_90",
+    lineId: lineAllerId,
+    dn: 100,
+  };
+
+  const a06: IsoNode = {
+    id: "ct_a06",
+    name: "Sortie Aller vers Bâtiment (EL. +2.300)",
+    x: 5.6,
+    y: 2.6,
+    z: 2.3,
+    type: "sortie_poste",
+    lineId: lineAllerId,
+    dn: 100,
+  };
+
+  // --- LIGNE RETOUR (Entrée Ouest Z=0.8m -> Vanne -> Coude bas 90° -> Riser -> Coude haut 90° -> Raccord Y -> Coude 90° -> Sortie Est Z=2.5m) ---
+  const r01: IsoNode = {
+    id: "ct_r01",
+    name: "Arrivée Extérieure Retour DN100 (EL. +0.800)",
+    x: -0.6,
+    y: 2.0,
+    z: 0.8,
+    type: "entree_poste",
+    lineId: lineRetourId,
+    dn: 100,
+  };
+
+  const r02: IsoNode = {
+    id: "ct_r02",
+    name: "Vanne d'isolement Retour (Intérieur Local)",
+    x: 1.8,
+    y: 2.0,
+    z: 0.8,
+    type: "normal",
+    lineId: lineRetourId,
+    dn: 100,
+  };
+
+  const r03: IsoNode = {
+    id: "ct_r03",
+    name: "Pied de colonne Retour (Coude 90° Bas)",
+    x: 3.5,
+    y: 2.0,
+    z: 0.8,
+    type: "normal",
+    equipmentType: "coude_90",
+    lineId: lineRetourId,
+    dn: 100,
+  };
+
+  const r04: IsoNode = {
+    id: "ct_r04",
+    name: "Tête de colonne Retour (Coude 90° Haut, EL. +2.500)",
+    x: 3.5,
+    y: 2.0,
+    z: 2.5,
+    type: "normal",
+    equipmentType: "coude_90",
+    lineId: lineRetourId,
+    dn: 100,
+  };
+
+  const r05: IsoNode = {
+    id: "ct_r05",
+    name: "Coude 90° Changement d'axe Retour (Vers Sortie Est)",
+    x: 3.5,
+    y: 3.3,
+    z: 2.5,
+    type: "normal",
+    equipmentType: "coude_90",
+    lineId: lineRetourId,
+    dn: 100,
+  };
+
+  const r06: IsoNode = {
+    id: "ct_r06",
+    name: "Sortie Retour vers Bâtiment (EL. +2.500)",
+    x: 5.6,
+    y: 3.3,
+    z: 2.5,
+    type: "sortie_poste",
+    lineId: lineRetourId,
+    dn: 100,
+  };
+
+  const nodes = [a01, a02, a03, a04, a05, a06, r01, r02, r03, r04, r05, r06];
+
   const segments: IsoSegment[] = [
-    // Aller Line Segments
+    // Ligne Aller
     {
       id: "ct_seg_a01",
       fromNodeId: a01.id,
@@ -234,13 +240,13 @@ export function generateChambreTechniqueDemo(): NewDemoData {
       dn: 100,
       pn: "PN16",
       material: "Acier ASTM A106 Gr. B",
-      length: 1.8,
+      length: 2.4,
       type: "straight",
       lineId: lineAllerId,
       fittings: [
         makeFitting("bride_wn", 0.15, 100),
-        makeFitting("vanne_passage_total", 0.9, 100),
-        makeFitting("bride_wn", 1.65, 100),
+        makeFitting("vanne_passage_total", 1.5, 100),
+        makeFitting("bride_wn", 2.2, 100),
       ],
     },
     {
@@ -255,6 +261,7 @@ export function generateChambreTechniqueDemo(): NewDemoData {
       lineId: lineAllerId,
       fittings: [
         makeFitting("manometre", 0.8, 100),
+        makeFitting("coude_90", 0.95, 100), // Coude 90° Bas (Pied de colonne Aller)
       ],
     },
     {
@@ -268,8 +275,7 @@ export function generateChambreTechniqueDemo(): NewDemoData {
       type: "riser",
       lineId: lineAllerId,
       fittings: [
-        makeFitting("coude_90", 0.0, 100),
-        makeFitting("coude_90", 1.8, 100),
+        makeFitting("coude_90", 0.95, 100), // Coude 90° Haut (Tête de colonne Aller)
       ],
     },
     {
@@ -282,7 +288,9 @@ export function generateChambreTechniqueDemo(): NewDemoData {
       length: 1.8,
       type: "straight",
       lineId: lineAllerId,
-      fittings: [],
+      fittings: [
+        makeFitting("coude_90", 0.95, 100), // Coude 90° Changement d'axe vers sortie Est
+      ],
     },
     {
       id: "ct_seg_a05",
@@ -291,15 +299,15 @@ export function generateChambreTechniqueDemo(): NewDemoData {
       dn: 100,
       pn: "PN16",
       material: "Acier ASTM A106 Gr. B",
-      length: 1.5,
+      length: 2.1,
       type: "straight",
       lineId: lineAllerId,
       fittings: [
-        makeFitting("coude_90", 0.0, 100),
+        makeFitting("bride_wn", 2.0, 100),
       ],
     },
 
-    // Retour Line Segments
+    // Ligne Retour
     {
       id: "ct_seg_r01",
       fromNodeId: r01.id,
@@ -307,13 +315,13 @@ export function generateChambreTechniqueDemo(): NewDemoData {
       dn: 100,
       pn: "PN16",
       material: "Acier ASTM A106 Gr. B",
-      length: 1.8,
+      length: 2.4,
       type: "straight",
       lineId: lineRetourId,
       fittings: [
         makeFitting("bride_wn", 0.15, 100),
-        makeFitting("vanne_passage_total", 0.9, 100),
-        makeFitting("bride_wn", 1.65, 100),
+        makeFitting("vanne_passage_total", 1.5, 100),
+        makeFitting("bride_wn", 2.2, 100),
       ],
     },
     {
@@ -326,7 +334,9 @@ export function generateChambreTechniqueDemo(): NewDemoData {
       length: 1.7,
       type: "straight",
       lineId: lineRetourId,
-      fittings: [],
+      fittings: [
+        makeFitting("coude_90", 0.95, 100), // Coude 90° Bas (Pied de colonne Retour)
+      ],
     },
     {
       id: "ct_seg_r03",
@@ -339,8 +349,7 @@ export function generateChambreTechniqueDemo(): NewDemoData {
       type: "riser",
       lineId: lineRetourId,
       fittings: [
-        makeFitting("coude_90", 0.0, 100),
-        makeFitting("coude_90", 1.7, 100),
+        makeFitting("coude_90", 0.95, 100), // Coude 90° Haut (Tête de colonne Retour)
       ],
     },
     {
@@ -350,10 +359,12 @@ export function generateChambreTechniqueDemo(): NewDemoData {
       dn: 100,
       pn: "PN16",
       material: "Acier ASTM A106 Gr. B",
-      length: 1.4,
+      length: 1.3,
       type: "straight",
       lineId: lineRetourId,
-      fittings: [],
+      fittings: [
+        makeFitting("coude_90", 0.95, 100), // Coude 90° Changement d'axe vers sortie Est
+      ],
     },
     {
       id: "ct_seg_r05",
@@ -362,11 +373,11 @@ export function generateChambreTechniqueDemo(): NewDemoData {
       dn: 100,
       pn: "PN16",
       material: "Acier ASTM A106 Gr. B",
-      length: 1.5,
+      length: 2.1,
       type: "straight",
       lineId: lineRetourId,
       fittings: [
-        makeFitting("coude_90", 0.0, 100),
+        makeFitting("bride_wn", 2.0, 100),
       ],
     },
   ];
@@ -380,7 +391,7 @@ export function generateChambreTechniqueDemo(): NewDemoData {
       segmentId: "ct_seg_a02",
       tRatio: 0.5,
       distanceFromFromNodeM: 0.85,
-      worldPos: { x: 2.65, y: 0.6, z: 0.5 },
+      worldPos: { x: 2.65, y: 0.8, z: 0.5 },
       elevationZ: 0.5,
       orientationAngleDeg: 0,
       comments: "Support de sol glissant sous manomètre",
@@ -391,12 +402,12 @@ export function generateChambreTechniqueDemo(): NewDemoData {
       tag: "SUP-CT-02",
       type: "mss_type_1", // Hanger type / pendard
       segmentId: "ct_seg_a04",
-      tRatio: 0.6,
-      distanceFromFromNodeM: 1.08,
-      worldPos: { x: 3.5, y: 1.68, z: 2.3 },
+      tRatio: 0.5,
+      distanceFromFromNodeM: 0.9,
+      worldPos: { x: 3.5, y: 1.7, z: 2.3 },
       elevationZ: 2.3,
       orientationAngleDeg: 0,
-      comments: "Pendard de suspension sous dalle béton de plafond",
+      comments: "Pendard de suspension articulé sous dalle béton de plafond",
       civilSpec: {
         ...createDefaultCivilSpecForDn(100),
         foundationType: "dalle_existante",
@@ -409,7 +420,7 @@ export function generateChambreTechniqueDemo(): NewDemoData {
       segmentId: "ct_seg_r02",
       tRatio: 0.5,
       distanceFromFromNodeM: 0.85,
-      worldPos: { x: 2.65, y: 1.8, z: 0.8 },
+      worldPos: { x: 2.65, y: 2.0, z: 0.8 },
       elevationZ: 0.8,
       orientationAngleDeg: 0,
       comments: "Support guide latéral fixé sur socle métallique",
@@ -417,14 +428,14 @@ export function generateChambreTechniqueDemo(): NewDemoData {
     },
   ];
 
-  // Isometric dimensions (D'axe en axe)
+  // Dimensions
   const dimensions: IsoDimension[] = [
     {
       id: "ct_dim01",
       type: "distance",
       a: { kind: "node", nodeId: a01.id },
       b: { kind: "node", nodeId: a02.id },
-      label: "1 800 mm",
+      label: "2 400 mm",
       offset: { x: 0, y: -35 },
       unit: "mm",
     },
@@ -451,13 +462,12 @@ export function generateChambreTechniqueDemo(): NewDemoData {
       type: "distance",
       a: { kind: "node", nodeId: r01.id },
       b: { kind: "node", nodeId: r02.id },
-      label: "1 800 mm",
+      label: "2 400 mm",
       offset: { x: 0, y: 35 },
       unit: "mm",
     },
   ];
 
-  // 2D CAD Overlays (North arrow, title block elements)
   const cad2dEntities: Cad2dEntity[] = [
     {
       id: uid("cad"),
@@ -474,7 +484,7 @@ export function generateChambreTechniqueDemo(): NewDemoData {
       layerId: "0",
       color: "#9CA3AF",
       center: { x: 100, y: 125 },
-      text: "Confinement total dans l'enveloppe de travail (Local compresseurs)",
+      text: "Traversées de parois étanches Ouest (Inlets) et Est (Outlets)",
       fontSize: 11,
     },
   ];
@@ -495,18 +505,18 @@ export function generateChambreTechniqueDemo(): NewDemoData {
     cad2dEntities,
     cad2dLayers,
     envelopeActive: true,
-    envelopeLength: 5.5,
-    envelopeWidth: 4.0,
+    envelopeLength: 4.8,
+    envelopeWidth: 3.8,
     envelopeHeight: 2.8,
-    envelopeX: -1.0,
-    envelopeY: -1.0,
+    envelopeX: 0.0,
+    envelopeY: 0.0,
     envelopeZ: 0.0,
     envelopePreset: "local_compresseur",
   };
 }
 
 /**
- * DEMO 2 : SKID DE FILTRATION PARALLÈLE (3 LIGNES DN150 AVEC BRIDES, VANNES ET REDUCTEURS)
+ * DEMO 2 : SKID DE FILTRATION PARALLÈLE (3 LIGNES DN150 AVEC COUDES BAS/HAUT ET COLLECTEUR DE RETOUR)
  * Basé à 100% sur le plan industriel "isometrie.png"
  * Gabarit de Skid ASME standard de 6.0m × 4.5m × H=3.0m
  */
@@ -571,7 +581,7 @@ export function generateSkidFiltrationDemo(): NewDemoData {
     dn: size,
   });
 
-  // We will build 3 parallel lines at Y = 1.0m, Y = 2.2m, and Y = 3.4m on the 4.5m-wide skid frame
+  // Construction des 3 lignes parallèles du plan isometrie.png à Y = 0.8m, Y = 2.0m, et Y = 3.2m
   const yCoordinates = [0.8, 2.0, 3.2];
   const lineIds = [lineAId, lineBId, lineCId];
   const lineTags = ["A", "B", "C"];
@@ -580,11 +590,11 @@ export function generateSkidFiltrationDemo(): NewDemoData {
     const lId = lineIds[i];
     const tag = lineTags[i];
 
-    // Nodes for each line (horizontal start, concentric expander, control valve, rising branch)
+    // N01 : Entrée basse avec bride WN (isometrie.png)
     const n1: IsoNode = {
       id: `skid_${tag}_n01`,
-      name: `Inlet Ligne ${tag} (WN Flange)`,
-      x: 0,
+      name: `Inlet Ligne ${tag} (Bride WN)`,
+      x: 0.2,
       y: y,
       z: 0.4,
       type: "entree_poste",
@@ -592,10 +602,11 @@ export function generateSkidFiltrationDemo(): NewDemoData {
       dn: 150,
     };
 
+    // N02 : Détente & Élargisseur conique
     const n2: IsoNode = {
       id: `skid_${tag}_n02`,
       name: `Détente & Expansion Ligne ${tag}`,
-      x: 1.4,
+      x: 1.5,
       y: y,
       z: 0.4,
       type: "normal",
@@ -603,10 +614,11 @@ export function generateSkidFiltrationDemo(): NewDemoData {
       dn: 150,
     };
 
+    // N03 : Vanne de sectionnement à volant (Gate valve)
     const n3: IsoNode = {
       id: `skid_${tag}_n03`,
       name: `Vanne Motorisée Ligne ${tag}`,
-      x: 2.8,
+      x: 2.9,
       y: y,
       z: 0.4,
       type: "normal",
@@ -614,10 +626,11 @@ export function generateSkidFiltrationDemo(): NewDemoData {
       dn: 150,
     };
 
+    // N04 : Point instrumenté
     const n4: IsoNode = {
       id: `skid_${tag}_n04`,
       name: `Point Instrumenté Ligne ${tag}`,
-      x: 4.2,
+      x: 4.1,
       y: y,
       z: 0.4,
       type: "normal",
@@ -625,21 +638,37 @@ export function generateSkidFiltrationDemo(): NewDemoData {
       dn: 150,
     };
 
+    // N05 : Pied de colonne montante avec Coude 90° Bas (isometrie.png)
     const n5: IsoNode = {
       id: `skid_${tag}_n05`,
-      name: `Pied de Riser Ligne ${tag}`,
-      x: 5.4,
+      name: `Pied de Riser Ligne ${tag} (Coude 90° Bas)`,
+      x: 5.2,
       y: y,
       z: 0.4,
       type: "normal",
+      equipmentType: "coude_90",
       lineId: lId,
       dn: 150,
     };
 
+    // N06 : Tête de colonne montante avec Coude 90° Haut (isometrie.png)
     const n6: IsoNode = {
       id: `skid_${tag}_n06`,
-      name: `Sortie Haute Skid ${tag} (EL. +2.000)`,
-      x: 5.4,
+      name: `Tête de Riser Ligne ${tag} (Coude 90° Haut, EL. +2.000)`,
+      x: 5.2,
+      y: y,
+      z: 2.0,
+      type: "normal",
+      equipmentType: "coude_90",
+      lineId: lId,
+      dn: 150,
+    };
+
+    // N07 : Sortie haute ramenée horizontalement au-dessus du châssis (isometrie.png)
+    const n7: IsoNode = {
+      id: `skid_${tag}_n07`,
+      name: `Sortie Haute Skid ${tag} (Bride WN, EL. +2.000)`,
+      x: 1.8,
       y: y,
       z: 2.0,
       type: "sortie_poste",
@@ -647,9 +676,9 @@ export function generateSkidFiltrationDemo(): NewDemoData {
       dn: 150,
     };
 
-    nodes.push(n1, n2, n3, n4, n5, n6);
+    nodes.push(n1, n2, n3, n4, n5, n6, n7);
 
-    // Segments
+    // Tronçons de tuyauterie
     const seg1: IsoSegment = {
       id: `seg_skid_${tag}_01`,
       fromNodeId: n1.id,
@@ -657,12 +686,12 @@ export function generateSkidFiltrationDemo(): NewDemoData {
       dn: 150,
       pn: "Class 300",
       material: "Acier API 5L Gr. B",
-      length: 1.4,
+      length: 1.3,
       type: "straight",
       lineId: lId,
       fittings: [
         makeFitting("bride_wn", 0.15, 150),
-        makeFitting("reduction_concentrique", 1.1, 150),
+        makeFitting("reduction_concentrique", 1.0, 150),
       ],
     };
 
@@ -690,11 +719,11 @@ export function generateSkidFiltrationDemo(): NewDemoData {
       dn: 150,
       pn: "Class 300",
       material: "Acier API 5L Gr. B",
-      length: 1.4,
+      length: 1.2,
       type: "straight",
       lineId: lId,
       fittings: [
-        makeFitting("manometre", 0.7, 150),
+        makeFitting("manometre", 0.6, 150),
       ],
     };
 
@@ -705,14 +734,15 @@ export function generateSkidFiltrationDemo(): NewDemoData {
       dn: 150,
       pn: "Class 300",
       material: "Acier API 5L Gr. B",
-      length: 1.2,
+      length: 1.1,
       type: "straight",
       lineId: lId,
       fittings: [
-        makeFitting("coude_90", 1.2, 150),
+        makeFitting("coude_90", 0.95, 150), // Coude 90° Bas ASME B16.9
       ],
     };
 
+    // Seg 5 : Colonne verticale montante (Riser entre Coude Bas et Coude Haut)
     const seg5: IsoSegment = {
       id: `seg_skid_${tag}_05`,
       fromNodeId: n5.id,
@@ -724,26 +754,40 @@ export function generateSkidFiltrationDemo(): NewDemoData {
       type: "riser",
       lineId: lId,
       fittings: [
-        makeFitting("coude_90", 0.0, 150),
-        makeFitting("bride_wn", 1.45, 150),
+        makeFitting("coude_90", 0.95, 150), // Coude 90° Haut ASME B16.9
       ],
     };
 
-    segments.push(seg1, seg2, seg3, seg4, seg5);
+    // Seg 6 : Tronçon horizontal supérieur de retour vers l'avant du Skid (isometrie.png)
+    const seg6: IsoSegment = {
+      id: `seg_skid_${tag}_06`,
+      fromNodeId: n6.id,
+      toNodeId: n7.id,
+      dn: 150,
+      pn: "Class 300",
+      material: "Acier API 5L Gr. B",
+      length: 3.4,
+      type: "straight",
+      lineId: lId,
+      fittings: [
+        makeFitting("bride_wn", 3.25, 150),
+      ],
+    };
 
-    // Dynamic support for each line (Steel frame massifs and Shoe supports)
-    // Inline with isometrie.png support locations
-    const sup: IsoPipingSupport = {
+    segments.push(seg1, seg2, seg3, seg4, seg5, seg6);
+
+    // Supports MSS SP-58 (Patins sur IPE et Support poteau supérieur)
+    const supBase: IsoPipingSupport = {
       id: `sup_skid_${tag}_01`,
       tag: `PAT-${tag}01`,
       type: "mss_type_39", // Welded shoe support
       segmentId: seg3.id,
       tRatio: 0.5,
-      distanceFromFromNodeM: 0.7,
+      distanceFromFromNodeM: 0.6,
       worldPos: { x: 3.5, y: y, z: 0.4 },
       elevationZ: 0.4,
       orientationAngleDeg: 0,
-      comments: `Support patin soudé type 39 sur profilé métallique IPE du Skid ${tag}`,
+      comments: `Support patin soudé type 39 sur profilé IPE du châssis Skid ${tag}`,
       civilSpec: {
         ...createDefaultCivilSpecForDn(150),
         foundationType: "structure_metallique",
@@ -751,17 +795,35 @@ export function generateSkidFiltrationDemo(): NewDemoData {
       },
     };
 
-    supports.push(sup);
+    const supTop: IsoPipingSupport = {
+      id: `sup_skid_${tag}_02`,
+      tag: `GDE-${tag}02`,
+      type: "mss_type_35", // Guide support sous ligne haute
+      segmentId: seg6.id,
+      tRatio: 0.5,
+      distanceFromFromNodeM: 1.7,
+      worldPos: { x: 3.5, y: y, z: 2.0 },
+      elevationZ: 2.0,
+      orientationAngleDeg: 0,
+      comments: `Guide de maintien horizontal sur potence haute du Skid ${tag}`,
+      civilSpec: {
+        ...createDefaultCivilSpecForDn(150),
+        foundationType: "structure_metallique",
+        steelGrade: "S235JR",
+      },
+    };
 
-    // Dimensions
-    if (tag === "B") { // Only draw dimensions on the middle line to avoid visual clutter (CAD R8)
+    supports.push(supBase, supTop);
+
+    // Dimensions détaillées (sur ligne B pour netteté du plan)
+    if (tag === "B") {
       dimensions.push(
         {
           id: `skid_dim_01`,
           type: "distance",
           a: { kind: "node", nodeId: n1.id },
           b: { kind: "node", nodeId: n2.id },
-          label: "1 400 mm",
+          label: "1 300 mm",
           offset: { x: 0, y: -45 },
           unit: "mm",
         },
@@ -779,7 +841,7 @@ export function generateSkidFiltrationDemo(): NewDemoData {
           type: "distance",
           a: { kind: "node", nodeId: n3.id },
           b: { kind: "node", nodeId: n5.id },
-          label: "2 600 mm",
+          label: "2 300 mm",
           offset: { x: 0, y: -45 },
           unit: "mm",
         },
@@ -791,19 +853,28 @@ export function generateSkidFiltrationDemo(): NewDemoData {
           label: "ΔZ = 1 600 mm",
           offset: { x: -45, y: 0 },
           unit: "mm",
+        },
+        {
+          id: `skid_dim_05`,
+          type: "distance",
+          a: { kind: "node", nodeId: n6.id },
+          b: { kind: "node", nodeId: n7.id },
+          label: "3 400 mm (Retour)",
+          offset: { x: 0, y: 45 },
+          unit: "mm",
         }
       );
     }
   });
 
-  // Cross lines spacing dimensions
+  // Dimensions d'entraxe entre lignes parallèles (1200 mm)
   dimensions.push(
     {
       id: `skid_dim_space1`,
       type: "distance",
       a: { kind: "node", nodeId: `skid_A_n01` },
       b: { kind: "node", nodeId: `skid_B_n01` },
-      label: "Y = 1 200 mm",
+      label: "Entraxe Y = 1 200 mm",
       offset: { x: -50, y: 0 },
       unit: "mm",
     },
@@ -812,7 +883,7 @@ export function generateSkidFiltrationDemo(): NewDemoData {
       type: "distance",
       a: { kind: "node", nodeId: `skid_B_n01` },
       b: { kind: "node", nodeId: `skid_C_n01` },
-      label: "Y = 1 200 mm",
+      label: "Entraxe Y = 1 200 mm",
       offset: { x: -50, y: 0 },
       unit: "mm",
     }
@@ -825,7 +896,7 @@ export function generateSkidFiltrationDemo(): NewDemoData {
       layerId: "0",
       color: "#F59E0B",
       center: { x: 100, y: 100 },
-      text: "SKID DE FILTRATION COMPACT ASME B31.3",
+      text: "SKID DE FILTRATION INDUSTRIEL ASME B31.3",
       fontSize: 16,
     },
     {
@@ -834,7 +905,7 @@ export function generateSkidFiltrationDemo(): NewDemoData {
       layerId: "0",
       color: "#9CA3AF",
       center: { x: 100, y: 125 },
-      text: "3 Lignes de filtration parallèles DN150 configurées sur châssis",
+      text: "3 Lignes complètes avec coudes 90° bas/haut, vannes et collecteur supérieur",
       fontSize: 11,
     },
   ];
@@ -857,9 +928,9 @@ export function generateSkidFiltrationDemo(): NewDemoData {
     envelopeActive: true,
     envelopeLength: 6.0,
     envelopeWidth: 4.5,
-    envelopeHeight: 3.0,
-    envelopeX: -0.5,
-    envelopeY: -0.5,
+    envelopeHeight: 2.8,
+    envelopeX: -0.3,
+    envelopeY: -0.3,
     envelopeZ: 0.0,
     envelopePreset: "skid_filtration",
   };

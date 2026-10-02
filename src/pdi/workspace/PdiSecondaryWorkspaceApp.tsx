@@ -316,6 +316,7 @@ export const PdiSecondaryWorkspaceApp: React.FC = () => {
       supports: modelSnapshot.supports || [],
       projectName: modelSnapshot.projectName || "PD&I 3D",
       activeUnitSystem: modelSnapshot.unitSystem === "imperial" ? "imperial" : "metric",
+      envelope: (modelSnapshot as any).envelope || undefined,
     };
   }, [modelSnapshot]);
 
