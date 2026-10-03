@@ -38,6 +38,7 @@ import { pdiValiderLongueur017P10, pdiValiderDn017P10, pdiEcartAccrochage017P10 
 // PATCH 017M : registre unique des commandes, source du ruban.
 import { PDI_ONGLETS_RUBAN_017M, PDI_INVITE_COMMANDE_017M, pdiGroupesOnglet017M, pdiEntreesGroupe017M } from "./pdiRegistreCommandes.v1";
 import { PDI_CLASSES_B165_017K3, PDI_DESIGNATIONS_PN_017K3, PDI_CLASSE_PAR_DEFAUT_017K3, pdiClasseDeSpec017K3, pdiMateriauDeSpec017K3, pdiClasseConforme017K3, pdiMessageDerogation017K3 } from "./pdiClassePression017K3";
+import { defaultIsometricNormativeBridge } from "../../normative/integration/isometricNormativeBridge";
 import type { PdiEntreeRuban017M } from "./pdiRegistreCommandes.v1";
 import { pdiSignExportData } from "../../core/pdiWatermark";
 import { useIsoInjection } from "./useIsoInjection";
@@ -7412,6 +7413,8 @@ function IsometrieModule(props: { projectId?: string }) {
       pn:newPN,material:newMaterial,length:Math.max(.05,newLength),
       type:a&&b&&a.z!==b.z?"riser":"straight",fittings:[],color:newSegmentColor,sourceName:newSourceName.trim()||`${dia(newDN).inch} — Pipeline`
     };
+    const normSegDecision=defaultIsometricNormativeBridge.checkSegment(s,{legacyProjectSetup:projectSetup});
+    if(normSegDecision.status==="INCOMPATIBLE"||normSegDecision.status==="INVALID"){setStatusMessage(normSegDecision.message);}
     setSegments(v=>[...v,s]);setSelectedSegmentId(s.id);
   };
   const removeSegment=(id:string)=>{
@@ -7428,6 +7431,8 @@ function IsometrieModule(props: { projectId?: string }) {
     const p=pointOnSegment(a,b,t);
     const baseAngle=Math.atan2(b.y-a.y,b.x-a.x)*180/Math.PI;
     const n=makeEquipmentNode(type,label?.trim()||FITTING_LABELS[type],p.x,p.y,p.z,s.dn,baseAngle);
+    const normNodeDecision=defaultIsometricNormativeBridge.checkNode(n,{legacyProjectSetup:projectSetup});
+    if(normNodeDecision.status==="INCOMPATIBLE"||normNodeDecision.status==="INVALID"){setStatusMessage(normNodeDecision.message);}
     const bend=elbowAngle(type);
     const downstream=bend?downstreamNodeIds(b.id,segments,s.id):new Set<string>();
     const movedNodes=nodes.map(node=>{

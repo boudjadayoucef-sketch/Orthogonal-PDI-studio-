@@ -148,3 +148,7 @@ export * from "./tests/b31_3DataTests";
 export * from "./tests/b31_3IntegrationTests";
 export * from "./tests/b31_3F01IntegrationTests";
 export * from "./tests/normativeGlobalIntegrationTests";
+export * from "./integration/isometricNormativeContext";
+export * from "./integration/isometricNormativeAdapter";
+export * from "./integration/isometricNormativeBridge";
+export * from "./tests/arch01IsometricNormativeBridgeTests";
