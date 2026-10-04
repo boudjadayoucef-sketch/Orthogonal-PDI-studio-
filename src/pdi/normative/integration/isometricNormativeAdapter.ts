@@ -482,27 +482,45 @@ export function adaptUniversalEntityToNormativeContext(
 
   const componentType = categoryMap[entity.identity?.category];
   const nominalSize =
-    entity.dn && typeof entity.dn.dn === "number" && Number.isFinite(entity.dn.dn) && entity.dn.dn > 0
+    readNonEmptyString(entity.normative?.nominalSize) ??
+    (entity.dn && typeof entity.dn.dn === "number" && Number.isFinite(entity.dn.dn) && entity.dn.dn > 0
       ? String(entity.dn.dn)
-      : undefined;
+      : undefined);
   const pressureRating =
+    readNonEmptyString(entity.normative?.pressureRating) ??
     readNonEmptyString(entity.pn?.rating) ??
     readNonEmptyString(entity.spec?.classRating);
-  const materialId = readNonEmptyString(entity.material?.grade);
-  const schedule = readNonEmptyString(entity.material?.schedule);
-  const pipingSpecId = readNonEmptyString(entity.spec?.pmsCode);
-  const dimensionalStandard = readNonEmptyString(entity.material?.standard);
-  const connectionType = readNonEmptyString(entity.connection?.connectionType);
+  const materialId =
+    readNonEmptyString(entity.normative?.materialId) ??
+    readNonEmptyString(entity.material?.grade);
+  const schedule =
+    readNonEmptyString(entity.normative?.schedule) ??
+    readNonEmptyString(entity.material?.schedule);
+  const pipingSpecId =
+    readNonEmptyString(entity.normative?.pipingSpecId) ??
+    readNonEmptyString(entity.spec?.pmsCode);
+  const dimensionalStandard =
+    readNonEmptyString(entity.normative?.dimensionalStandard) ??
+    readNonEmptyString(entity.material?.standard);
+  const productStandard = readNonEmptyString(entity.normative?.productStandard);
+  const designCodeId = readNonEmptyString(entity.normative?.designCodeId);
+  const connectionType =
+    readNonEmptyString(entity.normative?.connectionType) ??
+    readNonEmptyString(entity.connection?.connectionType);
+  const evidenceIds = entity.normative?.evidenceIds ? [...entity.normative.evidenceIds] : undefined;
 
   return Object.freeze({
     entityId: readNonEmptyString(entity.identity?.id) ?? "",
     ...(componentType !== undefined ? { componentType } : {}),
     ...(nominalSize !== undefined ? { nominalSize } : {}),
     ...(dimensionalStandard !== undefined ? { dimensionalStandard } : {}),
+    ...(productStandard !== undefined ? { productStandard } : {}),
+    ...(designCodeId !== undefined ? { designCodeId } : {}),
     ...(schedule !== undefined ? { schedule } : {}),
     ...(pressureRating !== undefined ? { pressureRating } : {}),
     ...(materialId !== undefined ? { materialId } : {}),
     ...(connectionType !== undefined ? { connectionType } : {}),
     ...(pipingSpecId !== undefined ? { pipingSpecId } : {}),
+    ...(evidenceIds !== undefined ? { evidenceIds } : {}),
   });
 }

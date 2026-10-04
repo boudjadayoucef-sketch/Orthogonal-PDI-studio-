@@ -18,8 +18,18 @@ import type { IsoPipingSupport } from "../isometric/supports/pdiMssSupportEngine
 import {
   PdiUniversalEntity,
   UniversalEntityCategory,
+  UniversalEntitySource,
+  UniversalNormativeRef,
+  UniversalRelationships,
   INDUSTRIAL_STANDARD_DNS,
 } from "./pdiUniversalEntity";
+
+export interface UniversalAdapterOptions {
+  readonly projectId?: string;
+  readonly source?: UniversalEntitySource | string;
+  readonly normative?: UniversalNormativeRef;
+  readonly relationships?: UniversalRelationships;
+}
 
 function getInchFromDn(dn: number): string {
   const match = INDUSTRIAL_STANDARD_DNS.find((d) => d.dn === dn);
@@ -33,7 +43,8 @@ function getOdFromDn(dn: number): number {
 
 export function nodeToUniversalEntity(
   node: IsoNode,
-  linkedSegments: IsoSegment[] = []
+  linkedSegments: IsoSegment[] = [],
+  options?: UniversalAdapterOptions
 ): PdiUniversalEntity {
   const isEquipment = !!node.equipmentType;
   let category: UniversalEntityCategory = "node";
@@ -53,6 +64,21 @@ export function nodeToUniversalEntity(
 
   const primaryDn = node.dn || linkedSegments[0]?.dn || 50;
 
+  const normative: UniversalNormativeRef = {
+    pipingSpecId: node.spec || linkedSegments[0]?.spec,
+    materialId: (node as any).material || linkedSegments[0]?.material,
+    pressureRating: (node as any).pn || linkedSegments[0]?.pn,
+    nominalSize: String(primaryDn),
+    schedule: (node as any).schedule,
+    ...options?.normative,
+  };
+
+  const relationships: UniversalRelationships = {
+    connectedEntityIds: linkedSegments.map((s) => s.id),
+    lineId: node.lineId || linkedSegments[0]?.lineId,
+    ...options?.relationships,
+  };
+
   return {
     identity: {
       id: node.id,
@@ -62,6 +88,8 @@ export function nodeToUniversalEntity(
       labelFr: node.equipmentLabel || node.name || "Nœud / Composant",
       description: `Composant tuyauterie ${node.equipmentType || node.type}`,
       locked: false,
+      projectId: options?.projectId,
+      source: options?.source ?? "ISOMETRIC",
     },
     geometry: {
       x: Number((node.x || 0).toFixed(3)),
@@ -148,16 +176,36 @@ export function nodeToUniversalEntity(
         facing: "RF",
       } : undefined,
     },
+    normative,
+    relationships,
   };
 }
 
 export function segmentToUniversalEntity(
   seg: IsoSegment,
   fromNode?: IsoNode,
-  toNode?: IsoNode
+  toNode?: IsoNode,
+  options?: UniversalAdapterOptions
 ): PdiUniversalEntity {
   const fromName = fromNode?.name || seg.fromNodeId;
   const toName = toNode?.name || seg.toNodeId;
+
+  const normative: UniversalNormativeRef = {
+    pipingSpecId: seg.spec,
+    materialId: seg.material,
+    pressureRating: seg.pn || seg.pressureClass,
+    nominalSize: String(seg.dn || 50),
+    schedule: (seg as any).schedule,
+    ...options?.normative,
+  };
+
+  const relationships: UniversalRelationships = {
+    parentEntityId: seg.fromNodeId,
+    connectedEntityIds: [seg.fromNodeId, seg.toNodeId],
+    lineId: seg.lineId,
+    spoolId: (seg as any).spoolNumber,
+    ...options?.relationships,
+  };
 
   return {
     identity: {
@@ -168,6 +216,8 @@ export function segmentToUniversalEntity(
       labelFr: `Tronçon de tuyauterie DN${seg.dn}`,
       description: `Tuyauterie ${seg.type === "riser" ? "colonne montante" : "ligne droite"} ${seg.material}`,
       locked: false,
+      projectId: options?.projectId,
+      source: options?.source ?? "ISOMETRIC",
     },
     geometry: {
       x: Number((fromNode?.x || 0).toFixed(3)),
@@ -234,12 +284,14 @@ export function segmentToUniversalEntity(
         color: seg.color,
       },
     },
+    normative,
+    relationships,
   };
 }
-
 export function fittingToUniversalEntity(
   fitting: IsoFitting,
-  parentSegment: IsoSegment
+  parentSegment: IsoSegment,
+  options?: UniversalAdapterOptions
 ): PdiUniversalEntity {
   const fType = fitting.type;
   let category: UniversalEntityCategory = "fitting";
@@ -252,6 +304,20 @@ export function fittingToUniversalEntity(
 
   const dn = fitting.dn || parentSegment.dn || 50;
 
+  const normative: UniversalNormativeRef = {
+    pipingSpecId: parentSegment.spec,
+    materialId: parentSegment.material,
+    pressureRating: parentSegment.pn,
+    nominalSize: String(dn),
+    ...options?.normative,
+  };
+
+  const relationships: UniversalRelationships = {
+    parentEntityId: parentSegment.id,
+    lineId: parentSegment.lineId,
+    ...options?.relationships,
+  };
+
   return {
     identity: {
       id: fitting.id,
@@ -260,6 +326,8 @@ export function fittingToUniversalEntity(
       name: fitting.label || fitting.type,
       labelFr: fitting.label || "Raccord en ligne",
       description: `Raccord ${fitting.type} sur tronçon ${parentSegment.id}`,
+      projectId: options?.projectId,
+      source: options?.source ?? "ISOMETRIC",
     },
     geometry: {
       x: 0,
@@ -314,10 +382,15 @@ export function fittingToUniversalEntity(
         actuatorType: "manuel_volant",
       } : undefined,
     },
+    normative,
+    relationships,
   };
 }
 
-export function cad2dToUniversalEntity(cad: Cad2dEntity): PdiUniversalEntity {
+export function cad2dToUniversalEntity(
+  cad: Cad2dEntity,
+  options?: UniversalAdapterOptions
+): PdiUniversalEntity {
   const firstPt = cad.points?.[0] || cad.center || { x: 0, y: 0 };
 
   return {
@@ -328,6 +401,8 @@ export function cad2dToUniversalEntity(cad: Cad2dEntity): PdiUniversalEntity {
       name: cad.text || `${cad.type.toUpperCase()} 2D (${cad.id})`,
       labelFr: `Entité CAO 2D ${cad.type}`,
       description: `Dessin géométrique sur calque ${cad.layerId}`,
+      projectId: options?.projectId,
+      source: options?.source ?? "2D",
     },
     geometry: {
       x: Number((firstPt.x || 0).toFixed(3)),
@@ -383,10 +458,16 @@ export function cad2dToUniversalEntity(cad: Cad2dEntity): PdiUniversalEntity {
         textValue: cad.text,
       },
     },
+    normative: options?.normative,
+    relationships: options?.relationships,
   };
 }
 
-export function supportToUniversalEntity(sup: IsoPipingSupport, parentSegment?: IsoSegment | null): PdiUniversalEntity {
+export function supportToUniversalEntity(
+  sup: IsoPipingSupport,
+  parentSegment?: IsoSegment | null,
+  options?: UniversalAdapterOptions
+): PdiUniversalEntity {
   const targetDn = parentSegment?.dn || (sup as any).dn || 100;
   return {
     identity: {
@@ -396,6 +477,8 @@ export function supportToUniversalEntity(sup: IsoPipingSupport, parentSegment?: 
       name: sup.tag,
       labelFr: `Supportage MSS SP-58 (${sup.tag})`,
       description: `Support tuyauterie MSS ${sup.type}`,
+      projectId: options?.projectId,
+      source: options?.source ?? "ISOMETRIC",
     },
     geometry: {
       x: Number((sup.worldPos.x || 0).toFixed(3)),
@@ -445,7 +528,152 @@ export function supportToUniversalEntity(sup: IsoPipingSupport, parentSegment?: 
         concretePad: !!sup.civilSpec,
       },
     },
+    normative: options?.normative,
+    relationships: {
+      parentEntityId: sup.segmentId,
+      lineId: sup.segmentId,
+      ...options?.relationships,
+    },
   };
+}
+
+/**
+ * Converts a `PdiUniversalEntity` back to an `IsoNode` representation without mutating source.
+ */
+export function universalEntityToNode(entity: PdiUniversalEntity): IsoNode {
+  return {
+    id: entity.identity.id,
+    name: entity.identity.name,
+    x: entity.geometry.x,
+    y: entity.geometry.y,
+    z: entity.geometry.z,
+    type: "normal",
+    equipmentType: (entity.identity.category !== "node" && entity.identity.category !== "pipe" ? entity.identity.type : undefined) as any,
+    equipmentLabel: entity.identity.labelFr,
+    dn: entity.dn.dn,
+    reducedDn: entity.dn.reducedDn,
+    pn: entity.pn.rating,
+    material: entity.material.grade,
+    schedule: entity.material.schedule,
+    service: entity.service.code,
+    spec: entity.spec.pmsCode,
+    tag: entity.tag.fullTag,
+    lineId: entity.tag.lineId || entity.relationships?.lineId,
+    reference: entity.documentation.catalogRef,
+    manufacturer: entity.documentation.manufacturer,
+    rotation: entity.geometry.rotation,
+    branchAngle: entity.geometry.branchAngle,
+    mirrored: entity.geometry.mirrored,
+    bendDirection: entity.geometry.bendDirection,
+    length: entity.geometry.length,
+    ports: entity.connection.ports.map((p, idx) => ({
+      id: p.portId,
+      index: p.index ?? idx,
+      role: (p.role === "branch" ? "branch" : p.role === "out" ? "inline-out" : "inline-in") as any,
+      dx: 0,
+      dy: 0,
+      dz: 0,
+      connectionType: p.connectionType as any,
+      endPreparation: p.endPreparation,
+    })),
+  };
+}
+
+/**
+ * Converts a `PdiUniversalEntity` back to an `IsoSegment` representation without mutating source.
+ */
+export function universalEntityToSegment(
+  entity: PdiUniversalEntity,
+  fromNodeId?: string,
+  toNodeId?: string
+): IsoSegment {
+  return {
+    id: entity.identity.id,
+    fromNodeId: fromNodeId || entity.connection.fromEntityId || "",
+    toNodeId: toNodeId || entity.connection.toEntityId || "",
+    fromPortId: entity.connection.fromPortId,
+    toPortId: entity.connection.toPortId,
+    dn: entity.dn.dn,
+    pn: entity.pn.rating,
+    material: entity.material.grade,
+    length: entity.geometry.length || 0,
+    type: (entity.specific.pipe?.type as any) || "straight",
+    fittings: [],
+    tag: entity.tag.fullTag,
+    lineId: entity.tag.lineId || entity.relationships?.lineId,
+    service: entity.service.code,
+    spec: entity.spec.pmsCode,
+    schedule: entity.material.schedule,
+    insulation: entity.specific.pipe?.insulation,
+    color: entity.specific.pipe?.color,
+    sourceName: entity.identity.name,
+  };
+}
+
+/**
+ * Type guard for PdiUniversalEntity.
+ */
+export function isUniversalEntity(obj: unknown): obj is PdiUniversalEntity {
+  if (!obj || typeof obj !== "object") return false;
+  const raw = obj as Record<string, unknown>;
+  return (
+    typeof raw.identity === "object" &&
+    raw.identity !== null &&
+    typeof (raw.identity as any).id === "string" &&
+    typeof raw.geometry === "object" &&
+    typeof raw.connection === "object" &&
+    typeof raw.dn === "object" &&
+    typeof raw.pn === "object" &&
+    typeof raw.material === "object" &&
+    typeof raw.service === "object" &&
+    typeof raw.spec === "object" &&
+    typeof raw.tag === "object" &&
+    typeof raw.fabrication === "object" &&
+    typeof raw.documentation === "object" &&
+    typeof raw.specific === "object"
+  );
+}
+
+/**
+ * Validates the structure and invariants of a Universal CAO Entity.
+ */
+export function validateUniversalEntity(entity: unknown): { valid: boolean; errors: string[] } {
+  const errors: string[] = [];
+  if (!entity || typeof entity !== "object") {
+    return { valid: false, errors: ["Entity must be a non-null object."] };
+  }
+
+  const raw = entity as Partial<PdiUniversalEntity>;
+  if (!raw.identity || typeof raw.identity.id !== "string" || raw.identity.id.trim().length === 0) {
+    errors.push("identity.id is required and must be a non-empty string.");
+  }
+  if (!raw.identity || typeof raw.identity.category !== "string") {
+    errors.push("identity.category is required.");
+  }
+  if (!raw.geometry || typeof raw.geometry.x !== "number" || typeof raw.geometry.y !== "number" || typeof raw.geometry.z !== "number") {
+    errors.push("geometry with numeric x, y, z is required.");
+  }
+  if (!raw.dn || typeof raw.dn.dn !== "number") {
+    errors.push("dn.dn must be a valid number.");
+  }
+  if (!raw.pn || typeof raw.pn.rating !== "string") {
+    errors.push("pn.rating must be a string.");
+  }
+  if (!raw.material || typeof raw.material.grade !== "string") {
+    errors.push("material.grade must be a string.");
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+  };
+}
+
+/**
+ * Creates an immutable deep copy of a PdiUniversalEntity.
+ */
+export function cloneUniversalEntity(entity: PdiUniversalEntity): PdiUniversalEntity {
+  return JSON.parse(JSON.stringify(entity));
 }
 
 export interface UniversalGraphState {

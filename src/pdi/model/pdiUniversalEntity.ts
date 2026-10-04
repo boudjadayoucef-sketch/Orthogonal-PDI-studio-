@@ -29,6 +29,17 @@ export type UniversalEntityCategory =
   | "dimension"      // Cotation métrique ou impériale
   | "equipment";     // Équipement majeur (cuve, pompe, sas, échangeur...)
 
+/**
+ * Origine / source opérationnelle de l'entité dans l'application (ARCH-03 §6).
+ */
+export type UniversalEntitySource =
+  | "2D"
+  | "ISOMETRIC"
+  | "3D"
+  | "IMPORT"
+  | "CATALOG"
+  | "PROJECT";
+
 export interface UniversalIdentity {
   id: string;
   type: string;
@@ -36,6 +47,8 @@ export interface UniversalIdentity {
   name: string;
   labelFr: string;
   description?: string;
+  projectId?: string;
+  source?: UniversalEntitySource | string;
   createdAt?: string;
   locked?: boolean;
 }
@@ -217,6 +230,36 @@ export interface SpecificProperties {
 }
 
 /**
+ * Références normatives transversales associées à l'entité (ARCH-03 §9, §10).
+ * Ces champs permettent d'alimenter le moteur normatif sans jamais se substituer à lui.
+ */
+export interface UniversalNormativeRef {
+  readonly pipingSpecId?: string;
+  readonly designCodeId?: string;
+  readonly materialId?: string;
+  readonly pressureRating?: string;
+  readonly nominalSize?: string;
+  readonly schedule?: string;
+  readonly dimensionalStandard?: string;
+  readonly productStandard?: string;
+  readonly connectionType?: string;
+  readonly evidenceIds?: readonly string[];
+}
+
+/**
+ * Relations transversales de l'entité métier (ARCH-03 §16).
+ */
+export interface UniversalRelationships {
+  readonly parentEntityId?: string;
+  readonly childEntityIds?: readonly string[];
+  readonly connectedEntityIds?: readonly string[];
+  readonly lineId?: string;
+  readonly spoolId?: string;
+  readonly weldIds?: readonly string[];
+  readonly equipmentId?: string;
+}
+
+/**
  * L'Entité Universelle PD&I : Contrat complet consolidé
  */
 export interface PdiUniversalEntity {
@@ -232,6 +275,8 @@ export interface PdiUniversalEntity {
   fabrication: UniversalFabrication;
   documentation: UniversalDocumentation;
   specific: SpecificProperties;
+  normative?: UniversalNormativeRef;
+  relationships?: UniversalRelationships;
 }
 
 /**
