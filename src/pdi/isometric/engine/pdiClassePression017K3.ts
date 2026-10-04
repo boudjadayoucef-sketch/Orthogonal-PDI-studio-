@@ -1,30 +1,30 @@
+/**
+ * @deprecated DEPRECATED PMS HELPER — NON-NORMATIVE (Reference: ARCH-02).
+ * 
+ * Ce module est un reliquat historique conservé UNIQUEMENT pour initialiser les listes
+ * déroulantes de l'UI (valeurs par défaut de formulaire).
+ * 
+ * RÈGLE ARCHITECTURALE ABSOLUE (ARCH-02) :
+ * - Ce fichier N'EST PAS une autorité normative.
+ * - L'unique autorité normative est le Normative Engine (`src/pdi/normative/`).
+ * - Ce fichier ne peut jamais autoriser une décision normative COMPATIBLE.
+ */
 // PATCH 017K3 : la classe de pression est une propriete de la SPEC.
 //
-// POURQUOI CE FICHIER EXISTE
+// POURQUOI CE FICHIER EXISTE (HISTORIQUE) :
 // Le formulaire de creation de troncon proposait "Class 600" en dur, alors
 // que la spec active du projet etait CS150, donc Class 150. Les deux ne
 // peuvent pas etre vrais en meme temps, et c est la spec qui fait foi.
 //
-// CE QUE DISENT LES NORMES
-//   ASME B16.5 : sept classes de pression normalisees. La classe requise se
-//     determine en entrant dans la table pression-temperature du groupe de
-//     materiau avec la pression et la temperature de calcul, en partant de
-//     Class 150 et en allant vers la droite jusqu a une valeur admissible
-//     superieure ou egale au besoin.
-//   ASME B31.3 par. 302.2(a) : un composant conforme a une norme listee est
-//     apte a la pression que cette norme lui attribue.
-//   Specification de tuyauterie : la classe de ligne s applique a tous les
-//     composants de la ligne. Elle n est pas un champ libre.
-//
-// Ce module ne calcule PAS la classe a partir d une pression de calcul :
-// le projet ne saisit pas encore pression et temperature de calcul. Il fait
-// la seule chose defendable en attendant : il lit la classe dans la spec
-// declaree du projet, au lieu de l inventer.
+// STATUT ACTUEL (ARCH-02) :
+// Ce module est déprécié au profit du moteur normatif officiel (`src/pdi/normative/`).
+// Il est encapsulé par `LegacyPmsAdapter` et ne peut en aucun cas supplanter
+// les vérifications ASME B31.3 / B16.5 / B16.9 de la chaîne normative.
 
 import { PDI_DEFAULT_SPECS, pdiFindSpec } from "./pdiTagging";
 import type { PdiProjectSetup } from "./pdiTagging";
 
-/** Les sept classes de l ASME B16.5, dans l ordre croissant. */
+/** @deprecated Liste descriptive pour menus déroulants UI. */
 export const PDI_CLASSES_B165_017K3: string[] = [
   "Class 150",
   "Class 300",

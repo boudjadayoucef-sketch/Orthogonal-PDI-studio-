@@ -27,12 +27,6 @@ import type {
 } from "../../isometric/types/isoGraphTypes";
 import type { IsoPipingSupport } from "../../isometric/supports/pdiMssSupportEngine";
 import type { PdiUniversalEntity } from "../../model/pdiUniversalEntity";
-import {
-  pdiClasseDeSpec017K3,
-  pdiMateriauDeSpec017K3,
-  pdiClasseConforme017K3,
-} from "../../isometric/engine/pdiClassePression017K3";
-import type { PdiProjectSetup } from "../../isometric/engine/pdiTagging";
 import type { PipingSpecification } from "../types/pipingSpecTypes";
 import type {
   IPipingSpecResolver,
@@ -52,6 +46,10 @@ import type { INormativeEvidenceTraceabilityEngine } from "../types/normativeEvi
 import { NormativeEvidenceTraceabilityEngine } from "../engine/normativeEvidenceTraceabilityEngine";
 import { isDisallowedTokenHeuristic } from "../validators/normativeEvidenceValidator";
 import { validatePipingSpecResolutionContext } from "../validators/pipingSpecResolverValidator";
+import {
+  ILegacyPmsAdapter,
+  defaultLegacyPmsAdapter,
+} from "./legacyPmsAdapter";
 import {
   adaptIsoNodeToNormativeContext,
   adaptIsoSegmentToNormativeContext,
@@ -77,6 +75,7 @@ export interface IsometricNormativeBridgeConfig {
   readonly evidenceResolver?: INormativeEvidenceResolver;
   readonly specCompatibilityIntegrationEngine?: INormativeSpecCompatibilityIntegrationEngine;
   readonly traceabilityEngine?: INormativeEvidenceTraceabilityEngine;
+  readonly legacyPmsAdapter?: ILegacyPmsAdapter;
 }
 
 const VALID_SPEC_COMPONENT_TYPES: ReadonlySet<string> = new Set([
@@ -99,6 +98,7 @@ export class IsometricNormativeBridge implements IIsometricNormativeBridge {
   private readonly evidenceResolver: INormativeEvidenceResolver;
   private readonly specCompatibilityIntegrationEngine?: INormativeSpecCompatibilityIntegrationEngine;
   private readonly traceabilityEngine: INormativeEvidenceTraceabilityEngine;
+  private readonly legacyPmsAdapter: ILegacyPmsAdapter;
 
   constructor(config: IsometricNormativeBridgeConfig = {}) {
     if (typeof config.specLookup === "function") {
@@ -127,6 +127,8 @@ export class IsometricNormativeBridge implements IIsometricNormativeBridge {
 
     this.traceabilityEngine =
       config.traceabilityEngine ?? new NormativeEvidenceTraceabilityEngine();
+
+    this.legacyPmsAdapter = config.legacyPmsAdapter ?? defaultLegacyPmsAdapter;
   }
 
   /**
@@ -490,15 +492,8 @@ export class IsometricNormativeBridge implements IIsometricNormativeBridge {
   }
 
   /**
-   * Evaluates Legacy PMS (`pdiClassePression017K3`) and detects any conflict
-   * with the authoritative Normative Engine decision (ARCH-01 Section 24 & Test 15).
-   *
-   * Rules:
-   * - Legacy PMS NEVER promotes an UNVERIFIED, INCOMPATIBLE, or INVALID normative decision to COMPATIBLE.
-   * - If Normative decision is COMPATIBLE but Legacy PMS reports non-conformant class ->
-   *   downgrades status to UNVERIFIED and records `LEGACY_PMS_NORMATIVE_CONFLICT`.
-   * - If Normative decision is INCOMPATIBLE but Legacy PMS reports conformant ->
-   *   retains INCOMPATIBLE and records `LEGACY_PMS_NORMATIVE_CONFLICT`.
+   * Evaluates Legacy PMS presets via `ILegacyPmsAdapter` and detects any conflict
+   * with the authoritative Normative Engine decision (ARCH-01 & ARCH-02).
    */
   private evaluateLegacyPms(
     context: IsometricNormativeContext,
@@ -509,61 +504,7 @@ export class IsometricNormativeBridge implements IIsometricNormativeBridge {
     snapshot?: LegacyPmsComparisonSnapshot;
     conflictCode?: string;
   } {
-    if (!legacySetup) {
-      return { status: normativeStatus };
-    }
-
-    const setupCast = legacySetup as unknown as PdiProjectSetup;
-    const expectedClass = pdiClasseDeSpec017K3(setupCast, context.pipingSpecId);
-    const expectedMaterial = pdiMateriauDeSpec017K3(setupCast, context.pipingSpecId);
-    const classConformant = context.pressureRating
-      ? pdiClasseConforme017K3(context.pressureRating, setupCast, context.pipingSpecId)
-      : false;
-
-    if (normativeStatus === "COMPATIBLE" && !classConformant) {
-      const conflictCode = "LEGACY_PMS_NORMATIVE_CONFLICT";
-      return {
-        status: "UNVERIFIED",
-        conflictCode,
-        snapshot: Object.freeze({
-          evaluated: true,
-          legacyExpectedPressureClass: expectedClass,
-          legacyExpectedMaterial: expectedMaterial,
-          legacyClassConformant: classConformant,
-          hasConflict: true,
-          conflictCode,
-          message: `Conflict between Normative Engine (COMPATIBLE) and Legacy PMS 017K3 (expected '${expectedClass}', got '${context.pressureRating ?? ""}'). Downgraded to UNVERIFIED.`,
-        }),
-      };
-    }
-
-    if (normativeStatus === "INCOMPATIBLE" && classConformant) {
-      const conflictCode = "LEGACY_PMS_NORMATIVE_CONFLICT";
-      return {
-        status: "INCOMPATIBLE",
-        conflictCode,
-        snapshot: Object.freeze({
-          evaluated: true,
-          legacyExpectedPressureClass: expectedClass,
-          legacyExpectedMaterial: expectedMaterial,
-          legacyClassConformant: classConformant,
-          hasConflict: true,
-          conflictCode,
-          message: `Conflict between Normative Engine (INCOMPATIBLE) and Legacy PMS 017K3 (conformant with '${expectedClass}'). Normative authority retained.`,
-        }),
-      };
-    }
-
-    return {
-      status: normativeStatus,
-      snapshot: Object.freeze({
-        evaluated: true,
-        legacyExpectedPressureClass: expectedClass,
-        legacyExpectedMaterial: expectedMaterial,
-        legacyClassConformant: classConformant,
-        hasConflict: false,
-      }),
-    };
+    return this.legacyPmsAdapter.evaluate(context, normativeStatus, legacySetup);
   }
 
   /**
