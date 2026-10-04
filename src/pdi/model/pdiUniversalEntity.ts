@@ -90,17 +90,17 @@ export interface UniversalConnection {
 }
 
 export interface UniversalDn {
-  dn: number;              // Diamètre nominal principal (ex: 50, 100, 200...)
+  dn?: number;              // Diamètre nominal principal (ex: 50, 100, 200...)
   inch?: string;           // NPS correspondant (ex: 2", 4", 8"...)
   outerDiameterMm?: number;// Diamètre extérieur réel (OD en mm)
   reducedDn?: number;      // DN réduit pour té réduit, piquage ou réduction
   reducedInch?: string;    // NPS réduit
-  unit: "mm" | "in";
+  unit?: "mm" | "in";
   _isDefault?: boolean;
 }
 
 export interface UniversalPn {
-  rating: string;          // Class 150, Class 300, Class 600, PN16, PN25, PN40, PN64...
+  rating?: string;          // Class 150, Class 300, Class 600, PN16, PN25, PN40, PN64...
   designPressureBar?: number; // Pression de calcul (bar)
   operatingPressureBar?: number; // Pression de service (bar)
   testPressureBar?: number;     // Pression d'épreuve hydrostatique (bar)
@@ -108,7 +108,7 @@ export interface UniversalPn {
 }
 
 export interface UniversalMaterial {
-  grade: string;           // Nuance (ex: "Acier API 5L X52", "Inox 316L", "ASTM A106 Gr. B")
+  grade?: string;           // Nuance (ex: "Acier API 5L X52", "Inox 316L", "ASTM A106 Gr. B")
   standard?: string;       // Norme matière (ASTM, EN 10216, API)
   schedule?: string;       // Schedule / Épaisseur (SCH 10, 40, 80, 160, STD, XS, XXS)
   wallThicknessMm?: number;// Épaisseur de paroi réelle (mm)
@@ -118,7 +118,7 @@ export interface UniversalMaterial {
 }
 
 export interface UniversalService {
-  code: string;            // Code fluide (ex: GN, H2, STEAM, AIR, COND, OIL)
+  code?: string;            // Code fluide (ex: GN, H2, STEAM, AIR, COND, OIL)
   description?: string;    // Libellé (ex: "Gaz Naturel Haute Pression")
   designTemperatureC?: number; // Température de calcul (°C)
   operatingTemperatureC?: number; // Température de service (°C)
@@ -127,7 +127,7 @@ export interface UniversalService {
 }
 
 export interface UniversalSpec {
-  pmsCode: string;         // Code PMS Piping Material Spec (ex: "CS-600-01", "SS-150")
+  pmsCode?: string;         // Code PMS Piping Material Spec (ex: "CS-600-01", "SS-150")
   classRating?: string;
   revision?: string;
   corrosionAllowanceMm?: number; // Surépaisseur de corrosion (mm)
@@ -135,7 +135,7 @@ export interface UniversalSpec {
 }
 
 export interface UniversalTag {
-  fullTag: string;         // Repère complet (ex: "01-V-102", "SP-02-P-04", "TE-301")
+  fullTag?: string;         // Repère complet (ex: "01-V-102", "SP-02-P-04", "TE-301")
   lineId?: string;         // Identifiant de la ligne mère
   equipmentTag?: string;   // Repère équipement parent
   kks?: string;            // Code KKS normalisé
@@ -145,7 +145,7 @@ export interface UniversalTag {
 
 export interface UniversalFabrication {
   spoolNumber?: string;    // N° de spool (ex: "SP-01", "SP-02")
-  location: "shop" | "field" | "golden"; // Atelier / Chantier / Soudure d'or
+  location?: "shop" | "field" | "golden"; // Atelier / Chantier / Soudure d'or
   weldType?: "butt_weld" | "socket_weld" | "fillet" | "flange";
   weldNumber?: string;     // Repère soudure (ex: "W-01")
   ndtRequirement?: "VT" | "RT" | "PT" | "UT" | "100% RT";

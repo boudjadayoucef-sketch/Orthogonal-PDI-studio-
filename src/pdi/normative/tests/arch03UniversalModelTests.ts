@@ -682,8 +682,139 @@ export function runArch03UniversalModelTests(): Arch03TestResult {
     assert(arch02Res.testsRun >= 20, `Suite ARCH-02 doit exécuter au moins 20 tests (exécuté ${arch02Res.testsRun})`);
   });
 
+  // =========================================================================
+  // TEST 21 [ARCH-03-FIX-01]: Suppression des valeurs inventées pour IsoNode
+  // =========================================================================
+  runTest("TEST 21 [ARCH-03-FIX-01]: IsoNode sans métadonnées techniques ne crée aucune valeur par défaut inventée", () => {
+    const bareNode: IsoNode = {
+      id: "NODE_BARE_TEST",
+      name: "Point géométrique pur",
+      x: 5,
+      y: 10,
+      z: 15,
+      type: "normal",
+    };
+
+    const ue = nodeToUniversalEntity(bareNode);
+    assert(ue.pn.rating === undefined, `pn.rating doit être undefined (pas 'Class 150'), reçu: ${ue.pn.rating}`);
+    assert(ue.material.grade === undefined, `material.grade doit être undefined (pas 'Acier API 5L X52'), reçu: ${ue.material.grade}`);
+    assert(ue.material.schedule === undefined, `material.schedule doit être undefined (pas 'SCH 40 / STD'), reçu: ${ue.material.schedule}`);
+    assert(ue.material.wallThicknessMm === undefined, `wallThicknessMm doit être undefined (pas 6.35), reçu: ${ue.material.wallThicknessMm}`);
+    assert(ue.pn.designPressureBar === undefined, `designPressureBar doit être undefined (pas 16), reçu: ${ue.pn.designPressureBar}`);
+    assert(ue.pn.operatingPressureBar === undefined, `operatingPressureBar doit être undefined (pas 10), reçu: ${ue.pn.operatingPressureBar}`);
+    assert(ue.spec.pmsCode === undefined, `pmsCode doit être undefined (pas 'PMS-01'), reçu: ${ue.spec.pmsCode}`);
+    assert(ue.documentation.manufacturer === undefined, `manufacturer doit être undefined, reçu: ${ue.documentation.manufacturer}`);
+    assert(ue.dn.dn === undefined, `dn.dn doit être undefined quand absent, reçu: ${ue.dn.dn}`);
+    assert(ue.normative?.pipingSpecId === undefined, `normative.pipingSpecId doit être undefined`);
+    assert(ue.normative?.materialId === undefined, `normative.materialId doit être undefined`);
+  });
+
+  // =========================================================================
+  // TEST 22 [ARCH-03-FIX-01]: Suppression des valeurs inventées pour IsoSegment
+  // =========================================================================
+  runTest("TEST 22 [ARCH-03-FIX-01]: IsoSegment sans données techniques ne crée aucune valeur par défaut inventée", () => {
+    const bareSegment: IsoSegment = {
+      id: "SEG_BARE_TEST",
+      fromNodeId: "N1",
+      toNodeId: "N2",
+      type: "straight",
+      length: 5.0,
+      dn: undefined as unknown as number,
+      pn: undefined as unknown as string,
+      material: undefined as unknown as string,
+      fittings: [],
+    };
+
+    const ue = segmentToUniversalEntity(bareSegment);
+    assert(ue.pn.rating === undefined, `pn.rating doit être undefined (pas 'Class 150'), reçu: ${ue.pn.rating}`);
+    assert(ue.material.grade === undefined, `material.grade doit être undefined (pas 'Acier API 5L X52'), reçu: ${ue.material.grade}`);
+    assert(ue.material.schedule === undefined, `material.schedule doit être undefined, reçu: ${ue.material.schedule}`);
+    assert(ue.material.wallThicknessMm === undefined, `wallThicknessMm doit être undefined, reçu: ${ue.material.wallThicknessMm}`);
+    assert(ue.spec.pmsCode === undefined, `pmsCode doit être undefined (pas 'PMS-01'), reçu: ${ue.spec.pmsCode}`);
+    assert(ue.documentation.manufacturer === undefined, `manufacturer ne doit pas être 'Vallourec / Mannesmann', reçu: ${ue.documentation.manufacturer}`);
+    assert(ue.specific.pipe?.insulationThicknessMm === undefined, `insulationThicknessMm ne doit pas être 30, reçu: ${ue.specific.pipe?.insulationThicknessMm}`);
+  });
+
+  // =========================================================================
+  // TEST 23 [ARCH-03-FIX-01]: Suppression des valeurs inventées pour IsoFitting
+  // =========================================================================
+  runTest("TEST 23 [ARCH-03-FIX-01]: IsoFitting sans métadonnées ne crée aucune valeur par défaut inventée", () => {
+    const bareFitting: IsoFitting = {
+      id: "FIT_BARE_TEST",
+      type: "vanne_passage_total",
+      label: "Vanne",
+      length: 0.2,
+      localPosition: 0.5,
+      cumulativePosition: 0.5,
+      orientation: 0,
+    };
+    const bareSeg: IsoSegment = {
+      id: "SEG_P",
+      fromNodeId: "N1",
+      toNodeId: "N2",
+      type: "straight",
+      dn: 0,
+      pn: "",
+      material: "",
+      length: 1,
+      fittings: [],
+    };
+
+    const ue = fittingToUniversalEntity(bareFitting, bareSeg);
+    assert(ue.pn.rating === undefined, `pn.rating doit être undefined, reçu: ${ue.pn.rating}`);
+    assert(ue.material.grade === undefined, `material.grade doit être undefined, reçu: ${ue.material.grade}`);
+    assert(ue.spec.pmsCode === undefined, `spec.pmsCode doit être undefined, reçu: ${ue.spec.pmsCode}`);
+    assert(ue.specific.valve?.flowType === undefined, `valve.flowType doit être undefined`);
+    assert(ue.specific.valve?.actuatorType === undefined, `valve.actuatorType doit être undefined`);
+  });
+
+  // =========================================================================
+  // TEST 24 [ARCH-03-FIX-01]: Suppression des valeurs inventées pour Cad2dEntity
+  // =========================================================================
+  runTest("TEST 24 [ARCH-03-FIX-01]: Cad2dEntity ne génère pas de pseudo-matière ou pseudo-spec inventée", () => {
+    const bareCad: Cad2dEntity = {
+      id: "CAD_BARE_TEST",
+      type: "line",
+      layerId: "LAYER_0",
+      color: "#ffffff",
+      points: [{ x: 0, y: 0 }, { x: 10, y: 10 }],
+    };
+
+    const ue = cad2dToUniversalEntity(bareCad);
+    assert(ue.material.grade === undefined, `Cad material ne doit pas être 'Standard CAD', reçu: ${ue.material.grade}`);
+    assert(ue.spec.pmsCode === undefined, `Cad spec ne doit pas être 'CAD-2D', reçu: ${ue.spec.pmsCode}`);
+    assert(ue.pn.rating === undefined, `Cad pn ne doit pas être 'N/A', reçu: ${ue.pn.rating}`);
+    assert(ue.dn.dn === undefined, `Cad dn ne doit pas être 0 par défaut, reçu: ${ue.dn.dn}`);
+    assert(ue.service.code === undefined, `Cad service ne doit pas être 'DRAFT', reçu: ${ue.service.code}`);
+  });
+
+  // =========================================================================
+  // TEST 25 [ARCH-03-FIX-01]: Suppression des valeurs inventées pour IsoPipingSupport
+  // =========================================================================
+  runTest("TEST 25 [ARCH-03-FIX-01]: IsoPipingSupport ne génère pas de fabricants ou charges inventées", () => {
+    const bareSupport: IsoPipingSupport = {
+      id: "SUP_BARE_TEST",
+      tag: "S-01",
+      segmentId: "SEG_1",
+      tRatio: 0.5,
+      distanceFromFromNodeM: 2.0,
+      worldPos: { x: 1, y: 2, z: 3 },
+      elevationZ: 3,
+      type: "mss_type_35",
+      orientationAngleDeg: 0,
+      civilSpec: undefined as unknown as any,
+    };
+
+    const ue = supportToUniversalEntity(bareSupport);
+    assert(ue.material.grade === undefined, `Support material ne doit pas être inventé, reçu: ${ue.material.grade}`);
+    assert(ue.pn.rating === undefined, `Support pn ne doit pas être 'MSS SP-58', reçu: ${ue.pn.rating}`);
+    assert(ue.spec.pmsCode === undefined, `Support spec ne doit pas être 'MSS-SP-58', reçu: ${ue.spec.pmsCode}`);
+    assert(ue.documentation.manufacturer === undefined, `Support manufacturer ne doit pas être inventé, reçu: ${ue.documentation.manufacturer}`);
+    assert(ue.specific.support?.loadCapacityKn === undefined, `Support loadCapacityKn ne doit pas être 15 par défaut, reçu: ${ue.specific.support?.loadCapacityKn}`);
+  });
+
   return Object.freeze({
-    success: testsFailed === 0 && testsRun >= 20,
+    success: testsFailed === 0 && testsRun >= 25,
     testsRun,
     testsPassed,
     testsFailed,

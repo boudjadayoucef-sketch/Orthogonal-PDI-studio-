@@ -5,6 +5,10 @@
  * Passerelle universelle de lecture et mise à jour bidirectionnelle :
  * Convertit un Nœud, Segment, Fitting, Support ou Entité 2D en PdiUniversalEntity
  * et applique toute modification de façon atomique et cohérente sur le graphe.
+ *
+ * ARCH-03-FIX-01: Strictement déclaratif et transporteur.
+ * Aucune valeur technique, normative, dimensionnelle, matière, pression, épaisseur,
+ * PMS, fabricant ou preuve n'est inventée si elle est absente des données source.
  */
 
 import type {
@@ -12,7 +16,6 @@ import type {
   IsoSegment,
   IsoFitting,
   Cad2dEntity,
-  IsoFittingType,
 } from "../isometric/types/isoGraphTypes";
 import type { IsoPipingSupport } from "../isometric/supports/pdiMssSupportEngine";
 import {
@@ -31,14 +34,16 @@ export interface UniversalAdapterOptions {
   readonly relationships?: UniversalRelationships;
 }
 
-function getInchFromDn(dn: number): string {
+function getInchFromDn(dn: number): string | undefined {
+  if (!dn || typeof dn !== "number" || !Number.isFinite(dn) || dn <= 0) return undefined;
   const match = INDUSTRIAL_STANDARD_DNS.find((d) => d.dn === dn);
-  return match ? match.inch : `${(dn / 25.4).toFixed(1)}"`;
+  return match ? match.inch : undefined;
 }
 
-function getOdFromDn(dn: number): number {
+function getOdFromDn(dn: number): number | undefined {
+  if (!dn || typeof dn !== "number" || !Number.isFinite(dn) || dn <= 0) return undefined;
   const match = INDUSTRIAL_STANDARD_DNS.find((d) => d.dn === dn);
-  return match ? match.od : Number((dn * 1.05).toFixed(1));
+  return match ? match.od : undefined;
 }
 
 export function nodeToUniversalEntity(
@@ -62,20 +67,22 @@ export function nodeToUniversalEntity(
     category = "equipment";
   }
 
-  const primaryDn = node.dn || linkedSegments[0]?.dn || 50;
+  const primaryDn = node.dn || linkedSegments[0]?.dn || undefined;
+  const rawNode = node as Record<string, any>;
+  const rawFirstSeg = (linkedSegments[0] || {}) as Record<string, any>;
 
   const normative: UniversalNormativeRef = {
-    pipingSpecId: node.spec || linkedSegments[0]?.spec,
-    materialId: (node as any).material || linkedSegments[0]?.material,
-    pressureRating: (node as any).pn || linkedSegments[0]?.pn,
-    nominalSize: String(primaryDn),
-    schedule: (node as any).schedule,
+    pipingSpecId: node.spec || linkedSegments[0]?.spec || undefined,
+    materialId: rawNode.material || rawFirstSeg.material || undefined,
+    pressureRating: rawNode.pn || rawFirstSeg.pn || undefined,
+    nominalSize: primaryDn ? String(primaryDn) : undefined,
+    schedule: rawNode.schedule || rawFirstSeg.schedule || undefined,
     ...options?.normative,
   };
 
   const relationships: UniversalRelationships = {
     connectedEntityIds: linkedSegments.map((s) => s.id),
-    lineId: node.lineId || linkedSegments[0]?.lineId,
+    lineId: node.lineId || linkedSegments[0]?.lineId || undefined,
     ...options?.relationships,
   };
 
@@ -86,7 +93,7 @@ export function nodeToUniversalEntity(
       category,
       name: node.name || node.equipmentLabel || node.id,
       labelFr: node.equipmentLabel || node.name || "Nœud / Composant",
-      description: `Composant tuyauterie ${node.equipmentType || node.type}`,
+      description: node.equipmentType ? `Composant tuyauterie ${node.equipmentType}` : (node.type ? `Nœud ${node.type}` : undefined),
       locked: false,
       projectId: options?.projectId,
       source: options?.source ?? "ISOMETRIC",
@@ -95,10 +102,10 @@ export function nodeToUniversalEntity(
       x: Number((node.x || 0).toFixed(3)),
       y: Number((node.y || 0).toFixed(3)),
       z: Number((node.z || 0).toFixed(3)),
-      rotation: node.rotation || 0,
-      elevation: Number((node.z || 0).toFixed(3)),
+      rotation: node.rotation,
+      elevation: node.z != null ? Number(node.z.toFixed(3)) : undefined,
       branchAngle: node.branchAngle,
-      mirrored: !!node.mirrored,
+      mirrored: node.mirrored,
       bendDirection: node.bendDirection,
       length: node.length,
     },
@@ -115,56 +122,60 @@ export function nodeToUniversalEntity(
     },
     dn: {
       dn: primaryDn,
-      inch: getInchFromDn(primaryDn),
-      outerDiameterMm: getOdFromDn(primaryDn),
-      reducedDn: (node as any).reducedDn || undefined,
-      reducedInch: (node as any).reducedDn ? getInchFromDn((node as any).reducedDn) : undefined,
-      unit: "mm",
+      inch: primaryDn ? getInchFromDn(primaryDn) : undefined,
+      outerDiameterMm: primaryDn ? getOdFromDn(primaryDn) : undefined,
+      reducedDn: rawNode.reducedDn || undefined,
+      reducedInch: rawNode.reducedDn ? getInchFromDn(rawNode.reducedDn) : undefined,
+      unit: primaryDn ? "mm" : undefined,
     },
     pn: {
-      rating: (node as any).pn || linkedSegments[0]?.pn || "Class 150",
-      designPressureBar: (node as any).designPressureBar || 16,
-      operatingPressureBar: (node as any).operatingPressureBar || 10,
+      rating: rawNode.pn || rawFirstSeg.pn || undefined,
+      designPressureBar: rawNode.designPressureBar || undefined,
+      operatingPressureBar: rawNode.operatingPressureBar || undefined,
+      testPressureBar: rawNode.testPressureBar || undefined,
     },
     material: {
-      grade: (node as any).material || linkedSegments[0]?.material || "Acier API 5L X52",
-      schedule: (node as any).schedule || "SCH 40 / STD",
-      wallThicknessMm: (node as any).wallThicknessMm || 6.35,
+      grade: rawNode.material || rawFirstSeg.material || undefined,
+      standard: rawNode.materialStandard || undefined,
+      schedule: rawNode.schedule || rawFirstSeg.schedule || undefined,
+      wallThicknessMm: rawNode.wallThicknessMm || undefined,
     },
     service: {
-      code: node.service || linkedSegments[0]?.service || "PROC",
-      description: (node as any).serviceDescription || "Fluide procédé",
+      code: node.service || linkedSegments[0]?.service || undefined,
+      description: rawNode.serviceDescription || undefined,
+      designTemperatureC: rawNode.designTemperatureC || undefined,
+      operatingTemperatureC: rawNode.operatingTemperatureC || undefined,
     },
     spec: {
-      pmsCode: node.spec || linkedSegments[0]?.spec || "PMS-01",
-      classRating: (node as any).pn || "Class 150",
+      pmsCode: node.spec || linkedSegments[0]?.spec || undefined,
+      classRating: rawNode.pn || rawFirstSeg.pn || undefined,
     },
     tag: {
       fullTag: node.tag || node.name || node.id,
-      lineId: node.lineId || linkedSegments[0]?.lineId,
+      lineId: node.lineId || linkedSegments[0]?.lineId || undefined,
     },
     fabrication: {
-      location: (node as any).fabricationLocation || "shop",
-      spoolNumber: (node as any).spoolNumber || "",
-      weldType: "butt_weld",
-      ndtRequirement: "VT",
+      location: rawNode.fabricationLocation || undefined,
+      spoolNumber: rawNode.spoolNumber || undefined,
+      weldType: rawNode.weldType || undefined,
+      ndtRequirement: rawNode.ndtRequirement || undefined,
     },
     documentation: {
-      catalogRef: node.reference || "",
-      manufacturer: node.manufacturer || "",
-      notes: (node as any).notes || "",
+      catalogRef: node.reference || undefined,
+      manufacturer: node.manufacturer || undefined,
+      notes: rawNode.notes || undefined,
     },
     specific: {
       valve: category === "valve" ? {
-        flowType: (node as any).flowType || "passage_total",
-        actuatorType: (node as any).actuatorType || "manuel_volant",
-        faceToFaceMm: (node as any).faceToFaceMm || Math.round(primaryDn * 2.5),
-        flowCoefficientKv: (node as any).flowCoefficientKv || Math.round(primaryDn * 1.8),
+        flowType: rawNode.flowType || undefined,
+        actuatorType: rawNode.actuatorType || undefined,
+        faceToFaceMm: rawNode.faceToFaceMm || undefined,
+        flowCoefficientKv: rawNode.flowCoefficientKv || undefined,
       } : undefined,
       tee: category === "fitting" && eqType.includes("te") ? {
         teeType: eqType.includes("reduit") ? "reduit" : eqType.includes("barre") ? "barre_raclable" : "egal",
         runDn: primaryDn,
-        branchDn: (node as any).reducedDn || primaryDn,
+        branchDn: rawNode.reducedDn || primaryDn,
         branchAngle: node.branchAngle || 90,
       } : undefined,
       elbow: category === "fitting" && eqType.includes("coude") ? {
@@ -173,7 +184,7 @@ export function nodeToUniversalEntity(
       } : undefined,
       flange: category === "flange" ? {
         flangeType: eqType.includes("so") ? "SO" : eqType.includes("pleine") ? "BL" : "WN",
-        facing: "RF",
+        facing: rawNode.facing || undefined,
       } : undefined,
     },
     normative,
@@ -189,21 +200,22 @@ export function segmentToUniversalEntity(
 ): PdiUniversalEntity {
   const fromName = fromNode?.name || seg.fromNodeId;
   const toName = toNode?.name || seg.toNodeId;
+  const rawSeg = seg as Record<string, any>;
 
   const normative: UniversalNormativeRef = {
-    pipingSpecId: seg.spec,
-    materialId: seg.material,
-    pressureRating: seg.pn || seg.pressureClass,
-    nominalSize: String(seg.dn || 50),
-    schedule: (seg as any).schedule,
+    pipingSpecId: seg.spec || undefined,
+    materialId: seg.material || undefined,
+    pressureRating: seg.pn || seg.pressureClass || undefined,
+    nominalSize: seg.dn ? String(seg.dn) : undefined,
+    schedule: rawSeg.schedule || undefined,
     ...options?.normative,
   };
 
   const relationships: UniversalRelationships = {
     parentEntityId: seg.fromNodeId,
-    connectedEntityIds: [seg.fromNodeId, seg.toNodeId],
+    connectedEntityIds: [seg.fromNodeId, seg.toNodeId].filter(Boolean),
     lineId: seg.lineId,
-    spoolId: (seg as any).spoolNumber,
+    spoolId: rawSeg.spoolNumber,
     ...options?.relationships,
   };
 
@@ -212,9 +224,9 @@ export function segmentToUniversalEntity(
       id: seg.id,
       type: "pipe",
       category: "pipe",
-      name: seg.tag || seg.sourceName || `Tube DN${seg.dn} (${fromName} → ${toName})`,
-      labelFr: `Tronçon de tuyauterie DN${seg.dn}`,
-      description: `Tuyauterie ${seg.type === "riser" ? "colonne montante" : "ligne droite"} ${seg.material}`,
+      name: seg.tag || seg.sourceName || `Tube DN${seg.dn || ""}${fromName && toName ? ` (${fromName} → ${toName})` : ""}`,
+      labelFr: seg.dn ? `Tronçon de tuyauterie DN${seg.dn}` : "Tronçon de tuyauterie",
+      description: seg.material ? `Tuyauterie ${seg.type === "riser" ? "colonne montante" : "ligne droite"} ${seg.material}` : undefined,
       locked: false,
       projectId: options?.projectId,
       source: options?.source ?? "ISOMETRIC",
@@ -223,8 +235,8 @@ export function segmentToUniversalEntity(
       x: Number((fromNode?.x || 0).toFixed(3)),
       y: Number((fromNode?.y || 0).toFixed(3)),
       z: Number((fromNode?.z || 0).toFixed(3)),
-      elevation: Number((fromNode?.z || 0).toFixed(3)),
-      length: Number((seg.length || 0).toFixed(3)),
+      elevation: fromNode?.z != null ? Number(fromNode.z.toFixed(3)) : undefined,
+      length: seg.length != null ? Number(seg.length.toFixed(3)) : undefined,
     },
     connection: {
       fromEntityId: seg.fromNodeId,
@@ -238,49 +250,53 @@ export function segmentToUniversalEntity(
       connectionType: "butt_weld",
     },
     dn: {
-      dn: seg.dn || 50,
-      inch: getInchFromDn(seg.dn || 50),
-      outerDiameterMm: getOdFromDn(seg.dn || 50),
-      unit: "mm",
+      dn: seg.dn || undefined,
+      inch: seg.dn ? getInchFromDn(seg.dn) : undefined,
+      outerDiameterMm: seg.dn ? getOdFromDn(seg.dn) : undefined,
+      unit: seg.dn ? "mm" : undefined,
     },
     pn: {
-      rating: seg.pn || seg.pressureClass || "Class 150",
-      designPressureBar: (seg as any).designPressure || 16,
-      operatingPressureBar: (seg as any).operatingPressure || 10,
+      rating: seg.pn || seg.pressureClass || undefined,
+      designPressureBar: rawSeg.designPressure || rawSeg.designPressureBar || undefined,
+      operatingPressureBar: rawSeg.operatingPressure || rawSeg.operatingPressureBar || undefined,
+      testPressureBar: rawSeg.testPressure || rawSeg.testPressureBar || undefined,
     },
     material: {
-      grade: seg.material || "Acier API 5L X52",
-      schedule: (seg as any).schedule || "SCH 40 / STD",
-      wallThicknessMm: (seg as any).wallThicknessMm || 6.35,
+      grade: seg.material || undefined,
+      standard: rawSeg.materialStandard || undefined,
+      schedule: rawSeg.schedule || undefined,
+      wallThicknessMm: rawSeg.wallThicknessMm || undefined,
     },
     service: {
-      code: seg.service || "PROC",
-      description: (seg as any).serviceDescription || "Fluide procédé",
+      code: seg.service || undefined,
+      description: rawSeg.serviceDescription || undefined,
+      designTemperatureC: rawSeg.designTemperatureC || undefined,
+      operatingTemperatureC: rawSeg.operatingTemperatureC || undefined,
     },
     spec: {
-      pmsCode: seg.spec || "PMS-01",
-      classRating: seg.pn || "Class 150",
+      pmsCode: seg.spec || undefined,
+      classRating: seg.pn || seg.pressureClass || undefined,
     },
     tag: {
-      fullTag: seg.tag || `L-${seg.dn}`,
-      lineId: seg.lineId,
+      fullTag: seg.tag || (seg.dn ? `L-${seg.dn}` : seg.id),
+      lineId: seg.lineId || undefined,
     },
     fabrication: {
-      location: (seg as any).fabricationLocation || "shop",
-      spoolNumber: (seg as any).spoolNumber || "",
-      weldType: "butt_weld",
-      ndtRequirement: "VT",
+      location: rawSeg.fabricationLocation || undefined,
+      spoolNumber: rawSeg.spoolNumber || undefined,
+      weldType: rawSeg.weldType || undefined,
+      ndtRequirement: rawSeg.ndtRequirement || undefined,
     },
     documentation: {
-      catalogRef: (seg as any).catalogRef || "",
-      manufacturer: (seg as any).manufacturer || "Vallourec / Mannesmann",
-      notes: (seg as any).notes || "",
+      catalogRef: rawSeg.catalogRef || undefined,
+      manufacturer: rawSeg.manufacturer || undefined,
+      notes: rawSeg.notes || undefined,
     },
     specific: {
       pipe: {
         type: seg.type,
-        insulation: !!seg.insulation,
-        insulationThicknessMm: (seg as any).insulationThicknessMm || 30,
+        insulation: seg.insulation,
+        insulationThicknessMm: rawSeg.insulationThicknessMm || undefined,
         color: seg.color,
       },
     },
@@ -288,6 +304,7 @@ export function segmentToUniversalEntity(
     relationships,
   };
 }
+
 export function fittingToUniversalEntity(
   fitting: IsoFitting,
   parentSegment: IsoSegment,
@@ -302,19 +319,21 @@ export function fittingToUniversalEntity(
     category = "flange";
   }
 
-  const dn = fitting.dn || parentSegment.dn || 50;
+  const dn = fitting.dn || parentSegment.dn || undefined;
+  const rawParent = parentSegment as Record<string, any>;
+  const rawFitting = fitting as Record<string, any>;
 
   const normative: UniversalNormativeRef = {
-    pipingSpecId: parentSegment.spec,
-    materialId: parentSegment.material,
-    pressureRating: parentSegment.pn,
-    nominalSize: String(dn),
+    pipingSpecId: parentSegment.spec || undefined,
+    materialId: parentSegment.material || undefined,
+    pressureRating: parentSegment.pn || undefined,
+    nominalSize: dn ? String(dn) : undefined,
     ...options?.normative,
   };
 
   const relationships: UniversalRelationships = {
     parentEntityId: parentSegment.id,
-    lineId: parentSegment.lineId,
+    lineId: parentSegment.lineId || undefined,
     ...options?.relationships,
   };
 
@@ -334,7 +353,7 @@ export function fittingToUniversalEntity(
       y: 0,
       z: 0,
       length: fitting.length,
-      rotation: fitting.orientation || 0,
+      rotation: fitting.orientation,
     },
     connection: {
       fromEntityId: parentSegment.id,
@@ -346,40 +365,40 @@ export function fittingToUniversalEntity(
     },
     dn: {
       dn,
-      inch: getInchFromDn(dn),
-      outerDiameterMm: getOdFromDn(dn),
-      unit: "mm",
+      inch: dn ? getInchFromDn(dn) : undefined,
+      outerDiameterMm: dn ? getOdFromDn(dn) : undefined,
+      unit: dn ? "mm" : undefined,
     },
     pn: {
-      rating: parentSegment.pn || "Class 150",
+      rating: parentSegment.pn || undefined,
     },
     material: {
-      grade: parentSegment.material || "Acier API 5L X52",
-      schedule: "SCH 40 / STD",
+      grade: parentSegment.material || undefined,
+      schedule: rawParent.schedule || undefined,
     },
     service: {
-      code: parentSegment.service || "PROC",
+      code: parentSegment.service || undefined,
     },
     spec: {
-      pmsCode: parentSegment.spec || "PMS-01",
+      pmsCode: parentSegment.spec || undefined,
     },
     tag: {
       fullTag: fitting.label || fitting.id,
-      lineId: parentSegment.lineId,
+      lineId: parentSegment.lineId || undefined,
     },
     fabrication: {
-      location: (parentSegment as any).fabricationLocation || "shop",
-      spoolNumber: (parentSegment as any).spoolNumber || "",
-      weldType: "butt_weld",
+      location: rawParent.fabricationLocation || undefined,
+      spoolNumber: rawParent.spoolNumber || undefined,
+      weldType: rawParent.weldType || undefined,
     },
     documentation: {
-      catalogRef: fitting.reference || "",
-      manufacturer: fitting.manufacturer || "",
+      catalogRef: fitting.reference || undefined,
+      manufacturer: fitting.manufacturer || undefined,
     },
     specific: {
       valve: category === "valve" ? {
-        flowType: "passage_total",
-        actuatorType: "manuel_volant",
+        flowType: rawFitting.flowType || undefined,
+        actuatorType: rawFitting.actuatorType || undefined,
       } : undefined,
     },
     normative,
@@ -400,7 +419,7 @@ export function cad2dToUniversalEntity(
       category: "cad2d",
       name: cad.text || `${cad.type.toUpperCase()} 2D (${cad.id})`,
       labelFr: `Entité CAO 2D ${cad.type}`,
-      description: `Dessin géométrique sur calque ${cad.layerId}`,
+      description: cad.layerId ? `Dessin géométrique sur calque ${cad.layerId}` : undefined,
       projectId: options?.projectId,
       source: options?.source ?? "2D",
     },
@@ -408,7 +427,7 @@ export function cad2dToUniversalEntity(
       x: Number((firstPt.x || 0).toFixed(3)),
       y: Number((firstPt.y || 0).toFixed(3)),
       z: 0,
-      rotation: cad.rotation || 0,
+      rotation: cad.rotation,
       length: cad.length,
       width: cad.width,
       height: cad.height,
@@ -420,36 +439,36 @@ export function cad2dToUniversalEntity(
       connectionType: "mechanical",
     },
     dn: {
-      dn: cad.metadata?.dn || 0,
-      unit: "mm",
+      dn: cad.metadata?.dn || undefined,
+      unit: cad.metadata?.dn ? "mm" : undefined,
     },
     pn: {
-      rating: "N/A",
+      rating: cad.metadata?.pn || undefined,
     },
     material: {
-      grade: "Standard CAD",
+      grade: cad.metadata?.material || undefined,
     },
     service: {
-      code: "DRAFT",
+      code: cad.metadata?.service || undefined,
     },
     spec: {
-      pmsCode: "CAD-2D",
+      pmsCode: cad.metadata?.spec || undefined,
     },
     tag: {
       fullTag: cad.text || cad.id,
     },
     fabrication: {
-      location: "shop",
+      location: cad.metadata?.location || undefined,
     },
     documentation: {
-      notes: cad.metadata?.intent || "Dessin d'axe ou structure génie civil",
+      notes: cad.metadata?.intent || undefined,
     },
     specific: {
       cad2d: {
         layerId: cad.layerId,
         strokeColor: cad.color,
-        strokeWidth: cad.lineWeight || 1.5,
-        strokeDash: cad.lineType || "continuous",
+        strokeWidth: cad.lineWeight,
+        strokeDash: cad.lineType,
         fillColor: cad.fill,
         fillOpacity: cad.fillOpacity,
         hatchPattern: cad.hatchPattern,
@@ -468,7 +487,8 @@ export function supportToUniversalEntity(
   parentSegment?: IsoSegment | null,
   options?: UniversalAdapterOptions
 ): PdiUniversalEntity {
-  const targetDn = parentSegment?.dn || (sup as any).dn || 100;
+  const targetDn = parentSegment?.dn || (sup as any).dn || undefined;
+  const rawSup = sup as Record<string, any>;
   return {
     identity: {
       id: sup.id,
@@ -493,38 +513,38 @@ export function supportToUniversalEntity(
     },
     dn: {
       dn: targetDn,
-      inch: getInchFromDn(targetDn),
-      outerDiameterMm: getOdFromDn(targetDn),
-      unit: "mm",
+      inch: targetDn ? getInchFromDn(targetDn) : undefined,
+      outerDiameterMm: targetDn ? getOdFromDn(targetDn) : undefined,
+      unit: targetDn ? "mm" : undefined,
     },
     pn: {
-      rating: "MSS SP-58",
+      rating: rawSup.pn || parentSegment?.pn || undefined,
     },
     material: {
-      grade: "Acier galvanisé à chaud / Inox",
+      grade: rawSup.material || undefined,
     },
     service: {
-      code: "SUPPORT",
+      code: rawSup.service || parentSegment?.service || undefined,
     },
     spec: {
-      pmsCode: "MSS-SP-58",
+      pmsCode: rawSup.spec || parentSegment?.spec || undefined,
     },
     tag: {
       fullTag: sup.tag,
-      lineId: sup.segmentId,
+      lineId: sup.segmentId || undefined,
     },
     fabrication: {
-      location: "field",
+      location: rawSup.location || undefined,
     },
     documentation: {
-      catalogRef: `MSS-${sup.type}`,
-      manufacturer: "Lisega / Carpenter & Paterson / Hilti",
-      notes: `Ancrage à ${sup.distanceFromFromNodeM.toFixed(2)}m du nœud amont`,
+      catalogRef: rawSup.catalogRef || undefined,
+      manufacturer: rawSup.manufacturer || undefined,
+      notes: sup.distanceFromFromNodeM != null ? `Ancrage à ${sup.distanceFromFromNodeM.toFixed(2)}m du nœud amont` : undefined,
     },
     specific: {
       support: {
         mssType: sup.type,
-        loadCapacityKn: (sup as any).designLoadKn || (sup.customLoads?.fz ? Math.abs(sup.customLoads.fz) : 15),
+        loadCapacityKn: rawSup.designLoadKn || (sup.customLoads?.fz != null ? Math.abs(sup.customLoads.fz) : undefined),
         concretePad: !!sup.civilSpec,
       },
     },
@@ -653,14 +673,14 @@ export function validateUniversalEntity(entity: unknown): { valid: boolean; erro
   if (!raw.geometry || typeof raw.geometry.x !== "number" || typeof raw.geometry.y !== "number" || typeof raw.geometry.z !== "number") {
     errors.push("geometry with numeric x, y, z is required.");
   }
-  if (!raw.dn || typeof raw.dn.dn !== "number") {
-    errors.push("dn.dn must be a valid number.");
+  if (raw.dn && raw.dn.dn !== undefined && typeof raw.dn.dn !== "number") {
+    errors.push("dn.dn must be a valid number when provided.");
   }
-  if (!raw.pn || typeof raw.pn.rating !== "string") {
-    errors.push("pn.rating must be a string.");
+  if (raw.pn && raw.pn.rating !== undefined && typeof raw.pn.rating !== "string") {
+    errors.push("pn.rating must be a string when provided.");
   }
-  if (!raw.material || typeof raw.material.grade !== "string") {
-    errors.push("material.grade must be a string.");
+  if (raw.material && raw.material.grade !== undefined && typeof raw.material.grade !== "string") {
+    errors.push("material.grade must be a string when provided.");
   }
 
   return {
