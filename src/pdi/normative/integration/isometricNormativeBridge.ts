@@ -528,7 +528,9 @@ export class IsometricNormativeBridge implements IIsometricNormativeBridge {
       params.options?.legacyProjectSetup
     );
 
-    const finalStatus = legacyEvaluation.status;
+    // ARCH-02-FIX-01: Normative Engine is the SOLE authority for final status.
+    // Legacy PMS provides comparison snapshot / conflict codes only, NEVER altering the decision status.
+    const finalStatus = params.status;
     const allConflictCodes = [...params.conflictCodes];
     if (legacyEvaluation.conflictCode) {
       allConflictCodes.push(legacyEvaluation.conflictCode);

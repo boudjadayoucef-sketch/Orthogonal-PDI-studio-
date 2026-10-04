@@ -751,7 +751,7 @@ export function runArch01IsometricNormativeBridgeTests(): Arch01BridgeTestResult
     assert(decUnverified.status === "UNVERIFIED", "Legacy PMS ne doit jamais promouvoir UNVERIFIED en COMPATIBLE");
 
     // Cas B : Le moteur normatif retourne COMPATIBLE, mais le Legacy PMS attend une autre classe ("SYN_RATING_150")
-    // -> Conflit explicite détecté (ne choisit pas silencieusement l'un des deux, dégrade en UNVERIFIED avec LEGACY_PMS_NORMATIVE_CONFLICT)
+    // -> Décision normative COMPATIBLE conservée, conflit explicite LEGACY_PMS_NORMATIVE_CONFLICT détecté
     const conflictingLegacySetup = {
       specs: [
         {
@@ -783,7 +783,7 @@ export function runArch01IsometricNormativeBridgeTests(): Arch01BridgeTestResult
     const decConflict = bridge.checkNode(compatibleNode, {
       legacyProjectSetup: conflictingLegacySetup,
     });
-    assert(decConflict.status === "UNVERIFIED", `Attendu UNVERIFIED sur conflit Legacy/Normatif, reçu ${decConflict.status}`);
+    assert(decConflict.status === "COMPATIBLE", `Attendu COMPATIBLE (Normative Authority) sur conflit Legacy/Normatif, reçu ${decConflict.status}`);
     assert(
       decConflict.conflictCodes.includes("LEGACY_PMS_NORMATIVE_CONFLICT"),
       "Doit inclure LEGACY_PMS_NORMATIVE_CONFLICT dans conflictCodes"

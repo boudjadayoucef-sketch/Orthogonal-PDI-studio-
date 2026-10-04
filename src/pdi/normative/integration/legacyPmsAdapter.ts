@@ -140,15 +140,13 @@ export class LegacyPmsAdapter implements ILegacyPmsAdapter {
   /**
    * Evaluates Legacy PMS presets against an authoritative normative decision.
    *
-   * ARCH-02 Core Invariants:
-   * 1. If Normative Engine returned COMPATIBLE but Legacy PMS says non-conformant:
-   *    -> Surfaces `LEGACY_PMS_NORMATIVE_CONFLICT` and conservatively downgrades to `UNVERIFIED`.
-   * 2. If Normative Engine returned INCOMPATIBLE but Legacy PMS says conformant:
-   *    -> Retains `INCOMPATIBLE`, surfaces `LEGACY_PMS_NORMATIVE_CONFLICT`.
-   * 3. If Normative Engine returned UNVERIFIED but Legacy PMS says conformant:
-   *    -> Retains `UNVERIFIED` (Legacy PMS is NEVER allowed to promote to COMPATIBLE).
-   * 4. If Normative Engine returned INVALID:
-   *    -> Retains `INVALID`.
+   * ARCH-02 / ARCH-02-FIX-01 Core Invariants (DIAGNOSTIC-ONLY):
+   * 1. SOLE NORMATIVE AUTHORITY: `status` returned is ALWAYS identical to `normativeStatus`.
+   * 2. NO DEGRADATION: If Normative Engine decided COMPATIBLE but Legacy PMS preset expects a different class,
+   *    retains `COMPATIBLE`, surfaces `LEGACY_PMS_NORMATIVE_CONFLICT`.
+   * 3. NO PROMOTION: If Normative Engine decided INCOMPATIBLE, UNVERIFIED, or INVALID,
+   *    retains the exact normative status, even if Legacy PMS claims conformant.
+   * 4. DIAGNOSTIC COMPARISON ONLY: Surfaces comparison snapshot and conflict codes without altering authority.
    */
   public evaluate(
     context: IsometricNormativeContext,
@@ -169,7 +167,7 @@ export class LegacyPmsAdapter implements ILegacyPmsAdapter {
     if (normativeStatus === "COMPATIBLE" && !classConformant) {
       const conflictCode = "LEGACY_PMS_NORMATIVE_CONFLICT";
       return {
-        status: "UNVERIFIED",
+        status: normativeStatus, // Normative status is IMMUTABLE
         conflictCode,
         snapshot: Object.freeze({
           evaluated: true,
@@ -178,7 +176,7 @@ export class LegacyPmsAdapter implements ILegacyPmsAdapter {
           legacyClassConformant: classConformant,
           hasConflict: true,
           conflictCode,
-          message: `Conflict between Normative Engine (COMPATIBLE) and Legacy PMS preset (expected '${expectedClass ?? ""}', got '${context.pressureRating ?? ""}'). Conservative decision: UNVERIFIED.`,
+          message: `Diagnostic mismatch: Normative Engine decided COMPATIBLE while Legacy PMS preset expected '${expectedClass ?? ""}' (got '${context.pressureRating ?? ""}'). Normative authority retained: COMPATIBLE.`,
         }),
       };
     }
@@ -187,7 +185,7 @@ export class LegacyPmsAdapter implements ILegacyPmsAdapter {
     if (normativeStatus === "INCOMPATIBLE" && classConformant) {
       const conflictCode = "LEGACY_PMS_NORMATIVE_CONFLICT";
       return {
-        status: "INCOMPATIBLE",
+        status: normativeStatus, // Normative status is IMMUTABLE
         conflictCode,
         snapshot: Object.freeze({
           evaluated: true,
@@ -196,13 +194,13 @@ export class LegacyPmsAdapter implements ILegacyPmsAdapter {
           legacyClassConformant: classConformant,
           hasConflict: true,
           conflictCode,
-          message: `Conflict between Normative Engine (INCOMPATIBLE) and Legacy PMS preset (conformant with '${expectedClass ?? ""}'). Normative authority retained: INCOMPATIBLE.`,
+          message: `Diagnostic mismatch: Normative Engine decided INCOMPATIBLE while Legacy PMS preset matched '${expectedClass ?? ""}'. Normative authority retained: INCOMPATIBLE.`,
         }),
       };
     }
 
-    // INVARIANT: Normative Engine is UNVERIFIED, even if Legacy PMS claims conformant
-    // -> MUST NEVER PROMOTE TO COMPATIBLE!
+    // INVARIANT: Normative Engine is UNVERIFIED, INVALID, or fully aligned with Legacy PMS
+    // -> Normative status is strictly preserved. Diagnostic snapshot recorded.
     return {
       status: normativeStatus,
       snapshot: Object.freeze({

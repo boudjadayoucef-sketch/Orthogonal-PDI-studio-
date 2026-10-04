@@ -406,9 +406,9 @@ export function runArch02PmsAuthorityUnificationTests(): Arch02TestResult {
   });
 
   // =========================================================================
-  // TEST 07: Legacy PMS incompatible + normative compatible vérifiée → normative reste l'autorité
+  // TEST 07: Legacy PMS incompatible + normative compatible vérifiée → normative reste la SEULE autorité (COMPATIBLE)
   // =========================================================================
-  runTest("TEST 07 [ARCH-02]: Legacy PMS incompatible + normative compatible vérifiée → normative reste l'autorité", () => {
+  runTest("TEST 07 [ARCH-02]: Legacy PMS incompatible + normative compatible vérifiée → normative reste l'autorité (COMPATIBLE)", () => {
     const node: IsoNode = {
       id: "N_TEST_07",
       name: "Node Test 07",
@@ -422,6 +422,7 @@ export function runArch02PmsAuthorityUnificationTests(): Arch02TestResult {
       spec: "SYN_SPEC_ARCH02_VERIFIED",
       specificProps: {
         nominalSize: "SYN_SIZE_DN100",
+        productStandard: "SYN_VALVE_STD_01",
       },
     };
 
@@ -436,8 +437,9 @@ export function runArch02PmsAuthorityUnificationTests(): Arch02TestResult {
     };
 
     const dec = bridge.checkNode(node, { legacyProjectSetup: conflictingSetup });
-    assert(dec.status === "UNVERIFIED", "Le conflit doit être dégradé de manière conservatrice en UNVERIFIED");
-    assert(dec.legacyPmsComparison?.hasConflict === true, "Doit enregistrer hasConflict === true");
+    assert(dec.status === "COMPATIBLE", `Attendu COMPATIBLE (Normative Authority), reçu ${dec.status}`);
+    assert(dec.conflictCodes.includes("LEGACY_PMS_NORMATIVE_CONFLICT"), "Doit inclure le code LEGACY_PMS_NORMATIVE_CONFLICT");
+    assert(dec.legacyPmsComparison?.hasConflict === true, "Doit enregistrer hasConflict === true dans snapshot");
   });
 
   // =========================================================================
@@ -457,6 +459,7 @@ export function runArch02PmsAuthorityUnificationTests(): Arch02TestResult {
       spec: "SYN_SPEC_ARCH02_VERIFIED",
       specificProps: {
         nominalSize: "SYN_SIZE_DN100",
+        productStandard: "SYN_VALVE_STD_01",
       },
     };
 
@@ -471,6 +474,7 @@ export function runArch02PmsAuthorityUnificationTests(): Arch02TestResult {
     };
 
     const dec = bridge.checkNode(node, { legacyProjectSetup: conflictingSetup });
+    assert(dec.status === "COMPATIBLE", `Attendu COMPATIBLE, reçu ${dec.status}`);
     assert(dec.conflictCodes.includes("LEGACY_PMS_NORMATIVE_CONFLICT"), "Doit contenir le code LEGACY_PMS_NORMATIVE_CONFLICT");
     assert(dec.legacyPmsComparison?.conflictCode === "LEGACY_PMS_NORMATIVE_CONFLICT", "Le snapshot doit contenir le code");
   });
@@ -640,8 +644,118 @@ export function runArch02PmsAuthorityUnificationTests(): Arch02TestResult {
     assert(arch01Res.testsRun >= 15, `Suite ARCH-01 doit exécuter au moins 15 tests (exécuté ${arch01Res.testsRun})`);
   });
 
+  // =========================================================================
+  // TEST 17: Non-promotion explicite (UNVERIFIED + Legacy COMPATIBLE ≠ COMPATIBLE)
+  // =========================================================================
+  runTest("TEST 17 [ARCH-02-FIX-01]: Non-promotion explicite — UNVERIFIED + Legacy COMPATIBLE ≠ COMPATIBLE", () => {
+    const unverifiedNode: IsoNode = {
+      id: "N_TEST_17_UNV",
+      name: "Node Test 17 Unverified",
+      x: 0,
+      y: 0,
+      z: 0,
+      type: "normal",
+      equipmentType: "vanne_passage_total",
+      pn: "SYN_CLASS_300",
+      material: "SYN_MAT_CARBON_01",
+      spec: "SYN_SPEC_ARCH02_UNVERIFIED",
+      specificProps: {
+        nominalSize: "SYN_SIZE_DN100",
+      },
+    };
+
+    const dec = bridge.checkNode(unverifiedNode, { legacyProjectSetup: legacySetup });
+    assert(dec.status !== "COMPATIBLE", "Legacy COMPATIBLE ne doit JAMAIS promouvoir UNVERIFIED en COMPATIBLE");
+    assert(dec.status === "UNVERIFIED", `Attendu UNVERIFIED, reçu ${dec.status}`);
+  });
+
+  // =========================================================================
+  // TEST 18: Non-promotion explicite (INVALID + Legacy COMPATIBLE ≠ COMPATIBLE)
+  // =========================================================================
+  runTest("TEST 18 [ARCH-02-FIX-01]: Non-promotion explicite — INVALID + Legacy COMPATIBLE ≠ COMPATIBLE", () => {
+    const invalidNode: IsoNode = {
+      id: "N_TEST_18_INV",
+      name: "Node Test 18 Invalid",
+      x: 0,
+      y: 0,
+      z: 0,
+      type: "normal",
+      equipmentType: "vanne_passage_total",
+      pn: "SYN_CLASS_300",
+      material: "SYN_MAT_CARBON_01",
+      spec: "SYN_SPEC_ARCH02_VERIFIED",
+      specificProps: {
+        nominalSize: "CS_DISALLOWED_HEURISTIC", // déclenche DISALLOWED_TOKEN_HEURISTIC -> INVALID
+      },
+    };
+
+    const dec = bridge.checkNode(invalidNode, { legacyProjectSetup: legacySetup });
+    assert(dec.status !== "COMPATIBLE", "Legacy COMPATIBLE ne doit JAMAIS promouvoir INVALID en COMPATIBLE");
+    assert(dec.status === "INVALID", `Attendu INVALID, reçu ${dec.status}`);
+  });
+
+  // =========================================================================
+  // TEST 19: Non-dégradation explicite (COMPATIBLE + Legacy INCOMPATIBLE ≠ UNVERIFIED et ≠ INCOMPATIBLE)
+  // =========================================================================
+  runTest("TEST 19 [ARCH-02-FIX-01]: Non-dégradation explicite — COMPATIBLE + Legacy INCOMPATIBLE = COMPATIBLE", () => {
+    const compatibleNode: IsoNode = {
+      id: "N_TEST_19_COMPAT",
+      name: "Node Test 19 Compat",
+      x: 0,
+      y: 0,
+      z: 0,
+      type: "normal",
+      equipmentType: "vanne_passage_total",
+      pn: "SYN_CLASS_300",
+      material: "SYN_MAT_CARBON_01",
+      spec: "SYN_SPEC_ARCH02_VERIFIED",
+      specificProps: {
+        nominalSize: "SYN_SIZE_DN100",
+        productStandard: "SYN_VALVE_STD_01",
+      },
+    };
+
+    const conflictingSetup = {
+      specs: [
+        {
+          code: "SYN_SPEC_ARCH02_VERIFIED",
+          material: "SYN_MAT_CARBON_01",
+          pressureClass: "SYN_CLASS_900", // Mismatch avec SYN_CLASS_300
+        },
+      ],
+    };
+
+    const dec = bridge.checkNode(compatibleNode, { legacyProjectSetup: conflictingSetup });
+    assert(dec.status !== "UNVERIFIED", "Le statut normatif COMPATIBLE ne doit JAMAIS être dégradé en UNVERIFIED");
+    assert(dec.status !== "INCOMPATIBLE", "Le statut normatif COMPATIBLE ne doit JAMAIS être transformé en INCOMPATIBLE");
+    assert(dec.status === "COMPATIBLE", `Attendu COMPATIBLE, reçu ${dec.status}`);
+    assert(dec.conflictCodes.includes("LEGACY_PMS_NORMATIVE_CONFLICT"), "Doit signaler le conflit diagnostic");
+  });
+
+  // =========================================================================
+  // TEST 20: INVALID IMMUTABLE (Normative INVALID + Legacy COMPATIBLE → INVALID)
+  // =========================================================================
+  runTest("TEST 20 [ARCH-02-FIX-01]: INVALID IMMUTABLE — Normative INVALID + Legacy COMPATIBLE → INVALID", () => {
+    const invalidContextNode: IsoNode = {
+      id: "", // Invalid empty entityId
+      name: "Empty Entity ID Node",
+      x: 0,
+      y: 0,
+      z: 0,
+      type: "normal",
+      equipmentType: "vanne_passage_total",
+      pn: "SYN_CLASS_300",
+      material: "SYN_MAT_CARBON_01",
+      spec: "SYN_SPEC_ARCH02_VERIFIED",
+    };
+
+    const dec = bridge.checkNode(invalidContextNode, { legacyProjectSetup: legacySetup });
+    assert(dec.status === "INVALID", `Attendu INVALID pour entityId vide, reçu ${dec.status}`);
+    assert(dec.conflictCodes.includes("INVALID_NORMATIVE_CONTEXT"), "Doit signaler INVALID_NORMATIVE_CONTEXT");
+  });
+
   return Object.freeze({
-    success: testsFailed === 0 && testsRun >= 16,
+    success: testsFailed === 0 && testsRun >= 20,
     testsRun,
     testsPassed,
     testsFailed,
