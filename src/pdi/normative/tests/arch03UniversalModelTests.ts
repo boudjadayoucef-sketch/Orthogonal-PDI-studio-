@@ -813,8 +813,293 @@ export function runArch03UniversalModelTests(): Arch03TestResult {
     assert(ue.specific.support?.loadCapacityKn === undefined, `Support loadCapacityKn ne doit pas être 15 par défaut, reçu: ${ue.specific.support?.loadCapacityKn}`);
   });
 
+  // =========================================================================
+  // TEST 26 [ARCH-03-FIX-02]: TEST A — DN présent, NPS absent
+  // =========================================================================
+  runTest("TEST 26 [ARCH-03-FIX-02]: TEST A — DN présent (100), NPS absent -> NPS/inch = undefined (pas de '4\"')", () => {
+    const node: IsoNode = {
+      id: "N_DN100_NO_NPS",
+      name: "Node DN100",
+      x: 0,
+      y: 0,
+      z: 0,
+      type: "normal",
+      dn: 100,
+    };
+    const seg: IsoSegment = {
+      id: "S_DN100_NO_NPS",
+      fromNodeId: "N1",
+      toNodeId: "N2",
+      type: "straight",
+      length: 1,
+      dn: 100,
+      pn: "Class 150",
+      material: "A106",
+      fittings: [],
+    };
+
+    const ueNode = nodeToUniversalEntity(node);
+    assert(ueNode.dn.dn === 100, "DN 100 transporté");
+    assert(ueNode.dn.inch === undefined, `NPS/inch doit être strictement undefined, reçu: ${ueNode.dn.inch}`);
+
+    const ueSeg = segmentToUniversalEntity(seg);
+    assert(ueSeg.dn.dn === 100, "DN 100 transporté");
+    assert(ueSeg.dn.inch === undefined, `NPS/inch doit être strictement undefined, reçu: ${ueSeg.dn.inch}`);
+  });
+
+  // =========================================================================
+  // TEST 27 [ARCH-03-FIX-02]: TEST B — DN présent, OD absent
+  // =========================================================================
+  runTest("TEST 27 [ARCH-03-FIX-02]: TEST B — DN présent (100), OD absent -> outerDiameterMm = undefined", () => {
+    const node: IsoNode = {
+      id: "N_DN100_NO_OD",
+      name: "Node DN100",
+      x: 0,
+      y: 0,
+      z: 0,
+      type: "normal",
+      dn: 100,
+    };
+    const seg: IsoSegment = {
+      id: "S_DN100_NO_OD",
+      fromNodeId: "N1",
+      toNodeId: "N2",
+      type: "straight",
+      length: 1,
+      dn: 100,
+      pn: "Class 150",
+      material: "A106",
+      fittings: [],
+    };
+
+    const ueNode = nodeToUniversalEntity(node);
+    assert(ueNode.dn.outerDiameterMm === undefined, `outerDiameterMm doit être strictement undefined, reçu: ${ueNode.dn.outerDiameterMm}`);
+
+    const ueSeg = segmentToUniversalEntity(seg);
+    assert(ueSeg.dn.outerDiameterMm === undefined, `outerDiameterMm doit être strictement undefined, reçu: ${ueSeg.dn.outerDiameterMm}`);
+  });
+
+  // =========================================================================
+  // TEST 28 [ARCH-03-FIX-02]: TEST C — DN ne produit jamais NPS (25, 50, 100, 150, 200, 300)
+  // =========================================================================
+  runTest("TEST 28 [ARCH-03-FIX-02]: TEST C — DN ne produit jamais NPS (vérification multi-diamètres 25, 50, 100, 150, 200, 300)", () => {
+    const dns = [25, 50, 100, 150, 200, 300];
+    for (const dn of dns) {
+      const node: IsoNode = {
+        id: `N_MULTI_${dn}`,
+        name: `Node ${dn}`,
+        x: 0,
+        y: 0,
+        z: 0,
+        type: "normal",
+        dn,
+      };
+      const seg: IsoSegment = {
+        id: `S_MULTI_${dn}`,
+        fromNodeId: "N1",
+        toNodeId: "N2",
+        type: "straight",
+        length: 2,
+        dn,
+        pn: "PN16",
+        material: "P235GH",
+        fittings: [],
+      };
+
+      const ueNode = nodeToUniversalEntity(node);
+      assert(ueNode.dn.inch === undefined, `DN ${dn} pour node ne doit pas produire de NPS, reçu: ${ueNode.dn.inch}`);
+
+      const ueSeg = segmentToUniversalEntity(seg);
+      assert(ueSeg.dn.inch === undefined, `DN ${dn} pour segment ne doit pas produire de NPS, reçu: ${ueSeg.dn.inch}`);
+    }
+  });
+
+  // =========================================================================
+  // TEST 29 [ARCH-03-FIX-02]: TEST D — DN ne produit jamais OD (25, 50, 100, 150, 200, 300)
+  // =========================================================================
+  runTest("TEST 29 [ARCH-03-FIX-02]: TEST D — DN ne produit jamais OD (vérification multi-diamètres 25, 50, 100, 150, 200, 300)", () => {
+    const dns = [25, 50, 100, 150, 200, 300];
+    for (const dn of dns) {
+      const node: IsoNode = {
+        id: `N_MULTI_OD_${dn}`,
+        name: `Node ${dn}`,
+        x: 0,
+        y: 0,
+        z: 0,
+        type: "normal",
+        dn,
+      };
+      const seg: IsoSegment = {
+        id: `S_MULTI_OD_${dn}`,
+        fromNodeId: "N1",
+        toNodeId: "N2",
+        type: "straight",
+        length: 2,
+        dn,
+        pn: "PN16",
+        material: "P235GH",
+        fittings: [],
+      };
+
+      const ueNode = nodeToUniversalEntity(node);
+      assert(ueNode.dn.outerDiameterMm === undefined, `DN ${dn} pour node ne doit pas produire d'OD, reçu: ${ueNode.dn.outerDiameterMm}`);
+
+      const ueSeg = segmentToUniversalEntity(seg);
+      assert(ueSeg.dn.outerDiameterMm === undefined, `DN ${dn} pour segment ne doit pas produire d'OD, reçu: ${ueSeg.dn.outerDiameterMm}`);
+    }
+  });
+
+  // =========================================================================
+  // TEST 30 [ARCH-03-FIX-02]: TEST E — NPS explicite conservé fidèlement
+  // =========================================================================
+  runTest("TEST 30 [ARCH-03-FIX-02]: TEST E — NPS explicite conservé fidèlement sans modification", () => {
+    const rawNode: IsoNode & { inch?: string; nps?: string } = {
+      id: "N_EXPLICIT_NPS",
+      name: "Node with explicit NPS",
+      x: 0,
+      y: 0,
+      z: 0,
+      type: "normal",
+      dn: 100,
+      inch: '4"',
+    };
+    const rawSeg: IsoSegment & { nps?: string } = {
+      id: "S_EXPLICIT_NPS",
+      fromNodeId: "N1",
+      toNodeId: "N2",
+      type: "straight",
+      length: 1,
+      dn: 50,
+      pn: "Class 300",
+      material: "A106",
+      fittings: [],
+      nps: '2"',
+    };
+
+    const ueNode = nodeToUniversalEntity(rawNode);
+    assert(ueNode.dn.inch === '4"', `NPS explicite node '4"' doit être conservé, reçu: ${ueNode.dn.inch}`);
+
+    const ueSeg = segmentToUniversalEntity(rawSeg);
+    assert(ueSeg.dn.inch === '2"', `NPS explicite segment '2"' doit être conservé, reçu: ${ueSeg.dn.inch}`);
+  });
+
+  // =========================================================================
+  // TEST 31 [ARCH-03-FIX-02]: TEST F — OD explicite conservé fidèlement
+  // =========================================================================
+  runTest("TEST 31 [ARCH-03-FIX-02]: TEST F — OD explicite conservé fidèlement sans modification", () => {
+    const rawNode: IsoNode & { outerDiameterMm?: number } = {
+      id: "N_EXPLICIT_OD",
+      name: "Node with explicit OD",
+      x: 0,
+      y: 0,
+      z: 0,
+      type: "normal",
+      dn: 100,
+      outerDiameterMm: 114.3,
+    };
+    const rawSeg: IsoSegment & { od?: number } = {
+      id: "S_EXPLICIT_OD",
+      fromNodeId: "N1",
+      toNodeId: "N2",
+      type: "straight",
+      length: 1,
+      dn: 50,
+      pn: "Class 300",
+      material: "A106",
+      fittings: [],
+      od: 60.3,
+    };
+
+    const ueNode = nodeToUniversalEntity(rawNode);
+    assert(ueNode.dn.outerDiameterMm === 114.3, `OD explicite node 114.3 doit être conservé, reçu: ${ueNode.dn.outerDiameterMm}`);
+
+    const ueSeg = segmentToUniversalEntity(rawSeg);
+    assert(ueSeg.dn.outerDiameterMm === 60.3, `OD explicite segment 60.3 doit être conservé, reçu: ${ueSeg.dn.outerDiameterMm}`);
+  });
+
+  // =========================================================================
+  // TEST 32 [ARCH-03-FIX-02]: TEST G — Aucun calcul dimensionnel implicite
+  // =========================================================================
+  runTest("TEST 32 [ARCH-03-FIX-02]: TEST G — Source avec uniquement DN ne produit aucun calcul implicite (NPS, OD, wallThickness, schedule)", () => {
+    const bareDnNode: IsoNode = {
+      id: "N_BARE_DN",
+      name: "Bare DN Node",
+      x: 0,
+      y: 0,
+      z: 0,
+      type: "normal",
+      dn: 80,
+    };
+
+    const ue = nodeToUniversalEntity(bareDnNode);
+    assert(ue.dn.dn === 80, "DN transporté");
+    assert(ue.dn.inch === undefined, "inch undefined");
+    assert(ue.dn.outerDiameterMm === undefined, "outerDiameterMm undefined");
+    assert(ue.material.schedule === undefined, "schedule undefined");
+    assert(ue.material.wallThicknessMm === undefined, "wallThicknessMm undefined");
+    assert(ue.pn.rating === undefined, "pn rating undefined");
+    assert(ue.normative?.nominalSize === undefined, "normative nominalSize undefined (pas de déduction String(dn))");
+  });
+
+  // =========================================================================
+  // TEST 33 [ARCH-03-FIX-02]: TEST H — Aucun evidence fabriqué
+  // =========================================================================
+  runTest("TEST 33 [ARCH-03-FIX-02]: TEST H — Aucune evidenceId ou date de vérification fabriquée", () => {
+    const node: IsoNode = {
+      id: "N_NO_EVIDENCE",
+      name: "Node",
+      x: 0,
+      y: 0,
+      z: 0,
+      type: "normal",
+      dn: 100,
+    };
+
+    const ue = nodeToUniversalEntity(node);
+    assert(ue.normative?.evidenceIds === undefined, "evidenceIds reste undefined");
+    assert((ue.normative as any)?.verifiedAt === undefined, "verifiedAt reste undefined");
+    assert((ue.normative as any)?.verifiedBy === undefined, "verifiedBy reste undefined");
+  });
+
+  // =========================================================================
+  // TEST 34 [ARCH-03-FIX-02]: TEST I — Immutabilité des entités sources
+  // =========================================================================
+  runTest("TEST 34 [ARCH-03-FIX-02]: TEST I — L'adapter ne mute pas les objets IsoNode et IsoSegment", () => {
+    const originalNode: IsoNode = Object.freeze({
+      id: "NODE_IMMUTABLE",
+      name: "Immutable Node",
+      x: 10,
+      y: 20,
+      z: 30,
+      type: "normal",
+      dn: 100,
+    });
+    const originalSegment: IsoSegment = Object.freeze({
+      id: "SEG_IMMUTABLE",
+      fromNodeId: "N1",
+      toNodeId: "N2",
+      type: "straight",
+      length: 5,
+      dn: 100,
+      pn: "Class 150",
+      material: "A106",
+      fittings: Object.freeze([]) as any,
+    });
+
+    const snapNodeBefore = JSON.stringify(originalNode);
+    const snapSegBefore = JSON.stringify(originalSegment);
+
+    const ueNode = nodeToUniversalEntity(originalNode);
+    const ueSeg = segmentToUniversalEntity(originalSegment);
+
+    assert(JSON.stringify(originalNode) === snapNodeBefore, "IsoNode n'a pas été muté");
+    assert(JSON.stringify(originalSegment) === snapSegBefore, "IsoSegment n'a pas été muté");
+    assert(ueNode.dn.inch === undefined, "ueNode.dn.inch est undefined");
+    assert(ueSeg.dn.inch === undefined, "ueSeg.dn.inch est undefined");
+  });
+
   return Object.freeze({
-    success: testsFailed === 0 && testsRun >= 25,
+    success: testsFailed === 0 && testsRun >= 34,
     testsRun,
     testsPassed,
     testsFailed,

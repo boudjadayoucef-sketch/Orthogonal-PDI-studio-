@@ -6,9 +6,10 @@
  * Convertit un Nœud, Segment, Fitting, Support ou Entité 2D en PdiUniversalEntity
  * et applique toute modification de façon atomique et cohérente sur le graphe.
  *
- * ARCH-03-FIX-01: Strictement déclaratif et transporteur.
+ * ARCH-03-FIX-01 & ARCH-03-FIX-02: Strictement déclaratif et transporteur.
  * Aucune valeur technique, normative, dimensionnelle, matière, pression, épaisseur,
  * PMS, fabricant ou preuve n'est inventée si elle est absente des données source.
+ * Aucune conversion implicite DN → NPS/inch ou DN → OD n'est effectuée.
  */
 
 import type {
@@ -24,7 +25,6 @@ import {
   UniversalEntitySource,
   UniversalNormativeRef,
   UniversalRelationships,
-  INDUSTRIAL_STANDARD_DNS,
 } from "./pdiUniversalEntity";
 
 export interface UniversalAdapterOptions {
@@ -32,18 +32,6 @@ export interface UniversalAdapterOptions {
   readonly source?: UniversalEntitySource | string;
   readonly normative?: UniversalNormativeRef;
   readonly relationships?: UniversalRelationships;
-}
-
-function getInchFromDn(dn: number): string | undefined {
-  if (!dn || typeof dn !== "number" || !Number.isFinite(dn) || dn <= 0) return undefined;
-  const match = INDUSTRIAL_STANDARD_DNS.find((d) => d.dn === dn);
-  return match ? match.inch : undefined;
-}
-
-function getOdFromDn(dn: number): number | undefined {
-  if (!dn || typeof dn !== "number" || !Number.isFinite(dn) || dn <= 0) return undefined;
-  const match = INDUSTRIAL_STANDARD_DNS.find((d) => d.dn === dn);
-  return match ? match.od : undefined;
 }
 
 export function nodeToUniversalEntity(
@@ -75,7 +63,7 @@ export function nodeToUniversalEntity(
     pipingSpecId: node.spec || linkedSegments[0]?.spec || undefined,
     materialId: rawNode.material || rawFirstSeg.material || undefined,
     pressureRating: rawNode.pn || rawFirstSeg.pn || undefined,
-    nominalSize: primaryDn ? String(primaryDn) : undefined,
+    nominalSize: rawNode.nominalSize || rawFirstSeg.nominalSize || options?.normative?.nominalSize || undefined,
     schedule: rawNode.schedule || rawFirstSeg.schedule || undefined,
     ...options?.normative,
   };
@@ -122,11 +110,11 @@ export function nodeToUniversalEntity(
     },
     dn: {
       dn: primaryDn,
-      inch: primaryDn ? getInchFromDn(primaryDn) : undefined,
-      outerDiameterMm: primaryDn ? getOdFromDn(primaryDn) : undefined,
+      inch: rawNode.inch || rawNode.nps || rawNode.npsInch || rawFirstSeg.inch || rawFirstSeg.nps || rawFirstSeg.npsInch || undefined,
+      outerDiameterMm: rawNode.outerDiameterMm || rawNode.od || rawFirstSeg.outerDiameterMm || rawFirstSeg.od || undefined,
       reducedDn: rawNode.reducedDn || undefined,
-      reducedInch: rawNode.reducedDn ? getInchFromDn(rawNode.reducedDn) : undefined,
-      unit: primaryDn ? "mm" : undefined,
+      reducedInch: rawNode.reducedInch || rawNode.reducedNps || undefined,
+      unit: rawNode.unit || (primaryDn ? "mm" : undefined),
     },
     pn: {
       rating: rawNode.pn || rawFirstSeg.pn || undefined,
@@ -206,7 +194,7 @@ export function segmentToUniversalEntity(
     pipingSpecId: seg.spec || undefined,
     materialId: seg.material || undefined,
     pressureRating: seg.pn || seg.pressureClass || undefined,
-    nominalSize: seg.dn ? String(seg.dn) : undefined,
+    nominalSize: rawSeg.nominalSize || options?.normative?.nominalSize || undefined,
     schedule: rawSeg.schedule || undefined,
     ...options?.normative,
   };
@@ -251,9 +239,9 @@ export function segmentToUniversalEntity(
     },
     dn: {
       dn: seg.dn || undefined,
-      inch: seg.dn ? getInchFromDn(seg.dn) : undefined,
-      outerDiameterMm: seg.dn ? getOdFromDn(seg.dn) : undefined,
-      unit: seg.dn ? "mm" : undefined,
+      inch: rawSeg.inch || rawSeg.nps || rawSeg.npsInch || undefined,
+      outerDiameterMm: rawSeg.outerDiameterMm || rawSeg.od || undefined,
+      unit: rawSeg.unit || (seg.dn ? "mm" : undefined),
     },
     pn: {
       rating: seg.pn || seg.pressureClass || undefined,
@@ -327,7 +315,7 @@ export function fittingToUniversalEntity(
     pipingSpecId: parentSegment.spec || undefined,
     materialId: parentSegment.material || undefined,
     pressureRating: parentSegment.pn || undefined,
-    nominalSize: dn ? String(dn) : undefined,
+    nominalSize: rawFitting.nominalSize || rawParent.nominalSize || options?.normative?.nominalSize || undefined,
     ...options?.normative,
   };
 
@@ -365,9 +353,9 @@ export function fittingToUniversalEntity(
     },
     dn: {
       dn,
-      inch: dn ? getInchFromDn(dn) : undefined,
-      outerDiameterMm: dn ? getOdFromDn(dn) : undefined,
-      unit: dn ? "mm" : undefined,
+      inch: rawFitting.inch || rawFitting.nps || rawParent.inch || rawParent.nps || undefined,
+      outerDiameterMm: rawFitting.outerDiameterMm || rawFitting.od || rawParent.outerDiameterMm || rawParent.od || undefined,
+      unit: rawFitting.unit || rawParent.unit || (dn ? "mm" : undefined),
     },
     pn: {
       rating: parentSegment.pn || undefined,
@@ -440,6 +428,8 @@ export function cad2dToUniversalEntity(
     },
     dn: {
       dn: cad.metadata?.dn || undefined,
+      inch: cad.metadata?.inch || cad.metadata?.nps || undefined,
+      outerDiameterMm: cad.metadata?.outerDiameterMm || cad.metadata?.od || undefined,
       unit: cad.metadata?.dn ? "mm" : undefined,
     },
     pn: {
@@ -513,8 +503,8 @@ export function supportToUniversalEntity(
     },
     dn: {
       dn: targetDn,
-      inch: targetDn ? getInchFromDn(targetDn) : undefined,
-      outerDiameterMm: targetDn ? getOdFromDn(targetDn) : undefined,
+      inch: rawSup.inch || rawSup.nps || (parentSegment as any)?.inch || undefined,
+      outerDiameterMm: rawSup.outerDiameterMm || rawSup.od || (parentSegment as any)?.outerDiameterMm || undefined,
       unit: targetDn ? "mm" : undefined,
     },
     pn: {
