@@ -294,7 +294,7 @@ export interface IsoProjectFileV474 {
     ownerUid: string;
     name: string;
     wilaya: string;
-    pressDesign: number;
+    pressDesign?: number;
     createdAt: string;
     updatedAt: string;
     unitSystem?: "metric" | "imperial";

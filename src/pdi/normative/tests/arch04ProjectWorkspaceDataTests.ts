@@ -600,8 +600,142 @@ export function runArch04ProjectWorkspaceDataTests(): Arch04TestResult {
     assert(projCtx.metadata.legacyAdminProjectId === "LEGACY_ADMIN_001", "Référence admin conservée");
   });
 
+  // =========================================================================
+  // TEST 25 [ARCH-04-FIX-01]: createProjectContext sans pressDesign -> undefined
+  // =========================================================================
+  runTest("TEST 25 [ARCH-04-FIX-01]: createProjectContext sans pressDesign produit undefined (pas de 40 bar inventé)", () => {
+    const proj1 = createProjectContext({
+      projectName: "Projet Sans Pression",
+      wilaya: "Adrar",
+    });
+    assert(proj1.metadata.pressDesign === undefined, "pressDesign absent doit être undefined");
+
+    const proj2 = createProjectContext({
+      projectName: "Projet Null Pression",
+      pressDesign: undefined,
+    });
+    assert(proj2.metadata.pressDesign === undefined, "pressDesign: undefined doit rester undefined");
+  });
+
+  // =========================================================================
+  // TEST 26 [ARCH-04-FIX-01]: createProjectContext avec pressDesign explicite
+  // =========================================================================
+  runTest("TEST 26 [ARCH-04-FIX-01]: createProjectContext avec pressDesign explicite conserve la valeur exacte", () => {
+    const proj = createProjectContext({
+      projectName: "Gazoduc Haute Pression",
+      pressDesign: 64,
+    });
+    assert(proj.metadata.pressDesign === 64, "pressDesign de 64 bar doit être conservé exactement");
+
+    const projZero = createProjectContext({
+      projectName: "Ligne Gravitaire",
+      pressDesign: 0,
+    });
+    assert(projZero.metadata.pressDesign === 0, "pressDesign de 0 bar doit être conservé");
+  });
+
+  // =========================================================================
+  // TEST 27 [ARCH-04-FIX-01]: isoProjectFileV474ToProjectBundle sans pressDesign -> undefined
+  // =========================================================================
+  runTest("TEST 27 [ARCH-04-FIX-01]: isoProjectFileV474ToProjectBundle sans pressDesign produit metadata.pressDesign === undefined", () => {
+    const rawSnapshot = {
+      schemaVersion: "4.7.4",
+      project: {
+        id: "PROJ_RAW_NO_PRESS",
+        name: "Projet Importé Brut",
+        wilaya: "Ghardaïa",
+        // pas de pressDesign
+      },
+      model: { nodes: [], segments: [] },
+      workspace: {},
+    };
+
+    const bundle = isoProjectFileV474ToProjectBundle(rawSnapshot);
+    assert(bundle.project.metadata.pressDesign === undefined, "pressDesign absent dans snapshot doit donner undefined");
+  });
+
+  // =========================================================================
+  // TEST 28 [ARCH-04-FIX-01]: isoProjectFileV474ToProjectBundle avec pressDesign explicite
+  // =========================================================================
+  runTest("TEST 28 [ARCH-04-FIX-01]: isoProjectFileV474ToProjectBundle avec pressDesign explicite le conserve fidèlement", () => {
+    const rawSnapshot = {
+      schemaVersion: "4.7.4",
+      project: {
+        id: "PROJ_RAW_80",
+        name: "Projet Importé 80 bar",
+        wilaya: "In Salah",
+        pressDesign: 80,
+      },
+      model: { nodes: [], segments: [] },
+      workspace: {},
+    };
+
+    const bundle = isoProjectFileV474ToProjectBundle(rawSnapshot);
+    assert(bundle.project.metadata.pressDesign === 80, "pressDesign de 80 bar doit être fidèlement conservé");
+  });
+
+  // =========================================================================
+  // TEST 29 [ARCH-04-FIX-01]: projectBundleToIsoProjectFileV474 sans pressDesign
+  // =========================================================================
+  runTest("TEST 29 [ARCH-04-FIX-01]: projectBundleToIsoProjectFileV474 sans pressDesign produit pressDesign === undefined", () => {
+    const bundle = createDefaultProjectBundle({
+      projectId: "PROJ_EXP_NOPRESS",
+      projectName: "Export Sans Pression",
+    });
+
+    const file = projectBundleToIsoProjectFileV474(bundle);
+    assert(file.project.pressDesign === undefined, "file.project.pressDesign doit être undefined");
+  });
+
+  // =========================================================================
+  // TEST 30 [ARCH-04-FIX-01]: adaptLegacyAdminProjectToProjectContext sans pression ou invalide
+  // =========================================================================
+  runTest("TEST 30 [ARCH-04-FIX-01]: adaptLegacyAdminProjectToProjectContext ne fabrique pas de pression par défaut", () => {
+    const legacyNoPress = {
+      id: "LEGACY_NO_PRESS",
+      name: "Projet Administratif Sans Pression",
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-02-01T00:00:00.000Z",
+      chefDeProjetUid: "USER_CHEF_02",
+      identity: {
+        region: "Centre",
+        pole: "Alger",
+        wilaya: "Alger",
+        district: "Port",
+        phase: "Étude" as const,
+        cadreInscription: "National",
+        planificationComment: "",
+        structureChargee: "DPE",
+        caracteristiques: {
+          diametre: "16\"",
+          longueur: "10 km",
+          pression: "",
+          typeTuyau: "API 5L X52",
+        },
+      },
+    } as unknown as LegacyAdminProject;
+
+    const projCtx1 = adaptLegacyAdminProjectToProjectContext(legacyNoPress);
+    assert(projCtx1.metadata.pressDesign === undefined, "pressDesign doit être undefined si absent");
+
+    const legacyInvalidPress: LegacyAdminProject = {
+      ...legacyNoPress,
+      id: "LEGACY_INVALID_PRESS",
+      identity: {
+        ...legacyNoPress.identity!,
+        caracteristiques: {
+          ...legacyNoPress.identity?.caracteristiques!,
+          pression: "Non Spécifiée / Inconnue",
+        },
+      },
+    };
+
+    const projCtx2 = adaptLegacyAdminProjectToProjectContext(legacyInvalidPress);
+    assert(projCtx2.metadata.pressDesign === undefined, "pressDesign doit être undefined si non numérique");
+  });
+
   return Object.freeze({
-    success: testsFailed === 0 && testsRun >= 24,
+    success: testsFailed === 0 && testsRun >= 30,
     testsRun,
     testsPassed,
     testsFailed,

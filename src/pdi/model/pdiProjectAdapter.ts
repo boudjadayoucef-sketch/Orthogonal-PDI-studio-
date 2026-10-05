@@ -1,7 +1,7 @@
 /**
  * ORTHOGONAL - ENG · PIPING DESIGN & ISOMETRICS (PD&I)
  * PROJECT, DOCUMENT & WORKSPACE ADAPTER
- * Reference: ARCH-04 (Project / Workspace / Data Unification)
+ * Reference: ARCH-04 / ARCH-04-FIX-01 (Removal of Fabricated Technical Defaults)
  *
  * Passerelle d'unification bidirectionnelle et sans effets de bord entre :
  * - ProjectContext (agrégat racine)
@@ -10,6 +10,10 @@
  * - IsoProjectFileV474 (persistance/export schemaVersion 4.7.4)
  * - PdiUniversalEntity (modèle métier transversal ARCH-03)
  * - Project (Module de gestion administrative legacy)
+ *
+ * RÈGLE ARCH-04-FIX-01 : ABSENCE DE DONNÉE TECHNIQUE = ABSENCE DE DONNÉE.
+ * Aucune valeur de pression (ex: 40 bar), dimension ou norme n'est fabriquée par défaut
+ * lorsqu'elle est absente de la source.
  */
 
 import type {
@@ -52,7 +56,7 @@ import {
 import type { PdiWorkspaceState } from "../workspace/types";
 import type { Project as LegacyAdminProject } from "../../components/project-management/types";
 
-function generateDeterministicId(prefix: string, seed?: string): string {
+function generateScopedId(prefix: string, seed?: string): string {
   if (seed && typeof seed === "string" && seed.trim().length > 0) {
     const cleanSeed = seed.trim().replace(/[^a-zA-Z0-9_-]/g, "_");
     return `${prefix}_${cleanSeed}`;
@@ -63,6 +67,20 @@ function generateDeterministicId(prefix: string, seed?: string): string {
 
 export function isValidStableId(id: unknown): id is string {
   return typeof id === "string" && id.trim().length > 0;
+}
+
+export function parseOptionalNumeric(value: unknown): number | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : undefined;
+  }
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (trimmed.length === 0) return undefined;
+    const num = Number(trimmed);
+    return Number.isFinite(num) ? num : undefined;
+  }
+  return undefined;
 }
 
 export interface CreateProjectContextParams {
@@ -87,13 +105,13 @@ export function createProjectContext(params?: CreateProjectContextParams): PdiPr
   const now = new Date().toISOString();
   const projectId = isValidStableId(params?.projectId)
     ? params!.projectId.trim()
-    : generateDeterministicId("proj");
+    : generateScopedId("proj");
   const workspaceId = isValidStableId(params?.workspaceId)
     ? params!.workspaceId.trim()
-    : generateDeterministicId("ws", projectId);
+    : generateScopedId("ws", projectId);
   const activeDocumentId = isValidStableId(params?.activeDocumentId)
     ? params!.activeDocumentId.trim()
-    : generateDeterministicId("doc_iso", projectId);
+    : generateScopedId("doc_iso", projectId);
 
   const defaultDocRef: PdiDocumentRef = {
     documentId: activeDocumentId,
@@ -115,7 +133,7 @@ export function createProjectContext(params?: CreateProjectContextParams): PdiPr
     metadata: Object.freeze({
       ownerUid: params?.ownerUid || "",
       wilaya: params?.wilaya || "",
-      pressDesign: params?.pressDesign != null ? Number(params.pressDesign) : 40,
+      pressDesign: parseOptionalNumeric(params?.pressDesign),
       unitSystem: params?.unitSystem === "imperial" ? "imperial" : "metric",
       revision: params?.revision || "A",
       description: params?.description,
@@ -169,7 +187,7 @@ export function createDocument(params: CreateDocumentParams): PdiDocument {
 
   const documentId = isValidStableId(params.documentId)
     ? params.documentId.trim()
-    : generateDeterministicId("doc", params.projectId);
+    : generateScopedId("doc", params.projectId);
 
   const initialModel = createEmptyDocumentModel();
   const mergedModel: PdiDocumentModel = Object.freeze({
@@ -221,7 +239,7 @@ export function createWorkspaceContext(params: CreateWorkspaceContextParams): Pd
 
   const workspaceId = isValidStableId(params.workspaceId)
     ? params.workspaceId.trim()
-    : generateDeterministicId("ws", params.projectId);
+    : generateScopedId("ws", params.projectId);
 
   return Object.freeze({
     workspaceId,
@@ -295,8 +313,8 @@ export function createDefaultProjectBundle(params?: CreateProjectContextParams):
 }
 
 /**
- * ARCH-04: Adapte un fichier historique ou snapshot IsoProjectFileV474 en bundle de projet unifié.
- * RÈGLE ARCHITECTURALE : Ne mute JAMAIS l'objet source.
+ * ARCH-04 / ARCH-04-FIX-01: Adapte un fichier historique ou snapshot IsoProjectFileV474 en bundle de projet unifié.
+ * RÈGLE ARCHITECTURALE : Ne mute JAMAIS l'objet source et n'invente AUCUNE valeur technique par défaut.
  */
 export function isoProjectFileV474ToProjectBundle(
   input: unknown,
@@ -313,19 +331,19 @@ export function isoProjectFileV474ToProjectBundle(
 
   const projectId = isValidStableId(rawProject.id)
     ? String(rawProject.id).trim()
-    : generateDeterministicId("proj");
+    : generateScopedId("proj");
 
   const documentId = isValidStableId(rawProject.documentId)
     ? String(rawProject.documentId).trim()
     : isValidStableId(options?.defaultDocumentId)
       ? options!.defaultDocumentId!.trim()
-      : generateDeterministicId("doc_iso", projectId);
+      : generateScopedId("doc_iso", projectId);
 
   const workspaceId = isValidStableId(rawProject.workspaceId)
     ? String(rawProject.workspaceId).trim()
     : isValidStableId(options?.defaultWorkspaceId)
       ? options!.defaultWorkspaceId!.trim()
-      : generateDeterministicId("ws", projectId);
+      : generateScopedId("ws", projectId);
 
   const now = new Date().toISOString();
   const createdAt = rawProject.createdAt ? String(rawProject.createdAt) : now;
@@ -353,7 +371,7 @@ export function isoProjectFileV474ToProjectBundle(
     projectName,
     ownerUid: String(rawProject.ownerUid || options?.fallbackOwnerUid || ""),
     wilaya: String(rawProject.wilaya || ""),
-    pressDesign: Number(rawProject.pressDesign) || 40,
+    pressDesign: parseOptionalNumeric(rawProject.pressDesign),
     unitSystem: rawProject.unitSystem === "imperial" ? "imperial" : "metric",
     createdAt,
     updatedAt,
@@ -411,7 +429,7 @@ export function isoProjectFileV474ToProjectBundle(
 
 /**
  * ARCH-04: Convertit un bundle unifié en IsoProjectFileV474 strictement valide.
- * RÈGLE : Conserve 100% de compatibilité avec schemaVersion 4.7.4.
+ * RÈGLE : Conserve 100% de compatibilité avec schemaVersion 4.7.4 sans fabriquer de données techniques par défaut.
  */
 export function projectBundleToIsoProjectFileV474(
   bundle: PdiProjectBundle,
@@ -434,7 +452,7 @@ export function projectBundleToIsoProjectFileV474(
       ownerUid: bundle.project.metadata.ownerUid,
       name: bundle.project.projectName,
       wilaya: bundle.project.metadata.wilaya,
-      pressDesign: bundle.project.metadata.pressDesign ?? 40,
+      pressDesign: parseOptionalNumeric(bundle.project.metadata.pressDesign),
       createdAt: bundle.project.metadata.createdAt,
       updatedAt: doc.updatedAt || bundle.project.metadata.updatedAt || now,
       unitSystem: bundle.project.metadata.unitSystem,
@@ -630,7 +648,7 @@ export function adaptLegacyAdminProjectToProjectContext(
   const now = new Date().toISOString();
   const projectId = isValidStableId(legacyProject.id)
     ? legacyProject.id.trim()
-    : generateDeterministicId("proj_legacy");
+    : generateScopedId("proj_legacy");
   const projectName = legacyProject.name || "Projet Transport Gaz";
 
   return createProjectContext({
@@ -638,7 +656,7 @@ export function adaptLegacyAdminProjectToProjectContext(
     projectName,
     ownerUid: legacyProject.createdByUid || legacyProject.chefDeProjetUid || "",
     wilaya: legacyProject.identity?.wilaya || "",
-    pressDesign: legacyProject.identity?.caracteristiques?.pression ? Number(legacyProject.identity.caracteristiques.pression) : 40,
+    pressDesign: parseOptionalNumeric(legacyProject.identity?.caracteristiques?.pression),
     unitSystem: "metric",
     createdAt: typeof legacyProject.createdAt === "string" ? legacyProject.createdAt : now,
     updatedAt: typeof legacyProject.updatedAt === "string" ? legacyProject.updatedAt : now,
