@@ -235,9 +235,13 @@ export function adaptProcessInputToPipingDesign(
       ? options.defaultDesignCodeId.trim()
       : undefined;
 
+    const tag = typeof pLine.lineNumber === "string" && pLine.lineNumber.trim().length > 0
+      ? pLine.lineNumber.trim()
+      : undefined;
+
     return Object.freeze({
       pipingLineId,
-      tag: pLine.lineNumber && pLine.lineNumber.trim().length > 0 ? pLine.lineNumber.trim() : `LINE_${idx + 1}`,
+      tag,
       service,
       sourceProcessLineId: pLine.processLineId,
       designPressureBar: designPressure,
@@ -262,8 +266,8 @@ export function adaptProcessInputToPipingDesign(
 
 /**
  * Niveau 2 (Piping Design) → Niveau 3 (Isometric Document Model)
- * ARCH-05 §11 & FIX-01 : Synchronise les lignes de conception tuyauterie dans le modèle de document isométrique
- * sans altérer les géométries existantes et SANS fabriquer de données (0, "", etc.).
+ * ARCH-05 §11 & FIX-02 : Synchronise les lignes de conception tuyauterie dans le modèle de document isométrique
+ * sans altérer les géométries existantes, SANS fabriquer de données (0, "", LINE_N, etc.) et sans type casts.
  */
 export function adaptPipingDesignToIsometricModel(
   pipingDesign: PdiPipingDesignReference,
@@ -300,7 +304,7 @@ export function adaptPipingDesignToIsometricModel(
     if (existing) {
       lineMap.set(pLine.pipingLineId, {
         ...existing,
-        lineNumber: pLine.tag || existing.lineNumber,
+        lineNumber: pLine.tag !== undefined ? pLine.tag : existing.lineNumber,
         service: safeService !== undefined ? safeService : existing.service,
         material: safeMaterial !== undefined ? safeMaterial : existing.material,
         dn: safeDn !== undefined ? safeDn : existing.dn,
@@ -313,14 +317,14 @@ export function adaptPipingDesignToIsometricModel(
       lineMap.set(pLine.pipingLineId, {
         id: pLine.pipingLineId,
         lineNumber: pLine.tag,
-        service: safeService as unknown as string,
-        dn: safeDn as unknown as number,
-        nps: safeNps as unknown as string,
-        material: safeMaterial as unknown as string,
-        pressureClass: safePressureClass as unknown as string,
+        service: safeService,
+        dn: safeDn,
+        nps: safeNps,
+        material: safeMaterial,
+        pressureClass: safePressureClass,
         designPressure: safeDesignPressure,
         designTemperature: safeDesignTemperature,
-        color: undefined as unknown as string,
+        color: undefined,
       });
     }
   });

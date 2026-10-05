@@ -65,7 +65,7 @@ export interface PdiProcessConditions {
 
 export interface PdiProcessLineInput {
   readonly processLineId: string;
-  readonly lineNumber: string;
+  readonly lineNumber?: string;
   readonly service?: string;
   readonly fluid?: string;
   readonly fromEquipment?: string;
@@ -100,7 +100,7 @@ export interface PdiPipingComponentDesign {
 
 export interface PdiPipingLineDesign {
   readonly pipingLineId: string;
-  readonly tag: string;
+  readonly tag?: string;
   readonly service?: string;
   readonly sourceProcessLineId?: string;
   readonly designPressureBar?: number;

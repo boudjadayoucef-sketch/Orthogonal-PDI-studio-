@@ -273,16 +273,16 @@ export interface IsoSegment {
 
 export interface PipingLine {
   id: string;
-  lineNumber: string;
-  service: string;
-  dn: number;
-  nps: string;
-  material: string;
-  pressureClass: string;
+  lineNumber?: string;
+  service?: string;
+  dn?: number;
+  nps?: string;
+  material?: string;
+  pressureClass?: string;
   schedule?: string;
   designPressure?: number;
   designTemperature?: number;
-  color: string;
+  color?: string;
 }
 
 // PATCH 007 — real 2D geometry foundation & AutoCAD tools.

@@ -961,6 +961,272 @@ export function runArch05TechnicalWorkflowTests(): Arch05TestResult {
   });
 
   // =========================================================================
+  // ARCH-05-FIX-02: TESTS AP-01 TO AP-13 — STRICT OPTIONAL TECHNICAL MAPPING
+  // =========================================================================
+
+  // AP-01 — DN absent
+  runTest("TEST AP-01 [ARCH-05-FIX-02]: DN absent -> dn === undefined", () => {
+    const pipingDesign: PdiPipingDesignReference = {
+      designId: "DES_AP01",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      lines: [
+        {
+          pipingLineId: "PL_AP01",
+          tag: "L-001",
+          components: [],
+        },
+      ],
+    };
+    const model = adaptPipingDesignToIsometricModel(pipingDesign);
+    assert(model.lines[0].dn === undefined, "dn absent doit être strictement undefined");
+  });
+
+  // AP-02 — NPS absent
+  runTest("TEST AP-02 [ARCH-05-FIX-02]: NPS absent -> nps === undefined", () => {
+    const pipingDesign: PdiPipingDesignReference = {
+      designId: "DES_AP02",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      lines: [
+        {
+          pipingLineId: "PL_AP02",
+          tag: "L-002",
+          components: [],
+        },
+      ],
+    };
+    const model = adaptPipingDesignToIsometricModel(pipingDesign);
+    assert(model.lines[0].nps === undefined, "nps absent doit être strictement undefined");
+  });
+
+  // AP-03 — Material absent
+  runTest("TEST AP-03 [ARCH-05-FIX-02]: Material absent -> material === undefined", () => {
+    const pipingDesign: PdiPipingDesignReference = {
+      designId: "DES_AP03",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      lines: [
+        {
+          pipingLineId: "PL_AP03",
+          tag: "L-003",
+          components: [],
+        },
+      ],
+    };
+    const model = adaptPipingDesignToIsometricModel(pipingDesign);
+    assert(model.lines[0].material === undefined, "material absent doit être strictement undefined");
+  });
+
+  // AP-04 — Piping Specification absente
+  runTest("TEST AP-04 [ARCH-05-FIX-02]: Piping Specification absente -> pressureClass === undefined", () => {
+    const pipingDesign: PdiPipingDesignReference = {
+      designId: "DES_AP04",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      lines: [
+        {
+          pipingLineId: "PL_AP04",
+          tag: "L-004",
+          components: [],
+        },
+      ],
+    };
+    const model = adaptPipingDesignToIsometricModel(pipingDesign);
+    assert(model.lines[0].pressureClass === undefined, "pressureClass absent doit être strictement undefined");
+  });
+
+  // AP-05 — Service absent
+  runTest("TEST AP-05 [ARCH-05-FIX-02]: Service absent -> service === undefined", () => {
+    const pipingDesign: PdiPipingDesignReference = {
+      designId: "DES_AP05",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      lines: [
+        {
+          pipingLineId: "PL_AP05",
+          tag: "L-005",
+          components: [],
+        },
+      ],
+    };
+    const model = adaptPipingDesignToIsometricModel(pipingDesign);
+    assert(model.lines[0].service === undefined, "service absent doit être strictement undefined");
+  });
+
+  // AP-06 — Color absente
+  runTest("TEST AP-06 [ARCH-05-FIX-02]: Color absente -> color === undefined", () => {
+    const pipingDesign: PdiPipingDesignReference = {
+      designId: "DES_AP06",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      lines: [
+        {
+          pipingLineId: "PL_AP06",
+          tag: "L-006",
+          components: [],
+        },
+      ],
+    };
+    const model = adaptPipingDesignToIsometricModel(pipingDesign);
+    assert(model.lines[0].color === undefined, "color absent doit être strictement undefined");
+  });
+
+  // AP-07 — lineNumber absent (pas de LINE_1, LINE_2 inventé)
+  runTest("TEST AP-07 [ARCH-05-FIX-02]: lineNumber absent -> tag === undefined (jamais LINE_1 ou LINE_2)", () => {
+    const processInput: PdiProcessInputReference = {
+      sourceId: "PID_NO_LNUM",
+      sourceType: "PID",
+      lines: [
+        {
+          processLineId: "PL_01",
+          // pas de lineNumber
+        },
+      ],
+    };
+    const piping = adaptProcessInputToPipingDesign(processInput);
+    assert(piping.lines[0].tag === undefined, "tag doit être strictement undefined si lineNumber absent");
+    assert(piping.lines[0].tag !== "LINE_1", "tag ne doit pas être LINE_1");
+    assert(piping.lines[0].tag !== "LINE_2", "tag ne doit pas être LINE_2");
+  });
+
+  // AP-08 — aucun cast de type pour fabriquer une valeur
+  runTest("TEST AP-08 [ARCH-05-FIX-02]: Aucun cast pour forcer des types, absence runtime vérifiée", () => {
+    const pipingDesign: PdiPipingDesignReference = {
+      designId: "DES_AP08",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      lines: [
+        {
+          pipingLineId: "PL_AP08",
+          components: [],
+        },
+      ],
+    };
+    const model = adaptPipingDesignToIsometricModel(pipingDesign);
+    const line = model.lines[0];
+    assert(typeof line.dn === "undefined", "dn typeof undefined");
+    assert(typeof line.nps === "undefined", "nps typeof undefined");
+    assert(typeof line.material === "undefined", "material typeof undefined");
+    assert(typeof line.service === "undefined", "service typeof undefined");
+    assert(typeof line.pressureClass === "undefined", "pressureClass typeof undefined");
+    assert(typeof line.color === "undefined", "color typeof undefined");
+  });
+
+  // AP-09 — valeurs explicites conservées
+  runTest("TEST AP-09 [ARCH-05-FIX-02]: Valeurs techniques explicites fidèlement transportées", () => {
+    const processInput: PdiProcessInputReference = {
+      sourceId: "PID_EXP_VALS",
+      sourceType: "PID",
+      lines: [
+        {
+          processLineId: "PL_EXP",
+          lineNumber: "L-100",
+          service: "PROCESS",
+          nominalDiameterMm: 100,
+          pmsReference: "EXPLICIT-SPEC",
+          conditions: {
+            designPressureBar: 70,
+            designTemperatureC: 120,
+          },
+        },
+      ],
+    };
+    const piping = adaptProcessInputToPipingDesign(processInput);
+    assert(piping.lines[0].tag === "L-100", "Tag L-100 conservé");
+    assert(piping.lines[0].service === "PROCESS", "Service PROCESS conservé");
+    assert(piping.lines[0].nominalDiameterMm === 100, "DN 100 conservé");
+    assert(piping.lines[0].pipingSpecId === "EXPLICIT-SPEC", "Spec conservée");
+    assert(piping.lines[0].designPressureBar === 70, "Pression 70 bar conservée");
+    assert(piping.lines[0].designTemperatureC === 120, "Température 120 °C conservée");
+
+    const model = adaptPipingDesignToIsometricModel(piping);
+    assert(model.lines[0].lineNumber === "L-100", "lineNumber L-100");
+    assert(model.lines[0].service === "PROCESS", "service PROCESS");
+    assert(model.lines[0].dn === 100, "dn 100");
+    assert(model.lines[0].pressureClass === "EXPLICIT-SPEC", "pressureClass EXPLICIT-SPEC");
+    assert(model.lines[0].designPressure === 70, "designPressure 70");
+    assert(model.lines[0].designTemperature === 120, "designTemperature 120");
+  });
+
+  // AP-10 — aucune conversion (DN = 100 sans NPS ni OD)
+  runTest("TEST AP-10 [ARCH-05-FIX-02]: Aucune conversion DN -> NPS automatique", () => {
+    const processInput: PdiProcessInputReference = {
+      sourceId: "PID_NO_CONV",
+      sourceType: "PID",
+      lines: [
+        {
+          processLineId: "PL_DN_ONLY",
+          lineNumber: "L-DN100-ONLY",
+          nominalDiameterMm: 100,
+        },
+      ],
+    };
+    const piping = adaptProcessInputToPipingDesign(processInput);
+    assert(piping.lines[0].nominalDiameterMm === 100, "DN === 100");
+    assert(piping.lines[0].nominalDiameterInch === undefined, "NPS doit rester undefined");
+  });
+
+  // AP-11 — aucune promotion normative
+  runTest("TEST AP-11 [ARCH-05-FIX-02]: pipingSpecId transporté comme référence, sans promotion normative", () => {
+    const processInput: PdiProcessInputReference = {
+      sourceId: "PID_SPEC_NO_PROM",
+      sourceType: "PID",
+      lines: [
+        {
+          processLineId: "PL_SPEC",
+          lineNumber: "L-SPEC",
+          pmsReference: "SPEC-001",
+        },
+      ],
+    };
+    const piping = adaptProcessInputToPipingDesign(processInput);
+    assert(piping.lines[0].pipingSpecId === "SPEC-001", "pipingSpecId === SPEC-001");
+    assert((piping.lines[0] as any).status === undefined, "Pas de status");
+    assert((piping.lines[0] as any).isCompliant === undefined, "Pas de isCompliant");
+    assert((piping.lines[0] as any).isVerified === undefined, "Pas de isVerified");
+    assert((piping.lines[0] as any).isQualified === undefined, "Pas de isQualified");
+  });
+
+  // AP-12 — immutabilité de la source
+  runTest("TEST AP-12 [ARCH-05-FIX-02]: Immutabilité garantie de l'objet process source", () => {
+    const source: PdiProcessInputReference = Object.freeze({
+      sourceId: "PID_IMMUT_CHECK",
+      sourceType: "PID",
+      lines: Object.freeze([
+        Object.freeze({
+          processLineId: "PL_IMMUT_1",
+          lineNumber: "L-ORIGINAL",
+          service: "GAS",
+          nominalDiameterMm: 200,
+        }),
+      ]),
+    });
+
+    const snapshotBefore = JSON.stringify(source);
+    adaptProcessInputToPipingDesign(source);
+    const snapshotAfter = JSON.stringify(source);
+    assert(snapshotBefore === snapshotAfter, "L'objet source n'a subi aucune altération");
+  });
+
+  // AP-13 — identité non basée sur index
+  runTest("TEST AP-13 [ARCH-05-FIX-02]: Deux lignes sans lineNumber ne reçoivent jamais LINE_1 ou LINE_2", () => {
+    const processInput: PdiProcessInputReference = {
+      sourceId: "PID_MULTI_NO_LNUM",
+      sourceType: "PID",
+      lines: [
+        { processLineId: "PL_ALPHA" },
+        { processLineId: "PL_BETA" },
+      ],
+    };
+    const piping = adaptProcessInputToPipingDesign(processInput);
+    assert(piping.lines[0].tag === undefined, "Ligne 1: tag undefined");
+    assert(piping.lines[1].tag === undefined, "Ligne 2: tag undefined");
+    assert(piping.lines[0].tag !== "LINE_1", "Ligne 1 !== LINE_1");
+    assert(piping.lines[1].tag !== "LINE_2", "Ligne 2 !== LINE_2");
+  });
+
+  // =========================================================================
   // TEST Z1: Non-régression NORM-01..14
   // =========================================================================
   runTest("TEST Z1 [ARCH-05]: Non-régression globale NORM-01..14", () => {
@@ -1001,7 +1267,7 @@ export function runArch05TechnicalWorkflowTests(): Arch05TestResult {
   });
 
   return Object.freeze({
-    success: testsFailed === 0 && testsRun >= 45,
+    success: testsFailed === 0 && testsRun >= 58,
     testsRun,
     testsPassed,
     testsFailed,
