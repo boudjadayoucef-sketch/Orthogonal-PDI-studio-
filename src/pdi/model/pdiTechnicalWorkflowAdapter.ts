@@ -1,7 +1,7 @@
 /**
  * ORTHOGONAL - ENG · PIPING DESIGN & ISOMETRICS (PD&I)
  * TECHNICAL WORKFLOW ADAPTER: P&ID → PIPING → ISOMÉTRIQUE
- * Reference: ARCH-05 (Technical Workflow Architecture)
+ * Reference: ARCH-05 / ARCH-05-FIX-01 (Removal of Fabricated Technical Values)
  *
  * Passerelle fonctionnelle immuable et déterministe assurant les transitions
  * et les flux de données entre les 4 niveaux :
@@ -10,12 +10,14 @@
  * - Niveau 3: GEOMETRY & ISOMETRIC
  * - Niveau 4: NORMATIVE REFERENCES
  *
- * RÈGLES ABSOLUES ARCH-05 :
- * - Aucune invention de donnée technique (pression, température, matériau, norme, etc.).
+ * RÈGLES ABSOLUES ARCH-05 / FIX-01 :
+ * - ABSENCE DE DONNÉE TECHNIQUE = ABSENCE DE DONNÉE (undefined).
+ * - Ne jamais remplacer une absence par 0, "", "N/A" ou une valeur arbitraire.
  * - Pression opératoire (Process) ≠ Pression de calcul (Piping Design) sans déclaration explicite.
  * - DN seul ne crée ni NPS, ni OD, ni Schedule, ni WallThickness.
  * - Le Workflow n'auto-certifie jamais la conformité (statut normatif réservé à NORM-01..14).
  * - Immutabilité totale des objets sources.
+ * - Identifiants déterministes sans Math.random() ni Date.now().
  */
 
 import type {
@@ -29,23 +31,25 @@ import type {
   PdiWorkflowTransition,
 } from "./pdiTechnicalWorkflow";
 import type {
-  PdiProjectContext,
   PdiDocument,
   PdiDocumentModel,
   PdiProjectNormativeRefs,
 } from "./pdiProjectContext";
-import type { PipingLine, IsoNode, IsoSegment } from "../isometric/types/isoGraphTypes";
+import type { PipingLine } from "../isometric/types/isoGraphTypes";
 import { isValidStableId, parseOptionalNumeric } from "./pdiProjectAdapter";
 import { deriveUniversalEntitiesFromDocument } from "./pdiProjectAdapter";
 import type { PdiUniversalEntity } from "./pdiUniversalEntity";
 
-function generateWorkflowScopedId(prefix: string, seed?: string): string {
+/**
+ * Générateur d'identifiant déterministe et reproductible (ARCH-05 §6).
+ * Aucun usage de Math.random() ou Date.now().
+ */
+export function generateWorkflowScopedId(prefix: string, seed?: string): string {
   if (seed && typeof seed === "string" && seed.trim().length > 0) {
     const cleanSeed = seed.trim().replace(/[^a-zA-Z0-9_-]/g, "_");
     return `${prefix}_${cleanSeed}`;
   }
-  const randomPart = Math.random().toString(36).substring(2, 9);
-  return `${prefix}_${Date.now().toString(36)}_${randomPart}`;
+  return `${prefix}_default`;
 }
 
 export interface CreateWorkflowParams {
@@ -53,6 +57,7 @@ export interface CreateWorkflowParams {
   readonly projectId: string;
   readonly documentId: string;
   readonly initialState?: PdiTechnicalWorkflowState;
+  readonly isRestoration?: boolean;
   readonly processInput?: PdiProcessInputReference;
   readonly pipingDesign?: PdiPipingDesignReference;
   readonly isometricDocument?: PdiIsometricDocumentReference;
@@ -63,7 +68,8 @@ export interface CreateWorkflowParams {
 }
 
 /**
- * Crée un contexte de workflow technique unifié (ARCH-05 §8).
+ * Crée un contexte de workflow technique unifié (ARCH-05 §8 & §14).
+ * Empêche le saut arbitraire d'états lors d'une initialisation standard.
  */
 export function createTechnicalWorkflowContext(params: CreateWorkflowParams): PdiTechnicalWorkflowContext {
   if (!isValidStableId(params.projectId)) {
@@ -76,24 +82,39 @@ export function createTechnicalWorkflowContext(params: CreateWorkflowParams): Pd
   const now = new Date().toISOString();
   const workflowId = isValidStableId(params.workflowId)
     ? params.workflowId.trim()
-    : generateWorkflowScopedId("wf", `${params.projectId}_${params.documentId}`);
+    : generateWorkflowScopedId("wf", `${params.projectId.trim()}_${params.documentId.trim()}`);
 
-  const state: PdiTechnicalWorkflowState = params.initialState || "DRAFT";
+  const requestedState = params.initialState || "DRAFT";
+
+  // ARCH-05 §7: Vérification de l'état initial pour éviter le contournement arbitraire
+  const standardInitialStates: PdiTechnicalWorkflowState[] = [
+    "DRAFT",
+    "PROCESS_DEFINED",
+    "PIPING_DESIGN_STARTED",
+  ];
+
+  if (!params.isRestoration && !standardInitialStates.includes(requestedState)) {
+    throw new Error(
+      `[ARCH-05] Cannot initialize new workflow directly in state '${requestedState}'. Use standard starting states or pass isRestoration: true for imported documents.`
+    );
+  }
+
+  const trigger = params.isRestoration ? "WORKFLOW_RESTORED" : "WORKFLOW_INITIALIZATION";
 
   const initialTransition: PdiWorkflowTransition = Object.freeze({
     fromState: "DRAFT",
-    toState: state,
+    toState: requestedState,
     timestamp: now,
-    trigger: "WORKFLOW_INITIALIZATION",
+    trigger,
     actorUid: params.actorUid,
-    notes: params.notes || "Initial workflow creation",
+    notes: params.notes || (params.isRestoration ? "Restored from existing document snapshot" : "Initial workflow creation"),
   });
 
   return Object.freeze({
     workflowId,
     projectId: params.projectId.trim(),
     documentId: params.documentId.trim(),
-    state,
+    state: requestedState,
     processInput: params.processInput ? Object.freeze({ ...params.processInput }) : undefined,
     pipingDesign: params.pipingDesign ? Object.freeze({ ...params.pipingDesign }) : undefined,
     isometricDocument: params.isometricDocument ? Object.freeze({ ...params.isometricDocument }) : undefined,
@@ -176,11 +197,12 @@ export interface AdaptProcessToPipingOptions {
  * Niveau 1 (Process) → Niveau 2 (Piping Design)
  * ARCH-05 §10 : Mappe les données de ligne procédé vers la conception tuyauterie sans inventer de données.
  * 
- * RÈGLE CRITIQUE :
+ * RÈGLE CRITIQUE (FIX-01) :
  * - `operatingPressureBar` n'est JAMAIS copié silencieusement en `designPressureBar`.
  * - `operatingTemperatureC` n'est JAMAIS copié silencieusement en `designTemperatureC`.
  * - Si `designPressureBar` est explicitement présent dans les conditions procédé, il est transporté.
  * - Le matériau n'est JAMAIS déduit du fluide.
+ * - Aucune valeur absente n'est remplacée par 0 ou "".
  */
 export function adaptProcessInputToPipingDesign(
   processInput: PdiProcessInputReference,
@@ -199,18 +221,32 @@ export function adaptProcessInputToPipingDesign(
     const designTemperature = parseOptionalNumeric(pLine.conditions?.designTemperatureC);
     const nominalDiameter = parseOptionalNumeric(pLine.nominalDiameterMm);
 
+    const service = typeof pLine.service === "string" && pLine.service.trim().length > 0
+      ? pLine.service.trim()
+      : undefined;
+
+    const pipingSpecId = typeof pLine.pmsReference === "string" && pLine.pmsReference.trim().length > 0
+      ? pLine.pmsReference.trim()
+      : typeof options?.defaultPipingSpecId === "string" && options.defaultPipingSpecId.trim().length > 0
+      ? options.defaultPipingSpecId.trim()
+      : undefined;
+
+    const designCodeId = typeof options?.defaultDesignCodeId === "string" && options.defaultDesignCodeId.trim().length > 0
+      ? options.defaultDesignCodeId.trim()
+      : undefined;
+
     return Object.freeze({
       pipingLineId,
-      tag: pLine.lineNumber || `L-${idx + 1}`,
-      service: pLine.service,
+      tag: pLine.lineNumber && pLine.lineNumber.trim().length > 0 ? pLine.lineNumber.trim() : `LINE_${idx + 1}`,
+      service,
       sourceProcessLineId: pLine.processLineId,
       designPressureBar: designPressure,
       designTemperatureC: designTemperature,
       nominalDiameterMm: nominalDiameter,
       nominalDiameterInch: undefined, // ARCH-03-FIX-02 : Jamais de conversion automatique DN -> NPS
-      pipingSpecId: pLine.pmsReference || options?.defaultPipingSpecId || undefined,
+      pipingSpecId,
       materialGrade: undefined, // Jamais déduit silencieusement
-      designCodeId: options?.defaultDesignCodeId || undefined,
+      designCodeId,
       components: Object.freeze([]),
     });
   });
@@ -226,8 +262,8 @@ export function adaptProcessInputToPipingDesign(
 
 /**
  * Niveau 2 (Piping Design) → Niveau 3 (Isometric Document Model)
- * ARCH-05 §11 : Synchronise les lignes de conception tuyauterie dans le modèle de document isométrique
- * sans altérer les géométries existantes et sans inventer de dimensions.
+ * ARCH-05 §11 & FIX-01 : Synchronise les lignes de conception tuyauterie dans le modèle de document isométrique
+ * sans altérer les géométries existantes et SANS fabriquer de données (0, "", etc.).
  */
 export function adaptPipingDesignToIsometricModel(
   pipingDesign: PdiPipingDesignReference,
@@ -240,28 +276,51 @@ export function adaptPipingDesignToIsometricModel(
 
   pipingDesign.lines.forEach((pLine) => {
     const existing = lineMap.get(pLine.pipingLineId);
+
+    const safeService = typeof pLine.service === "string" && pLine.service.trim().length > 0
+      ? pLine.service.trim()
+      : undefined;
+
+    const safeMaterial = typeof pLine.materialGrade === "string" && pLine.materialGrade.trim().length > 0
+      ? pLine.materialGrade.trim()
+      : undefined;
+
+    const safePressureClass = typeof pLine.pipingSpecId === "string" && pLine.pipingSpecId.trim().length > 0
+      ? pLine.pipingSpecId.trim()
+      : undefined;
+
+    const safeNps = typeof pLine.nominalDiameterInch === "string" && pLine.nominalDiameterInch.trim().length > 0
+      ? pLine.nominalDiameterInch.trim()
+      : undefined;
+
+    const safeDn = parseOptionalNumeric(pLine.nominalDiameterMm);
+    const safeDesignPressure = parseOptionalNumeric(pLine.designPressureBar);
+    const safeDesignTemperature = parseOptionalNumeric(pLine.designTemperatureC);
+
     if (existing) {
       lineMap.set(pLine.pipingLineId, {
         ...existing,
         lineNumber: pLine.tag || existing.lineNumber,
-        service: pLine.service || existing.service,
-        material: pLine.materialGrade || existing.material,
-        dn: pLine.nominalDiameterMm !== undefined ? pLine.nominalDiameterMm : existing.dn,
-        designPressure: pLine.designPressureBar !== undefined ? pLine.designPressureBar : existing.designPressure,
-        designTemperature: pLine.designTemperatureC !== undefined ? pLine.designTemperatureC : existing.designTemperature,
+        service: safeService !== undefined ? safeService : existing.service,
+        material: safeMaterial !== undefined ? safeMaterial : existing.material,
+        dn: safeDn !== undefined ? safeDn : existing.dn,
+        nps: safeNps !== undefined ? safeNps : existing.nps,
+        pressureClass: safePressureClass !== undefined ? safePressureClass : existing.pressureClass,
+        designPressure: safeDesignPressure !== undefined ? safeDesignPressure : existing.designPressure,
+        designTemperature: safeDesignTemperature !== undefined ? safeDesignTemperature : existing.designTemperature,
       });
     } else {
       lineMap.set(pLine.pipingLineId, {
         id: pLine.pipingLineId,
         lineNumber: pLine.tag,
-        service: pLine.service || "",
-        dn: pLine.nominalDiameterMm || 0,
-        nps: pLine.nominalDiameterInch || "",
-        material: pLine.materialGrade || "",
-        pressureClass: pLine.pipingSpecId || "",
-        designPressure: pLine.designPressureBar,
-        designTemperature: pLine.designTemperatureC,
-        color: "#3B82F6",
+        service: safeService as unknown as string,
+        dn: safeDn as unknown as number,
+        nps: safeNps as unknown as string,
+        material: safeMaterial as unknown as string,
+        pressureClass: safePressureClass as unknown as string,
+        designPressure: safeDesignPressure,
+        designTemperature: safeDesignTemperature,
+        color: undefined as unknown as string,
       });
     }
   });

@@ -557,8 +557,9 @@ export function runArch05TechnicalWorkflowTests(): Arch05TestResult {
       projectId: bundle.project.projectId,
       documentId: bundle.project.activeDocumentId,
       initialState: "ISO_GENERATED",
+      isRestoration: true,
     });
-    assert(wf.state === "ISO_GENERATED", "Workflow initialisé dans l'état ISO_GENERATED");
+    assert(wf.state === "ISO_GENERATED", "Workflow initialisé dans l'état ISO_GENERATED via restauration");
   });
 
   // =========================================================================
@@ -674,6 +675,292 @@ export function runArch05TechnicalWorkflowTests(): Arch05TestResult {
   });
 
   // =========================================================================
+  // ARCH-05-FIX-01: TESTS AA TO AO — NON-INVENTION ET NON-FABRICATION DE VALEURS
+  // =========================================================================
+
+  // TEST AA: Piping line sans DN
+  runTest("TEST AA [ARCH-05-FIX-01]: Piping line sans DN produit dn === undefined (jamais 0)", () => {
+    const pipingDesign: PdiPipingDesignReference = {
+      designId: "DES_NO_DN",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      lines: [
+        {
+          pipingLineId: "PL_NO_DN",
+          tag: "L-NO-DN",
+          // pas de nominalDiameterMm
+          components: [],
+        },
+      ],
+    };
+    const model = adaptPipingDesignToIsometricModel(pipingDesign);
+    assert(model.lines[0].dn === undefined, "dn absent doit être undefined");
+    assert(model.lines[0].dn !== 0, "dn absent ne doit JAMAIS être 0");
+  });
+
+  // TEST AB: Piping line sans NPS
+  runTest("TEST AB [ARCH-05-FIX-01]: Piping line sans NPS produit nps === undefined (jamais \"\")", () => {
+    const pipingDesign: PdiPipingDesignReference = {
+      designId: "DES_NO_NPS",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      lines: [
+        {
+          pipingLineId: "PL_NO_NPS",
+          tag: "L-NO-NPS",
+          components: [],
+        },
+      ],
+    };
+    const model = adaptPipingDesignToIsometricModel(pipingDesign);
+    assert(model.lines[0].nps === undefined, "nps absent doit être undefined");
+    assert(model.lines[0].nps !== "", "nps absent ne doit JAMAIS être une chaîne vide");
+  });
+
+  // TEST AC: Piping line sans matériau
+  runTest("TEST AC [ARCH-05-FIX-01]: Piping line sans matériau produit material === undefined (jamais \"\")", () => {
+    const pipingDesign: PdiPipingDesignReference = {
+      designId: "DES_NO_MAT",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      lines: [
+        {
+          pipingLineId: "PL_NO_MAT",
+          tag: "L-NO-MAT",
+          components: [],
+        },
+      ],
+    };
+    const model = adaptPipingDesignToIsometricModel(pipingDesign);
+    assert(model.lines[0].material === undefined, "material absent doit être undefined");
+    assert(model.lines[0].material !== "", "material absent ne doit JAMAIS être une chaîne vide");
+  });
+
+  // TEST AD: Piping line sans pipingSpec
+  runTest("TEST AD [ARCH-05-FIX-01]: Piping line sans pipingSpec produit pressureClass === undefined", () => {
+    const pipingDesign: PdiPipingDesignReference = {
+      designId: "DES_NO_SPEC",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      lines: [
+        {
+          pipingLineId: "PL_NO_SPEC",
+          tag: "L-NO-SPEC",
+          components: [],
+        },
+      ],
+    };
+    const model = adaptPipingDesignToIsometricModel(pipingDesign);
+    assert(model.lines[0].pressureClass === undefined, "pressureClass absent doit être undefined");
+    assert(model.lines[0].pressureClass !== "", "pressureClass absent ne doit JAMAIS être une chaîne vide");
+  });
+
+  // TEST AE: Piping line sans service
+  runTest("TEST AE [ARCH-05-FIX-01]: Piping line sans service produit service === undefined", () => {
+    const pipingDesign: PdiPipingDesignReference = {
+      designId: "DES_NO_SERV",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      lines: [
+        {
+          pipingLineId: "PL_NO_SERV",
+          tag: "L-NO-SERV",
+          components: [],
+        },
+      ],
+    };
+    const model = adaptPipingDesignToIsometricModel(pipingDesign);
+    assert(model.lines[0].service === undefined, "service absent doit être undefined");
+    assert(model.lines[0].service !== "", "service absent ne doit JAMAIS être une chaîne vide");
+  });
+
+  // TEST AF: Piping line sans design pressure
+  runTest("TEST AF [ARCH-05-FIX-01]: Piping line sans design pressure produit designPressure === undefined", () => {
+    const pipingDesign: PdiPipingDesignReference = {
+      designId: "DES_NO_DP",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      lines: [
+        {
+          pipingLineId: "PL_NO_DP",
+          tag: "L-NO-DP",
+          components: [],
+        },
+      ],
+    };
+    const model = adaptPipingDesignToIsometricModel(pipingDesign);
+    assert(model.lines[0].designPressure === undefined, "designPressure absent doit être undefined");
+    assert(model.lines[0].designPressure !== 0, "designPressure ne doit pas valoir 0 par défaut");
+    assert(model.lines[0].designPressure !== 40, "designPressure ne doit pas valoir 40 par défaut");
+  });
+
+  // TEST AG: Piping line sans design temperature
+  runTest("TEST AG [ARCH-05-FIX-01]: Piping line sans design temperature produit designTemperature === undefined", () => {
+    const pipingDesign: PdiPipingDesignReference = {
+      designId: "DES_NO_DT",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      lines: [
+        {
+          pipingLineId: "PL_NO_DT",
+          tag: "L-NO-DT",
+          components: [],
+        },
+      ],
+    };
+    const model = adaptPipingDesignToIsometricModel(pipingDesign);
+    assert(model.lines[0].designTemperature === undefined, "designTemperature absent doit être undefined");
+    assert(model.lines[0].designTemperature !== 0, "designTemperature ne doit pas valoir 0 par défaut");
+  });
+
+  // TEST AH: Aucune valeur technique 0 n'est introduite pour remplacer une absence
+  runTest("TEST AH [ARCH-05-FIX-01]: Aucune valeur technique 0 n'est introduite pour remplacer une absence", () => {
+    const processInput: PdiProcessInputReference = {
+      sourceId: "PID_ZERO_CHECK",
+      sourceType: "PID",
+      lines: [
+        {
+          processLineId: "PL_ZERO",
+          lineNumber: "L-ZERO",
+        },
+      ],
+    };
+    const piping = adaptProcessInputToPipingDesign(processInput);
+    assert(piping.lines[0].nominalDiameterMm === undefined, "nominalDiameterMm absent n'est pas 0");
+    assert(piping.lines[0].designPressureBar === undefined, "designPressureBar absent n'est pas 0");
+    assert(piping.lines[0].designTemperatureC === undefined, "designTemperatureC absent n'est pas 0");
+  });
+
+  // TEST AI: Aucune chaîne vide n'est utilisée pour représenter une donnée technique absente
+  runTest("TEST AI [ARCH-05-FIX-01]: Aucune chaîne vide n'est utilisée pour représenter une donnée technique absente", () => {
+    const processInput: PdiProcessInputReference = {
+      sourceId: "PID_EMPTY_STR_CHECK",
+      sourceType: "PID",
+      lines: [
+        {
+          processLineId: "PL_EMPTY",
+          lineNumber: "L-EMPTY",
+        },
+      ],
+    };
+    const piping = adaptProcessInputToPipingDesign(processInput);
+    assert(piping.lines[0].service === undefined, "service absent n'est pas \"\"");
+    assert(piping.lines[0].materialGrade === undefined, "materialGrade absent n'est pas \"\"");
+    assert(piping.lines[0].pipingSpecId === undefined, "pipingSpecId absent n'est pas \"\"");
+  });
+
+  // TEST AJ: Un DN explicite est conservé exactement
+  runTest("TEST AJ [ARCH-05-FIX-01]: Un DN explicite est conservé exactement", () => {
+    const processInput: PdiProcessInputReference = {
+      sourceId: "PID_DN_EXP",
+      sourceType: "PID",
+      lines: [
+        {
+          processLineId: "PL_DN300",
+          lineNumber: "L-DN300",
+          nominalDiameterMm: 300,
+        },
+      ],
+    };
+    const piping = adaptProcessInputToPipingDesign(processInput);
+    assert(piping.lines[0].nominalDiameterMm === 300, "DN 300 conservé fidèlement");
+    const model = adaptPipingDesignToIsometricModel(piping);
+    assert(model.lines[0].dn === 300, "DN 300 transporté dans le modèle isométrique");
+  });
+
+  // TEST AK: Un NPS explicite est conservé exactement
+  runTest("TEST AK [ARCH-05-FIX-01]: Un NPS explicite est conservé exactement sans conversion", () => {
+    const pipingDesign: PdiPipingDesignReference = {
+      designId: "DES_NPS_EXP",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      lines: [
+        {
+          pipingLineId: "PL_NPS_12",
+          tag: "L-12INCH",
+          nominalDiameterInch: "12\"",
+          components: [],
+        },
+      ],
+    };
+    const model = adaptPipingDesignToIsometricModel(pipingDesign);
+    assert(model.lines[0].nps === "12\"", "NPS 12\" explicite transporté");
+    assert(model.lines[0].dn === undefined, "DN reste undefined car non fourni (pas de conversion NPS -> DN)");
+  });
+
+  // TEST AL: Un matériau explicite est conservé exactement
+  runTest("TEST AL [ARCH-05-FIX-01]: Un matériau explicite est conservé exactement", () => {
+    const pipingDesign: PdiPipingDesignReference = {
+      designId: "DES_MAT_EXP",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      lines: [
+        {
+          pipingLineId: "PL_MAT_X70",
+          tag: "L-X70",
+          materialGrade: "API 5L X70",
+          components: [],
+        },
+      ],
+    };
+    const model = adaptPipingDesignToIsometricModel(pipingDesign);
+    assert(model.lines[0].material === "API 5L X70", "Matériau explicite transporté");
+  });
+
+  // TEST AM: Un pipingSpec explicite est conservé comme référence, sans qualification normative automatique
+  runTest("TEST AM [ARCH-05-FIX-01]: Un pipingSpec explicite est conservé comme référence déclarée", () => {
+    const processInput: PdiProcessInputReference = {
+      sourceId: "PID_PMS_EXP",
+      sourceType: "PID",
+      lines: [
+        {
+          processLineId: "PL_PMS",
+          lineNumber: "L-PMS",
+          pmsReference: "PMS-GAZ-600",
+        },
+      ],
+    };
+    const piping = adaptProcessInputToPipingDesign(processInput);
+    assert(piping.lines[0].pipingSpecId === "PMS-GAZ-600", "pmsReference transporté comme référence");
+    assert((piping.lines[0] as any).isCompliant === undefined, "Pas d'auto-certification");
+  });
+
+  // TEST AN: Aucune conversion DN → NPS/OD/Schedule
+  runTest("TEST AN [ARCH-05-FIX-01]: Aucune conversion dimensionnelle implicite DN -> NPS/OD/Schedule", () => {
+    const node: IsoNode = {
+      id: "N_NO_CONV",
+      name: "Point Test",
+      x: 0,
+      y: 0,
+      z: 0,
+      type: "normal",
+      dn: 50,
+    };
+    const doc = createDocument({
+      documentId: "DOC_NO_CONV",
+      projectId: "PROJ_NO_CONV",
+      model: { nodes: [node] },
+    });
+    const entities = deriveUniversalEntitiesFromDocument(doc);
+    assert(entities[0].dn.dn === 50, "DN 50 transporté");
+    assert(entities[0].dn.inch === undefined, "NPS inch doit être undefined");
+    assert(entities[0].dn.outerDiameterMm === undefined, "outerDiameterMm doit être undefined");
+    assert(entities[0].material.schedule === undefined, "schedule doit être undefined");
+  });
+
+  // TEST AO: Aucune promotion normative
+  runTest("TEST AO [ARCH-05-FIX-01]: Aucune promotion normative (WorkflowContext ne s'auto-qualifie pas)", () => {
+    const wf = createTechnicalWorkflowContext({
+      projectId: "PROJ_NO_PROM",
+      documentId: "DOC_NO_PROM",
+      initialState: "PIPING_DESIGN_STARTED",
+    });
+    assert((wf as any).status === undefined, "WorkflowContext ne possède pas de champ 'status' auto-certifié");
+    assert((wf as any).isCompliant === undefined, "WorkflowContext ne possède pas de champ 'isCompliant'");
+    assert((wf as any).qualificationStatus === undefined, "WorkflowContext ne s'auto-qualifie pas");
+  });
+
+  // =========================================================================
   // TEST Z1: Non-régression NORM-01..14
   // =========================================================================
   runTest("TEST Z1 [ARCH-05]: Non-régression globale NORM-01..14", () => {
@@ -714,7 +1001,7 @@ export function runArch05TechnicalWorkflowTests(): Arch05TestResult {
   });
 
   return Object.freeze({
-    success: testsFailed === 0 && testsRun >= 30,
+    success: testsFailed === 0 && testsRun >= 45,
     testsRun,
     testsPassed,
     testsFailed,
