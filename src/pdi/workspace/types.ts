@@ -67,10 +67,11 @@ export interface PdiWorkspaceSelectionState {
   timestamp: number;
 }
 
-/** Instantané géométrique et métier du modèle central */
+/** Instantané géométrique et métier du modèle central (lecture seule pour le bus multi-écran, ARCH-04) */
 export interface PdiWorkspaceModelSnapshot {
   projectName: string;
   projectId?: string;
+  documentId?: string;
   unitSystem: "metric" | "imperial";
   nodes: any[];
   segments: any[];
@@ -93,8 +94,15 @@ export interface PdiWorkspaceDisplayPreferences {
   solidShadingMode?: string;
 }
 
-/** État complet du Workspace PD&I */
+/**
+ * État complet du Workspace PD&I (ARCH-04).
+ * RÈGLE ARCHITECTURALE ARCH-04 : Le Workspace est le contexte d'édition/présentation,
+ * jamais la source de vérité des données métier ou normatives.
+ */
 export interface PdiWorkspaceState {
+  workspaceId?: string;
+  projectId?: string;
+  activeDocumentId?: string;
   mode: PdiWorkspaceMode;
   profile: PdiWorkspaceProfileId;
   screen1View: PdiWorkspaceViewId;

@@ -9,6 +9,8 @@ import { TriangleType, ArcCreationMode } from "./../engine/CadAutocadEngine";
 import type { IsoPipingSupport } from "../supports/pdiMssSupportEngine";
 import type { PdiSpoolEntry, PdiWeldEntry } from "../../welding/isoWeldSpoolEngine";
 
+export type { IsoPipingSupport };
+
 export type IsoNodeType =
   | "normal" | "entree_poste" | "sortie_poste"
   | "piquage" | "gare_depart" | "gare_arrivee" | "tee";
@@ -287,6 +289,8 @@ export interface IsoProjectFileV474 {
   exportedAt: string;
   project: {
     id: string;
+    documentId?: string;
+    workspaceId?: string;
     ownerUid: string;
     name: string;
     wilaya: string;
