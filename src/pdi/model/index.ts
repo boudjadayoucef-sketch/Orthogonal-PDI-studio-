@@ -76,3 +76,7 @@ export * from "./pdiUniversalAdapter";
 // ARCH-04: Project, Document & Workspace Context Exports
 export * from "./pdiProjectContext";
 export * from "./pdiProjectAdapter";
+
+// ARCH-05: Technical Workflow P&ID → Piping → Isometric
+export * from "./pdiTechnicalWorkflow";
+export * from "./pdiTechnicalWorkflowAdapter";
