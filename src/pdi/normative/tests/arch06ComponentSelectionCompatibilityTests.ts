@@ -570,9 +570,9 @@ export function runArch06ComponentSelectionCompatibilityTests(): Arch06TestResul
   });
 
   // =========================================================================
-  // AC-22 : Incompatibilité de face de bride (RF vs RTJ)
+  // AC-22 : Face de bride hétérogène (RF vs RTJ) sans autorité -> UNVERIFIED
   // =========================================================================
-  runTest("TEST AC-22: Face de bride incompatible (RF vs RTJ) retourne INCOMPATIBLE", () => {
+  runTest("TEST AC-22: Face de bride hétérogène (RF vs RTJ) sans autorité retourne UNVERIFIED", () => {
     const flangeRF = createCatalogComponent({
       id: "SYNTH_FLANGE_RF",
       componentType: "FLANGE",
@@ -594,15 +594,15 @@ export function runArch06ComponentSelectionCompatibilityTests(): Arch06TestResul
     });
 
     const res = checkComponentCompatibility(flangeRF, flangeRTJ);
-    assert(res.overallStatus === "INCOMPATIBLE", "Statut global INCOMPATIBLE");
+    assert(res.overallStatus === "UNVERIFIED", "Statut global UNVERIFIED");
     const faceDim = res.dimensions.find((d) => d.dimension === "faceType");
-    assert(faceDim?.status === "INCOMPATIBLE", "Dimension faceType INCOMPATIBLE");
+    assert(faceDim?.status === "UNVERIFIED", "Dimension faceType UNVERIFIED");
   });
 
   // =========================================================================
-  // AC-23 : Raccordement fileté mâle / femelle compatible
+  // AC-23 : Raccordement fileté mâle / femelle sans autorité -> UNVERIFIED
   // =========================================================================
-  runTest("TEST AC-23: Raccordement fileté mâle/femelle compatible", () => {
+  runTest("TEST AC-23: Raccordement fileté mâle/femelle sans autorité retourne UNVERIFIED", () => {
     const nipple = createCatalogComponent({
       id: "SYNTH_NIPPLE_M",
       componentType: "OTHER",
@@ -622,9 +622,9 @@ export function runArch06ComponentSelectionCompatibilityTests(): Arch06TestResul
     });
 
     const res = checkComponentCompatibility(nipple, valve);
-    assert(res.overallStatus === "COMPATIBLE", "Statut COMPATIBLE");
+    assert(res.overallStatus === "UNVERIFIED", "Statut UNVERIFIED");
     const connDim = res.dimensions.find((d) => d.dimension === "connection");
-    assert(connDim?.status === "COMPATIBLE", "Connexion mâle/femelle COMPATIBLE");
+    assert(connDim?.status === "UNVERIFIED", "Connexion mâle/femelle UNVERIFIED sans règle normative");
   });
 
   // =========================================================================
@@ -774,6 +774,138 @@ export function runArch06ComponentSelectionCompatibilityTests(): Arch06TestResul
   });
 
   // =========================================================================
+  // ARCH-06-FIX-01 : TESTS DE GARDE FIX-01-01 À FIX-01-12
+  // =========================================================================
+
+  // FIX-01-01 : Une règle de compatibilité industrielle n'est pas créée directement dans ARCH-06
+  runTest("TEST FIX-01-01 [ARCH-06-FIX-01]: Pas de création de règle normative autonome dans ARCH-06", () => {
+    const compA = createCatalogComponent({ id: "COMP_A", componentType: "PIPE", nominalDiameter: 50, material: "SYNTH_CS", pressureClass: "Class 150", connectionType: "special_joint_a" });
+    const compB = createCatalogComponent({ id: "COMP_B", componentType: "PIPE", nominalDiameter: 50, material: "SYNTH_CS", pressureClass: "Class 150", connectionType: "special_joint_b" });
+    const res = checkComponentCompatibility(compA, compB);
+    assert(res.overallStatus === "UNVERIFIED", "Doit rester UNVERIFIED sans autorité externe");
+  });
+
+  // FIX-01-02 : male_threaded + female_threaded ne produit pas automatiquement COMPATIBLE
+  runTest("TEST FIX-01-02 [ARCH-06-FIX-01]: male_threaded + female_threaded ne produit pas COMPATIBLE sans autorité", () => {
+    const male = createCatalogComponent({ id: "NIP_M", componentType: "OTHER", nominalDiameter: 25, material: "SYNTH_CS", pressureClass: "Class 800", connectionType: "male_threaded" });
+    const female = createCatalogComponent({ id: "VLV_F", componentType: "VALVE", nominalDiameter: 25, material: "SYNTH_CS", pressureClass: "Class 800", connectionType: "female_threaded" });
+    const res = checkComponentCompatibility(male, female);
+    assert(res.overallStatus === "UNVERIFIED", "Reste UNVERIFIED sans preuve NORM-13");
+    const connDim = res.dimensions.find((d) => d.dimension === "connection");
+    assert(connDim?.status === "UNVERIFIED", "Connexion UNVERIFIED");
+  });
+
+  // FIX-01-03 : RF + RTJ ne produit pas automatiquement INCOMPATIBLE sans autorité existante
+  runTest("TEST FIX-01-03 [ARCH-06-FIX-01]: RF + RTJ ne produit pas INCOMPATIBLE sans autorité existante", () => {
+    const fRF = createCatalogComponent({ id: "F_RF", componentType: "FLANGE", nominalDiameter: 100, material: "SYNTH_CS", pressureClass: "Class 300", connectionType: "flanged", faceType: "RF" });
+    const fRTJ = createCatalogComponent({ id: "F_RTJ", componentType: "FLANGE", nominalDiameter: 100, material: "SYNTH_CS", pressureClass: "Class 300", connectionType: "flanged", faceType: "RTJ" });
+    const res = checkComponentCompatibility(fRF, fRTJ);
+    assert(res.overallStatus === "UNVERIFIED", "Reste UNVERIFIED sans décision NORM-13");
+    const faceDim = res.dimensions.find((d) => d.dimension === "faceType");
+    assert(faceDim?.status === "UNVERIFIED", "FaceType UNVERIFIED");
+  });
+
+  // FIX-01-04 : Une égalité de matériau n'est pas une qualification normative
+  runTest("TEST FIX-01-04 [ARCH-06-FIX-01]: Egalité de matériau = observation DATA_MATCH, pas qualification normative", () => {
+    const pipeA = createCatalogComponent({ id: "P_A", componentType: "PIPE", material: "ASTM_A106_GRB" });
+    const pipeB = createCatalogComponent({ id: "P_B", componentType: "PIPE", material: "ASTM_A106_GRB" });
+    const res = checkComponentCompatibility(pipeA, pipeB);
+    const matDim = res.dimensions.find((d) => d.dimension === "material");
+    assert(matDim?.observation === "DATA_MATCH", "Observation de correspondance de données DATA_MATCH");
+  });
+
+  // FIX-01-05 : Une égalité de standard n'est pas une qualification normative
+  runTest("TEST FIX-01-05 [ARCH-06-FIX-01]: Egalité de standard = observation DATA_MATCH", () => {
+    const pipeA = createCatalogComponent({ id: "P_A2", componentType: "PIPE", standard: "ASME_B3610" });
+    const pipeB = createCatalogComponent({ id: "P_B2", componentType: "PIPE", standard: "ASME_B3610" });
+    const res = checkComponentCompatibility(pipeA, pipeB);
+    const stdDim = res.dimensions.find((d) => d.dimension === "standard");
+    assert(stdDim?.observation === "DATA_MATCH", "Observation de standard DATA_MATCH");
+  });
+
+  // FIX-01-06 : Aucune conversion DN/NPS
+  runTest("TEST FIX-01-06 [ARCH-06-FIX-01]: Aucune conversion DN ↔ NPS (maintien UNVERIFIED sur représentations hétérogènes)", () => {
+    const cDN = createCatalogComponent({ id: "C_DN50", componentType: "PIPE", nominalDiameter: 50 });
+    const cNPS = createCatalogComponent({ id: "C_NPS2", componentType: "PIPE", nominalSize: "2\"" });
+    const res = checkComponentCompatibility(cDN, cNPS);
+    const dnDim = res.dimensions.find((d) => d.dimension === "nominalSize");
+    assert(dnDim?.status === "UNVERIFIED", "Statut UNVERIFIED sans conversion implicite");
+  });
+
+  // FIX-01-07 : Aucune conversion Class/PN
+  runTest("TEST FIX-01-07 [ARCH-06-FIX-01]: Aucune conversion Class ↔ PN (Class 150 !== PN16)", () => {
+    const cClass = createCatalogComponent({ id: "C_CL150", componentType: "FLANGE", pressureClass: "Class 150" });
+    const cPN = createCatalogComponent({ id: "C_PN16", componentType: "FLANGE", pressureClass: "PN16" });
+    const res = checkComponentCompatibility(cClass, cPN);
+    const pnDim = res.dimensions.find((d) => d.dimension === "pressureRating");
+    assert(pnDim?.status === "INCOMPATIBLE", "Class 150 et PN16 ne sont pas convertis et restent en conflit");
+  });
+
+  // FIX-01-08 : NORM-13, s'il est applicable, est utilisé au lieu d'un moteur parallèle
+  runTest("TEST FIX-01-08 [ARCH-06-FIX-01]: Délégation transparente à l'autorité NORM-13", () => {
+    // Moteur mock NORM-13 qui autorise explicitement male_threaded_TO_female_threaded
+    const mockNorm13 = {
+      evaluate(ctx: any) {
+        if (ctx.connectionType === "male_threaded_TO_female_threaded") {
+          return {
+            status: "COMPATIBLE" as const,
+            ruleId: "NORM13_RULE_THREAD_MATING",
+            message: "Threaded mating verified by NORM-13",
+            evidenceIds: ["EVID_NORM13_THREAD"],
+          };
+        }
+        return { status: "UNVERIFIED" as const };
+      },
+    };
+
+    const nipple = createCatalogComponent({ id: "NIP_M_DELEG", componentType: "OTHER", connectionType: "male_threaded" });
+    const valve = createCatalogComponent({ id: "VLV_F_DELEG", componentType: "VALVE", connectionType: "female_threaded" });
+
+    const res = checkComponentCompatibility(nipple, valve, {
+      normativeCompatibilityEngine: mockNorm13,
+    });
+
+    const connDim = res.dimensions.find((d) => d.dimension === "connection");
+    assert(connDim?.status === "COMPATIBLE", "Statut COMPATIBLE retourné par NORM-13");
+    assert(connDim?.observation === "NORMATIVE_DECISION", "Observation NORMATIVE_DECISION");
+    assert(connDim?.matchedRuleId === "NORM13_RULE_THREAD_MATING", "Règle NORM-13 tracée");
+    assert(res.evidenceIds.includes("EVID_NORM13_THREAD"), "Evidence NORM-13 agrégée");
+  });
+
+  // FIX-01-09 : Aucun evidenceId inventé
+  runTest("TEST FIX-01-09 [ARCH-06-FIX-01]: Aucun evidenceId inventé sans preuve réelle", () => {
+    const c1 = createCatalogComponent({ id: "C_NO_E1", componentType: "PIPE" });
+    const c2 = createCatalogComponent({ id: "C_NO_E2", componentType: "PIPE" });
+    const res = checkComponentCompatibility(c1, c2);
+    assert(res.evidenceIds.length === 0, "0 evidenceId inventé");
+  });
+
+  // FIX-01-10 : Catalogue ≠ Normative Evidence
+  runTest("TEST FIX-01-10 [ARCH-06-FIX-01]: Présence catalogue ne confère aucune preuve normative", () => {
+    const tc = adaptTrouvayCauvinCatalogToPdiCatalog();
+    for (const item of tc.slice(0, 10)) {
+      assert(item.evidenceIds === undefined, "evidenceIds reste strictement undefined pour catalogue fabricant");
+    }
+  });
+
+  // FIX-01-11 : Même inputs → résultat déterministe
+  runTest("TEST FIX-01-11 [ARCH-06-FIX-01]: Déterminisme absolu des résultats", () => {
+    const compA = createCatalogComponent({ id: "DET_A", componentType: "VALVE", nominalDiameter: 100, pressureClass: "Class 150" });
+    const compB = createCatalogComponent({ id: "DET_B", componentType: "VALVE", nominalDiameter: 100, pressureClass: "Class 150" });
+    const r1 = checkComponentCompatibility(compA, compB);
+    const r2 = checkComponentCompatibility(compA, compB);
+    assert(JSON.stringify(r1) === JSON.stringify(r2), "r1 === r2");
+  });
+
+  // FIX-01-12 : Les données source restent immuables
+  runTest("TEST FIX-01-12 [ARCH-06-FIX-01]: Immutabilité stricte des objets sources", () => {
+    const comp = createCatalogComponent({ id: "IMMUTABLE_SRC", componentType: "PIPE", nominalDiameter: 50 });
+    const snapshot = JSON.stringify(comp);
+    checkComponentCompatibility(comp, comp);
+    assert(JSON.stringify(comp) === snapshot, "Aucune mutation");
+  });
+
+  // =========================================================================
   // NON-RÉGRESSION ARCH-01..05 & NORM-01..14
   // =========================================================================
   runTest("TEST NON-REGRESSION: NORM-01..14 Global Integration Tests", () => {
@@ -807,7 +939,7 @@ export function runArch06ComponentSelectionCompatibilityTests(): Arch06TestResul
   });
 
   return Object.freeze({
-    success: testsFailed === 0 && testsRun >= 36,
+    success: testsFailed === 0 && testsRun >= 48,
     testsRun,
     testsPassed,
     testsFailed,
