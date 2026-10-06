@@ -937,6 +937,222 @@ export function runArch06ComponentSelectionCompatibilityTests(): Arch06TestResul
   });
 
   // =========================================================================
+  // ARCH-06-FIX-03 : TESTS OBLIGATOIRES (PRÉVENTION DU BYPASS UNILATÉRAL LEFT)
+  // =========================================================================
+
+  // TEST 1 — Bypass LEFT interdit
+  runTest("TEST FIX-03-01 [ARCH-06-FIX-03]: Bypass LEFT interdit (un contexte unilatéral LEFT COMPATIBLE ne promeut jamais overallStatus)", () => {
+    const leftPipe = createCatalogComponent({
+      id: "SYNTH_FIX03_LEFT_PIPE",
+      componentType: "PIPE",
+      nominalDiameter: 100,
+      connectionType: "butt_weld",
+      pressureClass: "Class 150",
+      material: "SYNTH_MAT_CS",
+      standard: "SYNTH_STD_PIPE",
+    });
+
+    const rightElbow = createCatalogComponent({
+      id: "SYNTH_FIX03_RIGHT_ELBOW",
+      componentType: "ELBOW",
+      nominalDiameter: 100,
+      connectionType: "butt_weld",
+      pressureClass: "Class 150",
+      material: "SYNTH_MAT_CS",
+      standard: "SYNTH_STD_ELBOW",
+    });
+
+    // Mock NORM-13 retournant COMPATIBLE uniquement pour un contexte unilatéral LEFT (componentType === "PIPE")
+    const unilateralLeftMockNorm13 = {
+      evaluate(ctx: any) {
+        if (ctx.componentType === "PIPE") {
+          return {
+            status: "COMPATIBLE" as const,
+            ruleId: "SYNTH_UNILATERAL_LEFT_PIPE_RULE",
+            matchedRuleIds: ["SYNTH_UNILATERAL_LEFT_PIPE_RULE"],
+            message: "Unilateral LEFT PIPE rule matched",
+            evidenceIds: ["EVID_SYNTH_UNILATERAL_LEFT"],
+          };
+        }
+        return { status: "UNVERIFIED" as const };
+      },
+    };
+
+    const res = checkComponentCompatibility(leftPipe, rightElbow, {
+      normativeCompatibilityEngine: unilateralLeftMockNorm13,
+    });
+
+    assert(res.overallStatus !== "COMPATIBLE", "Un résultat normatif unilatéral LEFT ne doit jamais rendre overallStatus COMPATIBLE");
+    assert(res.overallStatus === "UNVERIFIED", "overallStatus doit rester UNVERIFIED sans décision bilatérale LEFT ↔ RIGHT");
+    assert(!res.evidenceIds.includes("EVID_SYNTH_UNILATERAL_LEFT"), "Aucune preuve unilatérale LEFT injectée");
+  });
+
+  // TEST 2 — DATA_MATCH reste UNVERIFIED
+  runTest("TEST FIX-03-02 [ARCH-06-FIX-03]: DATA_MATCH reste UNVERIFIED (même connexion, DN, matériau, standard, rating sans décision normative)", () => {
+    const compLeft = createCatalogComponent({
+      id: "SYNTH_FIX03_DM_LEFT",
+      componentType: "PIPE",
+      connectionType: "butt_weld",
+      nominalDiameter: 100,
+      material: "SYNTH_MAT_A",
+      standard: "SYNTH_STD_A",
+      pressureClass: "Class 150",
+    });
+
+    const compRight = createCatalogComponent({
+      id: "SYNTH_FIX03_DM_RIGHT",
+      componentType: "ELBOW",
+      connectionType: "butt_weld",
+      nominalDiameter: 100,
+      material: "SYNTH_MAT_A",
+      standard: "SYNTH_STD_A",
+      pressureClass: "Class 150",
+    });
+
+    const res = checkComponentCompatibility(compLeft, compRight);
+    assert(res.overallStatus === "UNVERIFIED", "overallStatus doit être UNVERIFIED");
+
+    const connDim = res.dimensions.find((d) => d.dimension === "connection");
+    const sizeDim = res.dimensions.find((d) => d.dimension === "nominalSize");
+    const matDim = res.dimensions.find((d) => d.dimension === "material");
+    const stdDim = res.dimensions.find((d) => d.dimension === "standard");
+    const ratingDim = res.dimensions.find((d) => d.dimension === "pressureRating");
+
+    assert(connDim?.observation === "DATA_MATCH" && connDim?.status === "UNVERIFIED", "connection DATA_MATCH / UNVERIFIED");
+    assert(sizeDim?.observation === "DATA_MATCH" && sizeDim?.status === "UNVERIFIED", "nominalSize DATA_MATCH / UNVERIFIED");
+    assert(matDim?.observation === "DATA_MATCH" && matDim?.status === "UNVERIFIED", "material DATA_MATCH / UNVERIFIED");
+    assert(stdDim?.observation === "DATA_MATCH" && stdDim?.status === "UNVERIFIED", "standard DATA_MATCH / UNVERIFIED");
+    assert(ratingDim?.observation === "DATA_MATCH" && ratingDim?.status === "UNVERIFIED", "pressureRating DATA_MATCH / UNVERIFIED");
+    assert(res.evidenceIds.length === 0, "DATA_MATCH ne reçoit pas artificiellement de preuves normatives");
+  });
+
+  // TEST 3 — DATA_MISMATCH ne devient pas INCOMPATIBLE
+  runTest("TEST FIX-03-03 [ARCH-06-FIX-03]: DATA_MISMATCH (DN100 vs DN150) reste UNVERIFIED sans décision normative", () => {
+    const compDn100 = createCatalogComponent({
+      id: "SYNTH_FIX03_DN100",
+      componentType: "PIPE",
+      nominalDiameter: 100,
+      connectionType: "butt_weld",
+      pressureClass: "Class 150",
+      material: "SYNTH_MAT_A",
+    });
+
+    const compDn150 = createCatalogComponent({
+      id: "SYNTH_FIX03_DN150",
+      componentType: "ELBOW",
+      nominalDiameter: 150,
+      connectionType: "butt_weld",
+      pressureClass: "Class 150",
+      material: "SYNTH_MAT_A",
+    });
+
+    const res = checkComponentCompatibility(compDn100, compDn150);
+    assert(res.overallStatus === "UNVERIFIED", "overallStatus doit rester UNVERIFIED sans décision normative");
+    const sizeDim = res.dimensions.find((d) => d.dimension === "nominalSize");
+    assert(sizeDim?.observation === "DATA_MISMATCH", "Observation DATA_MISMATCH sur nominalSize");
+    assert(sizeDim?.status === "UNVERIFIED", "Statut UNVERIFIED sur nominalSize");
+  });
+
+  // TEST 4 — Vraie décision normative de dimension conservée
+  runTest("TEST FIX-03-04 [ARCH-06-FIX-03]: Vraie décision normative de dimension (NORMATIVE_DECISION + COMPATIBLE) conservée avec traçabilité", () => {
+    const compLeft = createCatalogComponent({
+      id: "SYNTH_FIX03_DEC_L",
+      componentType: "PIPE",
+      connectionType: "butt_weld",
+      nominalDiameter: 100,
+      pressureClass: "Class 150",
+      material: "SYNTH_MAT_A",
+    });
+
+    const compRight = createCatalogComponent({
+      id: "SYNTH_FIX03_DEC_R",
+      componentType: "ELBOW",
+      connectionType: "butt_weld",
+      nominalDiameter: 100,
+      pressureClass: "Class 150",
+      material: "SYNTH_MAT_A",
+    });
+
+    const bilateralNorm13 = {
+      evaluate(ctx: any) {
+        if (ctx.componentType === "PIPE_TO_ELBOW" && ctx.connectionType === "butt_weld") {
+          return {
+            status: "COMPATIBLE" as const,
+            ruleId: "SYNTH_RULE_BILAT_CONN_01",
+            matchedRuleIds: ["SYNTH_RULE_BILAT_CONN_01"],
+            message: "Bilateral connection verified",
+            evidenceIds: ["EVID_SYNTH_BILAT_01"],
+          };
+        }
+        return { status: "UNVERIFIED" as const };
+      },
+    };
+
+    const res = checkComponentCompatibility(compLeft, compRight, {
+      normativeCompatibilityEngine: bilateralNorm13,
+    });
+
+    const connDim = res.dimensions.find((d) => d.dimension === "connection");
+    assert(connDim?.observation === "NORMATIVE_DECISION", "Observation NORMATIVE_DECISION sur la dimension connection");
+    assert(connDim?.status === "COMPATIBLE", "Statut COMPATIBLE sur la dimension connection");
+    assert(connDim?.matchedRuleId === "SYNTH_RULE_BILAT_CONN_01", "ruleId conservé sur la dimension");
+    assert(connDim?.matchedRuleIds?.includes("SYNTH_RULE_BILAT_CONN_01") === true, "matchedRuleIds conservé sur la dimension");
+    assert(connDim?.evidenceIds?.includes("EVID_SYNTH_BILAT_01") === true, "evidenceIds conservé sur la dimension");
+    assert(res.overallStatus === "COMPATIBLE", "La décision normative bilatérale de dimension promeut overallStatus à COMPATIBLE");
+    assert(res.evidenceIds.includes("EVID_SYNTH_BILAT_01"), "evidenceIds conservé au niveau global");
+    assert(res.matchedRuleIds?.includes("SYNTH_RULE_BILAT_CONN_01") === true, "matchedRuleIds conservé au niveau global");
+  });
+
+  // TEST 5 — NORM-13 INCOMPATIBLE explicite
+  runTest("TEST FIX-03-05 [ARCH-06-FIX-03]: Décision normative explicite INCOMPATIBLE (NORMATIVE_DECISION + INCOMPATIBLE) préservée", () => {
+    const compLeft = createCatalogComponent({
+      id: "SYNTH_FIX03_INC_L",
+      componentType: "PIPE",
+      connectionType: "butt_weld",
+      nominalDiameter: 100,
+      pressureClass: "Class 150",
+      material: "SYNTH_MAT_A",
+    });
+
+    const compRight = createCatalogComponent({
+      id: "SYNTH_FIX03_INC_R",
+      componentType: "ELBOW",
+      connectionType: "flanged",
+      nominalDiameter: 100,
+      pressureClass: "Class 150",
+      material: "SYNTH_MAT_A",
+    });
+
+    const incompatNorm13 = {
+      evaluate(ctx: any) {
+        if (ctx.connectionType === "butt_weld_TO_flanged") {
+          return {
+            status: "INCOMPATIBLE" as const,
+            ruleId: "SYNTH_RULE_INCOMPAT_CONN_01",
+            matchedRuleIds: ["SYNTH_RULE_INCOMPAT_CONN_01"],
+            message: "Direct butt_weld to flanged connection is normatively incompatible",
+            evidenceIds: ["EVID_SYNTH_INCOMPAT_01"],
+          };
+        }
+        return { status: "UNVERIFIED" as const };
+      },
+    };
+
+    const res = checkComponentCompatibility(compLeft, compRight, {
+      normativeCompatibilityEngine: incompatNorm13,
+    });
+
+    const connDim = res.dimensions.find((d) => d.dimension === "connection");
+    assert(connDim?.observation === "NORMATIVE_DECISION", "Observation NORMATIVE_DECISION");
+    assert(connDim?.status === "INCOMPATIBLE", "Statut dimension INCOMPATIBLE");
+    assert(connDim?.matchedRuleId === "SYNTH_RULE_INCOMPAT_CONN_01", "ruleId tracé");
+    assert(connDim?.evidenceIds?.includes("EVID_SYNTH_INCOMPAT_01") === true, "evidenceIds tracé sur la dimension");
+    assert(res.overallStatus === "INCOMPATIBLE", "overallStatus doit être INCOMPATIBLE");
+    assert(res.evidenceIds.includes("EVID_SYNTH_INCOMPAT_01"), "evidenceIds tracé au niveau global");
+    assert(res.matchedRuleIds?.includes("SYNTH_RULE_INCOMPAT_CONN_01") === true, "matchedRuleIds tracé au niveau global");
+  });
+
+  // =========================================================================
   // NON-RÉGRESSION ARCH-01..05 & NORM-01..14
   // =========================================================================
   runTest("TEST NON-REGRESSION: NORM-01..14 Global Integration Tests", () => {
@@ -970,7 +1186,7 @@ export function runArch06ComponentSelectionCompatibilityTests(): Arch06TestResul
   });
 
   return Object.freeze({
-    success: testsFailed === 0 && testsRun >= 48,
+    success: testsFailed === 0 && testsRun >= 53,
     testsRun,
     testsPassed,
     testsFailed,

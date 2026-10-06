@@ -79,10 +79,12 @@ export interface PdiDimensionCompatibilityResult {
   readonly reason?: string;
   readonly evidenceIds?: readonly string[];
   readonly matchedRuleId?: string;
+  readonly ruleId?: string;
+  readonly matchedRuleIds?: readonly string[];
 }
 
 /**
- * Résultat complet et traçable de compatibilité entre deux composants (ARCH-06 §9 & §10 / FIX-01).
+ * Résultat complet et traçable de compatibilité entre deux composants (ARCH-06 §9 & §10 / FIX-01 / FIX-03).
  */
 export interface PdiCompatibilityCheckResult {
   readonly overallStatus: PdiCompatibilityStatus;
@@ -90,6 +92,8 @@ export interface PdiCompatibilityCheckResult {
   readonly rightComponentId: string;
   readonly dimensions: readonly PdiDimensionCompatibilityResult[];
   readonly evidenceIds: readonly string[];
+  readonly ruleId?: string;
+  readonly matchedRuleIds?: readonly string[];
   readonly reasons: readonly string[];
   readonly message: string;
 }
@@ -203,13 +207,28 @@ function evaluateConnectionDimension(
   }
 
   // Délégation exclusive à l'autorité normative NORM-13 si disponible
+  // RÈGLE FIX-03 : Évaluation bilatérale LEFT ↔ RIGHT de la dimension connection (jamais unilatérale LEFT-only)
   if (options?.normativeCompatibilityEngine) {
+    const bilateralComponentType =
+      left.componentType === right.componentType
+        ? left.componentType
+        : `${left.componentType}_TO_${right.componentType}`;
     const normRes = options.normativeCompatibilityEngine.evaluate({
-      componentType: left.componentType,
+      componentType: bilateralComponentType,
       connectionType: leftConn === rightConn ? leftConn : `${leftConn}_TO_${rightConn}`,
       evidenceIds: options.normativeEvidenceIds,
     });
-    if (normRes.status === "COMPATIBLE" || normRes.status === "INCOMPATIBLE") {
+    const isDimensionRuleMatch =
+      !normRes.matchedRule || normRes.matchedRule.connectionType !== undefined;
+    if (
+      isDimensionRuleMatch &&
+      (normRes.status === "COMPATIBLE" || normRes.status === "INCOMPATIBLE")
+    ) {
+      const ruleIds = normRes.matchedRuleIds
+        ? Object.freeze([...normRes.matchedRuleIds])
+        : normRes.ruleId
+          ? Object.freeze([normRes.ruleId])
+          : undefined;
       return Object.freeze({
         dimension: "connection",
         status: normRes.status,
@@ -217,6 +236,8 @@ function evaluateConnectionDimension(
         leftValue: leftConn,
         rightValue: rightConn,
         matchedRuleId: normRes.ruleId,
+        ruleId: normRes.ruleId,
+        matchedRuleIds: ruleIds,
         reason: normRes.message || `Normative connection compatibility evaluated by NORM-13 (${normRes.status}).`,
         evidenceIds: normRes.evidenceIds ? Object.freeze([...normRes.evidenceIds]) : Object.freeze([]),
       });
@@ -290,21 +311,41 @@ function evaluateNominalSizeDimension(
     });
   }
 
+  const leftSizeVal = leftDn !== undefined ? `DN${leftDn}` : leftNps;
+  const rightSizeVal = rightDn !== undefined ? `DN${rightDn}` : rightNps;
+
   // Délégation NORM-13 si disponible
-  if (options?.normativeCompatibilityEngine) {
+  // RÈGLE FIX-03 : Évaluation bilatérale LEFT ↔ RIGHT de la dimension nominalSize (jamais unilatérale LEFT-only)
+  if (options?.normativeCompatibilityEngine && leftSizeVal !== undefined && rightSizeVal !== undefined) {
+    const bilateralComponentType =
+      left.componentType === right.componentType
+        ? left.componentType
+        : `${left.componentType}_TO_${right.componentType}`;
     const normRes = options.normativeCompatibilityEngine.evaluate({
-      componentType: left.componentType,
-      nominalSize: leftDn !== undefined ? `DN${leftDn}` : leftNps,
+      componentType: bilateralComponentType,
+      nominalSize: leftSizeVal === rightSizeVal ? leftSizeVal : `${leftSizeVal}_TO_${rightSizeVal}`,
       evidenceIds: options.normativeEvidenceIds,
     });
-    if (normRes.status === "COMPATIBLE" || normRes.status === "INCOMPATIBLE") {
+    const isDimensionRuleMatch =
+      !normRes.matchedRule || normRes.matchedRule.nominalSize !== undefined;
+    if (
+      isDimensionRuleMatch &&
+      (normRes.status === "COMPATIBLE" || normRes.status === "INCOMPATIBLE")
+    ) {
+      const ruleIds = normRes.matchedRuleIds
+        ? Object.freeze([...normRes.matchedRuleIds])
+        : normRes.ruleId
+          ? Object.freeze([normRes.ruleId])
+          : undefined;
       return Object.freeze({
         dimension: "nominalSize",
         status: normRes.status,
         observation: "NORMATIVE_DECISION",
-        leftValue: leftDn !== undefined ? `DN${leftDn}` : leftNps,
-        rightValue: rightDn !== undefined ? `DN${rightDn}` : rightNps,
+        leftValue: leftSizeVal,
+        rightValue: rightSizeVal,
         matchedRuleId: normRes.ruleId,
+        ruleId: normRes.ruleId,
+        matchedRuleIds: ruleIds,
         reason: normRes.message || `Nomative size evaluated by NORM-13 (${normRes.status}).`,
         evidenceIds: normRes.evidenceIds ? Object.freeze([...normRes.evidenceIds]) : Object.freeze([]),
       });
@@ -400,13 +441,28 @@ function evaluatePressureRatingDimension(
   }
 
   // Délégation NORM-13 si disponible
+  // RÈGLE FIX-03 : Évaluation bilatérale LEFT ↔ RIGHT de la dimension pressureRating (jamais unilatérale LEFT-only)
   if (options?.normativeCompatibilityEngine) {
+    const bilateralComponentType =
+      left.componentType === right.componentType
+        ? left.componentType
+        : `${left.componentType}_TO_${right.componentType}`;
     const normRes = options.normativeCompatibilityEngine.evaluate({
-      componentType: left.componentType,
+      componentType: bilateralComponentType,
       pressureRating: leftClass === rightClass ? leftClass : `${leftClass}_TO_${rightClass}`,
       evidenceIds: options.normativeEvidenceIds,
     });
-    if (normRes.status === "COMPATIBLE" || normRes.status === "INCOMPATIBLE") {
+    const isDimensionRuleMatch =
+      !normRes.matchedRule || normRes.matchedRule.pressureRating !== undefined;
+    if (
+      isDimensionRuleMatch &&
+      (normRes.status === "COMPATIBLE" || normRes.status === "INCOMPATIBLE")
+    ) {
+      const ruleIds = normRes.matchedRuleIds
+        ? Object.freeze([...normRes.matchedRuleIds])
+        : normRes.ruleId
+          ? Object.freeze([normRes.ruleId])
+          : undefined;
       return Object.freeze({
         dimension: "pressureRating",
         status: normRes.status,
@@ -414,6 +470,8 @@ function evaluatePressureRatingDimension(
         leftValue: leftClass,
         rightValue: rightClass,
         matchedRuleId: normRes.ruleId,
+        ruleId: normRes.ruleId,
+        matchedRuleIds: ruleIds,
         reason: normRes.message || `Pressure rating compatibility evaluated by NORM-13 (${normRes.status}).`,
         evidenceIds: normRes.evidenceIds ? Object.freeze([...normRes.evidenceIds]) : Object.freeze([]),
       });
@@ -473,12 +531,26 @@ function evaluateMaterialDimension(
   }
 
   if (options?.normativeCompatibilityEngine) {
+    const bilateralComponentType =
+      left.componentType === right.componentType
+        ? left.componentType
+        : `${left.componentType}_TO_${right.componentType}`;
     const normRes = options.normativeCompatibilityEngine.evaluate({
-      componentType: left.componentType,
+      componentType: bilateralComponentType,
       materialId: leftMat === rightMat ? leftMat : `${leftMat}_TO_${rightMat}`,
       evidenceIds: options.normativeEvidenceIds,
     });
-    if (normRes.status === "COMPATIBLE" || normRes.status === "INCOMPATIBLE") {
+    const isDimensionRuleMatch =
+      !normRes.matchedRule || normRes.matchedRule.materialId !== undefined;
+    if (
+      isDimensionRuleMatch &&
+      (normRes.status === "COMPATIBLE" || normRes.status === "INCOMPATIBLE")
+    ) {
+      const ruleIds = normRes.matchedRuleIds
+        ? Object.freeze([...normRes.matchedRuleIds])
+        : normRes.ruleId
+          ? Object.freeze([normRes.ruleId])
+          : undefined;
       return Object.freeze({
         dimension: "material",
         status: normRes.status,
@@ -486,6 +558,8 @@ function evaluateMaterialDimension(
         leftValue: leftMat,
         rightValue: rightMat,
         matchedRuleId: normRes.ruleId,
+        ruleId: normRes.ruleId,
+        matchedRuleIds: ruleIds,
         reason: normRes.message || `Material metallurgical compatibility evaluated by NORM-13 (${normRes.status}).`,
         evidenceIds: normRes.evidenceIds ? Object.freeze([...normRes.evidenceIds]) : Object.freeze([]),
       });
@@ -556,12 +630,26 @@ function evaluateStandardDimension(
   }
 
   if (options?.normativeCompatibilityEngine) {
+    const bilateralComponentType =
+      left.componentType === right.componentType
+        ? left.componentType
+        : `${left.componentType}_TO_${right.componentType}`;
     const normRes = options.normativeCompatibilityEngine.evaluate({
-      componentType: left.componentType,
+      componentType: bilateralComponentType,
       standardId: leftStd === rightStd ? leftStd : `${leftStd}_TO_${rightStd}`,
       evidenceIds: options.normativeEvidenceIds,
     });
-    if (normRes.status === "COMPATIBLE" || normRes.status === "INCOMPATIBLE") {
+    const isDimensionRuleMatch =
+      !normRes.matchedRule || normRes.matchedRule.standardId !== undefined;
+    if (
+      isDimensionRuleMatch &&
+      (normRes.status === "COMPATIBLE" || normRes.status === "INCOMPATIBLE")
+    ) {
+      const ruleIds = normRes.matchedRuleIds
+        ? Object.freeze([...normRes.matchedRuleIds])
+        : normRes.ruleId
+          ? Object.freeze([normRes.ruleId])
+          : undefined;
       return Object.freeze({
         dimension: "standard",
         status: normRes.status,
@@ -569,6 +657,8 @@ function evaluateStandardDimension(
         leftValue: leftStd,
         rightValue: rightStd,
         matchedRuleId: normRes.ruleId,
+        ruleId: normRes.ruleId,
+        matchedRuleIds: ruleIds,
         reason: normRes.message || `Standard compatibility evaluated by NORM-13 (${normRes.status}).`,
         evidenceIds: normRes.evidenceIds ? Object.freeze([...normRes.evidenceIds]) : Object.freeze([]),
       });
@@ -646,7 +736,17 @@ function evaluateFaceTypeDimension(
       connectionType: leftFace === rightFace ? leftFace : `${leftFace}_TO_${rightFace}`,
       evidenceIds: options.normativeEvidenceIds,
     });
-    if (normRes.status === "COMPATIBLE" || normRes.status === "INCOMPATIBLE") {
+    const isDimensionRuleMatch =
+      !normRes.matchedRule || normRes.matchedRule.connectionType !== undefined;
+    if (
+      isDimensionRuleMatch &&
+      (normRes.status === "COMPATIBLE" || normRes.status === "INCOMPATIBLE")
+    ) {
+      const ruleIds = normRes.matchedRuleIds
+        ? Object.freeze([...normRes.matchedRuleIds])
+        : normRes.ruleId
+          ? Object.freeze([normRes.ruleId])
+          : undefined;
       return Object.freeze({
         dimension: "faceType",
         status: normRes.status,
@@ -654,6 +754,8 @@ function evaluateFaceTypeDimension(
         leftValue: leftFace,
         rightValue: rightFace,
         matchedRuleId: normRes.ruleId,
+        ruleId: normRes.ruleId,
+        matchedRuleIds: ruleIds,
         reason: normRes.message || `Flange facing compatibility evaluated by NORM-13 (${normRes.status}).`,
         evidenceIds: normRes.evidenceIds ? Object.freeze([...normRes.evidenceIds]) : Object.freeze([]),
       });
@@ -810,20 +912,10 @@ export function checkComponentCompatibility(
     });
   }
 
-  // Si NORM-13 est injecté, on évalue le contexte global
-  let globalNormativeResult: ReturnType<INormativeCompatibilityEngine["evaluate"]> | undefined;
-  if (options?.normativeCompatibilityEngine) {
-    globalNormativeResult = options.normativeCompatibilityEngine.evaluate({
-      componentType: left.componentType,
-      connectionType: left.connectionType,
-      nominalSize: left.nominalSize || (left.nominalDiameter !== undefined ? `DN${left.nominalDiameter}` : undefined),
-      pressureRating: left.pressureClass,
-      materialId: left.material,
-      standardId: left.standard,
-      evidenceIds: options.normativeEvidenceIds,
-    });
-  }
-
+  // ARCH-06-FIX-03 : Aucune évaluation normative globale unilatérale (LEFT-only) ne doit être
+  // exécutée pour promouvoir overallStatus. Seules les décisions normatives explicites
+  // obtenues sur les dimensions comparées LEFT ↔ RIGHT (NORMATIVE_DECISION) peuvent qualifier
+  // la compatibilité globale.
   const dimensions: PdiDimensionCompatibilityResult[] = [
     evaluateConnectionDimension(left, right, options),
     evaluateNominalSizeDimension(left, right, options),
@@ -835,21 +927,22 @@ export function checkComponentCompatibility(
     evaluateNormativeEvidenceDimension(left, right, options?.normativeEvidenceIds),
   ];
 
-  // Détermination de l'état global avec hiérarchie stricte FIX-02 :
-  // INVALID > INCOMPATIBLE > INSUFFICIENT_DATA > UNVERIFIED > COMPATIBLE (uniquement si autorité NORM-13 vérifiée)
+  // Détermination de l'état global avec hiérarchie stricte FIX-02 / FIX-03 :
+  // INVALID > INCOMPATIBLE > INSUFFICIENT_DATA > UNVERIFIED > COMPATIBLE (uniquement si décision normative vérifiée LEFT ↔ RIGHT)
   let overallStatus: PdiCompatibilityStatus = "UNVERIFIED";
 
   const hasInvalid = dimensions.some((d) => d.status === "INVALID");
   const hasIncompatible = dimensions.some((d) => d.status === "INCOMPATIBLE");
   const hasInsufficient = dimensions.some((d) => d.status === "INSUFFICIENT_DATA");
+  const hasVerifiedDimensionCompatible = dimensions.some(
+    (d) => d.observation === "NORMATIVE_DECISION" && d.status === "COMPATIBLE"
+  );
 
   if (hasInvalid) {
     overallStatus = "INVALID";
   } else if (hasIncompatible) {
     overallStatus = "INCOMPATIBLE";
-  } else if (globalNormativeResult && (globalNormativeResult.status === "COMPATIBLE" || globalNormativeResult.status === "INCOMPATIBLE")) {
-    overallStatus = globalNormativeResult.status;
-  } else if (dimensions.some((d) => d.observation === "NORMATIVE_DECISION" && d.status === "COMPATIBLE")) {
+  } else if (hasVerifiedDimensionCompatible) {
     overallStatus = "COMPATIBLE";
   } else if (hasInsufficient) {
     overallStatus = "INSUFFICIENT_DATA";
@@ -859,17 +952,24 @@ export function checkComponentCompatibility(
 
   const reasons: string[] = [];
   const allEvidenceIds = new Set<string>();
+  const allMatchedRuleIds = new Set<string>();
 
   for (const d of dimensions) {
     if (d.reason) reasons.push(`[${d.dimension}] ${d.reason}`);
     if (d.evidenceIds) {
       d.evidenceIds.forEach((eid) => allEvidenceIds.add(eid));
     }
+    if (d.observation === "NORMATIVE_DECISION") {
+      if (d.matchedRuleId) {
+        allMatchedRuleIds.add(d.matchedRuleId);
+      }
+      if (d.matchedRuleIds) {
+        d.matchedRuleIds.forEach((rid) => allMatchedRuleIds.add(rid));
+      }
+    }
   }
 
-  if (globalNormativeResult?.evidenceIds) {
-    globalNormativeResult.evidenceIds.forEach((eid) => allEvidenceIds.add(eid));
-  }
+  const sortedMatchedRuleIds = Object.freeze(Array.from(allMatchedRuleIds).sort());
 
   const message = overallStatus === "COMPATIBLE"
     ? `Components '${left.id}' and '${right.id}' are verified compatible by normative authority.`
@@ -881,6 +981,9 @@ export function checkComponentCompatibility(
     rightComponentId: right.id,
     dimensions: Object.freeze(dimensions),
     evidenceIds: Object.freeze(Array.from(allEvidenceIds).sort()),
+    ...(sortedMatchedRuleIds.length > 0
+      ? { ruleId: sortedMatchedRuleIds[0], matchedRuleIds: sortedMatchedRuleIds }
+      : {}),
     reasons: Object.freeze(reasons),
     message,
   });
