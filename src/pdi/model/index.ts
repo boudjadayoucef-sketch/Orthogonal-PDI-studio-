@@ -80,3 +80,7 @@ export * from "./pdiProjectAdapter";
 // ARCH-05: Technical Workflow P&ID → Piping → Isometric
 export * from "./pdiTechnicalWorkflow";
 export * from "./pdiTechnicalWorkflowAdapter";
+
+// ARCH-06: Component Selection + Catalog + Compatibility
+export * from "./pdiCatalogComponent";
+export * from "./pdiCatalogSelectionAdapter";
