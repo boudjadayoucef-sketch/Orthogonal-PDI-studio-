@@ -1227,6 +1227,146 @@ export function runArch05TechnicalWorkflowTests(): Arch05TestResult {
   });
 
   // =========================================================================
+  // ARCH-05-FIX-03: TESTS AQ-01 TO AQ-07 — STRICT WORKFLOW IDENTITY
+  // =========================================================================
+
+  // AQ-01 — pipingLineId déterministe
+  runTest("TEST AQ-01 [ARCH-05-FIX-03]: pipingLineId déterministe pour le même processLineId", () => {
+    const input1: PdiProcessInputReference = {
+      sourceId: "PID_DET_01",
+      sourceType: "PID",
+      lines: [{ processLineId: "PL-001", lineNumber: "L-001" }],
+    };
+    const input2: PdiProcessInputReference = {
+      sourceId: "PID_DET_01",
+      sourceType: "PID",
+      lines: [{ processLineId: "PL-001", lineNumber: "L-001" }],
+    };
+
+    const res1 = adaptProcessInputToPipingDesign(input1);
+    const res2 = adaptProcessInputToPipingDesign(input2);
+
+    assert(res1.lines[0].pipingLineId === res2.lines[0].pipingLineId, "Deux adaptations successives doivent produire le même pipingLineId");
+    assert(res1.lines[0].pipingLineId === "pipe_line_PL_001" || res1.lines[0].pipingLineId === "pipe_line_PL-001", "Format d'ID propre");
+  });
+
+  // AQ-02 — aucune dépendance à l'index
+  runTest("TEST AQ-02 [ARCH-05-FIX-03]: Aucune dépendance à l'index du tableau pour l'identité de ligne", () => {
+    const orderAB: PdiProcessInputReference = {
+      sourceId: "PID_ORDER_AB",
+      sourceType: "PID",
+      lines: [
+        { processLineId: "PL-A", lineNumber: "L-A" },
+        { processLineId: "PL-B", lineNumber: "L-B" },
+      ],
+    };
+
+    const orderBA: PdiProcessInputReference = {
+      sourceId: "PID_ORDER_BA",
+      sourceType: "PID",
+      lines: [
+        { processLineId: "PL-B", lineNumber: "L-B" },
+        { processLineId: "PL-A", lineNumber: "L-A" },
+      ],
+    };
+
+    const resAB = adaptProcessInputToPipingDesign(orderAB);
+    const resBA = adaptProcessInputToPipingDesign(orderBA);
+
+    const idA_first = resAB.lines[0].pipingLineId;
+    const idA_second = resBA.lines[1].pipingLineId;
+    const idB_second = resAB.lines[1].pipingLineId;
+    const idB_first = resBA.lines[0].pipingLineId;
+
+    assert(idA_first === idA_second, "PL-A a le même pipingLineId qu'elle soit en position 0 ou 1");
+    assert(idB_second === idB_first, "PL-B a le même pipingLineId qu'elle soit en position 1 ou 0");
+  });
+
+  // AQ-03 — aucune identité _default
+  runTest("TEST AQ-03 [ARCH-05-FIX-03]: Aucun pipingLineId généré ne contient _default", () => {
+    const input: PdiProcessInputReference = {
+      sourceId: "PID_NO_DEF",
+      sourceType: "PID",
+      lines: [
+        { processLineId: "PL_101", lineNumber: "L-101" },
+        { processLineId: "PL_102", lineNumber: "L-102" },
+      ],
+    };
+
+    const res = adaptProcessInputToPipingDesign(input);
+    assert(!res.lines[0].pipingLineId.includes("_default"), "Ligne 1 ne contient pas _default");
+    assert(!res.lines[1].pipingLineId.includes("_default"), "Ligne 2 ne contient pas _default");
+  });
+
+  // AQ-04 — aucune identité basée sur index
+  runTest("TEST AQ-04 [ARCH-05-FIX-03]: Ne produit jamais pipe_line_0 ou pipe_line_1 uniquement à cause de la position", () => {
+    const input: PdiProcessInputReference = {
+      sourceId: "PID_NO_IDX",
+      sourceType: "PID",
+      lines: [
+        { processLineId: "PL_HYDRO_FEED" },
+        { processLineId: "PL_FLARE_HEADER" },
+      ],
+    };
+
+    const res = adaptProcessInputToPipingDesign(input);
+    assert(res.lines[0].pipingLineId !== "pipe_line_0", "Ne doit pas valoir pipe_line_0");
+    assert(res.lines[1].pipingLineId !== "pipe_line_1", "Ne doit pas valoir pipe_line_1");
+  });
+
+  // AQ-05 — source Process conservée
+  runTest("TEST AQ-05 [ARCH-05-FIX-03]: sourceProcessLineId === processLineId vérifié", () => {
+    const input: PdiProcessInputReference = {
+      sourceId: "PID_SRC_CHECK",
+      sourceType: "PID",
+      lines: [
+        { processLineId: "PL_SOURCE_TAG_999", lineNumber: "L-999" },
+      ],
+    };
+
+    const res = adaptProcessInputToPipingDesign(input);
+    assert(res.lines[0].sourceProcessLineId === "PL_SOURCE_TAG_999", "sourceProcessLineId strictement égal à processLineId");
+  });
+
+  // AQ-06 — stabilité
+  runTest("TEST AQ-06 [ARCH-05-FIX-03]: Stabilité parfaite lors de multiples adaptations", () => {
+    const input: PdiProcessInputReference = {
+      sourceId: "PID_STABLE_TEST",
+      sourceType: "PID",
+      lines: [
+        { processLineId: "PL_STABLE_X" },
+      ],
+    };
+
+    const run1 = adaptProcessInputToPipingDesign(input);
+    const run2 = adaptProcessInputToPipingDesign(input);
+    const run3 = adaptProcessInputToPipingDesign(input);
+
+    assert(run1.lines[0].pipingLineId === run2.lines[0].pipingLineId, "run1 === run2");
+    assert(run2.lines[0].pipingLineId === run3.lines[0].pipingLineId, "run2 === run3");
+  });
+
+  // AQ-07 — absence de mutation
+  runTest("TEST AQ-07 [ARCH-05-FIX-03]: Le mapping ne modifie pas le PdiProcessInputReference source", () => {
+    const input: PdiProcessInputReference = Object.freeze({
+      sourceId: "PID_NO_MUTATION",
+      sourceType: "PID",
+      lines: Object.freeze([
+        Object.freeze({
+          processLineId: "PL_FROZEN",
+          lineNumber: "L-FROZEN",
+        }),
+      ]),
+    });
+
+    const before = JSON.stringify(input);
+    adaptProcessInputToPipingDesign(input);
+    const after = JSON.stringify(input);
+
+    assert(before === after, "Aucune mutation du PdiProcessInputReference");
+  });
+
+  // =========================================================================
   // TEST Z1: Non-régression NORM-01..14
   // =========================================================================
   runTest("TEST Z1 [ARCH-05]: Non-régression globale NORM-01..14", () => {
@@ -1267,7 +1407,7 @@ export function runArch05TechnicalWorkflowTests(): Arch05TestResult {
   });
 
   return Object.freeze({
-    success: testsFailed === 0 && testsRun >= 58,
+    success: testsFailed === 0 && testsRun >= 65,
     testsRun,
     testsPassed,
     testsFailed,

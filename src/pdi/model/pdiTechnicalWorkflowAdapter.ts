@@ -41,15 +41,15 @@ import { deriveUniversalEntitiesFromDocument } from "./pdiProjectAdapter";
 import type { PdiUniversalEntity } from "./pdiUniversalEntity";
 
 /**
- * Générateur d'identifiant déterministe et reproductible (ARCH-05 §6).
- * Aucun usage de Math.random() ou Date.now().
+ * Générateur d'identifiant déterministe et reproductible (ARCH-05 §6 / FIX-03).
+ * Requiert obligatoirement un seed explicite et valide. Aucun usage de _default, Math.random() ou Date.now().
  */
-export function generateWorkflowScopedId(prefix: string, seed?: string): string {
-  if (seed && typeof seed === "string" && seed.trim().length > 0) {
+export function generateWorkflowScopedId(prefix: string, seed: string): string {
+  if (typeof seed === "string" && seed.trim().length > 0) {
     const cleanSeed = seed.trim().replace(/[^a-zA-Z0-9_-]/g, "_");
     return `${prefix}_${cleanSeed}`;
   }
-  return `${prefix}_default`;
+  throw new Error(`[ARCH-05] Explicit and non-empty seed is required to generate scoped ID with prefix '${prefix}'.`);
 }
 
 export interface CreateWorkflowParams {
@@ -213,8 +213,11 @@ export function adaptProcessInputToPipingDesign(
     ? options!.designId.trim()
     : generateWorkflowScopedId("des", processInput.sourceId);
 
-  const pipingLines: PdiPipingLineDesign[] = processInput.lines.map((pLine, idx) => {
-    const pipingLineId = generateWorkflowScopedId("pipe_line", `${pLine.processLineId || idx}`);
+  const pipingLines: PdiPipingLineDesign[] = processInput.lines.map((pLine) => {
+    if (!isValidStableId(pLine.processLineId)) {
+      throw new Error("[ARCH-05] Each process line must provide a valid, non-empty processLineId.");
+    }
+    const pipingLineId = generateWorkflowScopedId("pipe_line", pLine.processLineId);
     
     // Transport strict sans fabrication de données
     const designPressure = parseOptionalNumeric(pLine.conditions?.designPressureBar);
