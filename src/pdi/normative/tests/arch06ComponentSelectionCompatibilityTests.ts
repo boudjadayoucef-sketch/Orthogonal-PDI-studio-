@@ -204,9 +204,9 @@ export function runArch06ComponentSelectionCompatibilityTests(): Arch06TestResul
   });
 
   // =========================================================================
-  // AC-08 : Deux composants compatibles explicitement identifiés retournent COMPATIBLE.
+  // AC-08 : Deux composants compatibles : DATA_MATCH sans moteur, COMPATIBLE avec NORM-13.
   // =========================================================================
-  runTest("TEST AC-08: Deux composants compatibles retournent COMPATIBLE", () => {
+  runTest("TEST AC-08: Deux composants avec données concordantes (DATA_MATCH / NORM-13 COMPATIBLE)", () => {
     const pipe = createCatalogComponent({
       id: "SYNTH_COMPAT_PIPE_01",
       componentType: "PIPE",
@@ -231,20 +231,35 @@ export function runArch06ComponentSelectionCompatibilityTests(): Arch06TestResul
       evidenceIds: ["EVID_SYNTH_02"],
     });
 
-    const res = checkComponentCompatibility(pipe, elbow);
-    assert(res.overallStatus === "COMPATIBLE", "Status COMPATIBLE");
-    assert(res.dimensions.find((d) => d.dimension === "connection")?.status === "COMPATIBLE", "Connexion compatible");
-    assert(res.dimensions.find((d) => d.dimension === "nominalSize")?.status === "COMPATIBLE", "DN compatible");
-    assert(res.dimensions.find((d) => d.dimension === "pressureRating")?.status === "COMPATIBLE", "Rating compatible");
-    assert(res.dimensions.find((d) => d.dimension === "material")?.status === "COMPATIBLE", "Material compatible");
-    assert(res.evidenceIds.includes("EVID_SYNTH_01"), "Evidence 1 incluse");
-    assert(res.evidenceIds.includes("EVID_SYNTH_02"), "Evidence 2 incluse");
+    // 1. Sans autorité normative : DATA_MATCH pur reste UNVERIFIED (FIX-02 §1)
+    const resUnverified = checkComponentCompatibility(pipe, elbow);
+    assert(resUnverified.overallStatus === "UNVERIFIED", "Status UNVERIFIED sans autorité");
+    assert(resUnverified.dimensions.find((d) => d.dimension === "connection")?.observation === "DATA_MATCH", "Connexion DATA_MATCH");
+    assert(resUnverified.dimensions.find((d) => d.dimension === "nominalSize")?.observation === "DATA_MATCH", "DN DATA_MATCH");
+    assert(resUnverified.dimensions.find((d) => d.dimension === "pressureRating")?.observation === "DATA_MATCH", "Rating DATA_MATCH");
+    assert(resUnverified.dimensions.find((d) => d.dimension === "material")?.observation === "DATA_MATCH", "Material DATA_MATCH");
+
+    // 2. Avec autorité normative NORM-13 : devient COMPATIBLE (NORMATIVE_DECISION)
+    const mockNorm13 = {
+      evaluate(_ctx: any) {
+        return {
+          status: "COMPATIBLE" as const,
+          ruleId: "NORM13_RULE_MATCHING_PARTS",
+          message: "Validated by NORM-13",
+          evidenceIds: ["EVID_NORM13_01"],
+        };
+      },
+    };
+    const resNorm = checkComponentCompatibility(pipe, elbow, { normativeCompatibilityEngine: mockNorm13 });
+    assert(resNorm.overallStatus === "COMPATIBLE", "Status COMPATIBLE avec NORM-13");
+    assert(resNorm.dimensions.find((d) => d.dimension === "connection")?.status === "COMPATIBLE", "Connexion compatible NORM-13");
+    assert(resNorm.evidenceIds.includes("EVID_NORM13_01"), "Evidence NORM-13 incluse");
   });
 
   // =========================================================================
-  // AC-09 : Deux composants explicitement incompatibles retournent INCOMPATIBLE.
+  // AC-09 : Deux composants de diamètres différents (DATA_MISMATCH / NORM-13 INCOMPATIBLE).
   // =========================================================================
-  runTest("TEST AC-09: Deux composants de diamètres différents retournent INCOMPATIBLE", () => {
+  runTest("TEST AC-09: Deux composants de diamètres différents retournent DATA_MISMATCH / UNVERIFIED", () => {
     const pipe100 = createCatalogComponent({
       id: "SYNTH_PIPE_DN100",
       componentType: "PIPE",
@@ -263,10 +278,25 @@ export function runArch06ComponentSelectionCompatibilityTests(): Arch06TestResul
       material: "SYNTH_CS",
     });
 
+    // Sans moteur normatif : DATA_MISMATCH avec statut UNVERIFIED (FIX-02 §2)
     const res = checkComponentCompatibility(pipe100, pipe150);
-    assert(res.overallStatus === "INCOMPATIBLE", "Status global INCOMPATIBLE");
+    assert(res.overallStatus === "UNVERIFIED", "Status global UNVERIFIED sans autorité externe");
     const dim = res.dimensions.find((d) => d.dimension === "nominalSize");
-    assert(dim?.status === "INCOMPATIBLE", "Dimension nominalSize INCOMPATIBLE");
+    assert(dim?.observation === "DATA_MISMATCH", "Dimension nominalSize DATA_MISMATCH");
+    assert(dim?.status === "UNVERIFIED", "Dimension nominalSize UNVERIFIED");
+
+    // Avec moteur NORM-13 qui qualifie le mismatch en INCOMPATIBLE
+    const mockNorm13Incompat = {
+      evaluate(_ctx: any) {
+        return {
+          status: "INCOMPATIBLE" as const,
+          ruleId: "NORM13_SIZE_MISMATCH",
+          message: "Size mismatch",
+        };
+      },
+    };
+    const resNorm = checkComponentCompatibility(pipe100, pipe150, { normativeCompatibilityEngine: mockNorm13Incompat });
+    assert(resNorm.overallStatus === "INCOMPATIBLE", "Status INCOMPATIBLE via NORM-13");
   });
 
   // =========================================================================
@@ -538,10 +568,10 @@ export function runArch06ComponentSelectionCompatibilityTests(): Arch06TestResul
     const res1 = checkComponentCompatibility(pipe50, elbow50);
     const res2 = checkComponentCompatibility(pipe50, elbow80);
 
-    assert(res1.overallStatus === "COMPATIBLE" || res1.overallStatus === "INSUFFICIENT_DATA", "res1 statut conforme");
-    assert(res2.overallStatus === "INCOMPATIBLE", "res2 devient INCOMPATIBLE avec elbow80");
-    assert(res1.dimensions.find((d) => d.dimension === "nominalSize")?.status === "COMPATIBLE", "res1 DN compatible");
-    assert(res2.dimensions.find((d) => d.dimension === "nominalSize")?.status === "INCOMPATIBLE", "res2 DN incompatible");
+    assert(res1.overallStatus === "UNVERIFIED" || res1.overallStatus === "INSUFFICIENT_DATA", "res1 statut conforme");
+    assert(res2.overallStatus === "UNVERIFIED" || res2.overallStatus === "INSUFFICIENT_DATA", "res2 statut conforme");
+    assert(res1.dimensions.find((d) => d.dimension === "nominalSize")?.observation === "DATA_MATCH", "res1 DN DATA_MATCH");
+    assert(res2.dimensions.find((d) => d.dimension === "nominalSize")?.observation === "DATA_MISMATCH", "res2 DN DATA_MISMATCH");
   });
 
   // =========================================================================
@@ -832,13 +862,14 @@ export function runArch06ComponentSelectionCompatibilityTests(): Arch06TestResul
     assert(dnDim?.status === "UNVERIFIED", "Statut UNVERIFIED sans conversion implicite");
   });
 
-  // FIX-01-07 : Aucune conversion Class/PN
-  runTest("TEST FIX-01-07 [ARCH-06-FIX-01]: Aucune conversion Class ↔ PN (Class 150 !== PN16)", () => {
+  // FIX-01-07 : Aucune conversion Class/PN (Class 150 !== PN16) et statut reste UNVERIFIED (FIX-02 §2)
+  runTest("TEST FIX-01-07 [ARCH-06-FIX-01/02]: Aucune conversion Class ↔ PN (maintien UNVERIFIED / DATA_MISMATCH)", () => {
     const cClass = createCatalogComponent({ id: "C_CL150", componentType: "FLANGE", pressureClass: "Class 150" });
     const cPN = createCatalogComponent({ id: "C_PN16", componentType: "FLANGE", pressureClass: "PN16" });
     const res = checkComponentCompatibility(cClass, cPN);
     const pnDim = res.dimensions.find((d) => d.dimension === "pressureRating");
-    assert(pnDim?.status === "INCOMPATIBLE", "Class 150 et PN16 ne sont pas convertis et restent en conflit");
+    assert(pnDim?.status === "UNVERIFIED", "Class 150 et PN16 ne sont pas convertis et restent UNVERIFIED sans décision NORM-13");
+    assert(pnDim?.observation === "DATA_MISMATCH", "Observation DATA_MISMATCH");
   });
 
   // FIX-01-08 : NORM-13, s'il est applicable, est utilisé au lieu d'un moteur parallèle

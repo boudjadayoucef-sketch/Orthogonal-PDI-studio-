@@ -174,9 +174,9 @@ export interface PdiComponentSelectionResult {
 // ============================================================================
 
 /**
- * Évalue la compatibilité de connexion entre deux composants (ARCH-06-FIX-01 §5).
- * RÈGLE FIX-01 : Aucune règle industrielle autonome codée en dur.
- * Délégation stricte à NORM-13 pour les connexions hétérogènes.
+ * Évalue la compatibilité de connexion entre deux composants (ARCH-06-FIX-01 §5 / FIX-02).
+ * RÈGLE FIX-02 : DATA_MATCH = UNVERIFIED sans décision normative vérifiée.
+ * Aucune règle industrielle autonome codée en dur.
  */
 function evaluateConnectionDimension(
   left: PdiCatalogComponent,
@@ -202,24 +202,11 @@ function evaluateConnectionDimension(
     });
   }
 
-  // Types de connexion identiques -> Observation DATA_MATCH
-  if (leftConn === rightConn) {
-    return Object.freeze({
-      dimension: "connection",
-      status: "COMPATIBLE",
-      observation: "DATA_MATCH",
-      leftValue: leftConn,
-      rightValue: rightConn,
-      reason: `Matching connection types: ${leftConn}.`,
-      evidenceIds: Object.freeze([]),
-    });
-  }
-
-  // Connexions hétérogènes (ex: male_threaded vs female_threaded) :
-  // ARCH-06-FIX-01 : Délégation exclusive à l'autorité normative NORM-13.
+  // Délégation exclusive à l'autorité normative NORM-13 si disponible
   if (options?.normativeCompatibilityEngine) {
     const normRes = options.normativeCompatibilityEngine.evaluate({
-      connectionType: `${leftConn}_TO_${rightConn}`,
+      componentType: left.componentType,
+      connectionType: leftConn === rightConn ? leftConn : `${leftConn}_TO_${rightConn}`,
       evidenceIds: options.normativeEvidenceIds,
     });
     if (normRes.status === "COMPATIBLE" || normRes.status === "INCOMPATIBLE") {
@@ -236,24 +223,39 @@ function evaluateConnectionDimension(
     }
   }
 
+  // Sans décision NORM-13 vérifiée : DATA_MATCH ne produit pas COMPATIBLE
+  if (leftConn === rightConn) {
+    return Object.freeze({
+      dimension: "connection",
+      status: "UNVERIFIED",
+      observation: "DATA_MATCH",
+      leftValue: leftConn,
+      rightValue: rightConn,
+      reason: `Matching connection types: ${leftConn}. Normative status remains UNVERIFIED without verified normative rule.`,
+      evidenceIds: Object.freeze([]),
+    });
+  }
+
   return Object.freeze({
     dimension: "connection",
     status: "UNVERIFIED",
     observation: "DATA_MISMATCH",
     leftValue: leftConn,
     rightValue: rightConn,
-    reason: `Connection types differ ('${leftConn}' vs '${rightConn}') and require an applicable compatibility rule from the normative authority.`,
+    reason: `Connection types differ ('${leftConn}' vs '${rightConn}'). Requires an applicable compatibility rule from the normative authority.`,
     evidenceIds: Object.freeze([]),
   });
 }
 
 /**
- * Évalue la compatibilité dimensionnelle nominale (ARCH-06 §11).
+ * Évalue la compatibilité dimensionnelle nominale (ARCH-06 §11 / FIX-02).
  * RÈGLE ABSOLUE : Zéro conversion implicite DN ↔ NPS.
+ * DATA_MATCH = UNVERIFIED sans décision normative.
  */
 function evaluateNominalSizeDimension(
   left: PdiCatalogComponent,
-  right: PdiCatalogComponent
+  right: PdiCatalogComponent,
+  options?: CompatibilityOptions
 ): PdiDimensionCompatibilityResult {
   const leftDn = left.nominalDiameter;
   const rightDn = right.nominalDiameter;
@@ -264,22 +266,67 @@ function evaluateNominalSizeDimension(
     ? right.nominalSize.trim()
     : undefined;
 
+  if (leftDn === undefined && leftNps === undefined) {
+    return Object.freeze({
+      dimension: "nominalSize",
+      status: "INSUFFICIENT_DATA",
+      observation: "MISSING_DATA",
+      leftValue: undefined,
+      rightValue: rightDn !== undefined ? `DN${rightDn}` : rightNps,
+      reason: "Missing nominal diameter or nominal size on left component.",
+      evidenceIds: Object.freeze([]),
+    });
+  }
+
+  if (rightDn === undefined && rightNps === undefined) {
+    return Object.freeze({
+      dimension: "nominalSize",
+      status: "INSUFFICIENT_DATA",
+      observation: "MISSING_DATA",
+      leftValue: leftDn !== undefined ? `DN${leftDn}` : leftNps,
+      rightValue: undefined,
+      reason: "Missing nominal diameter or nominal size on right component.",
+      evidenceIds: Object.freeze([]),
+    });
+  }
+
+  // Délégation NORM-13 si disponible
+  if (options?.normativeCompatibilityEngine) {
+    const normRes = options.normativeCompatibilityEngine.evaluate({
+      componentType: left.componentType,
+      nominalSize: leftDn !== undefined ? `DN${leftDn}` : leftNps,
+      evidenceIds: options.normativeEvidenceIds,
+    });
+    if (normRes.status === "COMPATIBLE" || normRes.status === "INCOMPATIBLE") {
+      return Object.freeze({
+        dimension: "nominalSize",
+        status: normRes.status,
+        observation: "NORMATIVE_DECISION",
+        leftValue: leftDn !== undefined ? `DN${leftDn}` : leftNps,
+        rightValue: rightDn !== undefined ? `DN${rightDn}` : rightNps,
+        matchedRuleId: normRes.ruleId,
+        reason: normRes.message || `Nomative size evaluated by NORM-13 (${normRes.status}).`,
+        evidenceIds: normRes.evidenceIds ? Object.freeze([...normRes.evidenceIds]) : Object.freeze([]),
+      });
+    }
+  }
+
   // Si les deux possèdent un DN numérique
   if (leftDn !== undefined && rightDn !== undefined) {
     if (leftDn === rightDn) {
       return Object.freeze({
         dimension: "nominalSize",
-        status: "COMPATIBLE",
+        status: "UNVERIFIED",
         observation: "DATA_MATCH",
         leftValue: `DN${leftDn}`,
         rightValue: `DN${rightDn}`,
-        reason: `Matching nominal diameter DN${leftDn}.`,
+        reason: `Matching nominal diameter DN${leftDn}. Data match observed, normative status is UNVERIFIED.`,
         evidenceIds: Object.freeze([]),
       });
     }
     return Object.freeze({
       dimension: "nominalSize",
-      status: "INCOMPATIBLE",
+      status: "UNVERIFIED",
       observation: "DATA_MISMATCH",
       leftValue: `DN${leftDn}`,
       rightValue: `DN${rightDn}`,
@@ -293,17 +340,17 @@ function evaluateNominalSizeDimension(
     if (leftNps === rightNps) {
       return Object.freeze({
         dimension: "nominalSize",
-        status: "COMPATIBLE",
+        status: "UNVERIFIED",
         observation: "DATA_MATCH",
         leftValue: leftNps,
         rightValue: rightNps,
-        reason: `Matching nominal size ${leftNps}.`,
+        reason: `Matching nominal size ${leftNps}. Data match observed, normative status is UNVERIFIED.`,
         evidenceIds: Object.freeze([]),
       });
     }
     return Object.freeze({
       dimension: "nominalSize",
-      status: "INCOMPATIBLE",
+      status: "UNVERIFIED",
       observation: "DATA_MISMATCH",
       leftValue: leftNps,
       rightValue: rightNps,
@@ -312,37 +359,21 @@ function evaluateNominalSizeDimension(
     });
   }
 
-  // Cas où un seul a DN et l'autre a seulement NPS (ex: DN50 vs NPS 2")
-  // INTERDICTION ARCH-03 / ARCH-06 : Pas de conversion automatique DN <-> NPS -> UNVERIFIED
-  if (
-    (leftDn !== undefined && rightNps !== undefined && rightDn === undefined) ||
-    (rightDn !== undefined && leftNps !== undefined && leftDn === undefined)
-  ) {
-    return Object.freeze({
-      dimension: "nominalSize",
-      status: "UNVERIFIED",
-      observation: "DATA_MISMATCH",
-      leftValue: leftDn !== undefined ? `DN${leftDn}` : leftNps,
-      rightValue: rightDn !== undefined ? `DN${rightDn}` : rightNps,
-      reason: "Heterogeneous nominal size representations (DN vs NPS) cannot be implicitly converted without explicit normative bridge.",
-      evidenceIds: Object.freeze([]),
-    });
-  }
-
+  // Cas hétérogène DN vs NPS sans conversion implicite
   return Object.freeze({
     dimension: "nominalSize",
-    status: "INSUFFICIENT_DATA",
-    observation: "MISSING_DATA",
+    status: "UNVERIFIED",
+    observation: "DATA_MISMATCH",
     leftValue: leftDn !== undefined ? `DN${leftDn}` : leftNps,
     rightValue: rightDn !== undefined ? `DN${rightDn}` : rightNps,
-    reason: "Missing nominal diameter or nominal size on one or both components.",
+    reason: "Heterogeneous nominal size representations (DN vs NPS) without normative bridge.",
     evidenceIds: Object.freeze([]),
   });
 }
 
 /**
- * Évalue la compatibilité de classe de pression / rating (ARCH-06 §12 / FIX-01 §9).
- * RÈGLE ABSOLUE : Zéro équivalence implicite Class 150 = PN16.
+ * Évalue la compatibilité de classe de pression / rating (ARCH-06 §12 / FIX-01 §9 / FIX-02 §2).
+ * RÈGLE ABSOLUE : Zéro équivalence implicite Class ↔ PN et aucun INCOMPATIBLE fabriqué.
  */
 function evaluatePressureRatingDimension(
   left: PdiCatalogComponent,
@@ -368,21 +399,11 @@ function evaluatePressureRatingDimension(
     });
   }
 
-  if (leftClass === rightClass) {
-    return Object.freeze({
-      dimension: "pressureRating",
-      status: "COMPATIBLE",
-      observation: "DATA_MATCH",
-      leftValue: leftClass,
-      rightValue: rightClass,
-      reason: `Matching pressure class: ${leftClass}.`,
-      evidenceIds: Object.freeze([]),
-    });
-  }
-
+  // Délégation NORM-13 si disponible
   if (options?.normativeCompatibilityEngine) {
     const normRes = options.normativeCompatibilityEngine.evaluate({
-      pressureRating: `${leftClass}_TO_${rightClass}`,
+      componentType: left.componentType,
+      pressureRating: leftClass === rightClass ? leftClass : `${leftClass}_TO_${rightClass}`,
       evidenceIds: options.normativeEvidenceIds,
     });
     if (normRes.status === "COMPATIBLE" || normRes.status === "INCOMPATIBLE") {
@@ -399,20 +420,33 @@ function evaluatePressureRatingDimension(
     }
   }
 
+  if (leftClass === rightClass) {
+    return Object.freeze({
+      dimension: "pressureRating",
+      status: "UNVERIFIED",
+      observation: "DATA_MATCH",
+      leftValue: leftClass,
+      rightValue: rightClass,
+      reason: `Matching pressure class: ${leftClass}. Normative compatibility remains UNVERIFIED without verified normative rule.`,
+      evidenceIds: Object.freeze([]),
+    });
+  }
+
+  // FIX-02 §2 : Un mismatch Class/PN sans décision NORM-13 reste UNVERIFIED (jamais INCOMPATIBLE inventé)
   return Object.freeze({
     dimension: "pressureRating",
-    status: "INCOMPATIBLE",
+    status: "UNVERIFIED",
     observation: "DATA_MISMATCH",
     leftValue: leftClass,
     rightValue: rightClass,
-    reason: `Mismatched pressure classes: '${leftClass}' !== '${rightClass}'. No implicit Class ↔ PN conversion allowed.`,
+    reason: `Mismatched pressure ratings ('${leftClass}' vs '${rightClass}'). Requires normative evaluation by NORM-13.`,
     evidenceIds: Object.freeze([]),
   });
 }
 
 /**
- * Évalue la compatibilité matière (ARCH-06 §13 / FIX-01 §7).
- * RÈGLE ABSOLUE : Une égalité de chaîne = DATA_MATCH, pas une qualification normative.
+ * Évalue la compatibilité matière (ARCH-06 §13 / FIX-01 §7 / FIX-02 §1).
+ * RÈGLE ABSOLUE : Une égalité de chaîne = DATA_MATCH, pas COMPATIBLE.
  */
 function evaluateMaterialDimension(
   left: PdiCatalogComponent,
@@ -438,21 +472,10 @@ function evaluateMaterialDimension(
     });
   }
 
-  if (leftMat === rightMat) {
-    return Object.freeze({
-      dimension: "material",
-      status: "COMPATIBLE",
-      observation: "DATA_MATCH",
-      leftValue: leftMat,
-      rightValue: rightMat,
-      reason: `Matching material grade string: ${leftMat}. Normative qualification remains under normative engine authority.`,
-      evidenceIds: Object.freeze([]),
-    });
-  }
-
   if (options?.normativeCompatibilityEngine) {
     const normRes = options.normativeCompatibilityEngine.evaluate({
-      materialId: `${leftMat}_TO_${rightMat}`,
+      componentType: left.componentType,
+      materialId: leftMat === rightMat ? leftMat : `${leftMat}_TO_${rightMat}`,
       evidenceIds: options.normativeEvidenceIds,
     });
     if (normRes.status === "COMPATIBLE" || normRes.status === "INCOMPATIBLE") {
@@ -469,7 +492,18 @@ function evaluateMaterialDimension(
     }
   }
 
-  // Matériaux distincts sans règle normative enregistrée -> UNVERIFIED
+  if (leftMat === rightMat) {
+    return Object.freeze({
+      dimension: "material",
+      status: "UNVERIFIED",
+      observation: "DATA_MATCH",
+      leftValue: leftMat,
+      rightValue: rightMat,
+      reason: `Matching material grade string: ${leftMat}. Data match observed, normative status remains UNVERIFIED.`,
+      evidenceIds: Object.freeze([]),
+    });
+  }
+
   return Object.freeze({
     dimension: "material",
     status: "UNVERIFIED",
@@ -482,7 +516,8 @@ function evaluateMaterialDimension(
 }
 
 /**
- * Évalue la compatibilité des standards (ARCH-06-FIX-01 §8).
+ * Évalue la compatibilité des standards (ARCH-06-FIX-01 §8 / FIX-02 §3).
+ * RÈGLE FIX-02 : Ni PIPE+FITTING ni égalité de standard ne créent de COMPATIBLE automatique.
  */
 function evaluateStandardDimension(
   left: PdiCatalogComponent,
@@ -499,8 +534,8 @@ function evaluateStandardDimension(
   if (leftStd === undefined && rightStd === undefined) {
     return Object.freeze({
       dimension: "standard",
-      status: "COMPATIBLE",
-      observation: "DATA_MATCH",
+      status: "UNVERIFIED",
+      observation: "MISSING_DATA",
       leftValue: undefined,
       rightValue: undefined,
       reason: "Standard unconstrained on both components.",
@@ -520,52 +555,10 @@ function evaluateStandardDimension(
     });
   }
 
-  if (leftStd === rightStd) {
-    return Object.freeze({
-      dimension: "standard",
-      status: "COMPATIBLE",
-      observation: "DATA_MATCH",
-      leftValue: leftStd,
-      rightValue: rightStd,
-      reason: `Matching standard string: ${leftStd}. Normative qualification remains under normative engine authority.`,
-      evidenceIds: Object.freeze([]),
-    });
-  }
-
-  // Si les deux composants sont de familles différentes (ex: PIPE ASME B36.10 et ELBOW ASME B16.9)
-  if (left.componentType !== right.componentType) {
-    if (options?.normativeCompatibilityEngine) {
-      const normRes = options.normativeCompatibilityEngine.evaluate({
-        standardId: `${leftStd}_TO_${rightStd}`,
-        evidenceIds: options.normativeEvidenceIds,
-      });
-      if (normRes.status === "COMPATIBLE" || normRes.status === "INCOMPATIBLE") {
-        return Object.freeze({
-          dimension: "standard",
-          status: normRes.status,
-          observation: "NORMATIVE_DECISION",
-          leftValue: leftStd,
-          rightValue: rightStd,
-          matchedRuleId: normRes.ruleId,
-          reason: normRes.message || `Standard compatibility evaluated by NORM-13 (${normRes.status}).`,
-          evidenceIds: normRes.evidenceIds ? Object.freeze([...normRes.evidenceIds]) : Object.freeze([]),
-        });
-      }
-    }
-    return Object.freeze({
-      dimension: "standard",
-      status: "COMPATIBLE",
-      observation: "DATA_MATCH",
-      leftValue: leftStd,
-      rightValue: rightStd,
-      reason: `Standards belong to complementary component families (${left.componentType} and ${right.componentType}).`,
-      evidenceIds: Object.freeze([]),
-    });
-  }
-
   if (options?.normativeCompatibilityEngine) {
     const normRes = options.normativeCompatibilityEngine.evaluate({
-      standardId: `${leftStd}_TO_${rightStd}`,
+      componentType: left.componentType,
+      standardId: leftStd === rightStd ? leftStd : `${leftStd}_TO_${rightStd}`,
       evidenceIds: options.normativeEvidenceIds,
     });
     if (normRes.status === "COMPATIBLE" || normRes.status === "INCOMPATIBLE") {
@@ -582,6 +575,18 @@ function evaluateStandardDimension(
     }
   }
 
+  if (leftStd === rightStd) {
+    return Object.freeze({
+      dimension: "standard",
+      status: "UNVERIFIED",
+      observation: "DATA_MATCH",
+      leftValue: leftStd,
+      rightValue: rightStd,
+      reason: `Matching standard string: ${leftStd}. Normative qualification remains UNVERIFIED without verified normative rule.`,
+      evidenceIds: Object.freeze([]),
+    });
+  }
+
   return Object.freeze({
     dimension: "standard",
     status: "UNVERIFIED",
@@ -594,8 +599,7 @@ function evaluateStandardDimension(
 }
 
 /**
- * Évalue la compatibilité de face pour raccordements à brides (ARCH-06 §9 / FIX-01 §6).
- * RÈGLE FIX-01 : Ne pas affirmer INCOMPATIBLE simplement sur dissemblance textuelle sans autorité normative.
+ * Évalue la compatibilité de face pour raccordements à brides (ARCH-06 §9 / FIX-01 §6 / FIX-02).
  */
 function evaluateFaceTypeDimension(
   left: PdiCatalogComponent,
@@ -608,7 +612,7 @@ function evaluateFaceTypeDimension(
   if (!isLeftFlanged && !isRightFlanged) {
     return Object.freeze({
       dimension: "faceType",
-      status: "COMPATIBLE",
+      status: "UNVERIFIED",
       observation: "DATA_MATCH",
       leftValue: undefined,
       rightValue: undefined,
@@ -636,23 +640,10 @@ function evaluateFaceTypeDimension(
     });
   }
 
-  if (leftFace === rightFace) {
-    return Object.freeze({
-      dimension: "faceType",
-      status: "COMPATIBLE",
-      observation: "DATA_MATCH",
-      leftValue: leftFace,
-      rightValue: rightFace,
-      reason: `Matching flange facing: ${leftFace}.`,
-      evidenceIds: Object.freeze([]),
-    });
-  }
-
-  // ARCH-06-FIX-01 : Délégation à NORM-13 si disponible, sinon UNVERIFIED
   if (options?.normativeCompatibilityEngine) {
     const normRes = options.normativeCompatibilityEngine.evaluate({
       componentType: "FLANGE",
-      connectionType: `${leftFace}_TO_${rightFace}`,
+      connectionType: leftFace === rightFace ? leftFace : `${leftFace}_TO_${rightFace}`,
       evidenceIds: options.normativeEvidenceIds,
     });
     if (normRes.status === "COMPATIBLE" || normRes.status === "INCOMPATIBLE") {
@@ -669,6 +660,18 @@ function evaluateFaceTypeDimension(
     }
   }
 
+  if (leftFace === rightFace) {
+    return Object.freeze({
+      dimension: "faceType",
+      status: "UNVERIFIED",
+      observation: "DATA_MATCH",
+      leftValue: leftFace,
+      rightValue: rightFace,
+      reason: `Matching flange facing: ${leftFace}. Normative status remains UNVERIFIED without verified normative rule.`,
+      evidenceIds: Object.freeze([]),
+    });
+  }
+
   return Object.freeze({
     dimension: "faceType",
     status: "UNVERIFIED",
@@ -681,7 +684,7 @@ function evaluateFaceTypeDimension(
 }
 
 /**
- * Évalue la conformité des deux composants à une Piping Specification (ARCH-06 §15 / FIX-01 §11).
+ * Évalue la conformité des deux composants à une Piping Specification (ARCH-06 §15 / FIX-01 §11 / FIX-02).
  */
 function evaluatePipingSpecDimension(
   left: PdiCatalogComponent,
@@ -691,7 +694,7 @@ function evaluatePipingSpecDimension(
   if (!spec || !spec.pipingSpecId) {
     return Object.freeze({
       dimension: "pipingSpecification",
-      status: "COMPATIBLE",
+      status: "UNVERIFIED",
       observation: "DATA_MATCH",
       leftValue: undefined,
       rightValue: undefined,
@@ -734,17 +737,17 @@ function evaluatePipingSpecDimension(
 
   return Object.freeze({
     dimension: "pipingSpecification",
-    status: "COMPATIBLE",
+    status: "UNVERIFIED",
     observation: "DATA_MATCH",
     leftValue: spec.pipingSpecId,
     rightValue: spec.pipingSpecId,
-    reason: `Both components conform to Piping Specification ${spec.pipingSpecId}.`,
+    reason: `Both components conform to selection filters of Piping Specification ${spec.pipingSpecId}. Normative qualification remains under normative engine authority.`,
     evidenceIds: spec.evidenceIds ? Object.freeze([...spec.evidenceIds]) : Object.freeze([]),
   });
 }
 
 /**
- * Évalue la dimension de traçabilité des preuves normatives (ARCH-06 §14).
+ * Évalue la dimension de traçabilité des preuves normatives (ARCH-06 §14 / FIX-02).
  */
 function evaluateNormativeEvidenceDimension(
   left: PdiCatalogComponent,
@@ -767,7 +770,7 @@ function evaluateNormativeEvidenceDimension(
 
   return Object.freeze({
     dimension: "normativeEvidence",
-    status: "COMPATIBLE",
+    status: "UNVERIFIED",
     observation: "DATA_MATCH",
     leftValue: Array.isArray(left.evidenceIds) ? left.evidenceIds.length : 0,
     rightValue: Array.isArray(right.evidenceIds) ? right.evidenceIds.length : 0,
@@ -777,7 +780,7 @@ function evaluateNormativeEvidenceDimension(
 }
 
 /**
- * Moteur principal de vérification de compatibilité structurée entre deux composants catalogue (ARCH-06 §9 & §10 / FIX-01).
+ * Moteur principal de vérification de compatibilité structurée entre deux composants catalogue (ARCH-06 §9 & §10 / FIX-01 / FIX-02).
  */
 export function checkComponentCompatibility(
   left: PdiCatalogComponent,
@@ -807,9 +810,23 @@ export function checkComponentCompatibility(
     });
   }
 
+  // Si NORM-13 est injecté, on évalue le contexte global
+  let globalNormativeResult: ReturnType<INormativeCompatibilityEngine["evaluate"]> | undefined;
+  if (options?.normativeCompatibilityEngine) {
+    globalNormativeResult = options.normativeCompatibilityEngine.evaluate({
+      componentType: left.componentType,
+      connectionType: left.connectionType,
+      nominalSize: left.nominalSize || (left.nominalDiameter !== undefined ? `DN${left.nominalDiameter}` : undefined),
+      pressureRating: left.pressureClass,
+      materialId: left.material,
+      standardId: left.standard,
+      evidenceIds: options.normativeEvidenceIds,
+    });
+  }
+
   const dimensions: PdiDimensionCompatibilityResult[] = [
     evaluateConnectionDimension(left, right, options),
-    evaluateNominalSizeDimension(left, right),
+    evaluateNominalSizeDimension(left, right, options),
     evaluatePressureRatingDimension(left, right, options),
     evaluateMaterialDimension(left, right, options),
     evaluateStandardDimension(left, right, options),
@@ -818,25 +835,26 @@ export function checkComponentCompatibility(
     evaluateNormativeEvidenceDimension(left, right, options?.normativeEvidenceIds),
   ];
 
-  // Détermination de l'état global avec hiérarchie stricte :
-  // INVALID > INCOMPATIBLE > INSUFFICIENT_DATA > UNVERIFIED > COMPATIBLE
-  let overallStatus: PdiCompatibilityStatus = "COMPATIBLE";
+  // Détermination de l'état global avec hiérarchie stricte FIX-02 :
+  // INVALID > INCOMPATIBLE > INSUFFICIENT_DATA > UNVERIFIED > COMPATIBLE (uniquement si autorité NORM-13 vérifiée)
+  let overallStatus: PdiCompatibilityStatus = "UNVERIFIED";
 
   const hasInvalid = dimensions.some((d) => d.status === "INVALID");
   const hasIncompatible = dimensions.some((d) => d.status === "INCOMPATIBLE");
   const hasInsufficient = dimensions.some((d) => d.status === "INSUFFICIENT_DATA");
-  const hasUnverified = dimensions.some((d) => d.status === "UNVERIFIED");
 
   if (hasInvalid) {
     overallStatus = "INVALID";
   } else if (hasIncompatible) {
     overallStatus = "INCOMPATIBLE";
+  } else if (globalNormativeResult && (globalNormativeResult.status === "COMPATIBLE" || globalNormativeResult.status === "INCOMPATIBLE")) {
+    overallStatus = globalNormativeResult.status;
+  } else if (dimensions.some((d) => d.observation === "NORMATIVE_DECISION" && d.status === "COMPATIBLE")) {
+    overallStatus = "COMPATIBLE";
   } else if (hasInsufficient) {
     overallStatus = "INSUFFICIENT_DATA";
-  } else if (hasUnverified) {
-    overallStatus = "UNVERIFIED";
   } else {
-    overallStatus = "COMPATIBLE";
+    overallStatus = "UNVERIFIED";
   }
 
   const reasons: string[] = [];
@@ -849,8 +867,12 @@ export function checkComponentCompatibility(
     }
   }
 
+  if (globalNormativeResult?.evidenceIds) {
+    globalNormativeResult.evidenceIds.forEach((eid) => allEvidenceIds.add(eid));
+  }
+
   const message = overallStatus === "COMPATIBLE"
-    ? `Components '${left.id}' and '${right.id}' are fully compatible across evaluated dimensions.`
+    ? `Components '${left.id}' and '${right.id}' are verified compatible by normative authority.`
     : `Compatibility check between '${left.id}' and '${right.id}' evaluated to ${overallStatus}.`;
 
   return Object.freeze({
