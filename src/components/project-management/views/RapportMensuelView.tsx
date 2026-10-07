@@ -68,9 +68,9 @@ export function RapportMensuelView({
       const htmlBody = `
         <div style="font-family: Arial, sans-serif; padding: 20px;">
           <div style="border-bottom: 2px solid #0f172a; padding-bottom: 10px; margin-bottom: 20px;">
-            <p style="font-weight: bold; font-size: 14pt; margin: 0; text-transform: uppercase; color: #1e3a8a;">PD&I — PIPELINE DESIGN & ISOMETRICS</p>
-            <p style="font-weight: bold; font-size: 11pt; margin: 5px 0 0 0; color: #f97316;">DIRECTION RÉGIONALE DU TRANSPORT GAZ</p>
-            <p style="font-size: 9pt; color: #64748b; margin: 2px 0 0 0;">Division Engineering et Travaux Neufs</p>
+            <p style="font-weight: bold; font-size: 14pt; margin: 0; text-transform: uppercase; color: #1e3a8a;">PD&amp;I — PIPELINE DESIGN &amp; ISOMETRICS</p>
+            <p style="font-weight: bold; font-size: 11pt; margin: 5px 0 0 0; color: #f97316;">DIRECTION TECHNIQUE &amp; PROJETS EPC</p>
+            <p style="font-size: 9pt; color: #64748b; margin: 2px 0 0 0;">Division Ingénierie &amp; Réalisation Industrielle</p>
           </div>
           
           <h1 style="text-align: center; color: #1e3a8a; font-size: 20pt; margin-top: 30px; text-transform: uppercase;">Rapport d'Activité Mensuel des Projets Gazoducs</h1>

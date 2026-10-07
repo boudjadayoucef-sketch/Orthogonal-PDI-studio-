@@ -649,7 +649,7 @@ export function adaptLegacyAdminProjectToProjectContext(
   const projectId = isValidStableId(legacyProject.id)
     ? legacyProject.id.trim()
     : generateScopedId("proj_legacy");
-  const projectName = legacyProject.name || "Projet Transport Gaz";
+  const projectName = legacyProject.name || "Projet Canalisation Industrielle";
 
   return createProjectContext({
     projectId,

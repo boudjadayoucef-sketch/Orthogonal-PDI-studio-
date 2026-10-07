@@ -201,8 +201,8 @@ export function useExportHandlers(options: UseExportHandlersOptions = {}) {
   }) => {
     let html = `
       <div style="text-align: center; margin-bottom: 25px; border-bottom: 3px double #1e3a8a; padding-bottom: 15px;">
-        <h1 style="color: #1e3a8a; font-size: 22pt; margin: 0; font-weight: bold; text-transform: uppercase; border: none; padding: 0;">PD&I - TRANSPORT GAZ</h1>
-        <h2 style="color: #475569; font-size: 14pt; margin: 5px 0 0 0; font-weight: bold; text-transform: uppercase; border: none; padding: 0;">PLAN DE CHARGE D'INGÉNIERIE & TRAVAUX</h2>
+        <h1 style="color: #1e3a8a; font-size: 22pt; margin: 0; font-weight: bold; text-transform: uppercase; border: none; padding: 0;">PD&amp;I — PIPING &amp; INFRASTRUCTURE ENGINEERING</h1>
+        <h2 style="color: #475569; font-size: 14pt; margin: 5px 0 0 0; font-weight: bold; text-transform: uppercase; border: none; padding: 0;">PLAN DE CHARGE D'INGÉNIERIE &amp; TRAVAUX</h2>
         <p style="font-size: 10pt; color: #64748b; margin: 5px 0 0 0;">Généré le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}</p>
       </div>
 
@@ -280,7 +280,7 @@ export function useExportHandlers(options: UseExportHandlersOptions = {}) {
         </tbody>
       </table>
       <div style="margin-top: 30px; text-align: center; font-size: 8pt; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 10px;">
-        Document confidentiel • PD&I Division Engineering et Travaux Neufs (DETN)
+        Document d'Ingénierie &amp; Suivi de Réalisation • PD&amp;I
       </div>
     `;
 
@@ -786,9 +786,9 @@ export function useExportHandlers(options: UseExportHandlersOptions = {}) {
       <!-- PAGE 1: PAGE DE GARDE -->
       <div style="height: 800px; border: 4px double #1e3a8a; padding: 40px; margin-bottom: 40px;">
         <div style="text-align: center;">
-          <h3 style="color: #1e3a8a; font-size: 14pt; font-weight: bold; margin: 0; text-transform: uppercase;">PD&I - TRANSPORT GAZ</h3>
-          <p style="font-size: 10pt; color: #475569; margin: 5px 0 0 0; font-weight: bold;">DIVISION ENGINEERING ET TRAVAUX NEUFS (DETN)</p>
-          <p style="font-size: 9pt; color: #64748b; margin: 2px 0 0 0;">Département de Suivi d'Ingénierie & de Réalisation</p>
+          <h3 style="color: #1e3a8a; font-size: 14pt; font-weight: bold; margin: 0; text-transform: uppercase;">PD&amp;I — PIPING &amp; INFRASTRUCTURE ENGINEERING</h3>
+          <p style="font-size: 10pt; color: #475569; margin: 5px 0 0 0; font-weight: bold;">DIVISION INGÉNIERIE &amp; PROJETS EPC</p>
+          <p style="font-size: 9pt; color: #64748b; margin: 2px 0 0 0;">Département de Suivi d'Ingénierie &amp; de Réalisation</p>
         </div>
         
         <div style="text-align: center; margin-top: 150px; margin-bottom: 150px;">
@@ -1368,7 +1368,7 @@ export function useExportHandlers(options: UseExportHandlersOptions = {}) {
 
     html += `
         <div style="margin-top: 30px; text-align: center; border-top: 1px solid #cbd5e1; padding-top: 10px;">
-          <p style="font-size: 8pt; color: #94a3b8; margin: 0;">Rapport d'avancement généré automatiquement - Direction de Transport de Gaz (TG)</p>
+          <p style="font-size: 8pt; color: #94a3b8; margin: 0;">Rapport d'avancement généré automatiquement • Direction Technique &amp; Projets PD&amp;I</p>
         </div>
       </div>
     `;

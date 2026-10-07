@@ -2601,7 +2601,7 @@ function IsometrieModule(props: { projectId?: string }) {
   } | null>(null);
 
   const [projectName,setProjectName]=useState("Schéma isométrique tuyauterie gaz");
-  const [wilaya,setWilaya]=useState("Alger / GRTG Region Centre");
+  const [wilaya,setWilaya]=useState("Site Central / Région Industrielle");
   const [pressDesign,setPressDesign]=useState(40);
   const [unitSystem, setUnitSystem] = useState<UnitSystem>("metric");
   const [showGrid,setShowGrid]=useState(true);

@@ -333,8 +333,8 @@ export function generateKMLString(project: Project): string {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
   <Document>
-    <name>${project.name.replace(/[<>&"]/g, "")} - Tracé GRTG</name>
-    <description>Tracé technique officiel généré pour le gazoduc ${project.name.replace(/[<>&"]/g, "")} - Wilaya: ${project.identity.wilaya.replace(/[<>&"]/g, "")}</description>
+    <name>${project.name.replace(/[<>&"]/g, "")} - Tracé Conduite</name>
+    <description>Tracé technique officiel généré pour l'ouvrage ${project.name.replace(/[<>&"]/g, "")} - Localisation: ${project.identity.wilaya.replace(/[<>&"]/g, "")}</description>
     ${placemarks}
   </Document>
 </kml>`;
@@ -507,7 +507,7 @@ export const getPhaseBadgeColor = (phase?: string): string => {
 export const generatePlanDeChargeHtml = (filteredProjects: Project[], filters: any): string => {
   let html = `
     <div style="font-family: Arial, sans-serif; padding: 20px;">
-      <h1 style="color: #1e3a8a;">PD&I - PLAN DE CHARGE TRANSPORT GAZ</h1>
+      <h1 style="color: #1e3a8a;">PD&I - PLAN DE CHARGE D'INGÉNIERIE & TRAVAUX</h1>
       <p>Généré le ${new Date().toLocaleDateString('fr-FR')}</p>
       <table border="1" cellpadding="6" style="border-collapse: collapse; width: 100%;">
         <thead>

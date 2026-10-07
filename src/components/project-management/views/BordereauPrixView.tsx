@@ -331,9 +331,9 @@ export function BordereauPrixView({ projects }: BordereauPrixViewProps) {
         {/* Project Selector Header */}
         <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 text-left">
           <div>
-            <span className="text-[10px] font-black uppercase text-blue-600 tracking-wider font-mono">Module Transport Gaz</span>
-            <h3 className="font-extrabold text-lg text-slate-800">Édition & Chiffrage du Bordereau des Prix (BPU)</h3>
-            <p className="text-xs text-slate-500 font-medium">Sélectionnez un ouvrage gaz pour générer et éditer son BPU officiel.</p>
+            <span className="text-[10px] font-black uppercase text-blue-600 tracking-wider font-mono">Module Gestion de Projets &amp; Chiffrage</span>
+            <h3 className="font-extrabold text-lg text-slate-800">Édition & Chiffrage du Bordereau des Prix (BPU / BoQ)</h3>
+            <p className="text-xs text-slate-500 font-medium">Sélectionnez un projet pour générer et éditer son estimation et son bordereau de prix.</p>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-xs font-bold text-slate-600 shrink-0">Ouvrage :</span>

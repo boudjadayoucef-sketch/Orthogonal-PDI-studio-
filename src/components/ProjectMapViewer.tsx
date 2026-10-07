@@ -184,8 +184,8 @@ export function generateKMLString(project: Project): string {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
   <Document>
-    <name>${project.name.replace(/[<>&"]/g, "")} - Tracé GRTG</name>
-    <description>Tracé technique officiel généré pour le gazoduc ${project.name.replace(/[<>&"]/g, "")} - Wilaya: ${project.identity.wilaya.replace(/[<>&"]/g, "")}</description>
+    <name>${project.name.replace(/[<>&"]/g, "")} - Tracé Conduite</name>
+    <description>Tracé technique officiel généré pour l'ouvrage ${project.name.replace(/[<>&"]/g, "")} - Localisation: ${project.identity.wilaya.replace(/[<>&"]/g, "")}</description>
     ${placemarks}
   </Document>
 </kml>`;

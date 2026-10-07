@@ -662,7 +662,7 @@ export default function Calculators() {
   const [cartoucheInfo, setCartoucheInfo] = useState({
     editorName: "Boudjada Youcef",
     verifierName: "Chef de Service Génie Civil",
-    approverName: "Directeur Transport Gaz",
+    approverName: "Direction Technique & Projets",
     postName: "Poste de Détente & Mesurage Gaz",
     planNumber: "PDI-ENG-GC-2026-001",
     revisionIndex: "Rev 01 (Bon Pour Exécution)",
@@ -1219,7 +1219,7 @@ export default function Calculators() {
                     <tr>
                       <td colSpan="2">
                         <span class="label">Approuvé par (PD&I) :</span><br/>
-                        <span class="val" style="color: #16a34a;">${cartoucheInfo.approverName || "DIRECTION TRANSPORT DU GAZ"}</span>
+                        <span class="val" style="color: #16a34a;">${cartoucheInfo.approverName || "DIRECTION TECHNIQUE & PROJETS"}</span>
                       </td>
                     </tr>
                   </table>
@@ -1409,7 +1409,7 @@ export default function Calculators() {
               <tr>
                 <td><span class="label">Édité par :</span><br/><span class="value">${cartoucheInfo.editorName || "PD&I"}</span></td>
                 <td><span class="label">Vérifié par :</span><br/><span class="value">${cartoucheInfo.verifierName || "INGÉNIEUR GC"}</span></td>
-                <td colspan="2"><span class="label">Approuvé par (PD&I) :</span><br/><span class="value">${cartoucheInfo.approverName || "DIRECTION TRANSPORT GAZ"}</span></td>
+                <td colspan="2"><span class="label">Approuvé par (PD&I) :</span><br/><span class="value">${cartoucheInfo.approverName || "DIRECTION TECHNIQUE & PROJETS"}</span></td>
               </tr>
             </table>
           </div>
@@ -1520,7 +1520,7 @@ export default function Calculators() {
               <tr>
                 <td><span class="label">Édité par :</span><br/><span class="value">${cartoucheInfo.editorName || "PD&I"}</span></td>
                 <td><span class="label">Vérifié par :</span><br/><span class="value">${cartoucheInfo.verifierName || "INGÉNIEUR PIPE"}</span></td>
-                <td colspan="2"><span class="label">Approuvé par (PD&I) :</span><br/><span class="value">${cartoucheInfo.approverName || "DIRECTION TRANSPORT GAZ"}</span></td>
+                <td colspan="2"><span class="label">Approuvé par (PD&I) :</span><br/><span class="value">${cartoucheInfo.approverName || "DIRECTION TECHNIQUE & PROJETS"}</span></td>
               </tr>
             </table>
           </div>
@@ -1632,7 +1632,7 @@ export default function Calculators() {
               <tr>
                 <td><span class="label">Édité par :</span><br/><span class="value">${cartoucheInfo.editorName || "PD&I"}</span></td>
                 <td><span class="label">Vérifié par :</span><br/><span class="value">${cartoucheInfo.verifierName || "INGÉNIEUR HYDRAULIQUE"}</span></td>
-                <td colspan="2"><span class="label">Approuvé par (PD&I) :</span><br/><span class="value">${cartoucheInfo.approverName || "DIRECTION TRANSPORT GAZ"}</span></td>
+                <td colspan="2"><span class="label">Approuvé par (PD&I) :</span><br/><span class="value">${cartoucheInfo.approverName || "DIRECTION TECHNIQUE & PROJETS"}</span></td>
               </tr>
             </table>
           </div>
@@ -4604,7 +4604,7 @@ export default function Calculators() {
                 </div>
               </div>
               <span className="text-[10px] font-bold text-orange-600 bg-orange-50 border border-orange-200 px-2.5 py-1 rounded-full font-mono">
-                Conforme Fascicule 5 (PD&I Transport Gaz)
+                Conforme Spécification Technique PD&I
               </span>
             </div>
 
@@ -5637,7 +5637,7 @@ export default function Calculators() {
 
                         {/* Title block */}
                         <rect x="40" y="240" width="720" height="50" fill="#1e293b" rx="4" stroke="#334155" />
-                        <text x="50" y="260" fill="#e2e8f0" fontSize="10" fontWeight="bold">PROJET : TRANSPORT GAZ HAUTE PRESSION - PD&I</text>
+                        <text x="50" y="260" fill="#e2e8f0" fontSize="10" fontWeight="bold">PROJET : CANALISATION HAUTE PRESSION - PD&I</text>
                         <text x="50" y="278" fill="#94a3b8" fontSize="9">Norme d'Inspection: API 5L (Éd. 46) / PSL2 | N° Coulée: {heatNumber} | Grade: L{activeGradeLimit.ysMin} ({pipeGrade})</text>
                       </svg>
                     </div>

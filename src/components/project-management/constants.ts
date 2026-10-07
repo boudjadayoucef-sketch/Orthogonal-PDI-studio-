@@ -424,7 +424,7 @@ export const SAMPLE_PROJECTS: Omit<Project, "id">[] = [
       phase: "Travaux",
       cadreInscription: "Programme d'Urgence National (PUN)",
       planificationComment: "Travaux en cours de terrassement et cintrage sur l'essentiel du tracé. Progression conforme au planning initial.",
-      structureChargee: "Division Engineering Transport Gaz",
+      structureChargee: "Division Ingénierie & Projets EPC",
       caracteristiques: {
         diametre: "20\" (DN 500)",
         longueur: "42",

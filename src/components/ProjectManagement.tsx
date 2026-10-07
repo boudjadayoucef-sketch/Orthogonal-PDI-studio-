@@ -57,7 +57,7 @@ export default function ProjectManagement() {
         <div className="xl:w-64 shrink-0 flex flex-col gap-3">
           <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 space-y-4">
             <div className="border-b border-slate-100 pb-3 text-left">
-              <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Module Transport Gaz</h4>
+              <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Module Projets &amp; Infrastructures</h4>
             </div>
 
             <div className="flex flex-col gap-1.5">

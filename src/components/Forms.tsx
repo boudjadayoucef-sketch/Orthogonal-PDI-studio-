@@ -208,7 +208,7 @@ export default function Forms() {
     commentaires: "La collecte d'information valide le raccordement télécom du poste PC 14. Les distances de sécurité avec le gazoduc principal de 28\" adjacent sont respectées.",
 
     // Dynamically editable content and signatories
-    signLeftTitle: "P/ Maitre de l'ouvrage\nPD&I- Transport du Gaz",
+    signLeftTitle: "P/ Maître de l'Ouvrage\nDirection de Projet PD&I",
     signRightTitle: "P/ Le Prestataire",
     signRightSub: "Signature & Cachet"
   });
@@ -1458,7 +1458,7 @@ export default function Forms() {
                       onChange={(e) => setTelecom({ ...telecom, signLeftTitle: e.target.value })}
                       className="w-full text-center bg-transparent border-b border-dashed border-slate-300 focus:border-blue-500 focus:outline-none font-bold pb-4 mb-1 resize-none h-12 print:border-none"
                     />
-                    {renderDottedField("Région Transport Gaz", telecom.siteNom, val => setTelecom({ ...telecom, siteNom: val }))}
+                    {renderDottedField("Région / Site d'Implantation", telecom.siteNom, val => setTelecom({ ...telecom, siteNom: val }))}
                   </div>
                   <div>
                     <textarea
@@ -1485,7 +1485,7 @@ export default function Forms() {
 
           {/* Footer of the sheet */}
           <div className="border-t border-slate-200 pt-4 text-[9px] text-slate-400 text-center flex justify-between uppercase font-bold mt-12 print:mt-6 select-none">
-            <span>PD&I Transport Gaz - Cahier des charges réalisation des ouvrages</span>
+            <span>PD&I - Cahier des charges et spécifications d'exécution des ouvrages</span>
             <span>Reproduction interdite</span>
           </div>
 

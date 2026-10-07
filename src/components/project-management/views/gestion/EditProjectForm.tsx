@@ -193,7 +193,7 @@ export function EditProjectForm({
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
                   <div className="space-y-1">
-                    <label className="font-bold text-slate-600">Direction de transport gaz</label>
+                    <label className="font-bold text-slate-600">Direction / Région de Projet</label>
                     <select
                       value={editProjectData.identity.region}
                       onChange={(e) => setEditProjectData({
@@ -202,7 +202,7 @@ export function EditProjectForm({
                       })}
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 outline-none font-bold text-slate-800 cursor-pointer focus:bg-white focus:border-blue-500 transition-all"
                     >
-                      <option value="">Sélectionner une direction de transport gaz</option>
+                      <option value="">Sélectionner une direction ou région</option>
                       {editProjectData.identity.region && !REGIONS_ALGERIE.includes(editProjectData.identity.region) && (
                         <option value={editProjectData.identity.region}>{editProjectData.identity.region}</option>
                       )}

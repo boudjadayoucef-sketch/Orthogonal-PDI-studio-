@@ -82,20 +82,20 @@ interface TravauxFormsProps {
 export default function TravauxForms({ formType }: TravauxFormsProps) {
   const currentTemplate = TRAVAUX_TEMPLATES.find(t => t.id === formType);
 
-  // Big comprehensive realistic Algerian Gas Engineering Projects state
+  // Big comprehensive realistic Gas Engineering Projects state
   const [state, setState] = useState({
-    direction: "DIRECTION REGIONALE TRANSPORT GAZ SIDI AISSA",
-    district: "DISTRICT GAZ M'SILA",
-    ouvrage: "Gazoduc 12\" Alimentation Zone Industrielle Sidi Aïssa",
-    ouvrageDetails: "Ø 12\" L - 14.5 Km Wilaya / M'Sila",
-    prestataire: "COSIDER Canalisation",
-    bureauControle: "VÉRITAL SPA (Organisme Agréé)",
-    contratNo: "N° 248/CEEG-STG/2025",
+    direction: "Direction Régionale de Projet — Zone Centre",
+    district: "District d'Ingénierie & Travaux",
+    ouvrage: "Canalisation 12\" Alimentation Zone Industrielle",
+    ouvrageDetails: "Ø 12\" L - 14.5 Km Site Industriel",
+    prestataire: "Entreprise de Réalisation & Montage",
+    bureauControle: "Organisme Agréé de Contrôle & Inspection",
+    contratNo: "N° 248/EPC-PDI/2025",
     apNo: "AP N° 12-405-2025",
     delaiExecution: "12 Mois",
     dateODS: "10/11/2025",
     dateStart: "15/11/2025",
-    dateLieu: "Sidi Aïssa, le 13/07/2026",
+    dateLieu: "Site de Projet, le 13/07/2026",
     dateJour: "13/07/2026",
     moyensHumains: "01 Chef de projet, 02 Ingénieurs QA/QC, 04 Soudeurs qualifiés API 5L, 06 Terrassiers",
     moyensMateriels: "01 Grue 25T, 02 Postes à souder Lincoln, 01 Excavatrice CAT 320, 01 Camion plateau",
@@ -252,7 +252,7 @@ export default function TravauxForms({ formType }: TravauxFormsProps) {
     odsPrestataireText: "Notification est faite à Monsieur de commencer les prestations relatives au Marché/Commande/Lettre de commande N°.\n\nLe présent ordre de service met en application les clauses du présent Marché/Commande/Lettre de commande.\n\nLe présent ordre de service sera notifié au prestataire demeurant en Algérie.",
     odsArretText: "Notification est faite à Monsieur, d’arrêter temporairement les travaux relatifs au Marché/Commande/Lettre de commande N° , à partir du , pour des raisons de force majeure ou de libération d'emprises.\n\nLe présent ordre d’arrêt de service sera notifié à l'entrepreneur.",
     odsRepriseText: "Notification est faite à Monsieur, de reprendre les travaux relatifs au contrat suspendu par l’ordre d’arrêt de service N° .\n\nLe présent ordre de reprise de service sera notifié au prestataire.",
-    pvDemarrageIntro: "Nous soussignés, représentants de PD&I Transport du Gaz et du prestataire, certifions que toutes les conditions d'ouverture de chantier sont réunies :",
+    pvDemarrageIntro: "Nous soussignés, représentants de PD&I et du prestataire, certifions que toutes les conditions d'ouverture de chantier sont réunies :",
     certifConformiteLigneText: "Nous soussignés, réalisateur représenté par son responsable habilité, certifions avoir réalisé les travaux de pipeline de transport :\n- D'ouverture de tranchée\n- De soudage, radiographie et enrobage des tubes aciers\n- De mise en fouille et de remblais de la conduite.\n\nRelatif à la ligne, d'une longueur de ml et de Ø \", du joint au joint , selon les spécifications techniques de PD&I dans les règles de l'art.",
     certifConformitePosteText: "Nous soussignés, réalisateur , certifions avoir réalisé les travaux du Poste :\n- De Préfabrication des manifolds et collecteurs\n- De Montage des lignes de détente et sécurité\n- De Radiographie 100% des soudures à l'arc.\n\nLe projet est déclaré entièrement conforme au cahier des charges de PD&I.",
     certifConstructionLigneText: "Nous soussignés, réalisateur , certifions que les travaux de la ligne de longueur ml, diamètre \", du PK au PK ont été construits conformément aux spécifications techniques.\n\nL'ouvrage est déclaré apte à subir les épreuves hydrostatiques de résistance et d'étanchéité sans réserves.",
