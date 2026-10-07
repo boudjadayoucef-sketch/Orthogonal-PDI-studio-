@@ -239,15 +239,28 @@ export function runArch06ComponentSelectionCompatibilityTests(): Arch06TestResul
     assert(resUnverified.dimensions.find((d) => d.dimension === "pressureRating")?.observation === "DATA_MATCH", "Rating DATA_MATCH");
     assert(resUnverified.dimensions.find((d) => d.dimension === "material")?.observation === "DATA_MATCH", "Material DATA_MATCH");
 
-    // 2. Avec autorité normative NORM-13 : devient COMPATIBLE (NORMATIVE_DECISION)
+    // 2. Avec autorité normative NORM-13 : devient COMPATIBLE uniquement avec matchedRule bilatérale explicite (FIX-04)
     const mockNorm13 = {
-      evaluate(_ctx: any) {
-        return {
-          status: "COMPATIBLE" as const,
-          ruleId: "NORM13_RULE_MATCHING_PARTS",
-          message: "Validated by NORM-13",
-          evidenceIds: ["EVID_NORM13_01"],
-        };
+      evaluate(ctx: any) {
+        if (ctx.componentType === "PIPE_TO_ELBOW" && ctx.connectionType === "butt_weld_TO_butt_weld") {
+          const rule = {
+            ruleId: "NORM13_RULE_MATCHING_PARTS",
+            description: "Bilateral PIPE to ELBOW butt_weld rule",
+            componentType: "PIPE_TO_ELBOW",
+            connectionType: "butt_weld_TO_butt_weld",
+            status: "COMPATIBLE" as const,
+            evidenceIds: ["EVID_NORM13_01"],
+          };
+          return {
+            status: "COMPATIBLE" as const,
+            ruleId: rule.ruleId,
+            matchedRule: rule,
+            matchedRuleIds: [rule.ruleId],
+            message: "Validated by NORM-13",
+            evidenceIds: ["EVID_NORM13_01"],
+          };
+        }
+        return { status: "UNVERIFIED" as const };
       },
     };
     const resNorm = checkComponentCompatibility(pipe, elbow, { normativeCompatibilityEngine: mockNorm13 });
@@ -285,14 +298,26 @@ export function runArch06ComponentSelectionCompatibilityTests(): Arch06TestResul
     assert(dim?.observation === "DATA_MISMATCH", "Dimension nominalSize DATA_MISMATCH");
     assert(dim?.status === "UNVERIFIED", "Dimension nominalSize UNVERIFIED");
 
-    // Avec moteur NORM-13 qui qualifie le mismatch en INCOMPATIBLE
+    // Avec moteur NORM-13 qui qualifie explicitement le mismatch bilatéral en INCOMPATIBLE (FIX-04)
     const mockNorm13Incompat = {
-      evaluate(_ctx: any) {
-        return {
-          status: "INCOMPATIBLE" as const,
-          ruleId: "NORM13_SIZE_MISMATCH",
-          message: "Size mismatch",
-        };
+      evaluate(ctx: any) {
+        if (ctx.componentType === "PIPE_TO_PIPE" && ctx.nominalSize === "DN100_TO_DN150") {
+          const rule = {
+            ruleId: "NORM13_SIZE_MISMATCH",
+            description: "Bilateral DN100 to DN150 mismatch rule",
+            componentType: "PIPE_TO_PIPE",
+            nominalSize: "DN100_TO_DN150",
+            status: "INCOMPATIBLE" as const,
+          };
+          return {
+            status: "INCOMPATIBLE" as const,
+            ruleId: rule.ruleId,
+            matchedRule: rule,
+            matchedRuleIds: [rule.ruleId],
+            message: "Size mismatch",
+          };
+        }
+        return { status: "UNVERIFIED" as const };
       },
     };
     const resNorm = checkComponentCompatibility(pipe100, pipe150, { normativeCompatibilityEngine: mockNorm13Incompat });
@@ -874,13 +899,23 @@ export function runArch06ComponentSelectionCompatibilityTests(): Arch06TestResul
 
   // FIX-01-08 : NORM-13, s'il est applicable, est utilisé au lieu d'un moteur parallèle
   runTest("TEST FIX-01-08 [ARCH-06-FIX-01]: Délégation transparente à l'autorité NORM-13", () => {
-    // Moteur mock NORM-13 qui autorise explicitement male_threaded_TO_female_threaded
+    // Moteur mock NORM-13 qui autorise explicitement la relation bilatérale OTHER_TO_VALVE + male_threaded_TO_female_threaded
     const mockNorm13 = {
       evaluate(ctx: any) {
-        if (ctx.connectionType === "male_threaded_TO_female_threaded") {
+        if (ctx.componentType === "OTHER_TO_VALVE" && ctx.connectionType === "male_threaded_TO_female_threaded") {
+          const rule = {
+            ruleId: "NORM13_RULE_THREAD_MATING",
+            description: "Bilateral OTHER to VALVE threaded mating rule",
+            componentType: "OTHER_TO_VALVE",
+            connectionType: "male_threaded_TO_female_threaded",
+            status: "COMPATIBLE" as const,
+            evidenceIds: ["EVID_NORM13_THREAD"],
+          };
           return {
             status: "COMPATIBLE" as const,
-            ruleId: "NORM13_RULE_THREAD_MATING",
+            ruleId: rule.ruleId,
+            matchedRule: rule,
+            matchedRuleIds: [rule.ruleId],
             message: "Threaded mating verified by NORM-13",
             evidenceIds: ["EVID_NORM13_THREAD"],
           };
@@ -1075,11 +1110,20 @@ export function runArch06ComponentSelectionCompatibilityTests(): Arch06TestResul
 
     const bilateralNorm13 = {
       evaluate(ctx: any) {
-        if (ctx.componentType === "PIPE_TO_ELBOW" && ctx.connectionType === "butt_weld") {
+        if (ctx.componentType === "PIPE_TO_ELBOW" && ctx.connectionType === "butt_weld_TO_butt_weld") {
+          const rule = {
+            ruleId: "SYNTH_RULE_BILAT_CONN_01",
+            description: "Bilateral connection rule",
+            componentType: "PIPE_TO_ELBOW",
+            connectionType: "butt_weld_TO_butt_weld",
+            status: "COMPATIBLE" as const,
+            evidenceIds: ["EVID_SYNTH_BILAT_01"],
+          };
           return {
             status: "COMPATIBLE" as const,
-            ruleId: "SYNTH_RULE_BILAT_CONN_01",
-            matchedRuleIds: ["SYNTH_RULE_BILAT_CONN_01"],
+            ruleId: rule.ruleId,
+            matchedRule: rule,
+            matchedRuleIds: [rule.ruleId],
             message: "Bilateral connection verified",
             evidenceIds: ["EVID_SYNTH_BILAT_01"],
           };
@@ -1125,11 +1169,20 @@ export function runArch06ComponentSelectionCompatibilityTests(): Arch06TestResul
 
     const incompatNorm13 = {
       evaluate(ctx: any) {
-        if (ctx.connectionType === "butt_weld_TO_flanged") {
+        if (ctx.componentType === "PIPE_TO_ELBOW" && ctx.connectionType === "butt_weld_TO_flanged") {
+          const rule = {
+            ruleId: "SYNTH_RULE_INCOMPAT_CONN_01",
+            description: "Bilateral butt_weld to flanged incompatibility rule",
+            componentType: "PIPE_TO_ELBOW",
+            connectionType: "butt_weld_TO_flanged",
+            status: "INCOMPATIBLE" as const,
+            evidenceIds: ["EVID_SYNTH_INCOMPAT_01"],
+          };
           return {
             status: "INCOMPATIBLE" as const,
-            ruleId: "SYNTH_RULE_INCOMPAT_CONN_01",
-            matchedRuleIds: ["SYNTH_RULE_INCOMPAT_CONN_01"],
+            ruleId: rule.ruleId,
+            matchedRule: rule,
+            matchedRuleIds: [rule.ruleId],
             message: "Direct butt_weld to flanged connection is normatively incompatible",
             evidenceIds: ["EVID_SYNTH_INCOMPAT_01"],
           };
@@ -1150,6 +1203,205 @@ export function runArch06ComponentSelectionCompatibilityTests(): Arch06TestResul
     assert(res.overallStatus === "INCOMPATIBLE", "overallStatus doit être INCOMPATIBLE");
     assert(res.evidenceIds.includes("EVID_SYNTH_INCOMPAT_01"), "evidenceIds tracé au niveau global");
     assert(res.matchedRuleIds?.includes("SYNTH_RULE_INCOMPAT_CONN_01") === true, "matchedRuleIds tracé au niveau global");
+  });
+
+  // =========================================================================
+  // ARCH-06-FIX-04 : VALIDATION STRICTE DE LA DÉCISION BILATÉRALE
+  // =========================================================================
+
+  // FIX-04-01 : Une règle générique NORM-13 ({ connectionType: "butt_weld" }) ne produit JAMAIS NORMATIVE_DECISION
+  runTest("TEST FIX-04-01 [ARCH-06-FIX-04]: Règle générique ou partielle NORM-13 rejetée (reste DATA_MATCH / UNVERIFIED)", () => {
+    const compLeft = createCatalogComponent({
+      id: "SYNTH_FIX04_GEN_L",
+      componentType: "PIPE",
+      connectionType: "butt_weld",
+      nominalDiameter: 100,
+      pressureClass: "Class 150",
+      material: "SYNTH_MAT_CS",
+    });
+
+    const compRight = createCatalogComponent({
+      id: "SYNTH_FIX04_GEN_R",
+      componentType: "ELBOW",
+      connectionType: "butt_weld",
+      nominalDiameter: 100,
+      pressureClass: "Class 150",
+      material: "SYNTH_MAT_CS",
+    });
+
+    // Moteur retournant COMPATIBLE mais avec une matchedRule générique (sans relation bilatérale explicite)
+    const genericRuleNorm13 = {
+      evaluate(_ctx: any) {
+        return {
+          status: "COMPATIBLE" as const,
+          ruleId: "SYNTH_GENERIC_CONN_RULE",
+          matchedRule: {
+            ruleId: "SYNTH_GENERIC_CONN_RULE",
+            description: "Generic butt_weld rule",
+            connectionType: "butt_weld", // générique, pas butt_weld_TO_butt_weld ni componentType bilatéral
+            status: "COMPATIBLE" as const,
+          },
+          matchedRuleIds: ["SYNTH_GENERIC_CONN_RULE"],
+          evidenceIds: ["EVID_GENERIC_01"],
+          message: "Generic rule matched",
+        };
+      },
+    };
+
+    const res = checkComponentCompatibility(compLeft, compRight, {
+      normativeCompatibilityEngine: genericRuleNorm13,
+    });
+
+    const connDim = res.dimensions.find((d) => d.dimension === "connection");
+    assert(connDim?.observation !== "NORMATIVE_DECISION", "Une règle générique ne doit jamais produire NORMATIVE_DECISION");
+    assert(connDim?.observation === "DATA_MATCH", "Observation reste DATA_MATCH");
+    assert(connDim?.status === "UNVERIFIED", "Statut de la dimension reste UNVERIFIED");
+    assert(res.overallStatus === "UNVERIFIED", "overallStatus reste UNVERIFIED");
+    assert(!res.evidenceIds.includes("EVID_GENERIC_01"), "Aucune preuve d'une règle générique non bilatérale n'est agrégée");
+  });
+
+  // FIX-04-02 : Réponse NORM-13 sans matchedRule explicite (seulement status + ruleId) est rejetée
+  runTest("TEST FIX-04-02 [ARCH-06-FIX-04]: Réponse NORM-13 sans matchedRule vérifiable ne produit jamais NORMATIVE_DECISION", () => {
+    const compLeft = createCatalogComponent({
+      id: "SYNTH_FIX04_NOMR_L",
+      componentType: "PIPE",
+      connectionType: "butt_weld",
+      nominalDiameter: 100,
+      pressureClass: "Class 150",
+      material: "SYNTH_MAT_CS",
+    });
+
+    const compRight = createCatalogComponent({
+      id: "SYNTH_FIX04_NOMR_R",
+      componentType: "ELBOW",
+      connectionType: "butt_weld",
+      nominalDiameter: 100,
+      pressureClass: "Class 150",
+      material: "SYNTH_MAT_CS",
+    });
+
+    const noMatchedRuleEngine = {
+      evaluate(_ctx: any) {
+        return {
+          status: "COMPATIBLE" as const,
+          ruleId: "RULE_WITHOUT_MATCHED_OBJECT",
+          matchedRuleIds: ["RULE_WITHOUT_MATCHED_OBJECT"],
+          evidenceIds: ["EVID_NO_OBJ"],
+        };
+      },
+    };
+
+    const res = checkComponentCompatibility(compLeft, compRight, {
+      normativeCompatibilityEngine: noMatchedRuleEngine,
+    });
+
+    const connDim = res.dimensions.find((d) => d.dimension === "connection");
+    assert(connDim?.observation === "DATA_MATCH", "Sans matchedRule, observation = DATA_MATCH");
+    assert(connDim?.status === "UNVERIFIED", "Sans matchedRule, status = UNVERIFIED");
+    assert(res.overallStatus === "UNVERIFIED", "overallStatus = UNVERIFIED");
+  });
+
+  // FIX-04-03 : Règle avec componentType partiel (PIPE au lieu de PIPE_TO_ELBOW) est rejetée
+  runTest("TEST FIX-04-03 [ARCH-06-FIX-04]: Règle avec componentType unilatéral dans matchedRule rejetée", () => {
+    const compLeft = createCatalogComponent({
+      id: "SYNTH_FIX04_PART_L",
+      componentType: "PIPE",
+      material: "SYNTH_MAT_CS",
+    });
+
+    const compRight = createCatalogComponent({
+      id: "SYNTH_FIX04_PART_R",
+      componentType: "ELBOW",
+      material: "SYNTH_MAT_CS",
+    });
+
+    const partialComponentTypeEngine = {
+      evaluate(_ctx: any) {
+        return {
+          status: "COMPATIBLE" as const,
+          ruleId: "RULE_PARTIAL_COMP_TYPE",
+          matchedRule: {
+            ruleId: "RULE_PARTIAL_COMP_TYPE",
+            description: "Partial unilateral componentType rule",
+            componentType: "PIPE", // unilatéral, pas PIPE_TO_ELBOW
+            materialId: "SYNTH_MAT_CS_TO_SYNTH_MAT_CS",
+            status: "COMPATIBLE" as const,
+          },
+          matchedRuleIds: ["RULE_PARTIAL_COMP_TYPE"],
+          evidenceIds: ["EVID_PARTIAL"],
+        };
+      },
+    };
+
+    const res = checkComponentCompatibility(compLeft, compRight, {
+      normativeCompatibilityEngine: partialComponentTypeEngine,
+    });
+
+    const matDim = res.dimensions.find((d) => d.dimension === "material");
+    assert(matDim?.observation === "DATA_MATCH", "Observation reste DATA_MATCH");
+    assert(matDim?.status === "UNVERIFIED", "Status reste UNVERIFIED");
+    assert(res.overallStatus !== "COMPATIBLE", "Ne promeut jamais overallStatus en COMPATIBLE");
+  });
+
+  // FIX-04-04 : Règle bilatérale complète et exacte acceptée sur toutes les dimensions (nominalSize, pressureRating, material, standard, faceType)
+  runTest("TEST FIX-04-04 [ARCH-06-FIX-04]: Règle bilatérale explicite complète validée avec traçabilité sur les dimensions", () => {
+    const flangeLeft = createCatalogComponent({
+      id: "SYNTH_FIX04_FLG_L",
+      componentType: "FLANGE",
+      connectionType: "flanged",
+      faceType: "RF",
+      nominalDiameter: 100,
+      pressureClass: "Class 150",
+      material: "SYNTH_A105",
+      standard: "SYNTH_B165",
+    });
+
+    const valveRight = createCatalogComponent({
+      id: "SYNTH_FIX04_VLV_R",
+      componentType: "VALVE",
+      connectionType: "flanged",
+      faceType: "RF",
+      nominalDiameter: 100,
+      pressureClass: "Class 150",
+      material: "SYNTH_A216_WCB",
+      standard: "SYNTH_B1634",
+    });
+
+    const strictBilateralEngine = {
+      evaluate(ctx: any) {
+        if (ctx.componentType === "FLANGE_TO_VALVE" && ctx.materialId === "SYNTH_A105_TO_SYNTH_A216_WCB") {
+          const rule = {
+            ruleId: "SYNTH_BILAT_MAT_RULE_01",
+            description: "Bilateral FLANGE to VALVE material compatibility rule",
+            componentType: "FLANGE_TO_VALVE",
+            materialId: "SYNTH_A105_TO_SYNTH_A216_WCB",
+            status: "COMPATIBLE" as const,
+            evidenceIds: ["EVID_BILAT_MAT_01"],
+          };
+          return {
+            status: "COMPATIBLE" as const,
+            ruleId: rule.ruleId,
+            matchedRule: rule,
+            matchedRuleIds: [rule.ruleId],
+            evidenceIds: ["EVID_BILAT_MAT_01"],
+          };
+        }
+        return { status: "UNVERIFIED" as const };
+      },
+    };
+
+    const res = checkComponentCompatibility(flangeLeft, valveRight, {
+      normativeCompatibilityEngine: strictBilateralEngine,
+    });
+
+    const matDim = res.dimensions.find((d) => d.dimension === "material");
+    const connDim = res.dimensions.find((d) => d.dimension === "connection");
+    assert(matDim?.observation === "NORMATIVE_DECISION", "Material = NORMATIVE_DECISION");
+    assert(matDim?.status === "COMPATIBLE", "Material = COMPATIBLE");
+    assert(matDim?.matchedRuleId === "SYNTH_BILAT_MAT_RULE_01", "ruleId tracé sur material");
+    assert(connDim?.observation === "DATA_MATCH" && connDim?.status === "UNVERIFIED", "Connection sans règle bilatérale reste DATA_MATCH / UNVERIFIED");
+    assert(res.overallStatus === "COMPATIBLE", "Décision bilatérale explicite promeut overallStatus");
+    assert(res.evidenceIds.includes("EVID_BILAT_MAT_01"), "Evidence bilatérale tracée");
   });
 
   // =========================================================================
