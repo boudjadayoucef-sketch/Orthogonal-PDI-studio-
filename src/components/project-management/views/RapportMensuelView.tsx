@@ -123,13 +123,13 @@ export function RapportMensuelView({
             
             <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #000000; padding-bottom: 15px; margin-bottom: 20px;">
               <div>
-                <p style="font-weight: 800; font-size: 10pt; margin: 0; text-transform: uppercase;">Société Algérienne de l'Électricité et du Gaz</p>
-                <p style="font-weight: 900; font-size: 14pt; margin: 3px 0; color: #f97316; letter-spacing: 1px;">PD&I</p>
-                <p style="font-size: 8.5pt; font-weight: bold; color: #475569; margin: 0;">Direction Régionale du Transport Gaz</p>
-                <p style="font-size: 8pt; color: #64748b; margin: 0;">Division Engineering et Travaux Neufs</p>
+                <p style="font-weight: 800; font-size: 10pt; margin: 0; text-transform: uppercase;">PD&amp;I — Piping Design &amp; Isometrics</p>
+                <p style="font-weight: 900; font-size: 14pt; margin: 3px 0; color: #f97316; letter-spacing: 1px;">PD&amp;I</p>
+                <p style="font-size: 8.5pt; font-weight: bold; color: #475569; margin: 0;">Engineering &amp; EPC Projects Division</p>
+                <p style="font-size: 8pt; color: #64748b; margin: 0;">Industrial Piping &amp; Gas Transport</p>
               </div>
               <div style="text-align: right; font-family: monospace; font-size: 8pt; color: #64748b;">
-                <p style="margin: 0;">Réf: SNG/DRTG/DETN/${reportYear}-${reportMonth}</p>
+                <p style="margin: 0;">Réf: PDI/ENG/RPT/${reportYear}-${reportMonth}</p>
                 <p style="margin: 3px 0 0 0;">Date: ${new Date().toLocaleDateString("fr-FR")}</p>
               </div>
             </div>
@@ -449,15 +449,15 @@ export function RapportMensuelView({
               <div className="bg-white border-2 border-slate-200 rounded-3xl p-6 md:p-8 shadow-sm font-sans space-y-6 min-h-[600px] relative overflow-hidden text-left">
                 <div className="flex justify-between items-start border-b-2 border-slate-950 pb-5 text-slate-800">
                   <div className="space-y-1 text-left">
-                    <p className="font-extrabold text-[11px] uppercase tracking-wider text-slate-950">Société Algérienne de l'Électricité et du Gaz</p>
+                    <p className="font-extrabold text-[11px] uppercase tracking-wider text-slate-950">PD&I — Piping Design & Isometrics</p>
                     <p className="font-black text-xs text-orange-500 uppercase tracking-widest">PD&I</p>
-                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wide">Direction Régionale du Transport Gaz</p>
-                    <p className="text-[9px] font-medium text-slate-400">Division Engineering et Travaux Neufs</p>
+                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wide">Engineering & EPC Projects Division</p>
+                    <p className="text-[9px] font-medium text-slate-400">Industrial Piping & Gas Transport</p>
                   </div>
                   <div className="text-right space-y-0.5 text-[9px] font-mono text-slate-400">
-                    <p>Réf: SNG/DRTG/DETN/{reportYear}-{reportMonth}</p>
+                    <p>Réf: PDI/ENG/RPT/{reportYear}-{reportMonth}</p>
                     <p>Date: {new Date().toLocaleDateString("fr-FR")}</p>
-                    <p>Lieu: Alger, Algérie</p>
+                    <p>Lieu: Site / Direction de Projet</p>
                   </div>
                 </div>
 

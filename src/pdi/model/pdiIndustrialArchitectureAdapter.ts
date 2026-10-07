@@ -95,8 +95,9 @@ export const FORBIDDEN_HISTORICAL_CLIENT_PATTERNS: readonly RegExp[] = [
   /\bgrtg-gc\b/i,
   /\bsoci[eé]t[eé]\s+alg[eé]rienne\s+de\s+l['’][eé]lectricit[eé]\s+et\s+du\s+gaz\b/i,
   /\bsoci[eé]t[eé]\s+alg[eé]rienne\s+de\s+distribution\s+du\s+gaz\b/i,
-  /\bالشركة الجزائرية للكهرباء و الغاز\b/i,
+  /الشركة\s+الجزائرية\s+للكهرباء/i,
 ];
+
 
 export interface PdiClientNeutralityCheckResult {
   readonly isNeutral: boolean;
