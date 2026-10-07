@@ -84,3 +84,8 @@ export * from "./pdiTechnicalWorkflowAdapter";
 // ARCH-06: Component Selection + Catalog + Compatibility
 export * from "./pdiCatalogComponent";
 export * from "./pdiCatalogSelectionAdapter";
+
+// ARCH-07: Client Neutral Architecture & Industrialization Boundary
+export * from "./pdiIndustrialArchitecture";
+export * from "./pdiIndustrialArchitectureAdapter";
+

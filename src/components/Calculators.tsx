@@ -132,10 +132,10 @@ const PdiHeader = () => (
 
       <div className="flex-1 text-right flex flex-col justify-center">
         <h1 className="text-sm md:text-base font-black text-[#007ac3] tracking-tight leading-tight">
-          الشركة الجزائرية للكهرباء والغاز - نقل الغاز
+          PD&I — PIPING DESIGN & ISOMETRICS
         </h1>
         <h2 className="text-[11px] md:text-xs font-bold text-[#007ac3] tracking-normal leading-tight mt-0.5">
-          Société algérienne de l'électricité et du gaz – Transport du Gaz
+          Industrial Piping, Transport & Engineering Suite
         </h2>
       </div>
     </div>
@@ -664,7 +664,7 @@ export default function Calculators() {
     verifierName: "Chef de Service Génie Civil",
     approverName: "Directeur Transport Gaz",
     postName: "Poste de Détente & Mesurage Gaz",
-    planNumber: "GRTG-GC-2026-001",
+    planNumber: "PDI-ENG-GC-2026-001",
     revisionIndex: "Rev 01 (Bon Pour Exécution)",
     date: new Date().toLocaleDateString("fr-FR"),
     scale: "1:100"
@@ -1163,10 +1163,10 @@ export default function Calculators() {
                 <img src="/pdi-logo-horizontal.png" alt="PD&I Logo" style="height: 72px; width: 72px; min-width: 72px; object-fit: contain;" />
                 <div>
                   <div style="font-size: 20px; font-weight: 900; color: #0072bc; font-family: 'Cairo', 'Amiri', 'Arial', sans-serif; line-height: 1.2;">
-                    الشركة الجزائرية للكهرباء والغاز–نقل الغاز
+                    PD&I — PIPING DESIGN & ISOMETRICS
                   </div>
                   <div style="font-size: 13px; font-weight: 700; color: #0072bc; font-family: 'Helvetica Neue', 'Arial', sans-serif; margin-top: 3px;">
-                    Société algérienne de l'électricité et du gaz – Transport du Gaz
+                    Industrial Piping, Transport & Engineering Suite
                   </div>
                 </div>
               </div>
@@ -1348,10 +1348,10 @@ export default function Calculators() {
                 <img src="/pdi-logo-horizontal.png" alt="PD&I Logo" style="height: 68px; width: 68px; min-width: 68px; object-fit: contain;" />
                 <div>
                   <div style="font-size: 19px; font-weight: 900; color: #0072bc; font-family: 'Cairo', 'Amiri', 'Arial', sans-serif; line-height: 1.2;">
-                    الشركة الجزائرية للكهرباء والغاز–نقل الغاز
+                    PD&I — PIPING DESIGN & ISOMETRICS
                   </div>
                   <div style="font-size: 13px; font-weight: 700; color: #0072bc; font-family: 'Helvetica Neue', 'Arial', sans-serif; margin-top: 2px;">
-                    Société algérienne de l'électricité et du gaz – Transport du Gaz
+                    Industrial Piping, Transport & Engineering Suite
                   </div>
                 </div>
               </div>
@@ -1461,10 +1461,10 @@ export default function Calculators() {
                 <img src="/pdi-logo-horizontal.png" alt="PD&I Logo" style="height: 68px; width: 68px; min-width: 68px; object-fit: contain;" />
                 <div>
                   <div style="font-size: 19px; font-weight: 900; color: #0072bc; font-family: 'Cairo', 'Amiri', 'Arial', sans-serif; line-height: 1.2;">
-                    الشركة الجزائرية للكهرباء والغاز–نقل الغاز
+                    PD&I — PIPING DESIGN & ISOMETRICS
                   </div>
                   <div style="font-size: 13px; font-weight: 700; color: #0072bc; font-family: 'Helvetica Neue', 'Arial', sans-serif; margin-top: 2px;">
-                    Société algérienne de l'électricité et du gaz – Transport du Gaz
+                    Industrial Piping, Transport & Engineering Suite
                   </div>
                 </div>
               </div>
@@ -1571,10 +1571,10 @@ export default function Calculators() {
                 <img src="/pdi-logo-horizontal.png" alt="PD&I Logo" style="height: 68px; width: 68px; min-width: 68px; object-fit: contain;" />
                 <div>
                   <div style="font-size: 19px; font-weight: 900; color: #0072bc; font-family: 'Cairo', 'Amiri', 'Arial', sans-serif; line-height: 1.2;">
-                    الشركة الجزائرية للكهرباء والغاز–نقل الغاز
+                    PD&I — PIPING DESIGN & ISOMETRICS
                   </div>
                   <div style="font-size: 13px; font-weight: 700; color: #0072bc; font-family: 'Helvetica Neue', 'Arial', sans-serif; margin-top: 2px;">
-                    Société algérienne de l'électricité et du gaz – Transport du Gaz
+                    Industrial Piping, Transport & Engineering Suite
                   </div>
                 </div>
               </div>
@@ -5889,9 +5889,9 @@ export default function Calculators() {
                     {/* Official header */}
                     <div className="flex justify-between items-center border-b-2 border-slate-800 pb-4">
                       <div>
-                        <p className="font-black text-sm tracking-tight">SOCIÉTÉ ALGÉRIENNE DE DISTRIBUTION DU GAZ ET DE L'ÉLECTRICITÉ</p>
-                        <p className="font-bold text-xs text-slate-600">PD&I - PIPELINE DESIGN & ISOMETRICS</p>
-                        <p className="text-[10px] text-slate-500">DIVISION REALISATION DES PROJETS - TRANSPORT</p>
+                        <p className="font-black text-sm tracking-tight">PD&I — PIPING DESIGN & ISOMETRICS · INDUSTRIAL ENGINEERING</p>
+                        <p className="font-bold text-xs text-slate-600">INSPECTION & QUALITY CONTROL (API 5L / ASME B31.3 / B31.8)</p>
+                        <p className="text-[10px] text-slate-500">ENGINEERING & EPC PROJECTS DIVISION</p>
                       </div>
                       <div className="text-right">
                         <p className="font-bold border border-slate-800 px-3 py-1 bg-slate-50">PV-RECEP-USINE-{heatNumber.split('-')[2] || "2026"}</p>
@@ -8561,13 +8561,13 @@ export default function Calculators() {
                 {/* PD&I header */}
                 <div className="flex justify-between items-start border-b border-slate-300 pb-4">
                   <div className="space-y-1">
-                    <p className="font-extrabold text-[10px] uppercase tracking-wider text-slate-900">Société Algérienne de l'Électricité et du Gaz</p>
+                    <p className="font-extrabold text-[10px] uppercase tracking-wider text-slate-900">PD&I — Piping Design & Isometrics</p>
                     <p className="font-black text-xs text-orange-500 uppercase tracking-widest">PD&I</p>
-                    <p className="text-[9px] font-bold text-slate-500 uppercase">Direction Régionale du Transport Gaz</p>
-                    <p className="text-[9px] font-medium text-slate-400">Division Engineering et Travaux Neufs (DETN)</p>
+                    <p className="text-[9px] font-bold text-slate-500 uppercase">Engineering & EPC Projects Division</p>
+                    <p className="text-[9px] font-medium text-slate-400">Bill of Quantities (BoQ) & Price Schedule</p>
                   </div>
                   <div className="text-right text-[9px] font-mono text-slate-400 space-y-0.5">
-                    <p>Réf: SNG/DRTG/DETN/{new Date().getFullYear()}/BPU</p>
+                    <p>Réf: PDI/ENG/{new Date().getFullYear()}/BOQ</p>
                     <p>Date: {new Date().toLocaleDateString("fr-FR")}</p>
                   </div>
                 </div>
