@@ -277,6 +277,8 @@ export interface PdiUniversalEntity {
   specific: SpecificProperties;
   normative?: UniversalNormativeRef;
   relationships?: UniversalRelationships;
+  /** Attributs de domaines d'ingénierie (ARCH-08: PIPELINE, PIPING, PACKAGE, EQUIPMENT) */
+  domainAttributes?: Record<string, unknown>;
 }
 
 /**

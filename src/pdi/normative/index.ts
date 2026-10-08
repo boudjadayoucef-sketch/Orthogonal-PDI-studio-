@@ -158,3 +158,4 @@ export * from "./tests/arch04ProjectWorkspaceDataTests";
 export * from "./tests/arch05TechnicalWorkflowTests";
 export * from "./tests/arch06ComponentSelectionCompatibilityTests";
 export * from "./tests/arch07IndustrialArchitectureTests";
+export * from "./tests/arch08MultiDomainArchitectureTests";

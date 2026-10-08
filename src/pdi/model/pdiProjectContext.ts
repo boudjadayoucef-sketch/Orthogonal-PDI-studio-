@@ -30,6 +30,7 @@ import type {
   PdiWorkspaceSelectionState,
   PdiWorkspaceDisplayPreferences,
 } from "../workspace/types";
+import type { EngineeringDomainId } from "../engineering/types/engineeringDomainTypes";
 
 export type PdiProjectId = string;
 export type PdiDocumentId = string;
@@ -105,6 +106,8 @@ export interface PdiProjectMetadata {
   readonly createdAt: string;
   readonly updatedAt: string;
   readonly legacyAdminProjectId?: string;
+  /** Domaine d'ingénierie principal du projet (ARCH-08: PIPING, PIPELINE, PACKAGE, EQUIPMENT) */
+  readonly engineeringDomain?: EngineeringDomainId;
 }
 
 /**
@@ -119,6 +122,8 @@ export interface PdiProjectContext {
   readonly activeDocumentId: PdiDocumentId;
   readonly documents: readonly PdiDocumentRef[];
   readonly normativeRefs?: PdiProjectNormativeRefs;
+  /** Domaine d'ingénierie actif (ARCH-08: PIPING, PIPELINE, PACKAGE, EQUIPMENT) */
+  readonly engineeringDomain?: EngineeringDomainId;
 }
 
 /**

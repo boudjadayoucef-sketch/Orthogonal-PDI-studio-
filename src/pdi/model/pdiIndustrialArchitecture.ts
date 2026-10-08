@@ -54,7 +54,7 @@ export const PDI_ARCHITECTURE_LAYERS: Readonly<Record<PdiArchitectureLayerId, Pd
     layerId: "PRODUCT_CORE",
     label: "Product Core (Engineering & Geometry)",
     description:
-      "Universal Model, Technical Workflow (P&ID -> Piping -> Isometric), Catalog Selection, 2D/3D/Iso Engines, Spools, Welds, MTO & BOM.",
+      "Universal Model, Multi-Domain Engineering (Piping, Pipeline, Package, Equipment), Technical Workflow (P&ID -> Piping -> Isometric), Catalog Selection, 2D/3D/Iso Engines, Spools, Welds, MTO & BOM.",
     allowedDependencies: ["NORMATIVE_ENGINEERING_DATA"],
     isClientNeutral: true,
   },

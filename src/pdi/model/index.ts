@@ -89,3 +89,7 @@ export * from "./pdiCatalogSelectionAdapter";
 export * from "./pdiIndustrialArchitecture";
 export * from "./pdiIndustrialArchitectureAdapter";
 
+// ARCH-08: Multi-Domain Engineering Architecture
+export * from "../engineering";
+
+

@@ -99,6 +99,7 @@ export interface CreateProjectContextParams {
   readonly documents?: readonly PdiDocumentRef[];
   readonly normativeRefs?: PdiProjectNormativeRefs;
   readonly legacyAdminProjectId?: string;
+  readonly engineeringDomain?: import("../engineering/types/engineeringDomainTypes").EngineeringDomainId;
 }
 
 export function createProjectContext(params?: CreateProjectContextParams): PdiProjectContext {
@@ -127,6 +128,8 @@ export function createProjectContext(params?: CreateProjectContextParams): PdiPr
     ? params.documents
     : [defaultDocRef];
 
+  const engineeringDomain = params?.engineeringDomain || "PIPING";
+
   return Object.freeze({
     projectId,
     projectName: params?.projectName || "Projet Isométrique PD&I",
@@ -140,11 +143,13 @@ export function createProjectContext(params?: CreateProjectContextParams): PdiPr
       createdAt: params?.createdAt || now,
       updatedAt: params?.updatedAt || now,
       legacyAdminProjectId: params?.legacyAdminProjectId,
+      engineeringDomain,
     }),
     workspaceId,
     activeDocumentId,
     documents: Object.freeze(documents.map((d) => Object.freeze({ ...d }))),
     normativeRefs: params?.normativeRefs ? Object.freeze({ ...params.normativeRefs }) : undefined,
+    engineeringDomain,
   });
 }
 
