@@ -31,6 +31,7 @@ export type SupportedDesignCodeId =
   | "ASME-B31.3"
   | "ASME-B31.4"
   | "ASME-B31.8"
+  | "ASME-B31.12"
   | "EN-13480"
   | "ISO-13623";
 

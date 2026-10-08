@@ -71,6 +71,12 @@ export const DESIGN_CODE_CALCULATION_REGISTRY: readonly DesignCodeRegistryEntry[
     formulaReferences: EMPTY_FORMULA_REFERENCES,
   }),
   Object.freeze({
+    id: "ASME-B31.12",
+    status: "NOT_IMPLEMENTED",
+    supportedCalculationTypes: EMPTY_CALCULATION_TYPES,
+    formulaReferences: EMPTY_FORMULA_REFERENCES,
+  }),
+  Object.freeze({
     id: "EN-13480",
     status: "NOT_IMPLEMENTED",
     supportedCalculationTypes: EMPTY_CALCULATION_TYPES,

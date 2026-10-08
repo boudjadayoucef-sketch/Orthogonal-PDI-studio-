@@ -144,3 +144,37 @@ export class NormativeSourceDocumentRegistry
  */
 export const defaultSourceDocumentRegistry =
   new NormativeSourceDocumentRegistry();
+
+/**
+ * Documents sources normatifs officiels de référence enregistrés comme sources à venir (Roadmap bibliothèque).
+ */
+export const UPCOMING_NORMATIVE_SOURCE_DOCUMENTS: readonly NormativeSourceDocument[] = Object.freeze([
+  Object.freeze({
+    documentId: "DOC-ASME-B31.8-2022",
+    title: "ASME B31.8-2022: Gas Transmission and Distribution Piping Systems",
+    publisher: "The American Society of Mechanical Engineers (ASME)",
+    standardId: "ASME-B31.8",
+    editionId: "2022",
+    documentReference: "ASME B31.8-2022 (Revision of ASME B31.8-2020), ISBN 978-0-7918-7542-1, Date of Issuance: December 22, 2022",
+    status: "UNVERIFIED" as const,
+    notes: "Source de référence pour réseaux de transport et distribution gaz haute pression, classes d'emplacement (1-4), calculs MAOP, épreuves hydrostatiques/pneumatiques et service gaz acide (Sour Gas Ch. IX).",
+  }),
+  Object.freeze({
+    documentId: "DOC-ASME-B31.12-2019",
+    title: "ASME B31.12-2019: Hydrogen Piping and Pipelines",
+    publisher: "The American Society of Mechanical Engineers (ASME)",
+    standardId: "ASME-B31.12",
+    editionId: "2019",
+    documentReference: "ASME B31.12-2019 (Revision of ASME B31.12-2014), ISBN 978-0-7918-7304-5, Date of Issuance: December 20, 2019",
+    status: "UNVERIFIED" as const,
+    notes: "Source de référence pour tuyauteries industrielles (Part IP) et pipelines de transport (Part PL) d'hydrogène gazeux (GH2) et liquide (LH2), facteurs de dégradation matériau Hf/Mf et contrôle de fragilisation HE.",
+  }),
+]);
+
+/**
+ * Retourne la liste des documents sources normatifs référencés à venir.
+ */
+export function getUpcomingNormativeSourceDocuments(): readonly NormativeSourceDocument[] {
+  return UPCOMING_NORMATIVE_SOURCE_DOCUMENTS;
+}
+

@@ -82,7 +82,7 @@ export function GuidesTabContent({ isAdmin, userProfile }: GuidesTabContentProps
       color: "text-purple-600 bg-purple-50 border-purple-100",
       intro: "Consultez le référentiel normatif et les abaques techniques du calcul de tuyauterie et transport de gaz.",
       steps: [
-        "Normes & Codes : Accédez directement aux exigences ASME B31.3, ASME B31.8, EN 13480 et CODETI.",
+        "Normes & Codes : Accédez directement aux exigences ASME B31.3, ASME B31.8 (Transport Gaz), ASME B31.12 (Hydrogène), EN 13480 et CODETI.",
         "Abaques & Dimensions : Vérifiez les diamètres nominaux, épaisseurs de paroi (Schedules) et classes de pression standardisées.",
         "Procédures d'épreuve : Consultez les méthodologies réglementaires d'épreuve hydrostatique (notamment la méthode GAUVIN)."
       ]

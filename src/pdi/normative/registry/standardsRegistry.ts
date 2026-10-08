@@ -58,7 +58,28 @@ export const PDI_STANDARDS_REGISTRY: Readonly<Record<StandardId, NormativeStanda
     domain: "PIPELINE",
     standardType: "DESIGN_CODE",
     status: "ACTIVE",
-    edition: undefined,
+    edition: Object.freeze({
+      year: "2022",
+      revision: "Revision of ASME B31.8-2020",
+      effectiveDate: "2022-12-22",
+      notes: "Code pour réseaux de transport et distribution de gaz, stations de compression, calculs MAOP et gaz acide (Sour Gas)",
+    }),
+  }),
+
+  "ASME-B31.12": Object.freeze({
+    id: "ASME-B31.12",
+    organization: "ASME",
+    code: "B31.12",
+    title: "Hydrogen Piping and Pipelines",
+    domain: "INDUSTRIAL_PIPING",
+    standardType: "DESIGN_CODE",
+    status: "ACTIVE",
+    edition: Object.freeze({
+      year: "2019",
+      revision: "Revision of ASME B31.12-2014",
+      effectiveDate: "2019-12-20",
+      notes: "Code pour tuyauteries industrielles (Part IP) et canalisations (Part PL) d'hydrogène gazeux et liquide, tenue à la fragilisation HE",
+    }),
   }),
 
   "ISO-13623": Object.freeze({

@@ -267,16 +267,34 @@ export default function PdiInfoModals({
                       Tuyauteries d'usines chimiques, pétrochimiques, raffineries, séparation de gaz et installations industrielles complexes. Calcul des épaisseurs sous pression interne/externe (Para. 304) et contraintes thermiques.
                     </div>
                   </div>
-                  <div style={{ background: "#0F172A", border: "1px solid rgba(148, 163, 184, 0.15)", borderRadius: "8px", padding: "12px" }}>
-                    <div style={{ fontWeight: 800, color: "#38BDF8", fontSize: "12px" }}>ASME B31.1 · Power Piping</div>
+                  <div style={{ background: "#0F172A", border: "1px solid rgba(56, 189, 248, 0.4)", borderRadius: "8px", padding: "12px" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <div style={{ fontWeight: 800, color: "#38BDF8", fontSize: "12px" }}>ASME B31.8-2022 · Gas Transmission &amp; Distribution</div>
+                      <span style={{ fontSize: "9px", background: "rgba(56, 189, 248, 0.2)", color: "#38BDF8", padding: "2px 6px", borderRadius: "4px", fontWeight: 800, textTransform: "uppercase" }}>À venir / Source de référence</span>
+                    </div>
                     <div style={{ fontSize: "11px", color: "#94A3B8", marginTop: "4px" }}>
-                      Tuyauteries de centrales thermiques, centrales électriques, chaudières industrielles haute pression et circuits vapeur surchauffée.
+                      Canalisations et réseaux de transport et distribution de gaz. Calcul de pression admissible MAOP (formule Barlow P = (2 × S × t / D) × F × E × T), Facteurs de construction F par Classes d'emplacement 1 à 4 (0.80 à 0.40), Chapitre VIII Offshore, Chapitre IX Sour Gas (H2S), et règles de renfort de piquages (App. F).
+                    </div>
+                  </div>
+                  <div style={{ background: "#0F172A", border: "1px solid rgba(168, 85, 247, 0.4)", borderRadius: "8px", padding: "12px" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <div style={{ fontWeight: 800, color: "#C084FC", fontSize: "12px" }}>ASME B31.12-2019 · Hydrogen Piping &amp; Pipelines</div>
+                      <span style={{ fontSize: "9px", background: "rgba(168, 85, 247, 0.2)", color: "#C084FC", padding: "2px 6px", borderRadius: "4px", fontWeight: 800, textTransform: "uppercase" }}>À venir / Source de référence</span>
+                    </div>
+                    <div style={{ fontSize: "11px", color: "#94A3B8", marginTop: "4px" }}>
+                      Installations d'hydrogène gazeux (GH2) et liquide (LH2). Couvre Part IP (tuyauterie industrielle) et Part PL (canalisations de transport). Facteurs de performance matériau Hf et Mf pour tenue à la fragilisation par l'hydrogène (HE), Option A (Prescriptive) / Option B (Mécanique de la rupture), contrôle de dureté des soudures et essais d'étanchéité.
                     </div>
                   </div>
                   <div style={{ background: "#0F172A", border: "1px solid rgba(148, 163, 184, 0.15)", borderRadius: "8px", padding: "12px" }}>
-                    <div style={{ fontWeight: 800, color: "#38BDF8", fontSize: "12px" }}>ASME B31.4 &amp; B31.8 · Pipelines &amp; Transport</div>
+                    <div style={{ fontWeight: 800, color: "#38BDF8", fontSize: "12px" }}>ASME B31.4 · Liquid &amp; Slurry Transportation</div>
                     <div style={{ fontSize: "11px", color: "#94A3B8", marginTop: "4px" }}>
-                      B31.4 pour le transport par canalisations d'hydrocarbures liquides / GPL. B31.8 pour les réseaux de transport et distribution de gaz naturel haute pression.
+                      Transport par canalisations d'hydrocarbures liquides, GPL, ammoniac anhydre et suspensions minérales.
+                    </div>
+                  </div>
+                  <div style={{ background: "#0F172A", border: "1px solid rgba(148, 163, 184, 0.15)", borderRadius: "8px", padding: "12px" }}>
+                    <div style={{ fontWeight: 800, color: "#38BDF8", fontSize: "12px" }}>ASME B31.1 · Power Piping</div>
+                    <div style={{ fontSize: "11px", color: "#94A3B8", marginTop: "4px" }}>
+                      Tuyauteries de centrales thermiques, chaudières industrielles haute pression et circuits vapeur surchauffée.
                     </div>
                   </div>
                   <div style={{ background: "#0F172A", border: "1px solid rgba(148, 163, 184, 0.15)", borderRadius: "8px", padding: "12px" }}>

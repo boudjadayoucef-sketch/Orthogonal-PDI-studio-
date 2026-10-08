@@ -15,6 +15,7 @@ import {
   FolderTree,
   Layers,
   LayoutGrid,
+  FileText,
   Sparkles,
   Spline,
   RefreshCw,
@@ -617,6 +618,43 @@ export const PdiSecondaryWorkspaceApp: React.FC = () => {
               <span className="text-[10px] text-cyan-400 font-semibold">Disponible dans l'éditeur</span>
             </div>
           ))}
+        </div>
+
+        {/* Section Normes & Codes de référence à venir */}
+        <div className="mt-4 pt-4 border-t border-[#30363D] space-y-3">
+          <div className="flex items-center justify-between">
+            <h4 className="text-xs font-black uppercase tracking-wider text-cyan-400 flex items-center gap-2">
+              <FileText className="w-4 h-4 text-cyan-400" />
+              Sources d'Information Normatives (Abonnement / Référentiel à venir)
+            </h4>
+            <span className="text-[10px] bg-cyan-950 text-cyan-300 border border-cyan-800 px-2 py-0.5 rounded-full font-bold">
+              ASME B31 Series
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="p-3.5 bg-[#161B22] border border-cyan-900/40 rounded-xl flex flex-col gap-1.5">
+              <div className="flex items-center justify-between">
+                <span className="font-black text-xs text-cyan-300">ASME B31.8-2022</span>
+                <span className="text-[9px] bg-amber-950 text-amber-300 border border-amber-800/60 px-1.5 py-0.5 rounded font-bold">À venir</span>
+              </div>
+              <p className="text-[11px] font-medium text-zinc-200">Gas Transmission and Distribution Piping Systems</p>
+              <p className="text-[10px] text-zinc-400 leading-relaxed">
+                Réseaux de transport et distribution de gaz naturel haute pression, stations de compression, calculs de pression MAOP (Barlow), classes d'emplacement 1-4, section Offshore (Chapitre VIII) et service gaz acide Sour Gas (Chapitre IX).
+              </p>
+            </div>
+
+            <div className="p-3.5 bg-[#161B22] border border-purple-900/40 rounded-xl flex flex-col gap-1.5">
+              <div className="flex items-center justify-between">
+                <span className="font-black text-xs text-purple-300">ASME B31.12-2019</span>
+                <span className="text-[9px] bg-amber-950 text-amber-300 border border-amber-800/60 px-1.5 py-0.5 rounded font-bold">À venir</span>
+              </div>
+              <p className="text-[11px] font-medium text-zinc-200">Hydrogen Piping and Pipelines</p>
+              <p className="text-[10px] text-zinc-400 leading-relaxed">
+                Tuyauteries industrielles (Part IP) et canalisations de transport (Part PL) pour hydrogène gazeux (GH2) et liquide (LH2), facteurs de dégradation Hf et Mf, prévention de la fragilisation HE, Option A prescriptive &amp; Option B FAD.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     );
