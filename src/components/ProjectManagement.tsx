@@ -101,7 +101,7 @@ export default function ProjectManagement() {
               <span className="font-black text-[9px] uppercase tracking-wider">Gouvernance</span>
             </div>
             <p className="text-[10px] text-slate-300 leading-relaxed font-semibold">
-              Ce système centralise la planification, l'avancement physique et les contraintes des ouvrages de transport gaz PD&I.
+              Ce système centralise la planification, l'avancement physique et les contraintes des ouvrages industriels et pipelines PD&I.
             </p>
           </div>
         </div>

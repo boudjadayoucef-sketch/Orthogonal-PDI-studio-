@@ -319,12 +319,12 @@ export const POLES_ALGERIE = [
 ];
 
 export const REGIONS_ALGERIE = [
-  "Région de transport gaz Constantine",
-  "Région de transport gaz Ouargla",
-  "Région de transport gaz Alger",
-  "Région de transport gaz Oran",
-  "Région de transport gaz Blida",
-  "Région de transport gaz Béchar"
+  "Région Constantine",
+  "Région Ouargla",
+  "Région Alger",
+  "Région Oran",
+  "Région Blida",
+  "Région Béchar"
 ];
 
 export const WILAYAS_ALGERIE = [
@@ -417,10 +417,10 @@ export const SAMPLE_PROJECTS: Omit<Project, "id">[] = [
       gazEnd: "2026-10-30"
     },
     identity: {
-      region: "Région de transport gaz Constantine",
+      region: "Région Constantine",
       pole: "Pôle ACO (Alger - Constantine - Ouargla)",
       wilaya: "18 - Jijel",
-      district: "18 - Jijel District Gaz",
+      district: "18 - Jijel District",
       phase: "Travaux",
       cadreInscription: "Programme d'Urgence National (PUN)",
       planificationComment: "Travaux en cours de terrassement et cintrage sur l'essentiel du tracé. Progression conforme au planning initial.",
@@ -485,14 +485,14 @@ export const SAMPLE_PROJECTS: Omit<Project, "id">[] = [
       gazEnd: "2026-07-10"
     },
     identity: {
-      region: "Région de transport gaz Alger",
+      region: "Région Alger",
       pole: "Pôle ACO (Alger - Constantine - Ouargla)",
       wilaya: "09 - Blida",
-      district: "09 - Blida District Gaz",
+      district: "09 - Blida District",
       phase: "Mise en Gaz",
       cadreInscription: "Plan de Développement Inter-Régional (PDIR)",
       planificationComment: "Tous les essais de pression hydraulique de résistance et d'étanchéité ont été validés par VERITAL. Phase finale de rinçage et de mise en gaz.",
-      structureChargee: "Département Travaux Neufs - TG Alger",
+      structureChargee: "Département Ingénierie & Projets - Pôle Alger",
       caracteristiques: {
         diametre: "30\" (DN 750)",
         longueur: "28",

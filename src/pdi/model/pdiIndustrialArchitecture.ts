@@ -300,8 +300,12 @@ export type PdiClientOccurrenceAction =
 
 export interface PdiClientNeutralityAuditRecord {
   readonly recordId: string;
-  readonly fileOrModule: string;
+  readonly path: string;
+  readonly fileOrModule?: string;
   readonly historicalPattern: string;
+  readonly classification: PdiClientOccurrenceAction;
   readonly action: PdiClientOccurrenceAction;
-  readonly resolutionSummary: string;
+  readonly status: "DONE" | "IN_PROGRESS" | "LOCKED";
+  readonly reason: string;
+  readonly resolutionSummary?: string;
 }

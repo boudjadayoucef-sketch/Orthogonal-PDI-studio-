@@ -7903,7 +7903,7 @@ export default function Calculators() {
                          {/* LEFT COLUMN: PD&I HEADER, CARTOUCHE & METRES TABLES (35% WIDTH) */}
                          <div className="w-[340px] shrink-0 flex flex-col justify-between border-r-2 border-slate-900 pr-3 space-y-2">
                            <div className="space-y-2">
-                             {/* Official PD&I Transport du Gaz Header */}
+                             {/* Official PD&I Engineering Header */}
                              <PdiHeader />
 
                              <div className="text-center border border-slate-900 bg-slate-50 py-1.5 px-2">
@@ -8656,7 +8656,7 @@ export default function Calculators() {
                     <p className="text-[9px] text-slate-400 italic">(Nom, Cachet et Signature précédés de la mention "Lu et approuvé")</p>
                   </div>
                   <div className="border border-slate-200 p-4 rounded-xl text-center space-y-12 bg-slate-50/50">
-                    <p className="font-extrabold text-slate-600">Pour PD&I / Division Engineering (DETN)</p>
+                    <p className="font-extrabold text-slate-600">Pour PD&I / Engineering &amp; Projects Division</p>
                     <p className="text-[9px] text-slate-400 italic">(Visa pour validation technique réglementaire)</p>
                   </div>
                 </div>

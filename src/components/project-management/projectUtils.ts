@@ -546,7 +546,7 @@ export const getGenesisMilestones = (p: Project): any[] => {
       title: "Identification & Faisabilité de l'Ouvrage",
       date: (p.identity as any).dateIdentification,
       status: "completed",
-      description: "Étude d'opportunité, dimensionnement préliminaire et validation de l'insertion dans le schéma directeur de transport gaz."
+      description: "Étude d'opportunité, dimensionnement préliminaire et validation de l'insertion dans le schéma directeur de réseau pipeline."
     });
   }
   if (p.planning?.etudeStart) {

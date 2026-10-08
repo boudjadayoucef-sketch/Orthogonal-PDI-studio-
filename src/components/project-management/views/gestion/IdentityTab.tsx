@@ -262,11 +262,11 @@ export function IdentityTab({
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
                     <div className="space-y-3.5">
                       <div className="flex justify-between p-3.5 bg-slate-50/50 rounded-xl border border-slate-100">
-                        <span className="text-slate-500 font-bold">Direction Régionale TG :</span>
+                        <span className="text-slate-500 font-bold">Direction Régionale / Entité :</span>
                         <span className="font-black text-slate-800">{selectedProject.identity.region || "Non renseigné"}</span>
                       </div>
                       <div className="flex justify-between p-3.5 bg-slate-50/50 rounded-xl border border-slate-100">
-                        <span className="text-slate-500 font-bold">Pôle de rattachement TG :</span>
+                        <span className="text-slate-500 font-bold">Pôle de rattachement :</span>
                         <span className="font-black text-slate-800">{selectedProject.identity.pole || "Non renseigné"}</span>
                       </div>
                       <div className="flex justify-between p-3.5 bg-slate-50/50 rounded-xl border border-slate-100">
@@ -274,7 +274,7 @@ export function IdentityTab({
                         <span className="font-black text-slate-800">{selectedProject.identity.wilaya || "Non renseigné"}</span>
                       </div>
                       <div className="flex justify-between p-3.5 bg-slate-50/50 rounded-xl border border-slate-100">
-                        <span className="text-slate-500 font-bold">District Transport Gaz :</span>
+                        <span className="text-slate-500 font-bold">District / Secteur Opérationnel :</span>
                         <span className="font-black text-slate-800">{selectedProject.identity.district || "Non renseigné"}</span>
                       </div>
                     </div>

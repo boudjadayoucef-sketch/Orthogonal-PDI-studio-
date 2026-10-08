@@ -55,20 +55,20 @@ export function useProjectsData(initialSelectedProjectId?: string | null) {
           }
           
           // Map old regions to new ones
-          if (data.identity.region === "DR Constantine") {
-            data.identity.region = "Région de transport gaz Constantine";
-          } else if (data.identity.region === "DR Alger" || data.identity.region === "Direction de Région TG" || data.identity.region === "DR Centre") {
-            data.identity.region = "Région de transport gaz Alger";
-          } else if (data.identity.region === "DR Blida") {
-            data.identity.region = "Région de transport gaz Blida";
-          } else if (data.identity.region === "DR Oran") {
-            data.identity.region = "Région de transport gaz Oran";
-          } else if (data.identity.region === "DR Béchar") {
-            data.identity.region = "Région de transport gaz Béchar";
-          } else if (data.identity.region === "DR Ouargla") {
-            data.identity.region = "Région de transport gaz Ouargla";
+          if (data.identity.region === "DR Constantine" || data.identity.region === "Région de transport gaz Constantine") {
+            data.identity.region = "Région Constantine";
+          } else if (data.identity.region === "DR Alger" || data.identity.region === "Direction de Région TG" || data.identity.region === "DR Centre" || data.identity.region === "Région de transport gaz Alger") {
+            data.identity.region = "Région Alger";
+          } else if (data.identity.region === "DR Blida" || data.identity.region === "Région de transport gaz Blida") {
+            data.identity.region = "Région Blida";
+          } else if (data.identity.region === "DR Oran" || data.identity.region === "Région de transport gaz Oran") {
+            data.identity.region = "Région Oran";
+          } else if (data.identity.region === "DR Béchar" || data.identity.region === "Région de transport gaz Béchar") {
+            data.identity.region = "Région Béchar";
+          } else if (data.identity.region === "DR Ouargla" || data.identity.region === "Région de transport gaz Ouargla") {
+            data.identity.region = "Région Ouargla";
           } else if (!REGIONS_ALGERIE.includes(data.identity.region)) {
-            data.identity.region = "Région de transport gaz Alger";
+            data.identity.region = "Région Alger";
           }
 
           // Map old plain wilayas to numbered ones
@@ -78,7 +78,7 @@ export function useProjectsData(initialSelectedProjectId?: string | null) {
               const matched = WILAYAS_ALGERIE.find(w => w.toLowerCase().endsWith(rawWilaya.toLowerCase()) || w.toLowerCase().includes(rawWilaya.toLowerCase()));
               if (matched) {
                 data.identity.wilaya = matched;
-                data.identity.district = `${matched} District Gaz`;
+                data.identity.district = `${matched} District`;
               }
             }
           }

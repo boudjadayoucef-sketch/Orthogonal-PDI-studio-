@@ -286,7 +286,7 @@ export function BordereauPrixView({ projects }: BordereauPrixViewProps) {
           <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 text-xs text-slate-500 flex flex-col justify-center space-y-1 text-left">
             <p className="font-bold uppercase text-[9px] text-slate-400">Notice légale & d'estimation :</p>
             <p className="leading-relaxed">
-              Ce bordereau est une estimation automatisée fournie par la <strong>Division Engineering et Travaux Neufs (DETN)</strong>. Les quantités et prix sont sujets à réajustements contradictoires lors des réunions d'ouverture de plis ou d'avenants techniques.
+              Ce bordereau est une estimation automatisée fournie par le module <strong>Engineering &amp; Estimation Project</strong>. Les quantités et prix sont sujets à réajustements contradictoires lors des réunions d'ouverture de plis ou d'avenants techniques.
             </p>
           </div>
 

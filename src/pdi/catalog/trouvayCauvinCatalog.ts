@@ -788,7 +788,7 @@ export const PDI_INTERNATIONAL_PIPING_CATALOG: Record<IsoFittingType, TcComponen
   poste_sectionnement: {
     id: "poste_sectionnement",
     code: "TC-STN-SECT",
-    labelFr: "Poste de sectionnement de ligne transport gaz",
+    labelFr: "Poste de sectionnement de ligne pipeline",
     labelEn: "Mainline Block Valve Station (MLV)",
     shortName: "Poste sectionnement",
     category: "Instrumentation & Ligne",

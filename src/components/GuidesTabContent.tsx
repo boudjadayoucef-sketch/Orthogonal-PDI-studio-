@@ -36,7 +36,7 @@ export function GuidesTabContent({ isAdmin, userProfile }: GuidesTabContentProps
       steps: [
         "Recherche de documents : Saisissez des mots-clés dans la barre de recherche pour filtrer instantanément les clauses réglementaires.",
         "Modes de lecture : Cliquez sur 'Lecture interactive' pour afficher un panneau latéral d'étude approfondie sans perdre votre contexte de navigation.",
-        "Carte de transport gaz : Activez les couches de base (Satellite, Plan, Relief) et cliquez sur les tracés haute pression pour obtenir les caractéristiques détaillées.",
+        "Carte des canalisations & réseaux : Activez les couches de base (Satellite, Plan, Relief) et cliquez sur les tracés haute pression pour obtenir les caractéristiques détaillées.",
         "Filtres cartographiques : Utilisez les cases à cocher pour afficher uniquement les postes de détente, vannes de sectionnement ou canalisations spécifiques."
       ]
     },

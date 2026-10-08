@@ -260,7 +260,7 @@ export function EditProjectForm({
                           identity: { 
                             ...editProjectData.identity, 
                             wilaya: selectedWilaya,
-                            district: selectedWilaya ? `${selectedWilaya} District Gaz` : ""
+                            district: selectedWilaya ? `${selectedWilaya} District` : ""
                           }
                         });
                       }}
@@ -286,13 +286,13 @@ export function EditProjectForm({
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 outline-none font-bold text-slate-800 cursor-pointer focus:bg-white focus:border-blue-500 transition-all"
                     >
                       <option value="">Sélectionner un district</option>
-                      {editProjectData.identity.district && !WILAYAS_ALGERIE.map(w => `${w} District Gaz`).includes(editProjectData.identity.district) && (
+                      {editProjectData.identity.district && !WILAYAS_ALGERIE.map(w => `${w} District`).includes(editProjectData.identity.district) && (
                         <option value={editProjectData.identity.district}>{editProjectData.identity.district}</option>
                       )}
                       {WILAYAS_ALGERIE.map(w => {
-                        const distVal = `${w} District Gaz`;
+                        const distVal = `${w} District`;
                         return (
-                          <option key={distVal} value={distVal}>District Gaz {w}</option>
+                          <option key={distVal} value={distVal}>District {w}</option>
                         );
                       })}
                     </select>

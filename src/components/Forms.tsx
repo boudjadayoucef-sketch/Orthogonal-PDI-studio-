@@ -130,13 +130,13 @@ export default function Forms() {
     bureauEtudes: "EURL ALGERIE ENGINEERING STUDY",
     ouvrage: "Gazoduc 20\" - Extension Zone Nord de Sétif",
     longueur: "18.5 km",
-    commandeNo: "CMD/DETN/042-2026",
+    commandeNo: "CMD/ENG/042-2026",
     obsBureauEtudes: "Le bureau d'études s'engage à lever toutes les réserves signalées sous huitaine et à intégrer les modifications dans le dossier APD.",
     
     // Visite Trace
     visiteStart: "2026-07-01",
     visiteEnd: "2026-07-03",
-    visiteObsRepresentant: "Le représentant de la DCET valide le tracé proposé sous réserve d'éviter la zone boisée proche du PK 8+200 et de respecter un parallélisme de 10m avec la ligne haute tension existante.",
+    visiteObsRepresentant: "Le représentant de l'Ingénierie valide le tracé proposé sous réserve d'éviter la zone boisée proche du PK 8+200 et de respecter un parallélisme de 10m avec la ligne haute tension existante.",
 
     // Approbation Etude Preliminaire
     prelimControle: "Rapport d'avant-projet sommaire",
@@ -178,7 +178,7 @@ export default function Forms() {
     execReserves: "1. Transmettre 3 exemplaires physiques d'exécution tamponnés 'Bon pour Construction'.\n2. Fournir les fichiers d'implantation géospatiale Shapefile (GIS).",
 
     // Dynamically editable content and signatories
-    signLeft: "Visa DCET/DED",
+    signLeft: "Visa Maître d'Ouvrage / Ingénierie",
     signRight: "Visa du Bureau d'études",
     rhIntro: "Nous reconnaissons après avoir vérifié sur site les pièces remises par les représentants du prestataire que les ressources mobilisées sont conformes aux exigences contractuelles.",
     planificationIntro: "L’étude de tracée sera réalisée suivant le planning ci-dessous :"
@@ -186,14 +186,14 @@ export default function Forms() {
 
   // Collecte Information (Télécom) State
   const [telecom, setTelecom] = useState({
-    direction: "DETN - Division Engineering et Travaux Neufs",
-    district: "District Gaz Centre",
+    direction: "Engineering & Construction Department",
+    district: "Regional Operations Center",
     ouvrage: "Liaison Fibre Optique de sécurité pour Gazoduc 28\" Alger-Est",
     maitreOuvrage: "PD&I PIPELINE DESIGN & ISOMETRICS",
     lieuDate: "Alger, le 13/07/2026",
     siteNom: "Poste de Coupure PC 14 - Réseau de sécurité",
     siteAdresse: "Oued Smar, Alger",
-    siteRepresentant: "M. Boudjada Youcef (Chef de Projet DETN)",
+    siteRepresentant: "Project Engineering Manager",
     siteDateVisite: "2026-07-10",
     canalisationType: "Fourreau PEHD pour Fibre Optique adjacent au Gazoduc",
     canalisationMateriau: "Polyéthylène Haute Densité (PEHD)",
@@ -1070,7 +1070,7 @@ export default function Forms() {
                   {renderDottedField("au", etudeOuvrage.visiteEnd, val => setEtudeOuvrage({ ...etudeOuvrage, visiteEnd: val }))}
                 </div>
 
-                {renderDottedTextarea("Observation représentant DCET", etudeOuvrage.visiteObsRepresentant, val => setEtudeOuvrage({ ...etudeOuvrage, visiteObsRepresentant: val }))}
+                {renderDottedTextarea("Observation représentant de l'Ingénierie", etudeOuvrage.visiteObsRepresentant, val => setEtudeOuvrage({ ...etudeOuvrage, visiteObsRepresentant: val }))}
                 {renderDottedTextarea("Observation du bureau d'études", etudeOuvrage.obsBureauEtudes, val => setEtudeOuvrage({ ...etudeOuvrage, obsBureauEtudes: val }))}
 
                 <div className="grid grid-cols-2 gap-4 pt-16 text-center text-xs font-bold text-slate-800 print:pt-8">

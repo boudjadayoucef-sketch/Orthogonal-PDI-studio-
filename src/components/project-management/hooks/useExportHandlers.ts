@@ -705,7 +705,7 @@ export function useExportHandlers(options: UseExportHandlersOptions = {}) {
       const fs = p.ficheSuivi;
       ficheSuiviHtml = `
         <div style="background-color: #fafafa; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; margin-top: 10px;">
-          <h4 style="margin-top: 0; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; color: #1e3a8a; font-size: 10pt; font-weight: bold;">📋 Données Complémentaires de Suivi (DETN)</h4>
+          <h4 style="margin-top: 0; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; color: #1e3a8a; font-size: 10pt; font-weight: bold;">📋 Données Complémentaires de Suivi Technique</h4>
           <table style="width: 100%; border-collapse: collapse;">
             <tr>
               <td style="border: 1px solid #e2e8f0; padding: 5px; font-size: 8.5pt; width: 30%;"><strong style="color: #475569;">Type de Programme :</strong></td>
@@ -1055,7 +1055,7 @@ export function useExportHandlers(options: UseExportHandlersOptions = {}) {
               <p style="margin: 0; font-size: 8.5pt; color: #64748b;">M. ${p.chefDeProjetName || "..................................."}</p>
             </td>
             <td style="border: none; text-align: right; font-size: 9pt; width: 50%;">
-              <p style="margin: 0;"><strong style="color: #475569;">Signature du Chef de Département (DETN) :</strong></p>
+              <p style="margin: 0;"><strong style="color: #475569;">Signature de la Direction / Maître d'Ouvrage :</strong></p>
               <br><br><br>
               <p style="margin: 0; font-size: 8.5pt; color: #64748b;">Pour approbation officielle</p>
             </td>

@@ -187,6 +187,11 @@ export function runArch07IndustrialArchitectureTests(): Arch07TestResult {
       "Réf: SNG/DRTG/DETN/2026/BPU",
       "GRTG-GC-2026-001",
       "الشركة الجزائرية للكهرباء و الغاز",
+      "Direction DETN",
+      "Secteur DRTG",
+      "District Gaz Centre",
+      "Transport du Gaz Alger",
+      "PD&I- Transport",
     ];
 
     for (const ex of forbiddenExamples) {
@@ -216,12 +221,31 @@ export function runArch07IndustrialArchitectureTests(): Arch07TestResult {
     assert(docRef === "GEP/EPC/2026/BOQ/SEC-01", `Référence documentaire attendue GEP/EPC/2026/BOQ/SEC-01, reçu ${docRef}`);
   });
 
-  runTest("TEST 08 [ARCH-07]: Audit Ledger consigne l'ensemble des 6 catégories d'occurrences historiques", () => {
-    assert(ARCH07_CLIENT_NEUTRALITY_AUDIT_LEDGER.length >= 6, "Au moins 6 enregistrements d'audit documentés");
+  runTest("TEST 08 [ARCH-07]: Audit Ledger consigne l'ensemble des catégories d'occurrences historiques avec statuts et raisons", () => {
+    assert(ARCH07_CLIENT_NEUTRALITY_AUDIT_LEDGER.length >= 10, "Au moins 10 enregistrements d'audit documentés");
     const actions = ARCH07_CLIENT_NEUTRALITY_AUDIT_LEDGER.map((r) => r.action);
     assert(actions.includes("A_DELETE"), "Action A_DELETE présente");
     assert(actions.includes("B_CONVERT_TO_CONFIGURABLE_CLIENT_DATA"), "Action B_CONVERT_TO_CONFIGURABLE présente");
     assert(actions.includes("C_KEEP_GENERIC_INDUSTRIAL"), "Action C_KEEP_GENERIC_INDUSTRIAL présente");
+
+    for (const rec of ARCH07_CLIENT_NEUTRALITY_AUDIT_LEDGER) {
+      assert(Boolean(rec.path && rec.path.length > 0), `Record ${rec.recordId} possède un champ path`);
+      assert(Boolean(rec.classification), `Record ${rec.recordId} possède une classification`);
+      assert(rec.status === "DONE" || rec.status === "LOCKED", `Record ${rec.recordId} a le statut DONE ou LOCKED`);
+      assert(Boolean(rec.action), `Record ${rec.recordId} possède une action`);
+      assert(Boolean(rec.reason && rec.reason.length > 0), `Record ${rec.recordId} possède une justification raison`);
+    }
+  });
+
+  runTest("TEST 08b [ARCH-07]: Neutralité client absolue des templates, profils par défaut et bibliothèques", () => {
+    const defaultProfileJson = JSON.stringify(PDI_NEUTRAL_ORGANIZATION_PROFILE);
+    const pCheck = verifyClientNeutralString(defaultProfileJson, "Default Organization Profile");
+    assert(pCheck.isNeutral === true, `Profil par défaut contient des violations: ${pCheck.violations.join(", ")}`);
+
+    const defaultUnitRates = createDefaultIndustrialUnitRateLibrary();
+    const ratesJson = JSON.stringify(defaultUnitRates);
+    const rCheck = verifyClientNeutralString(ratesJson, "Default Unit Rates");
+    assert(rCheck.isNeutral === true, `Bibliothèque de prix par défaut contient des violations: ${rCheck.violations.join(", ")}`);
   });
 
   // =========================================================================
