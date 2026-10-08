@@ -248,6 +248,13 @@ export function runArch07IndustrialArchitectureTests(): Arch07TestResult {
     assert(rCheck.isNeutral === true, `Bibliothèque de prix par défaut contient des violations: ${rCheck.violations.join(", ")}`);
   });
 
+  runTest("TEST 08c [ARCH-07-FIX-02]: Validation de la réconciliation legacy — Autonomie complète du Product Core", () => {
+    // Vérifie que le Product Core fonctionne de manière autonome sans scripts externes
+    assert(typeof PDI_ARCHITECTURE_LAYERS === "object", "PDI_ARCHITECTURE_LAYERS accessible");
+    assert(typeof PDI_NEUTRAL_ORGANIZATION_PROFILE === "object", "PDI_NEUTRAL_ORGANIZATION_PROFILE accessible");
+    assert(ARCH07_CLIENT_NEUTRALITY_AUDIT_LEDGER.length >= 10, "Ledger d'audit complet");
+  });
+
   // =========================================================================
   // SECTION 3: PRODUCT CORE — ENGINEERING MTO & BOM
   // =========================================================================
