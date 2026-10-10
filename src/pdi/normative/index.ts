@@ -163,3 +163,4 @@ export * from "./tests/arch06ComponentSelectionCompatibilityTests";
 export * from "./tests/arch07IndustrialArchitectureTests";
 export * from "./tests/arch08MultiDomainArchitectureTests";
 export * from "./tests/arch09MultiCodeResolverTests";
+export * from "./tests/arch10PipelineEngineeringModelTests";

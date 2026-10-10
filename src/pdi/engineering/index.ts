@@ -9,6 +9,7 @@
 // 1. Types & contrats de domaine et capacités
 export * from "./types/engineeringDomainTypes";
 export * from "./types/engineeringEntityTypes";
+export * from "./types/pipelineEngineeringModelTypes";
 
 // 2. Descripteurs de domaines
 export * from "./domains/pipingDomain";
@@ -21,3 +22,7 @@ export * from "./registry/engineeringDomainRegistry";
 
 // 4. Contexte & Validateurs de frontières
 export * from "./context/engineeringContext";
+
+// 5. Modèle métier Pipeline & Validateur (ARCH-10)
+export * from "./model/pipelineEngineeringModel";
+export * from "./validators/pipelineEngineeringModelValidator";
