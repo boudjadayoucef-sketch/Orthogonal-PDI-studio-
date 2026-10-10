@@ -309,7 +309,34 @@ export function validatePipelineServiceFluidDeclaration(
     );
   }
 
-  if (rawService.hydrogenMoleFractionPercent !== undefined) {
+  if (rawService.fluidCategory === "NATURAL_GAS_HYDROGEN_BLEND") {
+    const h2 = rawService.hydrogenMoleFractionPercent;
+    if (h2 === undefined) {
+      pushError(
+        errors,
+        "INVALID_HYDROGEN_BLEND_FRACTION",
+        `${path}.hydrogenMoleFractionPercent`,
+        "Pour un mélange NATURAL_GAS_HYDROGEN_BLEND, hydrogenMoleFractionPercent est obligatoire et doit appartenir à ]0, 100[.",
+        entityId
+      );
+    } else if (typeof h2 !== "number" || !Number.isFinite(h2)) {
+      pushError(
+        errors,
+        "NON_FINITE_NUMERIC_VALUE",
+        `${path}.hydrogenMoleFractionPercent`,
+        "hydrogenMoleFractionPercent doit être un nombre fini.",
+        entityId
+      );
+    } else if (h2 <= 0 || h2 >= 100) {
+      pushError(
+        errors,
+        "INVALID_HYDROGEN_BLEND_FRACTION",
+        `${path}.hydrogenMoleFractionPercent`,
+        `Pour un mélange NATURAL_GAS_HYDROGEN_BLEND, hydrogenMoleFractionPercent doit appartenir à ]0, 100[ (reçu: ${h2}).`,
+        entityId
+      );
+    }
+  } else if (rawService.hydrogenMoleFractionPercent !== undefined) {
     const h2 = rawService.hydrogenMoleFractionPercent;
     if (typeof h2 !== "number" || !Number.isFinite(h2)) {
       pushError(
@@ -327,23 +354,28 @@ export function validatePipelineServiceFluidDeclaration(
         `hydrogenMoleFractionPercent doit être compris entre 0 et 100 (reçu: ${h2}).`,
         entityId
       );
+    } else if (rawService.fluidCategory === "HYDROGEN" && h2 < 100) {
+      pushError(
+        errors,
+        "INVALID_HYDROGEN_BLEND_FRACTION",
+        `${path}.hydrogenMoleFractionPercent`,
+        `Un fluide déclaré HYDROGEN pur ne peut pas déclarer hydrogenMoleFractionPercent < 100 (reçu: ${h2}). Pour un mélange, utiliser NATURAL_GAS_HYDROGEN_BLEND ou OTHER.`,
+        entityId
+      );
     } else if (
-      rawService.fluidCategory === "NATURAL_GAS_HYDROGEN_BLEND" &&
-      (h2 <= 0 || h2 >= 100)
+      (rawService.fluidCategory === "NATURAL_GAS" ||
+        rawService.fluidCategory === "LIQUID_HYDROCARBON" ||
+        rawService.fluidCategory === "WATER" ||
+        rawService.fluidCategory === "CO2") &&
+      h2 > 0
     ) {
       pushError(
         errors,
         "INVALID_HYDROGEN_BLEND_FRACTION",
         `${path}.hydrogenMoleFractionPercent`,
-        `Pour un mélange NATURAL_GAS_HYDROGEN_BLEND, hydrogenMoleFractionPercent doit appartenir à ]0, 100[ (reçu: ${h2}).`,
-        entityId
-      );
-    } else if (rawService.fluidCategory === "NATURAL_GAS" && h2 > 0) {
-      pushError(
-        errors,
-        "INVALID_HYDROGEN_BLEND_FRACTION",
-        `${path}.hydrogenMoleFractionPercent`,
-        "Un fluide déclaré NATURAL_GAS pur ne peut pas déclarer une fraction d'hydrogène > 0 (utiliser NATURAL_GAS_HYDROGEN_BLEND).",
+        `Un fluide déclaré ${String(
+          rawService.fluidCategory
+        )} ne peut pas déclarer une fraction d'hydrogène > 0 (reçu: ${h2}).`,
         entityId
       );
     }
@@ -583,6 +615,22 @@ function validatePipelineNodeInternal(
         "connectedSegmentIds doit être un tableau d'identifiants de tronçons non vides.",
         nodeId
       );
+    } else {
+      const seenSegRefs = new Set<string>();
+      for (let idx = 0; idx < rawNode.connectedSegmentIds.length; idx++) {
+        const trimmedRef = rawNode.connectedSegmentIds[idx].trim();
+        if (seenSegRefs.has(trimmedRef)) {
+          pushError(
+            errors,
+            "NODE_SEGMENT_INCIDENCE_MISMATCH",
+            `${path}.connectedSegmentIds[${idx}]`,
+            `Le nœud '${nodeId ?? "?"}' contient une référence dupliquée au tronçon '${trimmedRef}' dans connectedSegmentIds.`,
+            nodeId
+          );
+        } else {
+          seenSegRefs.add(trimmedRef);
+        }
+      }
     }
   }
 

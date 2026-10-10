@@ -908,6 +908,329 @@ export function runArch10PipelineEngineeringModelTests(): Arch10TestResult {
     assert(boundaryCheck.valid === true, "L'entité universelle enrichie respecte la frontière de domaine PIPELINE");
   });
 
+  // =========================================================================
+  // TEST 16 : [FIX-01] IMMUTABILITÉ PROFONDE DE createPipelineSystem()
+  // =========================================================================
+  runTest("TEST 16 [ARCH-10-FIX-01 / FIX-01]: Immutabilité profonde de createPipelineSystem() vis-à-vis des objets enfants et structures imbriquées", () => {
+    const rawConnectedSegments = ["SEG-IMM-01"];
+    const rawNodeDocs = ["DOC-NODE-01"];
+    const rawNodeCoords = { x: 10, y: 20, z: 5, elevation: 5, unit: "m" as const };
+    const rawNodeStation = { value: 0, unit: "km" as const };
+
+    const mutableNode1: PipelineNode = {
+      id: "N-IMM-1",
+      systemId: "SYS-IMM",
+      name: "Mutable Node 1",
+      kind: "TERMINAL_INLET",
+      connectedSegmentIds: rawConnectedSegments,
+      stationPoint: rawNodeStation,
+      coordinates: rawNodeCoords,
+      traceabilityRefs: {
+        sourceDocumentIds: rawNodeDocs,
+      },
+    };
+
+    const mutableNode2: PipelineNode = {
+      id: "N-IMM-2",
+      systemId: "SYS-IMM",
+      name: "Mutable Node 2",
+      kind: "TERMINAL_OUTLET",
+    };
+
+    const rawSegLength = { value: 1200, unit: "m" as const };
+    const rawOuterDiameter = { value: 406.4, unit: "mm" as const };
+    const rawWallThickness = { value: 9.5, unit: "mm" as const };
+    const rawSegDims = {
+      outerDiameter: rawOuterDiameter,
+      wallThickness: rawWallThickness,
+      schedule: "STD",
+    };
+    const rawSegMaterial = {
+      materialId: "MAT-X60",
+      standardCode: "API-5L",
+      grade: "X60",
+    };
+    const rawSegPressure = { value: 70, unit: "bar" as const };
+    const rawSegService = {
+      fluidCategory: "NATURAL_GAS" as const,
+      designPressure: rawSegPressure,
+    };
+    const rawDomainAttrs = {
+      kilometerPointStart: 0,
+      kilometerPointEnd: 1.2,
+      classLocation: 1 as const,
+    };
+    const rawSegDocs = ["DOC-SEG-01"];
+
+    const mutableSeg1: PipelineSegment = {
+      id: "SEG-IMM-01",
+      systemId: "SYS-IMM",
+      name: "Mutable Segment 1",
+      startNodeId: "N-IMM-1",
+      endNodeId: "N-IMM-2",
+      length: rawSegLength,
+      dimensions: rawSegDims,
+      material: rawSegMaterial,
+      service: rawSegService,
+      domainAttributes: rawDomainAttrs,
+      traceabilityRefs: {
+        sourceDocumentIds: rawSegDocs,
+      },
+    };
+
+    const rawNodesArray = [mutableNode1, mutableNode2];
+    const rawSegmentsArray = [mutableSeg1];
+    const rawSysPressure = { value: 80, unit: "bar" as const };
+    const rawSysDocs = ["DOC-SYS-01"];
+
+    const inputSnapshotBefore = JSON.stringify({
+      nodes: rawNodesArray,
+      segments: rawSegmentsArray,
+      sysPressure: rawSysPressure,
+      sysDocs: rawSysDocs,
+    });
+
+    const builtSystem = createPipelineSystem({
+      id: "SYS-IMM",
+      name: "Immutable System Test",
+      service: {
+        fluidCategory: "NATURAL_GAS",
+        designPressure: rawSysPressure,
+      },
+      nodes: rawNodesArray,
+      segments: rawSegmentsArray,
+      traceabilityRefs: {
+        sourceDocumentIds: rawSysDocs,
+      },
+    });
+
+    // 1. Vérifier que createPipelineSystem n'a pas muté ni gelé les objets d'entrée
+    const inputSnapshotAfterBuild = JSON.stringify({
+      nodes: rawNodesArray,
+      segments: rawSegmentsArray,
+      sysPressure: rawSysPressure,
+      sysDocs: rawSysDocs,
+    });
+    assert(
+      inputSnapshotBefore === inputSnapshotAfterBuild,
+      "createPipelineSystem ne doit pas modifier les objets d'entrée"
+    );
+    assert(!Object.isFrozen(mutableNode1), "L'objet d'entrée mutableNode1 ne doit pas être gelé sur place");
+    assert(!Object.isFrozen(mutableSeg1), "L'objet d'entrée mutableSeg1 ne doit pas être gelé sur place");
+
+    // 2. Modifier agressivement tous les objets et tableaux d'origine après construction
+    (mutableNode1 as { name: string }).name = "CORRUPTED NODE NAME";
+    rawConnectedSegments.push("SEG-CORRUPTED");
+    rawNodeDocs.push("DOC-CORRUPTED");
+    rawNodeCoords.x = 999999;
+    rawNodeStation.value = 999;
+    rawNodesArray.pop();
+
+    (mutableSeg1 as { name: string }).name = "CORRUPTED SEGMENT NAME";
+    rawSegLength.value = -500;
+    rawOuterDiameter.value = 9999;
+    rawSegDims.schedule = "XXS-CORRUPTED";
+    rawSegMaterial.grade = "CORRUPTED-GRADE";
+    rawSegPressure.value = 9999;
+    rawDomainAttrs.kilometerPointEnd = 9999;
+    rawSegDocs.push("DOC-SEG-CORRUPTED");
+    rawSegmentsArray.pop();
+
+    rawSysPressure.value = 9999;
+    rawSysDocs.push("DOC-SYS-CORRUPTED");
+
+    // 3. Prouver que le système construit est intégralement intact
+    assert(builtSystem.nodes.length === 2, "Le tableau nodes du système construit reste à 2 éléments");
+    assert(builtSystem.nodes[0] !== mutableNode1, "Le nœud stocké est un clone distinct de l'entrée");
+    assert(builtSystem.nodes[0].name === "Mutable Node 1", "Le nom du nœud construit n'est pas affecté");
+    assert(
+      builtSystem.nodes[0].connectedSegmentIds?.length === 1 &&
+        builtSystem.nodes[0].connectedSegmentIds[0] === "SEG-IMM-01",
+      "connectedSegmentIds du nœud construit n'est pas affecté"
+    );
+    assert(builtSystem.nodes[0].coordinates?.x === 10, "coordinates.x du nœud construit n'est pas affecté");
+    assert(builtSystem.nodes[0].stationPoint?.value === 0, "stationPoint du nœud construit n'est pas affecté");
+    assert(
+      builtSystem.nodes[0].traceabilityRefs?.sourceDocumentIds?.length === 1,
+      "sourceDocumentIds du nœud construit n'est pas affecté"
+    );
+
+    assert(builtSystem.segments.length === 1, "Le tableau segments du système construit reste à 1 élément");
+    assert(builtSystem.segments[0] !== mutableSeg1, "Le tronçon stocké est un clone distinct de l'entrée");
+    assert(builtSystem.segments[0].name === "Mutable Segment 1", "Le nom du tronçon construit n'est pas affecté");
+    assert(builtSystem.segments[0].length?.value === 1200, "length.value du tronçon construit n'est pas affecté");
+    assert(
+      builtSystem.segments[0].dimensions?.outerDiameter?.value === 406.4,
+      "outerDiameter.value du tronçon construit n'est pas affecté"
+    );
+    assert(
+      builtSystem.segments[0].dimensions?.schedule === "STD",
+      "dimensions.schedule du tronçon construit n'est pas affecté"
+    );
+    assert(builtSystem.segments[0].material?.grade === "X60", "material.grade du tronçon construit n'est pas affecté");
+    assert(
+      builtSystem.segments[0].service?.designPressure?.value === 70,
+      "service.designPressure du tronçon construit n'est pas affecté"
+    );
+    assert(
+      builtSystem.segments[0].domainAttributes?.kilometerPointEnd === 1.2,
+      "domainAttributes.kilometerPointEnd du tronçon construit n'est pas affecté"
+    );
+    assert(
+      builtSystem.segments[0].traceabilityRefs?.sourceDocumentIds?.length === 1,
+      "traceabilityRefs.sourceDocumentIds du tronçon construit n'est pas affecté"
+    );
+    assert(builtSystem.service?.designPressure?.value === 80, "service.designPressure du système n'est pas affecté");
+    assert(
+      builtSystem.traceabilityRefs?.sourceDocumentIds?.length === 1,
+      "traceabilityRefs.sourceDocumentIds du système n'est pas affecté"
+    );
+
+    // 4. Vérifier que toutes les structures retournées sont gelées (Object.isFrozen) contre les mutations directes
+    assert(Object.isFrozen(builtSystem), "builtSystem gelé");
+    assert(Object.isFrozen(builtSystem.nodes), "builtSystem.nodes gelé");
+    assert(Object.isFrozen(builtSystem.nodes[0]), "builtSystem.nodes[0] gelé");
+    assert(Object.isFrozen(builtSystem.nodes[0].connectedSegmentIds), "connectedSegmentIds gelé");
+    assert(Object.isFrozen(builtSystem.nodes[0].coordinates), "coordinates gelé");
+    assert(Object.isFrozen(builtSystem.nodes[0].stationPoint), "stationPoint gelé");
+    assert(Object.isFrozen(builtSystem.nodes[0].traceabilityRefs), "node.traceabilityRefs gelé");
+    assert(
+      Object.isFrozen(builtSystem.nodes[0].traceabilityRefs?.sourceDocumentIds),
+      "node.traceabilityRefs.sourceDocumentIds gelé"
+    );
+    assert(Object.isFrozen(builtSystem.segments), "builtSystem.segments gelé");
+    assert(Object.isFrozen(builtSystem.segments[0]), "builtSystem.segments[0] gelé");
+    assert(Object.isFrozen(builtSystem.segments[0].length), "segment.length gelé");
+    assert(Object.isFrozen(builtSystem.segments[0].dimensions), "segment.dimensions gelé");
+    assert(Object.isFrozen(builtSystem.segments[0].dimensions?.outerDiameter), "outerDiameter gelé");
+    assert(Object.isFrozen(builtSystem.segments[0].material), "segment.material gelé");
+    assert(Object.isFrozen(builtSystem.segments[0].service), "segment.service gelé");
+    assert(Object.isFrozen(builtSystem.segments[0].service?.designPressure), "segment.service.designPressure gelé");
+    assert(Object.isFrozen(builtSystem.segments[0].domainAttributes), "segment.domainAttributes gelé");
+    assert(Object.isFrozen(builtSystem.segments[0].traceabilityRefs), "segment.traceabilityRefs gelé");
+    assert(
+      Object.isFrozen(builtSystem.segments[0].traceabilityRefs?.sourceDocumentIds),
+      "segment.traceabilityRefs.sourceDocumentIds gelé"
+    );
+  });
+
+  // =========================================================================
+  // TEST 17 : [FIX-02 & FIX-03] COHÉRENCE STRICTE DES DÉCLARATIONS DE FLUIDES ET DOUBLONS connectedSegmentIds
+  // =========================================================================
+  runTest("TEST 17 [ARCH-10-FIX-01 / FIX-02 & FIX-03]: Cohérence stricte fluidCategory vs hydrogenMoleFractionPercent et rejet des doublons dans connectedSegmentIds", () => {
+    const sysId = "SYS-FIX02-03";
+
+    // 1. NATURAL_GAS_HYDROGEN_BLEND sans hydrogenMoleFractionPercent -> REJET
+    const blendMissingFractionSeg = createPipelineSegment({
+      id: "S-BLEND-MISSING-H2",
+      systemId: sysId,
+      name: "Blend Missing H2 Fraction",
+      startNodeId: "N1",
+      endNodeId: "N2",
+      service: {
+        fluidCategory: "NATURAL_GAS_HYDROGEN_BLEND",
+      },
+    });
+    const errBlendMissing = validatePipelineSegment(blendMissingFractionSeg, sysId);
+    assert(
+      errBlendMissing.some((e) => e.code === "INVALID_HYDROGEN_BLEND_FRACTION"),
+      "NATURAL_GAS_HYDROGEN_BLEND sans hydrogenMoleFractionPercent doit être rejeté"
+    );
+
+    // 2. HYDROGEN avec hydrogenMoleFractionPercent < 100 (ex: 20%) -> REJET
+    const h2WithLowFractionSeg = createPipelineSegment({
+      id: "S-H2-LOW-FRAC",
+      systemId: sysId,
+      name: "Hydrogen With 20% Fraction",
+      startNodeId: "N1",
+      endNodeId: "N2",
+      service: {
+        fluidCategory: "HYDROGEN",
+        hydrogenMoleFractionPercent: 20,
+      },
+    });
+    const errH2Low = validatePipelineSegment(h2WithLowFractionSeg, sysId);
+    assert(
+      errH2Low.some((e) => e.code === "INVALID_HYDROGEN_BLEND_FRACTION"),
+      "HYDROGEN avec hydrogenMoleFractionPercent < 100 doit être rejeté"
+    );
+
+    // 3. HYDROGEN avec hydrogenMoleFractionPercent === 100 ou omis -> VALIDE
+    const h2ValidSeg = createPipelineSegment({
+      id: "S-H2-VALID",
+      systemId: sysId,
+      name: "Pure Hydrogen Valid",
+      startNodeId: "N1",
+      endNodeId: "N2",
+      service: {
+        fluidCategory: "HYDROGEN",
+        hydrogenMoleFractionPercent: 100,
+      },
+    });
+    assert(validatePipelineSegment(h2ValidSeg, sysId).length === 0, "HYDROGEN avec 100% H2 est valide");
+
+    // 4. LIQUID_HYDROCARBON, WATER, CO2 avec hydrogenMoleFractionPercent > 0 -> REJET
+    for (const nonH2Category of ["LIQUID_HYDROCARBON", "WATER", "CO2"] as const) {
+      const badNonH2Seg = createPipelineSegment({
+        id: `S-BAD-${nonH2Category}`,
+        systemId: sysId,
+        name: `Bad ${nonH2Category} With H2`,
+        startNodeId: "N1",
+        endNodeId: "N2",
+        service: {
+          fluidCategory: nonH2Category,
+          hydrogenMoleFractionPercent: 5,
+        },
+      });
+      const errs = validatePipelineSegment(badNonH2Seg, sysId);
+      assert(
+        errs.some((e) => e.code === "INVALID_HYDROGEN_BLEND_FRACTION"),
+        `${nonH2Category} avec hydrogenMoleFractionPercent > 0 doit être rejeté`
+      );
+    }
+
+    // 5. [FIX-03] Nœud avec connectedSegmentIds contenant des doublons ["S1", "S1"] -> REJET
+    const nodeWithDupSegRefs = createPipelineNode({
+      id: "N1",
+      systemId: sysId,
+      name: "Node With Duplicate Segment Refs",
+      connectedSegmentIds: ["S1", "S1"],
+    });
+    const nodeDupErrs = validatePipelineNode(nodeWithDupSegRefs, sysId);
+    assert(
+      nodeDupErrs.some(
+        (e) => e.code === "NODE_SEGMENT_INCIDENCE_MISMATCH" && e.entityId === "N1"
+      ),
+      "validatePipelineNode doit rejeter les doublons dans connectedSegmentIds"
+    );
+
+    const sysWithDupNodeSegRefs = createPipelineSystem({
+      id: sysId,
+      name: "System With Duplicate Node ConnectedSegmentIds",
+      nodes: [
+        nodeWithDupSegRefs,
+        createPipelineNode({ id: "N2", systemId: sysId, name: "Node 2", connectedSegmentIds: ["S1"] }),
+      ],
+      segments: [
+        createPipelineSegment({
+          id: "S1",
+          systemId: sysId,
+          name: "Segment 1",
+          startNodeId: "N1",
+          endNodeId: "N2",
+        }),
+      ],
+    });
+    const sysRes = validatePipelineSystem(sysWithDupNodeSegRefs);
+    assert(sysRes.valid === false, "Le système contenant des doublons dans connectedSegmentIds doit être invalide");
+    assert(
+      sysRes.errors.some(
+        (e) => e.code === "NODE_SEGMENT_INCIDENCE_MISMATCH" && e.entityId === "N1"
+      ),
+      "validatePipelineSystem doit signaler NODE_SEGMENT_INCIDENCE_MISMATCH sur N1"
+    );
+  });
+
   return Object.freeze({
     success: testsFailed === 0,
     testsRun,

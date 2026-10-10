@@ -45,7 +45,53 @@ export interface CreatePipelineNodeInput {
 }
 
 /**
- * Construit un `PipelineNode` immuable sans inventer de valeurs par défaut.
+ * Clone et gèle profondément une référence de traçabilité `PipelineTraceabilityRefs`
+ * sans jamais muter l'objet source.
+ */
+function cloneAndFreezeTraceabilityRefs(
+  refs: PipelineTraceabilityRefs | undefined
+): PipelineTraceabilityRefs | undefined {
+  if (!refs) return undefined;
+  return Object.freeze({
+    ...refs,
+    sourceDocumentIds: refs.sourceDocumentIds
+      ? Object.freeze(refs.sourceDocumentIds.map((id) => id.trim()))
+      : undefined,
+    evidenceIds: refs.evidenceIds
+      ? Object.freeze(refs.evidenceIds.map((id) => id.trim()))
+      : undefined,
+  });
+}
+
+/**
+ * Clone et gèle profondément une déclaration de fluide / service
+ * sans jamais muter l'objet source.
+ */
+function cloneAndFreezeServiceDeclaration(
+  service: Omit<PipelineServiceFluidDeclaration, "verificationState"> | PipelineServiceFluidDeclaration | undefined
+): PipelineServiceFluidDeclaration | undefined {
+  if (!service) return undefined;
+  return Object.freeze({
+    ...service,
+    designPressure: service.designPressure
+      ? Object.freeze({ ...service.designPressure })
+      : undefined,
+    operatingPressure: service.operatingPressure
+      ? Object.freeze({ ...service.operatingPressure })
+      : undefined,
+    designTemperature: service.designTemperature
+      ? Object.freeze({ ...service.designTemperature })
+      : undefined,
+    operatingTemperature: service.operatingTemperature
+      ? Object.freeze({ ...service.operatingTemperature })
+      : undefined,
+    verificationState: "DECLARED_UNVERIFIED" as const,
+  });
+}
+
+/**
+ * Construit un `PipelineNode` immuable sans inventer de valeurs par défaut
+ * et sans conserver aucune référence mutable vers l'entrée.
  */
 export function createPipelineNode(input: CreatePipelineNodeInput): PipelineNode {
   return Object.freeze({
@@ -63,17 +109,7 @@ export function createPipelineNode(input: CreatePipelineNodeInput): PipelineNode
       ? Object.freeze({ ...input.coordinates })
       : undefined,
     universalEntityId: input.universalEntityId?.trim(),
-    traceabilityRefs: input.traceabilityRefs
-      ? Object.freeze({
-          ...input.traceabilityRefs,
-          sourceDocumentIds: input.traceabilityRefs.sourceDocumentIds
-            ? Object.freeze([...input.traceabilityRefs.sourceDocumentIds])
-            : undefined,
-          evidenceIds: input.traceabilityRefs.evidenceIds
-            ? Object.freeze([...input.traceabilityRefs.evidenceIds])
-            : undefined,
-        })
-      : undefined,
+    traceabilityRefs: cloneAndFreezeTraceabilityRefs(input.traceabilityRefs),
   });
 }
 
@@ -97,7 +133,7 @@ export interface CreatePipelineSegmentInput {
 }
 
 /**
- * Construit un `PipelineSegment` immuable.
+ * Construit un `PipelineSegment` immuable sans conserver aucune référence mutable vers l'entrée.
  * Garantit que le matériau et le fluide déclarés conservent leur statut non qualifié / non vérifié.
  */
 export function createPipelineSegment(input: CreatePipelineSegmentInput): PipelineSegment {
@@ -127,24 +163,7 @@ export function createPipelineSegment(input: CreatePipelineSegmentInput): Pipeli
       })
     : undefined;
 
-  const frozenService: PipelineServiceFluidDeclaration | undefined = input.service
-    ? Object.freeze({
-        ...input.service,
-        designPressure: input.service.designPressure
-          ? Object.freeze({ ...input.service.designPressure })
-          : undefined,
-        operatingPressure: input.service.operatingPressure
-          ? Object.freeze({ ...input.service.operatingPressure })
-          : undefined,
-        designTemperature: input.service.designTemperature
-          ? Object.freeze({ ...input.service.designTemperature })
-          : undefined,
-        operatingTemperature: input.service.operatingTemperature
-          ? Object.freeze({ ...input.service.operatingTemperature })
-          : undefined,
-        verificationState: "DECLARED_UNVERIFIED" as const,
-      })
-    : undefined;
+  const frozenService = cloneAndFreezeServiceDeclaration(input.service);
 
   return Object.freeze({
     id: input.id.trim(),
@@ -161,17 +180,7 @@ export function createPipelineSegment(input: CreatePipelineSegmentInput): Pipeli
       ? Object.freeze({ ...input.domainAttributes })
       : undefined,
     universalEntityId: input.universalEntityId?.trim(),
-    traceabilityRefs: input.traceabilityRefs
-      ? Object.freeze({
-          ...input.traceabilityRefs,
-          sourceDocumentIds: input.traceabilityRefs.sourceDocumentIds
-            ? Object.freeze([...input.traceabilityRefs.sourceDocumentIds])
-            : undefined,
-          evidenceIds: input.traceabilityRefs.evidenceIds
-            ? Object.freeze([...input.traceabilityRefs.evidenceIds])
-            : undefined,
-        })
-      : undefined,
+    traceabilityRefs: cloneAndFreezeTraceabilityRefs(input.traceabilityRefs),
   });
 }
 
@@ -188,27 +197,19 @@ export interface CreatePipelineSystemInput {
 
 /**
  * Construit un `PipelineSystem` immuable rattaché au domaine `"PIPELINE"`.
- * Ne déduit jamais le fluide à partir de `name` ou `description`.
+ * - Copie et gèle profondément chaque nœud, tronçon, tableau et sous-structure imbriquée
+ *   afin de ne conserver aucune référence mutable vers les objets enfants fournis en entrée.
+ * - Ne mute jamais les objets fournis en entrée.
+ * - Ne déduit jamais le fluide à partir de `name` ou `description`.
  */
 export function createPipelineSystem(input: CreatePipelineSystemInput): PipelineSystem {
-  const frozenService: PipelineServiceFluidDeclaration | undefined = input.service
-    ? Object.freeze({
-        ...input.service,
-        designPressure: input.service.designPressure
-          ? Object.freeze({ ...input.service.designPressure })
-          : undefined,
-        operatingPressure: input.service.operatingPressure
-          ? Object.freeze({ ...input.service.operatingPressure })
-          : undefined,
-        designTemperature: input.service.designTemperature
-          ? Object.freeze({ ...input.service.designTemperature })
-          : undefined,
-        operatingTemperature: input.service.operatingTemperature
-          ? Object.freeze({ ...input.service.operatingTemperature })
-          : undefined,
-        verificationState: "DECLARED_UNVERIFIED" as const,
-      })
-    : undefined;
+  const frozenService = cloneAndFreezeServiceDeclaration(input.service);
+  const frozenNodes: readonly PipelineNode[] = Object.freeze(
+    input.nodes.map((node) => createPipelineNode(node))
+  );
+  const frozenSegments: readonly PipelineSegment[] = Object.freeze(
+    input.segments.map((segment) => createPipelineSegment(segment))
+  );
 
   return Object.freeze({
     id: input.id.trim(),
@@ -217,19 +218,9 @@ export function createPipelineSystem(input: CreatePipelineSystemInput): Pipeline
     projectId: input.projectId?.trim(),
     description: input.description,
     service: frozenService,
-    nodes: Object.freeze([...input.nodes]),
-    segments: Object.freeze([...input.segments]),
-    traceabilityRefs: input.traceabilityRefs
-      ? Object.freeze({
-          ...input.traceabilityRefs,
-          sourceDocumentIds: input.traceabilityRefs.sourceDocumentIds
-            ? Object.freeze([...input.traceabilityRefs.sourceDocumentIds])
-            : undefined,
-          evidenceIds: input.traceabilityRefs.evidenceIds
-            ? Object.freeze([...input.traceabilityRefs.evidenceIds])
-            : undefined,
-        })
-      : undefined,
+    nodes: frozenNodes,
+    segments: frozenSegments,
+    traceabilityRefs: cloneAndFreezeTraceabilityRefs(input.traceabilityRefs),
     structuralValidationState: "UNVALIDATED" as const,
   });
 }

@@ -64,12 +64,12 @@ Représente un point de connexion du réseau (`TERMINAL_INLET`, `TERMINAL_OUTLET
 - `coordinates?: PipelineNodeCoordinates` : coordonnées spatiales locales optionnelles (`x`, `y`, `z?`, `elevation?`, `unit`).
 
 ### 2.4 Service et Fluide (`PipelineServiceFluidDeclaration`)
-Catégories strictement distinguées :
-- `"NATURAL_GAS"` (Gaz naturel)
-- `"HYDROGEN"` (Hydrogène)
-- `"NATURAL_GAS_HYDROGEN_BLEND"` (Mélange GN/H₂ avec `hydrogenMoleFractionPercent` dans `]0, 100[`)
-- `"LIQUID_HYDROCARBON"` (Hydrocarbures liquides)
-- `"MULTIPHASE"`, `"WATER"`, `"CO2"`, `"OTHER"`.
+Catégories strictement distinguées et contrôlées en cohérence avec `hydrogenMoleFractionPercent` :
+- `"NATURAL_GAS"` (Gaz naturel : `hydrogenMoleFractionPercent` omis ou `=== 0` ; toute valeur `> 0` est rejetée).
+- `"HYDROGEN"` (Hydrogène pur : `hydrogenMoleFractionPercent` omis ou `=== 100` ; toute valeur `< 100` est rejetée).
+- `"NATURAL_GAS_HYDROGEN_BLEND"` (Mélange GN/H₂ : `hydrogenMoleFractionPercent` **obligatoire** et appartenant strictement à `]0, 100[`).
+- `"LIQUID_HYDROCARBON"`, `"WATER"`, `"CO2"` (`hydrogenMoleFractionPercent` omis ou `=== 0` ; toute valeur `> 0` est rejetée).
+- `"MULTIPHASE"`, `"OTHER"` (`hydrogenMoleFractionPercent` optionnel dans `[0, 100]`).
 
 ---
 
@@ -86,7 +86,7 @@ Le validateur `validatePipelineSystem` (`src/pdi/engineering/validators/pipeline
 4. **Intégrité référentielle nœuds ↔ tronçons** :
    - Rejette tout tronçon référençant un `startNodeId` inexistant (`SEGMENT_REFERENCES_UNKNOWN_START_NODE`) ou un `endNodeId` inexistant (`SEGMENT_REFERENCES_UNKNOWN_END_NODE`).
    - Rejette tout tronçon auto-bouclé sur un même nœud (`startNodeId === endNodeId` → `SEGMENT_SELF_LOOP_NOT_ALLOWED`).
-   - Rejette tout nœud dont `connectedSegmentIds` référence un tronçon inexistant (`NODE_REFERENCES_UNKNOWN_SEGMENT`) ou présente une incohérence d'incidence avec les tronçons connectés (`NODE_SEGMENT_INCIDENCE_MISMATCH`).
+   - Rejette tout nœud dont `connectedSegmentIds` référence un tronçon inexistant (`NODE_REFERENCES_UNKNOWN_SEGMENT`), contient des références de tronçons dupliquées, ou présente une incohérence d'incidence avec les tronçons connectés (`NODE_SEGMENT_INCIDENCE_MISMATCH`).
 5. **Contrôle des grandeurs physiques et unités explicites** :
    - Rejette toute valeur non finie (`NaN`, `Infinity`, `-Infinity` → `NON_FINITE_NUMERIC_VALUE`).
    - Rejette toute longueur de tronçon `<= 0` (`NEGATIVE_OR_ZERO_SEGMENT_LENGTH`).
@@ -130,7 +130,7 @@ Le validateur `validatePipelineSystem` (`src/pdi/engineering/validators/pipeline
 
 ## 6. TESTS ET RÉSULTATS
 
-La suite `src/pdi/normative/tests/arch10PipelineEngineeringModelTests.spec.ts` couvre 15 scénarios :
+La suite `src/pdi/normative/tests/arch10PipelineEngineeringModelTests.spec.ts` couvre 17 scénarios :
 
 | ID Test | Scénario vérifié |
 | :--- | :--- |
@@ -149,6 +149,8 @@ La suite `src/pdi/normative/tests/arch10PipelineEngineeringModelTests.spec.ts` c
 | **TEST 13** | Vérification qu'aucun calcul `ASME-B31.8`, `ASME-B31.12`, `ASME-B31.4` ou `ISO-13623` n'est déclaré disponible (`NOT_IMPLEMENTED`). |
 | **TEST 14** | Rejet des champs commerciaux (`unitPrice`, `currencyCode`) et des identités de clients historiques dans le modèle Pipeline. |
 | **TEST 15** | Projection non destructive vers `PdiUniversalEntity` et maintien de l'interdiction de `PipelineUniversalEntity`. |
+| **TEST 16** | **[ARCH-10-FIX-01 / FIX-01]** Immutabilité profonde de `createPipelineSystem()` (clonage et gel profond des nœuds, tronçons et sous-structures sans muter les entrées). |
+| **TEST 17** | **[ARCH-10-FIX-01 / FIX-02 & FIX-03]** Cohérence stricte `fluidCategory` vs `hydrogenMoleFractionPercent` et rejet des doublons dans `connectedSegmentIds`. |
 
 ---
 
