@@ -49,6 +49,7 @@ import { PDI_ONGLETS_RUBAN_017M, PDI_INVITE_COMMANDE_017M, pdiGroupesOnglet017M,
 import { PDI_CLASSES_B165_017K3, PDI_DESIGNATIONS_PN_017K3, PDI_CLASSE_PAR_DEFAUT_017K3, pdiClasseDeSpec017K3, pdiMateriauDeSpec017K3, pdiClasseConforme017K3, pdiMessageDerogation017K3 } from "./pdiClassePression017K3";
 import { defaultIsometricNormativeBridge } from "../../normative/integration/isometricNormativeBridge";
 import type { PdiEntreeRuban017M } from "./pdiRegistreCommandes.v1";
+import { isoState } from "../core/isoProjectionState";
 import { pdiSignExportData } from "../../core/pdiWatermark";
 import { useIsoInjection } from "./useIsoInjection";
 import { IsoPrintModal } from "../../impression/IsoPrintModal";
@@ -274,10 +275,6 @@ export {
 type IsoDrawMode = "select" | "node" | "segment" | "coude" | "te" | "dimension";
 
 
-let globalCurrentViewMode = "iso";
-let globalCurrentYaw = -Math.PI / 4;
-let globalCurrentPitch = Math.PI / 6;
-let globalModelCenter = { x: 0, y: 0, z: 0 };
 
 const getInitialYawPitchForMode = (mode: string, currentYaw?: number, currentPitch?: number) => {
   if (mode === "top") return { yaw: 0, pitch: Math.PI / 2 - 0.01 };
@@ -287,16 +284,16 @@ const getInitialYawPitchForMode = (mode: string, currentYaw?: number, currentPit
   return { yaw: currentYaw ?? -Math.PI / 4, pitch: currentPitch ?? Math.PI / 6 };
 };
 
-const getProjectionAxes = (mode: string = globalCurrentViewMode, yaw: number = globalCurrentYaw, pitch: number = globalCurrentPitch) =>
+const getProjectionAxes = (mode: string = isoState.viewMode, yaw: number = isoState.yaw, pitch: number = isoState.pitch) =>
   getProjectionAxesEngine(mode, yaw, pitch);
 
 const isoProjectV4 = (x: number, y: number, z: number = 0, zoom: number = 1, panX: number = 0, panY: number = 0, mode?: string, yaw?: number, pitch?: number) =>
-  isoProjectV4Engine(x, y, z, zoom, panX, panY, mode, yaw, pitch, undefined, globalCurrentViewMode, globalCurrentYaw, globalCurrentPitch, globalModelCenter);
+  isoProjectV4Engine(x, y, z, zoom, panX, panY, mode, yaw, pitch, undefined, isoState.viewMode, isoState.yaw, isoState.pitch, isoState.modelCenter);
 
 const isoUnprojectV4 = (sx: number, sy: number, zoom: number, panX: number, panY: number, targetZ: number = 0, mode?: string, yaw?: number, pitch?: number) =>
   isoUnprojectV4Engine(
-    sx, sy, zoom, panX, panY, targetZ, mode, globalCurrentViewMode,
-    yaw, pitch, globalCurrentYaw, globalCurrentPitch, undefined, globalModelCenter
+    sx, sy, zoom, panX, panY, targetZ, mode, isoState.viewMode,
+    yaw, pitch, isoState.yaw, isoState.pitch, undefined, isoState.modelCenter
   );
 
 const getSvgCoordinates = (clientX:number, clientY:number, svg:SVGSVGElement|null) => {
@@ -1695,9 +1692,9 @@ function IsometrieModule(props: { projectId?: string }) {
   };
 
   // Synchronously update projection globals during render for real-time camera updates
-  globalCurrentViewMode = viewport.viewMode || "iso";
-  globalCurrentYaw = viewport.yaw ?? -Math.PI / 4;
-  globalCurrentPitch = viewport.pitch ?? Math.PI / 6;
+  isoState.viewMode = viewport.viewMode || "iso";
+  isoState.yaw = viewport.yaw ?? -Math.PI / 4;
+  isoState.pitch = viewport.pitch ?? Math.PI / 6;
 
   if (nodes.length > 0) {
     let sumX = 0, sumY = 0, sumZ = 0;
@@ -1706,13 +1703,13 @@ function IsometrieModule(props: { projectId?: string }) {
       sumY += nodes[i].y;
       sumZ += nodes[i].z || 0;
     }
-    globalModelCenter = {
+    isoState.modelCenter = {
       x: sumX / nodes.length,
       y: sumY / nodes.length,
       z: sumZ / nodes.length
     };
   } else {
-    globalModelCenter = { x: 0, y: 0, z: 0 };
+    isoState.modelCenter = { x: 0, y: 0, z: 0 };
   }
 
   const orbitDrag = useRef<{ x: number; y: number; startYaw: number; startPitch: number } | null>(null);
@@ -2041,7 +2038,7 @@ function IsometrieModule(props: { projectId?: string }) {
         sumY += activeNodes[i].y;
         sumZ += activeNodes[i].z || 0;
       }
-      globalModelCenter = {
+      isoState.modelCenter = {
         x: sumX / activeNodes.length,
         y: sumY / activeNodes.length,
         z: sumZ / activeNodes.length
@@ -2059,9 +2056,9 @@ function IsometrieModule(props: { projectId?: string }) {
       let ry = sy;
       let rz = sz;
       if (targetMode === "free") {
-        rx = sx - globalModelCenter.x;
-        ry = sy - globalModelCenter.y;
-        rz = sz - globalModelCenter.z;
+        rx = sx - isoState.modelCenter.x;
+        ry = sy - isoState.modelCenter.y;
+        rz = sz - isoState.modelCenter.z;
       }
       return {
         x: (rx * currentAxes.dx_x + ry * currentAxes.dx_y + rz * currentAxes.dx_z) * 28,
@@ -2414,9 +2411,9 @@ function IsometrieModule(props: { projectId?: string }) {
       let ry = targetWorldPos.y;
       let rz = targetWorldPos.z || 0;
       if (viewport.viewMode === "free") {
-        rx = targetWorldPos.x - (globalModelCenter.x || 0);
-        ry = targetWorldPos.y - (globalModelCenter.y || 0);
-        rz = (targetWorldPos.z || 0) - (globalModelCenter.z || 0);
+        rx = targetWorldPos.x - (isoState.modelCenter.x || 0);
+        ry = targetWorldPos.y - (isoState.modelCenter.y || 0);
+        rz = (targetWorldPos.z || 0) - (isoState.modelCenter.z || 0);
       }
 
       const projX = (rx * axes.dx_x + ry * axes.dx_y + rz * axes.dx_z) * scale;
