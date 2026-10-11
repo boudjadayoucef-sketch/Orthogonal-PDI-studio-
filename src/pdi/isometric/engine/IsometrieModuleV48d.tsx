@@ -30,6 +30,14 @@ import { pdiReorientPorts, pdiTolViewBox } from "./pdiPorts017P2";
 import { pdiIsoAxisDirs017P3, pdiNodeRadius017P3, pdiNodeHasFaceOffset017P3, PDI_METRE_CONVENTION_017P3 } from "./pdiAxes017P3";
 import { performUniversalAlign, performUniversalParallel, performObjectAlign, performObjectParallel, extractEntityAnchors, type PdiAnchorPoint } from "./pdiAlignParallel017Q";
 import { PDI_PATCH_VERSION } from "../../pdiVersion";
+import {
+  PDI_ISO_ANGLE_017I2,
+  PDI_ISO_COS_017I2,
+  PDI_ISO_SIN_017I2,
+  getProjectionAxes as getProjectionAxesEngine,
+  isoProjectV4 as isoProjectV4Engine,
+  isoUnprojectV4 as isoUnprojectV4Engine,
+} from "../core/isoProjectionEngine";
 import { pdiGlyphScale017P5 } from "./pdiGlyphes017P5";
 // PATCH 017P9 : source unique des anomalies (11 codes, un seul module).
 import { pdiUnifyAnomalies017P9, pdiAnomalieKind017P9, pdiAnomalieLibelle017P9 } from "./pdiAnomalies017P9";
@@ -264,12 +272,6 @@ export {
 
 type IsoDrawMode = "select" | "node" | "segment" | "coude" | "te" | "dimension";
 
-// PATCH 017I2 : l angle isometrique est constant (30 degres). Le calculer a
-// chaque projection coutait deux appels trigonometriques par point et par
-// rendu. Il est desormais evalue une seule fois au chargement du module.
-const PDI_ISO_ANGLE_017I2 = Math.PI / 6;
-const PDI_ISO_COS_017I2 = Math.cos(PDI_ISO_ANGLE_017I2);
-const PDI_ISO_SIN_017I2 = Math.sin(PDI_ISO_ANGLE_017I2);
 
 let globalCurrentViewMode = "iso";
 let globalCurrentYaw = -Math.PI / 4;
@@ -284,134 +286,14 @@ const getInitialYawPitchForMode = (mode: string, currentYaw?: number, currentPit
   return { yaw: currentYaw ?? -Math.PI / 4, pitch: currentPitch ?? Math.PI / 6 };
 };
 
-const getProjectionAxes = (mode: string = globalCurrentViewMode, yaw: number = globalCurrentYaw, pitch: number = globalCurrentPitch) => {
-  if (mode === "iso") {
-    return {
-      dx_x: PDI_ISO_COS_017I2,
-      dy_x: PDI_ISO_SIN_017I2,
-      dx_y: -PDI_ISO_COS_017I2,
-      dy_y: PDI_ISO_SIN_017I2,
-      dx_z: 0,
-      dy_z: -1
-    };
-  }
-  if (mode === "top") {
-    return {
-      dx_x: 1,
-      dy_x: 0,
-      dx_y: 0,
-      dy_y: 1,
-      dx_z: 0,
-      dy_z: 0
-    };
-  }
-  if (mode === "front") {
-    return {
-      dx_x: 1,
-      dy_x: 0,
-      dx_y: 0,
-      dy_y: 0,
-      dx_z: 0,
-      dy_z: -1
-    };
-  }
-  if (mode === "side") {
-    return {
-      dx_x: 0,
-      dy_x: 0,
-      dx_y: 1,
-      dy_y: 0,
-      dx_z: 0,
-      dy_z: -1
-    };
-  }
-  
-  // "free" mode: standard orthographic projection from yaw & pitch
-  const cosY = Math.cos(yaw);
-  const sinY = Math.sin(yaw);
-  const cosP = Math.cos(pitch);
-  const sinP = Math.sin(pitch);
-  
-  return {
-    dx_x: cosY,
-    dy_x: sinY * sinP,
-    dx_y: -sinY,
-    dy_y: cosY * sinP,
-    dx_z: 0,
-    dy_z: -cosP
-  };
-};
+const getProjectionAxes = (mode: string = globalCurrentViewMode, yaw: number = globalCurrentYaw, pitch: number = globalCurrentPitch) =>
+  getProjectionAxesEngine(mode, yaw, pitch);
 
-const isoProjectV4 = (x: number, y: number, z: number = 0, zoom: number = 1, panX: number = 0, panY: number = 0, mode?: string, yaw?: number, pitch?: number) => {
-  const safeX = typeof x === "number" && !isNaN(x) ? x : 0;
-  const safeY = typeof y === "number" && !isNaN(y) ? y : 0;
-  const safeZ = typeof z === "number" && !isNaN(z) ? z : 0;
-  const scale = 28 * zoom;
-  const currentMode = mode ?? globalCurrentViewMode;
-  const currentYaw = yaw ?? globalCurrentYaw;
-  const currentPitch = pitch ?? globalCurrentPitch;
-  const axes = getProjectionAxes(currentMode, currentYaw, currentPitch);
+const isoProjectV4 = (x: number, y: number, z: number = 0, zoom: number = 1, panX: number = 0, panY: number = 0, mode?: string, yaw?: number, pitch?: number) =>
+  isoProjectV4Engine(x, y, z, zoom, panX, panY, mode, yaw, pitch, undefined, globalCurrentViewMode, globalCurrentYaw, globalCurrentPitch, globalModelCenter);
 
-  let rx = safeX;
-  let ry = safeY;
-  let rz = safeZ;
-  if (currentMode === "free") {
-    rx = safeX - (globalModelCenter.x || 0);
-    ry = safeY - (globalModelCenter.y || 0);
-    rz = safeZ - (globalModelCenter.z || 0);
-  }
-
-  return {
-    x: 310 + panX + (rx * axes.dx_x + ry * axes.dx_y + rz * axes.dx_z) * scale,
-    y: 210 + panY + (rx * axes.dy_x + ry * axes.dy_y + rz * axes.dy_z) * scale
-  };
-};
-
-const isoUnprojectV4 = (sx:number,sy:number,zoom:number,panX:number,panY:number,targetZ:number=0) => {
-  const scale = Math.max(1, 28 * zoom);
-  const mode = globalCurrentViewMode;
-  
-  if (mode === "top") {
-    return {
-      x: (sx - 310 - panX) / scale,
-      y: (sy - 210 - panY) / scale,
-      z: targetZ
-    };
-  }
-  if (mode === "front") {
-    return {
-      x: (sx - 310 - panX) / scale,
-      y: 0,
-      z: -(sy - 210 - panY) / scale
-    };
-  }
-  if (mode === "side") {
-    return {
-      x: 0,
-      y: (sx - 310 - panX) / scale,
-      z: -(sy - 210 - panY) / scale
-    };
-  }
-
-  // ISO or FREE mode
-  const axes = getProjectionAxes();
-  const U = (sx - 310 - panX) / scale - targetZ * axes.dx_z;
-  const V = (sy - 210 - panY) / scale - targetZ * axes.dy_z;
-  
-  const det = axes.dx_x * axes.dy_y - axes.dx_y * axes.dy_x;
-  if (Math.abs(det) > 1e-4) {
-    return {
-      x: (U * axes.dy_y - V * axes.dx_y) / det,
-      y: (V * axes.dx_x - U * axes.dy_x) / det,
-      z: targetZ
-    };
-  }
-  
-  // Fallback to standard ISO unprojection math
-  const u = (sx - 310 - panX) / (PDI_ISO_COS_017I2 * scale);
-  const v = (sy + targetZ * scale - 210 - panY) / (PDI_ISO_SIN_017I2 * scale);
-  return { x: (u + v) / 2, y: (v - u) / 2, z: targetZ };
-};
+const isoUnprojectV4 = (sx: number, sy: number, zoom: number, panX: number, panY: number, targetZ: number = 0) =>
+  isoUnprojectV4Engine(sx, sy, zoom, panX, panY, targetZ, undefined, globalCurrentViewMode);
 
 const getSvgCoordinates = (clientX:number, clientY:number, svg:SVGSVGElement|null) => {
   if (!svg) return { sx: 310, sy: 200 };
