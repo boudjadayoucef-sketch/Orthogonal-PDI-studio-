@@ -1,15 +1,15 @@
-# ARCH-13 — SAFE ISOMETRIC PROJECTION EXTRACTION
+# ARCH-13 — SAFE ISOMETRIC PROJECTION EXTRACTION & FIXES (FIX-01 & FIX-02)
 
 **Repository:** `boudjadayoucef-sketch/Orthogonal-PDI-studio-`  
 **Branch:** `main`  
 **Starting Commit:** `e74c6ea1fc4f5d9fc27795f59a270ee03eace69a`  
-**Task ID:** `ARCH-13`  
+**Task ID:** `ARCH-13` (including `ARCH-13-FIX-01` & `ARCH-13-FIX-02`)  
 
 ---
 
 ## 1. EXECUTIVE SUMMARY
 
-`ARCH-13` continues the modularization roadmap for **Orthogonal PD&I Studio** by safely extracting the multi-view isometric projection and unprojection engine out of `src/pdi/isometric/engine/IsometrieModuleV48d.tsx` into a dedicated core engine module (`src/pdi/isometric/core/isoProjectionEngine.ts`), backed by automated Vitest tests.
+`ARCH-13` continues the modularization roadmap for **Orthogonal PD&I Studio** by safely extracting the multi-view isometric projection and unprojection engine out of `src/pdi/isometric/engine/IsometrieModuleV48d.tsx` into a dedicated core engine module (`src/pdi/isometric/core/isoProjectionEngine.ts`), backed by automated Vitest tests. Subsequent fixes (`FIX-01` & `FIX-02`) ensure full free-camera yaw, pitch, and model-center Z coordinate correctness during unprojection.
 
 ---
 
@@ -22,7 +22,7 @@
 - `globalModelCenter` (`{ x: number, y: number, z: number }`)
 
 ### 2.2 Dependency & Data Flow
-- **Input:** 3D world coordinates `(x, y, z)`, camera view parameters (`zoom`, `panX`, `panY`), and active view mode (`mode`, `yaw`, `pitch`, `modelCenter`).
+- **Input:** 3D world coordinates `(x, y, z)`, camera view parameters (`zoom`, `panX`, `panY`), active view mode (`mode`, `yaw`, `pitch`, `modelCenter`).
 - **Transformation:** Computes orthonormal projection axes via `getProjectionAxes()` and applies 3D orthographic / isometric matrix transformation with screen scaling and panning offset (`310 + panX`, `210 + panY`).
 - **Output:** 2D screen coordinates `(x, y)`.
 
@@ -33,10 +33,10 @@
 1. **`src/pdi/isometric/core/isoProjectionEngine.ts` (New)**:
    - Houses the extracted pure math and multi-view projection engine (`PDI_ISO_COS_017I2`, `PDI_ISO_SIN_017I2`, `getProjectionAxes`, `isoProjectV4`, `isoUnprojectV4`).
 2. **`src/pdi/isometric/engine/IsometrieModuleV48d.tsx` (Modified)**:
-   - Replaced inline projection functions with imports from `./core/isoProjectionEngine` while retaining backward compatibility for all local state handlers.
+   - Replaced inline projection functions with imports from `./core/isoProjectionEngine` while retaining backward compatibility for all local state handlers and forwarding active yaw, pitch, and model center.
 3. **`src/pdi/isometric/tests/arch13IsoProjectionEngineTests.spec.ts` (New)**:
-   - Vitest unit tests verifying projection axes across view modes, deterministic 3D-to-2D projection and unprojection, and zoom/pan scaling behavior.
-4. **`docs/architecture/ARCH13_SAFE_ISOMETRIC_PROJECTION_EXTRACTION.md` (New)**:
+   - Vitest unit tests verifying projection axes across view modes, deterministic 3D-to-2D projection/unprojection, free-camera yaw/pitch unprojection, and model-center Z correction.
+4. **`docs/architecture/ARCH13_SAFE_ISOMETRIC_PROJECTION_EXTRACTION.md` (Updated)**:
    - Architecture audit and extraction report.
 
 ---
@@ -54,28 +54,23 @@
 - **Tests Executed:**
   1. `computes projection axes correctly across view modes` (Passed)
   2. `projects and unprojects world points deterministically in iso mode` (Passed)
-  3. `handles zoom and pan scaling correctly` (Passed)
-- **Total Test Suites:** 8 test files, 17 tests passed with **100% success**.
+  3. `handles free camera mode with non-default yaw, pitch, and non-zero model center X, Y, Z accurately` (Passed)
+  4. `handles zoom and pan scaling correctly` (Passed)
+- **Total Test Suites:** 8 test files, 18 tests passed with **100% success**.
 
 ---
 
 ## 6. VALIDATION RESULTS
 
-1. **Vitest Unit Test Suite (`npx vitest run`)**: **PASSED (17/17 tests green)**.
+1. **Vitest Unit Test Suite (`npx vitest run`)**: **PASSED (18/18 tests green)**.
 2. **TypeScript Linter (`npx tsc --noEmit`)**: **PASSED WITH ZERO ERRORS**.
 3. **Production Build (`npm run build`)**: **BUILD SUCCEEDED SUCCESSFULLY**.
 
 ---
 
-## 7. DIFF SUMMARY & REMAINING RISKS
+## 7. CONCLUSION & STATUS
 
-- **Diff Summary:** Clean extraction of projection math into `isoProjectionEngine.ts`, wired into production module with zero breaking changes.
-- **Remaining Risks:** None. All view modes and unprojection fallback routines are fully covered by automated tests.
+- Normative rules, qualified formulas, B31.3/B31.8 calculation engines, and UI bindings remain untouched and intact.
+- No direct commit or push has been performed.
 
----
-
-## 8. RECOMMENDED NEXT STEP
-
-- Proceed to **ARCH-14** (Isometric Import/Export & DXF/PCF Serialization Extraction) when requested.
-
-**ARCH-13: IMPLEMENTED**
+**ARCH-13-FIX-02: IMPLEMENTED**

@@ -7,7 +7,7 @@ import {
   PDI_ISO_SIN_017I2,
 } from "../core/isoProjectionEngine";
 
-describe("ARCH-13 / ARCH-13-FIX-01 — Safe Isometric Projection & Free Camera Unprojection", () => {
+describe("ARCH-13 / ARCH-13-FIX-02 — Safe Isometric Projection & Free Camera Model-Center Z Correction", () => {
   it("computes projection axes correctly across view modes", () => {
     const isoAxes = getProjectionAxes("iso");
     expect(isoAxes.dx_x).toBeCloseTo(PDI_ISO_COS_017I2, 5);
@@ -38,21 +38,24 @@ describe("ARCH-13 / ARCH-13-FIX-01 — Safe Isometric Projection & Free Camera U
     expect(unprojected.z).toBe(p3d.z);
   });
 
-  it("handles free camera mode with non-default yaw and pitch accurately", () => {
-    const customYaw = 0.5;
-    const customPitch = 0.8;
-    const modelCenter = { x: 5, y: 5, z: 0 };
-    const p3d = { x: 8, y: 7, z: 3 };
+  it("handles free camera mode with non-default yaw, pitch, and non-zero model center X, Y, Z accurately", () => {
+    const customYaw = 0.6;
+    const customPitch = 0.7;
+    const modelCenter = { x: 10, y: 20, z: 5 };
+    const p3d = { x: 14, y: 22, z: 12 }; // Z differs from model-center Z (5)
+    const zoom = 1.5;
+    const panX = 40;
+    const panY = -30;
 
     const screen = isoProjectV4(
       p3d.x, p3d.y, p3d.z,
-      1.2, 10, -20,
+      zoom, panX, panY,
       "free", customYaw, customPitch, modelCenter
     );
 
     const unprojected = isoUnprojectV4(
       screen.x, screen.y,
-      1.2, 10, -20,
+      zoom, panX, panY,
       p3d.z,
       "free", "iso",
       customYaw, customPitch,
