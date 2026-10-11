@@ -278,6 +278,13 @@ export function buildPipelineMultiCodeResolutionContext(
 export interface EvaluateB31_8ReadinessOptions {
   readonly resolverConfig?: MultiCodeResolverConfig;
   readonly sourceDocumentRegistry?: INormativeSourceDocumentRegistry;
+  /**
+   * Exécuteur de calcul optionnel permettant aux tests d'audit de vérifier
+   * avec certitude que `executeEngineeringCalculation` n'est jamais invoqué
+   * lorsque la garde de préparation B31.8 bloque l'exécution.
+   * Par défaut : `executeEngineeringCalculation`.
+   */
+  readonly calculationEngineExecutor?: typeof executeEngineeringCalculation;
 }
 
 /**
@@ -613,16 +620,21 @@ export function evaluateB31_8PipelineReadiness(
       : `CODE_RESOLUTION_${multiCodeResolution.status}`;
     blockedReasonMessage =
       "Exécution numérique bloquée : le code ASME B31.8 n'a pas été résolu de manière unique et sans conflit.";
+  } else if (!domainAndFluidValid) {
+    status = "BLOCKED_UNVERIFIED_NORMATIVE_EVIDENCE";
+    blockedReasonCode = "EDITION_OR_SOURCE_EVIDENCE_UNVERIFIED";
+    blockedReasonMessage =
+      "Exécution numérique bloquée : le service gaz naturel n'est pas intégralement déclaré et qualifié sans ambiguïté (service non déclaré ou service hydrogène/mélange nécessitant une qualification normative dédiée).";
   } else if (!isCalculationAvailable || !isCalculationQualified) {
     status = "BLOCKED_CALCULATION_NOT_IMPLEMENTED";
     blockedReasonCode = "CODE_CALCULATION_NOT_IMPLEMENTED";
     blockedReasonMessage =
       "Exécution numérique bloquée : ASME B31.8 est correctement identifié (domaine PIPELINE, édition 2022), mais les calculs numériques B31.8 ont le statut NOT_IMPLEMENTED faute de source normative vérifiée et de formules qualifiées.";
-  } else if (!isEditionEvidenceVerified || !sourceDocInfo.isVerified || !domainAndFluidValid) {
+  } else if (!isEditionEvidenceVerified || !sourceDocInfo.isVerified) {
     status = "BLOCKED_UNVERIFIED_NORMATIVE_EVIDENCE";
     blockedReasonCode = "EDITION_OR_SOURCE_EVIDENCE_UNVERIFIED";
     blockedReasonMessage =
-      "Exécution numérique bloquée : les preuves normatives d'édition ou de service gaz ne sont pas intégralement VERIFIED.";
+      "Exécution numérique bloquée : les preuves normatives d'édition ou du document source ASME B31.8 ne sont pas intégralement VERIFIED.";
   } else {
     status = "READY_FOR_CALCULATION";
   }
@@ -651,10 +663,14 @@ export function evaluateB31_8PipelineReadiness(
 
 /**
  * Étape 6 : Exécute de manière contrôlée une demande de calcul sur un contexte de pipeline ASME B31.8.
- * - Vérifie d'abord les 5 premières étapes via `evaluateB31_8PipelineReadiness`.
+ * - Vérifie d'abord les 5 premières étapes et la porte d'exécution de l'étape 6 via `evaluateB31_8PipelineReadiness`.
  * - Interdit formellement toute substitution inter-codes (ex: passer un `calculationInput` B31.3 ou B31.12).
- * - Tant qu'ASME B31.8 est `NOT_IMPLEMENTED` dans `DESIGN_CODE_CALCULATION_REGISTRY`, délègue ou retourne
- *   un résultat `EngineeringCalculationResult` avec `status: "NOT_IMPLEMENTED"` sans jamais inventer de formule.
+ * - Bloque directement toute délégation au moteur normatif (`executeEngineeringCalculation`) dès lors que :
+ *   - `readiness.status !== "READY_FOR_CALCULATION"`, ou
+ *   - `readiness.stage6NumericalExecutionGate.canExecuteNumericalCalculation !== true`.
+ * - En particulier :
+ *   - `BLOCKED_UNVERIFIED_NORMATIVE_EVIDENCE` est bloqué directement sans appeler `executeEngineeringCalculation`,
+ *   - `BLOCKED_CALCULATION_NOT_IMPLEMENTED` retourne directement `status: "NOT_IMPLEMENTED"` (`calculationExecuted: false`) sans appeler `executeEngineeringCalculation`.
  */
 export function executeGuardedB31_8PipelineCalculation(
   readinessRequest: B31_8PipelineReadinessRequest,
@@ -695,7 +711,23 @@ export function executeGuardedB31_8PipelineCalculation(
     });
   }
 
-  // Si la requête ou le modèle de domaine est invalide, ou si le code n'est pas résolu sur B31.8
+  const effectiveEdition =
+    calculationInput.standardEdition ??
+    readiness.stage2CodeIdentification.identifiedEdition;
+
+  const frozenInputsSummary = Object.freeze({
+    pressure: calculationInput.pressure,
+    temperature: calculationInput.temperature,
+    outsideDiameterMm: calculationInput.outsideDiameterMm,
+    wallThicknessMm: calculationInput.wallThicknessMm,
+    corrosionAllowanceMm: calculationInput.corrosionAllowanceMm,
+    weldJointFactor: calculationInput.weldJointFactor,
+    allowableStressMpa: calculationInput.allowableStressMpa,
+    designFactor: calculationInput.designFactor,
+    unitSystem: calculationInput.unitSystem,
+  });
+
+  // 1. Requête invalide, modèle/domaine invalide, ou résolution de code bloquée
   if (
     readiness.status === "INVALID_READINESS_REQUEST" ||
     readiness.status === "BLOCKED_DOMAIN_OR_MODEL_INVALID" ||
@@ -708,13 +740,8 @@ export function executeGuardedB31_8PipelineCalculation(
         status: "INVALID_INPUT",
         calculationType: calculationInput.calculationType,
         designCodeId: calculationInput.designCodeId,
-        standardEdition:
-          calculationInput.standardEdition ??
-          readiness.stage2CodeIdentification.identifiedEdition,
-        inputs: Object.freeze({
-          pressure: calculationInput.pressure,
-          unitSystem: calculationInput.unitSystem,
-        }),
+        standardEdition: effectiveEdition,
+        inputs: frozenInputsSummary,
         assumptions: Object.freeze([]),
         warnings: Object.freeze([]),
         errors: Object.freeze([
@@ -726,15 +753,94 @@ export function executeGuardedB31_8PipelineCalculation(
     });
   }
 
-  // Délégation au moteur normatif canonique `executeEngineeringCalculation` (NORM-08),
-  // qui garantit le retour déterministe `NOT_IMPLEMENTED` tant qu'ASME-B31.8 n'a aucune formule qualifiée.
-  const engineResult = executeEngineeringCalculation(calculationInput, {
+  // 2. Calcul non implémenté ou non qualifié : blocage direct par la garde sans déléguer à executeEngineeringCalculation
+  if (readiness.status === "BLOCKED_CALCULATION_NOT_IMPLEMENTED") {
+    return Object.freeze({
+      readiness,
+      calculationExecuted: false,
+      calculationResult: Object.freeze({
+        status: "NOT_IMPLEMENTED",
+        calculationType: calculationInput.calculationType,
+        designCodeId: calculationInput.designCodeId,
+        standardEdition: effectiveEdition,
+        inputs: frozenInputsSummary,
+        assumptions: Object.freeze([]),
+        warnings: Object.freeze([]),
+        errors: Object.freeze([
+          `BLOCKED_CALCULATION_NOT_IMPLEMENTED (${
+            readiness.stage6NumericalExecutionGate.blockedReasonCode ??
+            "CODE_CALCULATION_NOT_IMPLEMENTED"
+          }): ${
+            readiness.stage6NumericalExecutionGate.blockedReasonMessage ??
+            "Calcul numérique ASME B31.8 non implémenté ou non qualifié."
+          }`,
+          ...readiness.messages,
+        ]),
+      }),
+    });
+  }
+
+  // 3. Preuves normatives d'édition/document source ou service gaz non vérifiés : blocage direct sans déléguer à executeEngineeringCalculation
+  if (readiness.status === "BLOCKED_UNVERIFIED_NORMATIVE_EVIDENCE") {
+    return Object.freeze({
+      readiness,
+      calculationExecuted: false,
+      calculationResult: Object.freeze({
+        status: "INVALID_INPUT",
+        calculationType: calculationInput.calculationType,
+        designCodeId: calculationInput.designCodeId,
+        standardEdition: effectiveEdition,
+        inputs: frozenInputsSummary,
+        assumptions: Object.freeze([]),
+        warnings: Object.freeze([]),
+        errors: Object.freeze([
+          `BLOCKED_UNVERIFIED_NORMATIVE_EVIDENCE (${
+            readiness.stage6NumericalExecutionGate.blockedReasonCode ??
+            "EDITION_OR_SOURCE_EVIDENCE_UNVERIFIED"
+          }): ${
+            readiness.stage6NumericalExecutionGate.blockedReasonMessage ??
+            "Preuves normatives d'édition, document source ou service gaz non vérifiés."
+          }`,
+          ...readiness.messages,
+        ]),
+      }),
+    });
+  }
+
+  // 4. Garde finale stricte : aucune délégation au moteur normatif n'est autorisée
+  // si readiness.status !== "READY_FOR_CALCULATION" ou si canExecuteNumericalCalculation !== true.
+  if (
+    readiness.status !== "READY_FOR_CALCULATION" ||
+    readiness.stage6NumericalExecutionGate.canExecuteNumericalCalculation !== true
+  ) {
+    return Object.freeze({
+      readiness,
+      calculationExecuted: false,
+      calculationResult: Object.freeze({
+        status: "INVALID_INPUT",
+        calculationType: calculationInput.calculationType,
+        designCodeId: calculationInput.designCodeId,
+        standardEdition: effectiveEdition,
+        inputs: frozenInputsSummary,
+        assumptions: Object.freeze([]),
+        warnings: Object.freeze([]),
+        errors: Object.freeze([
+          readiness.stage6NumericalExecutionGate.blockedReasonMessage ??
+            "Exécution numérique bloquée par la garde de préparation ASME B31.8.",
+          ...readiness.messages,
+        ]),
+      }),
+    });
+  }
+
+  // Délégation autorisée uniquement lorsque readiness.status === "READY_FOR_CALCULATION"
+  // ET readiness.stage6NumericalExecutionGate.canExecuteNumericalCalculation === true.
+  const executor = options?.calculationEngineExecutor ?? executeEngineeringCalculation;
+  const engineResult = executor(calculationInput, {
     projectId: readinessRequest.system.projectId,
     pipingSpecificationId: readinessRequest.pipingSpecId,
     designCodeId: ASME_B31_8_DESIGN_CODE_ID,
-    standardEdition:
-      calculationInput.standardEdition ??
-      readiness.stage2CodeIdentification.identifiedEdition,
+    standardEdition: effectiveEdition,
     unitSystem: calculationInput.unitSystem,
   });
 

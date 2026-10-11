@@ -19,7 +19,7 @@ L'objectif d'**ARCH-11** est d'intégrer de manière typée et déterministe l'a
 3. **Normative evidence and verification status** : inspection du statut réel du document source `DOC-ASME-B31.8-2022` (`UNVERIFIED` dans `UPCOMING_NORMATIVE_SOURCE_DOCUMENTS`) et des preuves `NormativeEvidence` d'édition (`UNVERIFIED` par défaut).
 4. **Calculation qualification** : évaluation de la qualification des références de formules `ASME-B31.8` dans `DESIGN_CODE_CALCULATION_REGISTRY` (`NOT_QUALIFIED`, `qualifiedFormulaCount: 0`).
 5. **Calculation availability** : évaluation de la disponibilité réelle des calculs `ASME-B31.8` (`NOT_IMPLEMENTED`, `isCalculationAvailable: false`).
-6. **Numerical execution and result validation** : garde d'exécution numérique (`executeGuardedB31_8PipelineCalculation`) interdisant toute substitution inter-codes (`ASME-B31.3`, `ASME-B31.8`, `ASME-B31.12`) et retournant `NOT_IMPLEMENTED` sans jamais inventer d'équation, de clause ou de coefficient.
+6. **Numerical execution and result validation** : garde d'exécution numérique stricte (`executeGuardedB31_8PipelineCalculation`) interdisant toute substitution inter-codes (`ASME-B31.3`, `ASME-B31.8`, `ASME-B31.12`) et **bloquant directement toute délégation à `executeEngineeringCalculation()`** tant que `readiness.status !== "READY_FOR_CALCULATION"` ou `readiness.stage6NumericalExecutionGate.canExecuteNumericalCalculation !== true` (y compris sur `BLOCKED_CALCULATION_NOT_IMPLEMENTED` et `BLOCKED_UNVERIFIED_NORMATIVE_EVIDENCE`), sans jamais inventer d'équation, de clause ou de coefficient.
 
 ---
 
@@ -38,8 +38,8 @@ Conformément à l'inspection du dépôt :
 | Fichier | Action | Rôle |
 | :--- | :--- | :--- |
 | `src/pdi/normative/types/b31_8ReadinessTypes.ts` | Créé | Contrats TypeScript immuables des 6 étapes d'évaluation de préparation B31.8 (`B31_8PipelineReadinessRequest`, `B31_8PipelineReadinessResult`, rapports d'étapes 1 à 6, `B31_8GuardedCalculationExecutionResult`). |
-| `src/pdi/normative/engine/b31_8ReadinessEngine.ts` | Créé | Validateur anti-inférence (`validateB31_8PipelineReadinessRequest`), constructeur de contexte (`buildPipelineMultiCodeResolutionContext`), moteur d'évaluation à 6 étapes (`evaluateB31_8PipelineReadiness`) et garde d'exécution numérique (`executeGuardedB31_8PipelineCalculation`). |
-| `src/pdi/normative/tests/arch11B31_8PipelineReadinessTests.ts` | Créé | Suite de tests déterministe ARCH-11 (8 scénarios complets). |
+| `src/pdi/normative/engine/b31_8ReadinessEngine.ts` | Créé / Mis à jour (`ARCH-11-FIX-01`) | Validateur anti-inférence (`validateB31_8PipelineReadinessRequest`), constructeur de contexte (`buildPipelineMultiCodeResolutionContext`), moteur d'évaluation à 6 étapes (`evaluateB31_8PipelineReadiness`) et garde d'exécution numérique stricte (`executeGuardedB31_8PipelineCalculation`). |
+| `src/pdi/normative/tests/arch11B31_8PipelineReadinessTests.ts` | Créé / Mis à jour (`ARCH-11-FIX-01`) | Suite de tests déterministe ARCH-11 (10 scénarios complets incluant les tests de non-délégation de la garde stricte). |
 | `src/pdi/normative/tests/arch11B31_8PipelineReadinessTests.spec.ts` | Créé | Adaptateur Vitest pour l'exécution via `npm test`. |
 | `src/pdi/normative/index.ts` | Modifié | Réexport public des types, fonctions et tests ARCH-11. |
-| `docs/architecture/ARCH11_ASME_B31_8_READINESS.md` | Créé | Documentation architecturale fidèle au code livré. |
+| `docs/architecture/ARCH11_ASME_B31_8_READINESS.md` | Créé / Mis à jour (`ARCH-11-FIX-01`) | Documentation architecturale fidèle au code livré. |

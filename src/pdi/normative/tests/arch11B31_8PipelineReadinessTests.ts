@@ -792,6 +792,283 @@ export function runArch11B31_8PipelineReadinessTests(): Arch11TestResult {
     assert(arch10.success === true, `ARCH-10 doit rester PASS: ${arch10.failures.join("; ")}`);
   });
 
+  // =========================================================================
+  // TEST 09 [ARCH-11-FIX-01] : GARDE D'EXÉCUTION STRICTE SUR BLOCKED_CALCULATION_NOT_IMPLEMENTED
+  // =========================================================================
+  runTest("TEST 09 [ARCH-11-FIX-01]: executeGuardedB31_8PipelineCalculation bloque directement BLOCKED_CALCULATION_NOT_IMPLEMENTED sans déléguer à executeEngineeringCalculation", () => {
+    const gasSystem = createSampleGasPipelineSystem();
+    let engineDelegationCount = 0;
+
+    const guardedRes = executeGuardedB31_8PipelineCalculation(
+      {
+        system: gasSystem,
+        segmentId: "SEG-GAS-01",
+        requestedCalculationType: "PRESSURE_WALL_THICKNESS",
+        unitSystem: "SI",
+      },
+      {
+        designCodeId: "ASME-B31.8",
+        calculationType: "PRESSURE_WALL_THICKNESS",
+        pressure: 8.5,
+        temperature: 60,
+        outsideDiameterMm: 610,
+        wallThicknessMm: 12.7,
+        corrosionAllowanceMm: 0,
+        weldJointFactor: 1.0,
+        allowableStressMpa: 300,
+        designFactor: 0.72,
+        unitSystem: "SI",
+      },
+      {
+        calculationEngineExecutor: (...args) => {
+          engineDelegationCount++;
+          return executeEngineeringCalculation(...args);
+        },
+      }
+    );
+
+    assert(
+      engineDelegationCount === 0,
+      `executeEngineeringCalculation ne doit JAMAIS être appelé lorsque readiness.status === BLOCKED_CALCULATION_NOT_IMPLEMENTED (appels: ${engineDelegationCount})`
+    );
+    assert(
+      guardedRes.readiness.status === "BLOCKED_CALCULATION_NOT_IMPLEMENTED",
+      `Le statut de préparation doit être BLOCKED_CALCULATION_NOT_IMPLEMENTED (reçu: ${guardedRes.readiness.status})`
+    );
+    assert(
+      guardedRes.readiness.stage6NumericalExecutionGate.canExecuteNumericalCalculation === false,
+      "canExecuteNumericalCalculation doit être false"
+    );
+    assert(
+      guardedRes.calculationExecuted === false,
+      "calculationExecuted doit être false"
+    );
+    assert(
+      guardedRes.calculationResult.status === "NOT_IMPLEMENTED",
+      `Le statut du résultat bloqué doit être NOT_IMPLEMENTED (reçu: ${guardedRes.calculationResult.status})`
+    );
+    assert(
+      guardedRes.calculationResult.errors.some((e) =>
+        e.includes("BLOCKED_CALCULATION_NOT_IMPLEMENTED (CODE_CALCULATION_NOT_IMPLEMENTED)")
+      ),
+      "Le résultat bloqué doit porter le diagnostic direct BLOCKED_CALCULATION_NOT_IMPLEMENTED de la garde ARCH-11"
+    );
+    assert(
+      Object.isFrozen(guardedRes) &&
+        Object.isFrozen(guardedRes.calculationResult) &&
+        Object.isFrozen(guardedRes.calculationResult.errors),
+      "Le résultat de la garde doit être profondément gelé"
+    );
+  });
+
+  // =========================================================================
+  // TEST 10 [ARCH-11-FIX-01] : GARDE D'EXÉCUTION STRICTE SUR BLOCKED_UNVERIFIED_NORMATIVE_EVIDENCE ET TOUT ÉTAT NON-READY
+  // =========================================================================
+  runTest("TEST 10 [ARCH-11-FIX-01]: executeGuardedB31_8PipelineCalculation bloque directement BLOCKED_UNVERIFIED_NORMATIVE_EVIDENCE et tous les états non-READY sans jamais déléguer à executeEngineeringCalculation", () => {
+    const gasSystem = createSampleGasPipelineSystem();
+    let engineDelegationCount = 0;
+    const spyExecutor: typeof executeEngineeringCalculation = (...args) => {
+      engineDelegationCount++;
+      return executeEngineeringCalculation(...args);
+    };
+
+    // Cas A : Système gaz avec preuves d'édition explicitement absentes/UNVERIFIED
+    const guardedUnverified = executeGuardedB31_8PipelineCalculation(
+      {
+        system: gasSystem,
+        segmentId: "SEG-GAS-01",
+        requestedEdition: { year: "2022" },
+        evidenceIds: ["EVID-NON-EXISTENT-UNVERIFIED"],
+      },
+      {
+        designCodeId: "ASME-B31.8",
+        calculationType: "HOOP_STRESS",
+        pressure: 8.5,
+        outsideDiameterMm: 610,
+        wallThicknessMm: 12.7,
+        unitSystem: "SI",
+      },
+      { calculationEngineExecutor: spyExecutor }
+    );
+
+    assert(
+      engineDelegationCount === 0,
+      "Aucune délégation à executeEngineeringCalculation ne doit avoir lieu (Cas A)"
+    );
+    assert(
+      guardedUnverified.readiness.stage3NormativeEvidence.isEditionEvidenceVerified === false &&
+        guardedUnverified.readiness.stage3NormativeEvidence.isAuthoritativeSourceVerified === false,
+      "Les preuves d'édition et le document source sont UNVERIFIED"
+    );
+    assert(
+      guardedUnverified.readiness.stage6NumericalExecutionGate.canExecuteNumericalCalculation === false,
+      "canExecuteNumericalCalculation doit être false lorsque les preuves sont UNVERIFIED"
+    );
+    assert(
+      guardedUnverified.calculationExecuted === false,
+      "calculationExecuted doit être false"
+    );
+    assert(
+      guardedUnverified.calculationResult.value === undefined,
+      "Aucune valeur numérique ne doit être calculée"
+    );
+
+    // Cas B : Fluide H2/Blend (gasServiceStatus !== GAS_SERVICE_DECLARED) -> bloqué sans délégation
+    const blendSystem = createPipelineSystem({
+      id: "SYS-BLEND-GUARD",
+      name: "NG-H2 Blend Pipeline",
+      service: {
+        fluidCategory: "NATURAL_GAS_HYDROGEN_BLEND",
+        phase: "GAS",
+        hydrogenMoleFractionPercent: 10,
+      },
+      nodes: [
+        createPipelineNode({ id: "N1", systemId: "SYS-BLEND-GUARD", name: "N1" }),
+        createPipelineNode({ id: "N2", systemId: "SYS-BLEND-GUARD", name: "N2" }),
+      ],
+      segments: [
+        createPipelineSegment({
+          id: "S-BLEND-GUARD",
+          systemId: "SYS-BLEND-GUARD",
+          name: "Blend Segment",
+          startNodeId: "N1",
+          endNodeId: "N2",
+        }),
+      ],
+      traceabilityRefs: { designCodeRef: "ASME-B31.8" },
+    });
+
+    const guardedBlend = executeGuardedB31_8PipelineCalculation(
+      {
+        system: blendSystem,
+        segmentId: "S-BLEND-GUARD",
+      },
+      {
+        designCodeId: "ASME-B31.8",
+        calculationType: "PRESSURE_WALL_THICKNESS",
+        pressure: 8.5,
+        outsideDiameterMm: 610,
+        unitSystem: "SI",
+      },
+      { calculationEngineExecutor: spyExecutor }
+    );
+
+    assert(
+      engineDelegationCount === 0,
+      "Aucune délégation à executeEngineeringCalculation ne doit avoir lieu (Cas B)"
+    );
+    assert(
+      guardedBlend.readiness.status === "BLOCKED_UNVERIFIED_NORMATIVE_EVIDENCE",
+      "Le statut de préparation doit être BLOCKED_UNVERIFIED_NORMATIVE_EVIDENCE pour un mélange H2 non qualifié"
+    );
+    assert(
+      guardedBlend.readiness.stage6NumericalExecutionGate.canExecuteNumericalCalculation === false,
+      "canExecuteNumericalCalculation doit être false pour un mélange H2 non qualifié"
+    );
+    assert(
+      guardedBlend.calculationExecuted === false,
+      "calculationExecuted doit être false"
+    );
+    assert(
+      guardedBlend.calculationResult.status === "INVALID_INPUT",
+      "Le statut retourné par la garde sur BLOCKED_UNVERIFIED_NORMATIVE_EVIDENCE doit être INVALID_INPUT sans exécution numérique"
+    );
+
+    // Cas C : Requête invalide, modèle invalide et résolution de code bloquée -> 0 délégation
+    const guardedInvalidModel = executeGuardedB31_8PipelineCalculation(
+      {
+        system: gasSystem,
+        segmentId: "SEG-UNKNOWN-999",
+      },
+      {
+        designCodeId: "ASME-B31.8",
+        calculationType: "PRESSURE_WALL_THICKNESS",
+        pressure: 8.5,
+        outsideDiameterMm: 610,
+        unitSystem: "SI",
+      },
+      { calculationEngineExecutor: spyExecutor }
+    );
+    assert(
+      engineDelegationCount === 0 &&
+        guardedInvalidModel.readiness.status === "BLOCKED_DOMAIN_OR_MODEL_INVALID" &&
+        guardedInvalidModel.calculationExecuted === false &&
+        guardedInvalidModel.calculationResult.status === "INVALID_INPUT",
+      "Un segment introuvable doit bloquer en BLOCKED_DOMAIN_OR_MODEL_INVALID / INVALID_INPUT sans délégation"
+    );
+
+    // Cas D : Pipeline avec service non déclaré ou mélange H2/GN sous référence ASME-B31.8 ->
+    // readiness.status === "BLOCKED_UNVERIFIED_NORMATIVE_EVIDENCE" et 0 délégation à executeEngineeringCalculation !
+    const undeclaredServiceSystem = createPipelineSystem({
+      id: "SYS-GAS-UNDECLARED",
+      name: "Pipeline Without Declared Fluid Service",
+      nodes: [
+        createPipelineNode({ id: "N1", systemId: "SYS-GAS-UNDECLARED", name: "N1" }),
+        createPipelineNode({ id: "N2", systemId: "SYS-GAS-UNDECLARED", name: "N2" }),
+      ],
+      segments: [
+        createPipelineSegment({
+          id: "SEG-UNDECLARED-01",
+          systemId: "SYS-GAS-UNDECLARED",
+          name: "Segment 01",
+          startNodeId: "N1",
+          endNodeId: "N2",
+          traceabilityRefs: { designCodeRef: "ASME-B31.8" },
+        }),
+      ],
+      traceabilityRefs: { designCodeRef: "ASME-B31.8" },
+    });
+
+    const guardedExplicitUnverifiedStatus = executeGuardedB31_8PipelineCalculation(
+      {
+        system: undeclaredServiceSystem,
+        segmentId: "SEG-UNDECLARED-01",
+        requestedCalculationType: "PRESSURE_WALL_THICKNESS",
+        unitSystem: "SI",
+      },
+      {
+        designCodeId: "ASME-B31.8",
+        calculationType: "PRESSURE_WALL_THICKNESS",
+        pressure: 8.5,
+        outsideDiameterMm: 610,
+        wallThicknessMm: 12.7,
+        unitSystem: "SI",
+      },
+      {
+        calculationEngineExecutor: spyExecutor,
+      }
+    );
+
+    assert(
+      guardedExplicitUnverifiedStatus.readiness.status ===
+        "BLOCKED_UNVERIFIED_NORMATIVE_EVIDENCE",
+      `Le statut de préparation doit être exactement BLOCKED_UNVERIFIED_NORMATIVE_EVIDENCE (reçu: ${guardedExplicitUnverifiedStatus.readiness.status})`
+    );
+    assert(
+      guardedExplicitUnverifiedStatus.readiness.stage6NumericalExecutionGate
+        .canExecuteNumericalCalculation === false,
+      "canExecuteNumericalCalculation doit être false sur BLOCKED_UNVERIFIED_NORMATIVE_EVIDENCE"
+    );
+    assert(
+      engineDelegationCount === 0,
+      `executeEngineeringCalculation ne doit JAMAIS être appelé sur BLOCKED_UNVERIFIED_NORMATIVE_EVIDENCE (appels: ${engineDelegationCount})`
+    );
+    assert(
+      guardedExplicitUnverifiedStatus.calculationExecuted === false,
+      "calculationExecuted doit être false sur BLOCKED_UNVERIFIED_NORMATIVE_EVIDENCE"
+    );
+    assert(
+      guardedExplicitUnverifiedStatus.calculationResult.status === "INVALID_INPUT",
+      `Le résultat bloqué sur BLOCKED_UNVERIFIED_NORMATIVE_EVIDENCE doit avoir le statut INVALID_INPUT (reçu: ${guardedExplicitUnverifiedStatus.calculationResult.status})`
+    );
+    assert(
+      guardedExplicitUnverifiedStatus.calculationResult.errors.some((e) =>
+        e.includes("BLOCKED_UNVERIFIED_NORMATIVE_EVIDENCE (EDITION_OR_SOURCE_EVIDENCE_UNVERIFIED)")
+      ),
+      "Le résultat bloqué doit contenir l'erreur explicite BLOCKED_UNVERIFIED_NORMATIVE_EVIDENCE"
+    );
+  });
+
   return Object.freeze({
     success: testsFailed === 0,
     testsRun,
