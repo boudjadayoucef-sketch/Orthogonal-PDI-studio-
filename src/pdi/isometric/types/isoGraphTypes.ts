@@ -29,6 +29,15 @@ export type IsoFittingType =
 export type IsoEquipmentType = IsoFittingType;
 export type IsoPortRole = "inline-in" | "inline-out" | "branch" | "aux";
 export type JointConnectionType = "butt_weld" | "socket_weld" | "fillet_weld" | "flanged" | "threaded" | "mechanical" | "unknown";
+export const JOINT_Connection_TYPES: JointConnectionType[] = [
+  "butt_weld",
+  "socket_weld",
+  "fillet_weld",
+  "flanged",
+  "threaded",
+  "mechanical",
+  "unknown",
+];
 
 export interface IsoPort {
   id: string;
@@ -400,3 +409,17 @@ export const FITTING_LABELS: Record<IsoFittingType, string> = {
 };
 
 export const FITTING_TYPES = Object.keys(FITTING_LABELS) as IsoFittingType[];
+
+export const WALL_BY_SCHEDULE: Record<string, number> = {
+  "STD": 5.54,
+  "XS": 7.82,
+  "XXS": 11.1,
+  "SCH40": 5.54,
+  "SCH80": 8.18,
+};
+
+export const ISO_GRAPH_LIMITS = {
+  MAX_NODES: 500,
+  MAX_SEGMENTS: 500,
+};
+
