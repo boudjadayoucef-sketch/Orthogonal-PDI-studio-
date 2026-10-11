@@ -456,7 +456,7 @@ const UNSCOPED_AUTOSAVE_PREVIOUS_KEY = "isometrie.autosave.v474.previous";
 const UNSCOPED_AUTOSAVE_V47_KEY = "isometrie.autosave.v47";
 const UNSCOPED_AUTOSAVE_CORRUPT_KEY = "isometrie.autosave.v474.corrupt";
 
-function migrateProjectFileV474(value:unknown, fallbackOwnerUid = ""):IsoProjectFileV474 {
+export function migrateProjectFileV474(value:unknown, fallbackOwnerUid = ""):IsoProjectFileV474 {
   if(!value||typeof value!=="object")throw new Error("Fichier projet vide ou invalide");
   const raw=value as any,sourceModel=raw.model||raw;
   if(!Array.isArray(sourceModel.nodes)||!Array.isArray(sourceModel.segments))throw new Error("Le projet ne contient pas de graphe valide");
