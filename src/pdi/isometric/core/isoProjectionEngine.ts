@@ -2,7 +2,7 @@
  * ORTHOGONAL - ENG · PIPING DESIGN & ISOMETRICS (PD&I)
  * COPYRIGHT (C) 2026 ORTHOGONAL - ENG. ALL RIGHTS RESERVED.
  * PROPRIETARY INDUSTRIAL PIPING CAD & ISOMETRIC ENGINE.
- * ARCH-13: SAFE ISOMETRIC PROJECTION ENGINE.
+ * ARCH-13-FIX-01: SAFE ISOMETRIC PROJECTION ENGINE WITH RESTORED FREE-CAMERA UNPROJECTION.
  */
 
 export const PDI_ISO_ANGLE_017I2 = Math.PI / 6;
@@ -142,10 +142,17 @@ export function isoUnprojectV4(
   mode?: string,
   globalViewMode: string = "iso",
   yaw?: number,
-  pitch?: number
+  pitch?: number,
+  globalYaw: number = -Math.PI / 4,
+  globalPitch: number = Math.PI / 6,
+  modelCenter?: WorldPoint3D,
+  globalModelCenter: WorldPoint3D = { x: 0, y: 0, z: 0 }
 ): WorldPoint3D {
   const scale = Math.max(1, 28 * zoom);
   const currentMode = mode ?? globalViewMode;
+  const currentYaw = yaw ?? globalYaw;
+  const currentPitch = pitch ?? globalPitch;
+  const center = modelCenter ?? globalModelCenter;
 
   if (currentMode === "top") {
     return {
@@ -170,21 +177,33 @@ export function isoUnprojectV4(
   }
 
   // ISO or FREE mode
-  const axes = getProjectionAxes(currentMode, yaw, pitch);
+  const axes = getProjectionAxes(currentMode, currentYaw, currentPitch);
   const U = (sx - 310 - panX) / scale - targetZ * axes.dx_z;
   const V = (sy - 210 - panY) / scale - targetZ * axes.dy_z;
 
   const det = axes.dx_x * axes.dy_y - axes.dx_y * axes.dy_x;
+  let rx = 0;
+  let ry = 0;
+  let rz = targetZ;
+
   if (Math.abs(det) > 1e-4) {
+    rx = (U * axes.dy_y - V * axes.dx_y) / det;
+    ry = (V * axes.dx_x - U * axes.dy_x) / det;
+  } else {
+    // Fallback to standard ISO unprojection math
+    const u = (sx - 310 - panX) / (PDI_ISO_COS_017I2 * scale);
+    const v = (sy + targetZ * scale - 210 - panY) / (PDI_ISO_SIN_017I2 * scale);
+    rx = (u + v) / 2;
+    ry = (v - u) / 2;
+  }
+
+  if (currentMode === "free") {
     return {
-      x: (U * axes.dy_y - V * axes.dx_y) / det,
-      y: (V * axes.dx_x - U * axes.dy_x) / det,
-      z: targetZ
+      x: rx + (center.x || 0),
+      y: ry + (center.y || 0),
+      z: rz + (center.z || 0)
     };
   }
 
-  // Fallback to standard ISO unprojection math
-  const u = (sx - 310 - panX) / (PDI_ISO_COS_017I2 * scale);
-  const v = (sy + targetZ * scale - 210 - panY) / (PDI_ISO_SIN_017I2 * scale);
-  return { x: (u + v) / 2, y: (v - u) / 2, z: targetZ };
+  return { x: rx, y: ry, z: rz };
 }

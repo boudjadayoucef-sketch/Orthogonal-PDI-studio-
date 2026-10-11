@@ -292,8 +292,11 @@ const getProjectionAxes = (mode: string = globalCurrentViewMode, yaw: number = g
 const isoProjectV4 = (x: number, y: number, z: number = 0, zoom: number = 1, panX: number = 0, panY: number = 0, mode?: string, yaw?: number, pitch?: number) =>
   isoProjectV4Engine(x, y, z, zoom, panX, panY, mode, yaw, pitch, undefined, globalCurrentViewMode, globalCurrentYaw, globalCurrentPitch, globalModelCenter);
 
-const isoUnprojectV4 = (sx: number, sy: number, zoom: number, panX: number, panY: number, targetZ: number = 0) =>
-  isoUnprojectV4Engine(sx, sy, zoom, panX, panY, targetZ, undefined, globalCurrentViewMode);
+const isoUnprojectV4 = (sx: number, sy: number, zoom: number, panX: number, panY: number, targetZ: number = 0, mode?: string, yaw?: number, pitch?: number) =>
+  isoUnprojectV4Engine(
+    sx, sy, zoom, panX, panY, targetZ, mode, globalCurrentViewMode,
+    yaw, pitch, globalCurrentYaw, globalCurrentPitch, undefined, globalModelCenter
+  );
 
 const getSvgCoordinates = (clientX:number, clientY:number, svg:SVGSVGElement|null) => {
   if (!svg) return { sx: 310, sy: 200 };
